@@ -571,6 +571,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <h2>Réglages</h2>
     <div class="row" id="view-row"><span>Vue</span><span class="choice"><button id="flat" class="tip" aria-pressed="true">2D</button><button id="dimension" class="tip" aria-pressed="false">3D</button></span></div>
     <div class="row"><span>Animations</span><span class="choice"><button id="motion-auto" class="tip">Auto</button><button id="motion-less" class="tip">Réduites</button></span></div>
+    <div class="row"><span>Qualité 3D</span><span class="choice"><button id="quality-high" class="tip">Haute</button><button id="quality-fast" class="tip">Rapide</button></span></div>
     <div class="row in-game"><span>Graphe de performance</span><button id="perf-toggle" class="tip" aria-pressed="false" aria-controls="perf">Afficher</button></div>
     <div class="row"><span>Clavier et tactile</span><button id="help" class="tip">Voir</button></div>
     <div class="row at-planet"><span>Importer une partie</span><button id="import" class="tip">Choisir</button></div>
@@ -5364,7 +5365,7 @@ function perfFrame(now, cpu) {
   PERF.frames++; PERF.cpu += cpu; PERF.cpuPeak = Math.max(PERF.cpuPeak, cpu);
   if (now - PERF.since < 100) return;
   const n = PERF.frames, costs = Object.fromEntries(Object.entries(PERF.cost).map(([id, ms]) => [id, ms / n]));
-  PERF.history.push({at:now, costs, cpu:PERF.cpu / n, cpuPeak:PERF.cpuPeak, frame:PERF.gaps ? PERF.frameSum / PERF.gaps : 0, framePeak:PERF.framePeak});
+  PERF.history.push({at:now, costs, gpu:view3d?.gpu?.() ?? null, cpu:PERF.cpu / n, cpuPeak:PERF.cpuPeak, frame:PERF.gaps ? PERF.frameSum / PERF.gaps : 0, framePeak:PERF.framePeak});
   while (PERF.history.length && PERF.history[0].at < now - 30000) PERF.history.shift();
   Object.assign(PERF, {cost:perfZero(), frames:0, gaps:0, frameSum:0, framePeak:0, cpu:0, cpuPeak:0, since:now});
   drawPerf();
@@ -5378,7 +5379,7 @@ function drawPerf() {
   g.clearRect(0, 0, width, height);
   const list = PERF.history, last = list.at(-1), now = last?.at ?? performance.now();
   // The scale follows the usual frame, a rare stall keeps its value written above the chart.
-  const tops = list.map(s => Math.max(s.cpu, s.frame)).sort((a, b) => a - b);
+  const tops = list.map(s => Math.max(s.cpu, s.frame, s.gpu ?? 0)).sort((a, b) => a - b);
   const ceiling = Math.max(36, Math.ceil((tops[Math.max(0, Math.ceil(tops.length * .9) - 1)] ?? 0) / 10) * 10);
   const left = 30, right = 6, top = 8, bottom = 18;
   const x = at => left + (at - now + 30000) / 30000 * (width - left - right);
@@ -5409,6 +5410,10 @@ function drawPerf() {
   line('cpuPeak', '#F0A03C88', 1, [2, 3]);
   line('framePeak', '#FFFFFF44', 1, [2, 3]);
   line('frame', '#FFFFFF', 1.6);
+  g.beginPath(); g.strokeStyle = '#66D9EA'; g.lineWidth = 1.6; g.setLineDash([]);
+  let on = false;
+  for (const s of list) { if (s.gpu == null) { on = false; continue; } (on ? g.lineTo : g.moveTo).call(g, x(s.at), y(s.gpu)); on = true; }
+  g.stroke();
   g.restore();
   const peak = Math.max(0, ...list.map(s => Math.max(s.framePeak, s.cpuPeak)));
   if (peak > ceiling) { g.fillStyle = '#F0A03C'; g.textAlign = 'right'; g.fillText(`pic ${peak.toFixed(0)} ms`, width - right, top + 9); }
@@ -5416,6 +5421,7 @@ function drawPerf() {
   const fps = last.frame ? 1000 / last.frame : 0, figure = n => n.toFixed(1).replace('.', ',');
   $('perf-sum').textContent = `${Math.round(fps)} images/s · ${figure(last.frame)} ms entre deux · CPU ${figure(last.cpu)} ms par image`;
   for (const [id] of PERF_KINDS) $(`perf-${id}`).textContent = `${figure(last.costs[id])} ms`;
+  $('perf-gpu').textContent = last.gpu == null ? (view3d ? 'indisponible' : 'en 3D seulement') : `${figure(last.gpu)} ms`;
   $('perf-other').textContent = `${figure(Math.max(0, last.cpu - Object.values(last.costs).reduce((a, b) => a + b, 0)))} ms`;
 }
 function showPerf(on) {
@@ -5425,8 +5431,21 @@ function showPerf(on) {
   $('perf-toggle').setAttribute('aria-pressed', on);
   $('perf-toggle').textContent = on ? 'Masquer' : 'Afficher';
 }
-$('perf-legend').innerHTML = [...PERF_KINDS, ['other', 'Autre code de l’image', '#84909C']].map(([id, name, color]) =>
+$('perf-legend').innerHTML = [...PERF_KINDS, ['other', 'Autre code de l’image', '#84909C'], ['gpu', 'Carte graphique (trait)', '#66D9EA']].map(([id, name, color]) =>
   `<p><i style="background:${color}"></i><span>${name}</span><b id="perf-${id}">–</b></p>`).join('');
+// The 3D view reads it when it is made: a change remakes an open one.
+const QUALITY_KEY = 'strainworks-3d-quality';
+function setQuality(fast, remake) {
+  window.quality3d = fast ? 'fast' : 'high';
+  $('quality-high').setAttribute('aria-pressed', !fast);
+  $('quality-fast').setAttribute('aria-pressed', fast);
+  if (!remake || !made3d || switching) return;
+  const open = Boolean(view3d);
+  made3d.dispose(); made3d = view3d = null;
+  if (open) show3D(true);
+}
+for (const [id, fast] of [['quality-high', false], ['quality-fast', true]]) $(id).onclick = () => { setQuality(fast, true); keep(QUALITY_KEY, fast ? 'fast' : 'high'); };
+setQuality(stored(QUALITY_KEY) === 'fast', false);
 $('perf-toggle').onclick = () => { showPerf(!PERF.on); keep(PERF_KEY, PERF.on ? 'on' : 'off'); };
 // Time spent in the background is not a stall of the game.
 document.addEventListener('visibilitychange', () => { if (PERF.on && !document.hidden) perfReset(); });

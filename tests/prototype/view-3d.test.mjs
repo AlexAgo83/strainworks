@@ -132,3 +132,23 @@ it("draws the same game and lands a finger on the same cell", async () => {
     await browser.close();
   }
 });
+
+it("remakes the 3D view at the quality picked, and says when the GPU cannot be timed", async () => {
+  const browser = await launch();
+  try {
+    const { page, errors } = await open(browser);
+    await fromMenu(page, "dimension");
+    await page.waitForFunction(() => view3d !== null);
+    await page.evaluate(() => { window.firstView = view3d; });
+    await fromMenu(page, "quality-fast");
+    await page.waitForFunction(() => view3d !== null && view3d !== window.firstView);
+    const state = await page.evaluate(() => {
+      const gpu = view3d.gpu();
+      return { quality: window.quality3d, kept: localStorage.getItem("strainworks-3d-quality"), gpu: gpu === null || gpu >= 0, pressed: document.querySelector("#quality-fast").getAttribute("aria-pressed") };
+    });
+    expect(state).toEqual({ quality: "fast", kept: "fast", gpu: true, pressed: "true" });
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});

@@ -19,7 +19,9 @@ The **3D** button beside the zoom draws the same game in Babylon.js. The prototy
 
 Settings > **Graphe de performance** shows 30 s of what each frame costs on the main thread, by kind
 (simulation, fog, 2D drawing, 3D view, interface, save), with the real time between frames and the
-60 and 30 images a second lines. Hidden, nothing is measured. GPU time is not measured.
+60 and 30 images a second lines. In 3D a cyan line shows the GPU time of a frame where the browser can
+time it, and says so where it cannot. Hidden, nothing is measured. Settings > **Qualité 3D** > Rapide
+draws the 3D view in screen pixels with smaller shadows and a lighter glow.
 
 ## Build the site
 

@@ -7,7 +7,12 @@ window.createView3D = (glCanvas) => {
   const tilt = Math.sin(ELEVATION);
   const lean = Math.cos(ELEVATION) / tilt; // cells of ground hidden behind one cell of height
   const engine = new B.Engine(glCanvas, true, { stencil: true }, false);
-  engine.setHardwareScalingLevel(1 / Math.min(1.75, window.devicePixelRatio || 1));
+  // Fast: screen pixels, smaller shadows and a lighter glow, for graphics cards that cannot keep up.
+  const fast = window.quality3d === 'fast';
+  engine.setHardwareScalingLevel(1 / (fast ? 1 : Math.min(1.75, window.devicePixelRatio || 1)));
+  // GPU time of a frame, where the browser offers timer queries (the performance graph reads it).
+  const timing = engine.getCaps().timerQuery ? new B.EngineInstrumentation(engine) : null;
+  if (timing) timing.captureGPUFrameTime = true;
   const scene = new B.Scene(engine);
   scene.clearColor = new B.Color4(0.012, 0.025, 0.03, 1);
   scene.ambientColor = new B.Color3(0.1, 0.14, 0.15);
@@ -44,11 +49,11 @@ window.createView3D = (glCanvas) => {
   heart.diffuse = B.Color3.FromHexString('#B7F34A');
   heart.range = 11;
 
-  const shadows = new B.ShadowGenerator(2048, sun);
+  const shadows = new B.ShadowGenerator(fast ? 1024 : 2048, sun);
   shadows.usePercentageCloserFiltering = true;
   shadows.bias = 0.002;
   shadows.setDarkness(0.3);
-  const glow = new B.GlowLayer('glow', scene, { mainTextureFixedSize: 512, blurKernelSize: 24 });
+  const glow = new B.GlowLayer('glow', scene, { mainTextureFixedSize: fast ? 256 : 512, blurKernelSize: fast ? 12 : 24 });
   glow.intensity = 0.6;
 
   const terrain = window.createTerrain3D(B, scene, glow);
@@ -304,6 +309,8 @@ window.createView3D = (glCanvas) => {
   let width = 0;
   let height = 0;
   return {
+    // Milliseconds, or null where the browser cannot measure it.
+    gpu() { const c = timing?.gpuFrameTimeCounter; return c?.count ? c.lastSecAverage * 1e-6 : null; },
     tilt,
     ground: terrain.groundAt,
     // A tap on the top of a tall object means that object, though the ground behind it is another cell.
