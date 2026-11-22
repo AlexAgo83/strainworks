@@ -362,6 +362,22 @@ window.createModels3D = (B, scene) => {
     },
 
     // A rotor whose blade shows where the next item leaves.
+    // A T with a rocker that tips to the side the next item takes.
+    split2(c, x, y) {
+      const out = facing(c.dir);
+      const exits = splitExits(c);
+      footing(x, y, 0.84);
+      add('hull', 'steel', x, y, 0.26, 0.42, 0.26, 0.8, out);
+      add('hull', 'dark', ...from(x, y, out, 0.3), 0.3, 0.12, 0.34, 0.4, out);
+      for (const d of exits) nozzle(x, y, d, 0.24, 'chrome');
+      intake(x, y, (c.dir + 2) % 4, c.item);
+      const next = c.turn % 2;
+      const tip = next ? 1 : -1;
+      limb('copper', ...from(x, y, out, 0, -0.26), 0.5 + tip * 0.07, ...from(x, y, out, 0, 0.26), 0.5 - tip * 0.07, 0.11);
+      add('bead', 'chrome', x, y, 0.53, 0.15);
+      for (let i = 0; i < 2; i++) add('bead', i === next ? 'amber' : 'off', ...from(x, y, out, 0.26, i ? 0.1 : -0.1), 0.5, 0.09);
+    },
+
     split(c, x, y) {
       footing(x, y, 0.84);
       add('hull', 'steel', x, y, 0.28, 0.66, 0.3, 0.66);
@@ -1067,7 +1083,7 @@ window.createModels3D = (B, scene) => {
         }
       }
       if (cam.zoom < 9) continue;
-      if ((isBelt(c) || c.type === 'split' || c.type === 'sort') && c.item) {
+      if ((isBelt(c) || isSplit(c) || c.type === 'sort') && c.item) {
         const p = along(c, c.from, exitOf(c), c.t);
         cargo(c.item, p.x, p.y, isBelt(c) ? 0.27 : 0.66, p.angle);
       }

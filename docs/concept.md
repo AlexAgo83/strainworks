@@ -37,6 +37,7 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Limited defenses | Decided | Walls and turrets are not unlimited: rising ADN cost, proposed scale in section 10 |
 | Build time | Decided | Nothing appears at once: sites do not advance while paused |
 | Builder drones | Decided | As many drones as simultaneous sites: a site only advances while its drone is beside it |
+| Two splitters | Decided | Two ways (left and right) from the start, three ways unlocked by tech |
 | Dismantling | Decided | It takes time and a drone, like building |
 | Repair | Decided | Damaged buildings repair over time |
 | Goal besides defense | Decided | The core demands shapes: delivering them grows it and unlocks what follows. Three stages in the prototype |
@@ -107,7 +108,7 @@ Ages unlock technologies, not matters. A gene is unlocked by delivering it in qu
 
 - Planning while paused is allowed, but sites only advance while the game runs.
 - **3 drones live on the core, one per site**, and take sites in placement order. A site only advances while its drone is within 2 cells. A drone flies 20 cells per second and goes from one site to the next without returning to its nest.
-- Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitter and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, Gueule 5 s, turret 6 s, Dard 7 s, vein by length.
+- Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitters and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, Gueule 5 s, turret 6 s, Dard 7 s, vein by length.
 - A site does not carry, shoot, block or attract creatures.
 - **Dismantling shares the same drones and queue, and lasts as long as building did.** A building works until its drone starts, the refund comes at the end, and it can be cancelled. A site nobody started is cancelled at once.
 
@@ -285,7 +286,7 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 
 | Prototype stage | The core demands | Unlocks |
 |---|---|---|
-| 1. Cell (Cellule) | 100 Motor (SFS), loose | splitter, sorter, Encapsulator |
+| 1. Cell (Cellule) | 100 Motor (SFS), loose | three-way splitter, sorter, Encapsulator |
 | 2. Tissue (Tissu) | capsules of Shell (CCF): 2 genes per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
 | 3. Organ (Organe) | 10 capsules of 6 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
 

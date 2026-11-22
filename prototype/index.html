@@ -135,7 +135,8 @@ const TYPES = {
   turret:{name:'Tourelle', help:'Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.', hp:180},
   cyst:{name:'Kyste', help:'Stocke 60 objets et les ressort par la flèche. À remplir avant un assaut.', hp:80},
   bridge:{name:'Pont', help:'Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie.', hp:40},
-  split:{name:'Diviseur', help:'Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.', hp:40},
+  split2:{name:'Diviseur 2', help:'Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.', hp:40},
+  split:{name:'Diviseur 3', help:'Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.', hp:40},
   sort:{name:'Trieur', help:'Entrée derrière. Ce qui correspond au filtre sort du côté choisi, le reste va tout droit.', hp:40},
   wire:{name:'Nerf', help:'Tire entre une tourelle (Dard et Gueule compris), un feu ou un trieur, 24 cases au plus. La tourelle dit ce qu’il lui faut, les autres écoutent.', hp:30},
   sting:{name:'Dard', help:'Longue portée : 13 cases. Un tir par seconde, qui fait deux fois les dégâts. Fragile, garde-le derrière.', hp:120},
@@ -146,7 +147,7 @@ const TYPES = {
 const VEIN = {reach:24, speed:16, pulse:.5, load:8, cap:48, hp:50};
 const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 const STAGES = [
-  {name:'Cellule', item:'SFS', count:100, gives:'Diviseur, Trieur et Encapsuleur'},
+  {name:'Cellule', item:'SFS', count:100, gives:'Diviseur 3, Trieur et Encapsuleur'},
   {name:'Tissu', item:'T:CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2 et Assembleur'},
   {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4'}
 ];
@@ -161,6 +162,11 @@ const GUNS = {
   maw:{range:4, pace:2.5, volley:2, power:1, cost:30}
 };
 const isGun = c => Boolean(c && GUNS[c.type]);
+// The ways out of a splitter, counted from the way it faces, in the order they take turns.
+// 'split' is the three-way one: it was the only one, saved games hold it under that name.
+const SPLIT = {split2:[3, 1], split:[3, 0, 1]};
+const isSplit = c => Boolean(c && SPLIT[c.type]);
+const splitExits = c => SPLIT[c.type].map(turn => (c.dir + turn) % 4);
 const boxOf = item => item[1] === ':' ? item[0] : '';
 const contentOf = item => boxOf(item) ? item.slice(2) : item;
 const NEEDS = {split:1, sort:1, pack:1, pump:2, join:2, wire:2, track:3, pocket:3, worm:3};
@@ -274,7 +280,7 @@ function richAt(x, y) {
 let wormId = null;
 // The way the next piece faces is the player's, kept from one piece, one game and one visit to the next.
 const HEADING_KEY = 'strainworks-heading';
-const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','split','sort'];
+const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','split2','split','sort'];
 const WAYS = ['haut','droite','bas','gauche'];
 let heading = 0;
 try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) {}
@@ -310,7 +316,7 @@ const refund = c => PRICE[c.type] ? Math.floor(PRICE[c.type](owned(c.type) - 1) 
 // Work only advances with the simulation and only with a drone at the site: one drone a site, oldest site first.
 const BUILDERS = 3;
 const DRONE = {speed:20, reach:2, longest:4}; // a flight never takes over 4 s, so far ones cruise faster
-const BUILD = {belt:.15, gate:.5, bridge:.5, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5, pack:2.5, sting:7, maw:5};
+const BUILD = {belt:.15, gate:.5, bridge:.5, split2:1, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5, pack:2.5, sting:7, maw:5};
 // cut: a drone has started taking it down. Until then it goes on working.
 const built = c => !(c?.left > 0) && !c?.cut;
 // Healing starts after some quiet, so a wall under attack still falls. The core heals more slowly.
@@ -580,8 +586,9 @@ function wayOf(c, axis) {
     do after = ahead(after, dir); while (after?.type === 'bridge');
     if (before && ['belt','gate','mine','ligase','join','pack','cyst','split','sort'].includes(before.type) && before.dir === dir) return dir;
     if (before?.type === 'sort' && sideExit(before) === dir) return dir;
+    if (before?.type === 'split2' && splitExits(before).includes(dir)) return dir;
     if (before && drains(before)) return dir;
-    if (after && ['belt','gate','split','sort'].includes(after.type) && after.dir === dir) return dir;
+    if (after && ['belt','gate','split2','split','sort'].includes(after.type) && after.dir === dir) return dir;
   }
   return null;
 }
@@ -823,7 +830,7 @@ function connects(c, travel) {
   if (!c) return false;
   const back = (travel + 2) % 4;
   if (['belt','gate','ligase','cyst'].includes(c.type)) return back !== c.dir;
-  if (c.type === 'split' || c.type === 'sort') return travel === c.dir;
+  if (isSplit(c) || c.type === 'sort') return travel === c.dir;
   if (c.type === 'bridge') { const way = c.ways?.[travel % 2]; return way == null || way === travel; }
   if (c.type === 'pocket') return !c.unload;
   if (c.type === 'join') return joinPort(c, travel) >= 0;
@@ -833,7 +840,7 @@ function connects(c, travel) {
 function accepts(c, item, travel) {
   if (!built(c) || !connects(c, travel)) return false;
   switch (c.type) {
-    case 'belt': case 'split': case 'sort': return !c.item;
+    case 'belt': case 'split2': case 'split': case 'sort': return !c.item;
     case 'gate': return !c.item && (listens(c) ? asked(c, item) : c.open);
     case 'ligase': return item in BASE && c.ports[portOf(c, travel)].length < 2;
     case 'pack': return packTakes(c, item, packPort(c, travel));
@@ -852,7 +859,7 @@ function accepts(c, item, travel) {
 function receive(c, item, travel, carry = 0) {
   c.from = travel;
   if (c.type === 'sort') c.seen = contentOf(item);
-  if (isBelt(c) || c.type === 'split' || c.type === 'sort') { c.item = item; c.t = carry; }
+  if (isBelt(c) || isSplit(c) || c.type === 'sort') { c.item = item; c.t = carry; }
   else if (c.type === 'ligase') c.ports[portOf(c, travel)].push(item);
   else if (c.type === 'cyst' || c.type === 'pump' || c.type === 'pocket') c.stock.push(item);
   else if (c.type === 'join') c.ports[joinPort(c, travel)].push(item);
@@ -869,7 +876,7 @@ function flow(dt) {
   pulse(dt, boost);
   crawl(dt, boost);
   for (const c of cells) {
-    if (isBelt(c) || c.type === 'split' || c.type === 'sort') c.t = c.item ? advance(c.t, dt * 4 * boost) : 0;
+    if (isBelt(c) || isSplit(c) || c.type === 'sort') c.t = c.item ? advance(c.t, dt * 4 * boost) : 0;
     if (c.type === 'bridge') for (const lane of c.lanes) if (lane) lane.t = advance(lane.t, dt * 4 * boost);
     if (c.type === 'cyst') c.t = advance(c.t, dt * 4 * boost);
     if (!['mine','ligase','join','pack'].includes(c.type)) continue;
@@ -921,9 +928,12 @@ function flow(dt) {
       if (c.type === 'bridge') c.lanes.forEach((lane, i) => {
         if (lane && lane.t >= .999) offer(c, lane.item, lane.dir, () => { c.lanes[i] = null; }, lane.t - 1);
       });
-      if (c.type === 'split' && c.item && c.t >= .999) for (let i = 0; i < 3; i++) {
-        const choice = (c.turn + i) % 3, dir = (c.dir + [3, 0, 1][choice]) % 4;
-        if (offer(c, c.item, dir, () => { c.item = null; c.turn = (choice + 1) % 3; }, c.t - 1)) break;
+      if (isSplit(c) && c.item && c.t >= .999) {
+        const exits = splitExits(c), n = exits.length;
+        for (let i = 0; i < n; i++) {
+          const choice = (c.turn + i) % n;
+          if (offer(c, c.item, exits[choice], () => { c.item = null; c.turn = (choice + 1) % n; }, c.t - 1)) break;
+        }
       }
     }
     if (!offers.size) break;
@@ -1137,7 +1147,7 @@ function feeders(c, wanted) {
     const from = ahead(c, side);
     if (!from) continue;
     const dir = (side + 2) % 4;
-    const emits = (drains(from) && !(from.type === 'pump' && c.type === 'pump') && !(isBelt(c) && c.dir === (dir + 2) % 4)) || (from.type === 'bridge' && wayOf(from, dir % 2) === dir) || (from.type === 'sort' && (dir === from.dir || dir === sideExit(from))) || (from.type === 'split' ? from.dir !== (dir + 2) % 4 : 'belt gate mine ligase join pack cyst'.split(' ').includes(from.type) && from.dir === dir);
+    const emits = (drains(from) && !(from.type === 'pump' && c.type === 'pump') && !(isBelt(c) && c.dir === (dir + 2) % 4)) || (from.type === 'bridge' && wayOf(from, dir % 2) === dir) || (from.type === 'sort' && (dir === from.dir || dir === sideExit(from))) || (isSplit(from) ? splitExits(from).includes(dir) : 'belt gate mine ligase join pack cyst'.split(' ').includes(from.type) && from.dir === dir);
     if (emits && connects(c, dir)) found.push({c:from, dir});
   }
   return found;
@@ -1155,7 +1165,7 @@ function upstream(c, side) {
       links = back ? [{c:back, dir}] : feeders(from);
       continue;
     }
-    links = feeders(from, ['bridge','split','sort'].includes(from.type) ? ((from.type === 'bridge' ? dir : from.dir) + 2) % 4 : null);
+    links = feeders(from, ['bridge','split2','split','sort'].includes(from.type) ? ((from.type === 'bridge' ? dir : from.dir) + 2) % 4 : null);
   }
   return path;
 }
@@ -1363,12 +1373,14 @@ function exitOf(c) {
     // The same base can be wanted in two positions: what is too much goes on to the next sorter.
     return c.read && !(to && accepts(to, c.item, side)) ? c.dir : side;
   }
-  if (c.type !== 'split') return c.dir;
-  for (let i = 0; i < 3; i++) {
-    const dir = (c.dir + [3, 0, 1][(c.turn + i) % 3]) % 4, to = ahead(c, dir);
+  if (!isSplit(c)) return c.dir;
+  const exits = splitExits(c), n = exits.length;
+  for (let i = 0; i < n; i++) {
+    const dir = exits[(c.turn + i) % n], to = ahead(c, dir);
     if (to && accepts(to, c.item, dir)) return dir;
   }
-  return c.dir;
+  // Blocked, what waits leans towards a way out it has.
+  return exits.includes(c.dir) ? c.dir : exits[c.turn % n];
 }
 function polygon(g, points, fill, stroke, width = .04) {
   g.beginPath(); points.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
@@ -1515,9 +1527,15 @@ function drawCell(g, c, inputs = []) {
     const fill = c.stock.length / 60;
     circle(g,0,0,.18 + fill*.22,fill > .95 ? '#FF4D5E' : '#7A2638','#FF8FA2');
     arrow(g,c.dir,.54,'#FF8FA2');
-  } else if (type === 'split') {
-    for (const turn of [3,0,1]) arrow(g,(c.dir+turn)%4,.43);
-    circle(g,0,0,.12,'#6A8D94');
+  } else if (type === 'split' || type === 'split2') {
+    for (const dir of splitExits(c)) arrow(g,dir,.43);
+    if (type === 'split') circle(g,0,0,.12,'#6A8D94');
+    else {
+      // A T, closed straight ahead.
+      const fx = DX[c.dir], fy = DY[c.dir];
+      g.strokeStyle = '#6A8D94'; g.lineWidth = .1; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(fy*.2,-fx*.2); g.lineTo(-fy*.2,fx*.2); g.moveTo(0,0); g.lineTo(-fx*.22,-fy*.22); g.stroke();
+    }
   } else if (type === 'sort') {
     arrow(g,c.dir,.46,'#A3B8B3'); arrow(g,sideExit(c),.52,'#B7F34A');
     if (c.x != null && listens(c)) { reading(g,c,netOf(c)); return; }
@@ -1604,7 +1622,7 @@ function draw() {
   for (const c of cells) {
     const x = c.x+.5, y = c.y+.5;
     const detail = cam.zoom >= 11;
-    if (detail && (isBelt(c) || c.type === 'split' || c.type === 'sort') && c.item) {
+    if (detail && (isBelt(c) || isSplit(c) || c.type === 'sort') && c.item) {
       const at = along(c,c.from,exitOf(c),c.t);
       token(ctx,c.item,at.x,at.y,at.angle);
     }
@@ -2119,9 +2137,9 @@ function place(x,y) {
   }
   if (tool === 'erase') return wipe(x,y);
   if (old) {
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split','sort'].includes(tool)) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split2','split','sort'].includes(tool)) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
     // A bridge may replace a belt, to make a crossing on an existing line.
-    else if (old.type === 'belt' && ['bridge','split','sort','gate'].includes(tool)) { build(tool,x,y,old.dir); }
+    else if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) { build(tool,x,y,old.dir); }
     select(id);
     return;
   }
@@ -2254,8 +2272,8 @@ function preview() {
   }
   if (old) {
     if (drawing) return to('select');
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
-    if (old.type === 'belt' && ['bridge','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
+    if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
     return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
   }
   const cost = price(tool), ghost = {type:tool, dir:drawing && drag?.heading != null ? drag.heading : heading, cost};
@@ -2293,7 +2311,9 @@ function drawPreview(g, models) {
     g.setLineDash([.4, .3]); circle(g, x + .5, y + .5, GUNS[p.type].range, null, color + '99', 1.5 / cam.zoom); g.setLineDash([]);
   }
   if (p.dir != null && !['wall','turret','sting','maw','pump','pocket','bridge'].includes(p.type)) {
-    g.save(); g.translate(x + .5, y + .5); arrow(g, p.dir, .72, color); g.restore();
+    g.save(); g.translate(x + .5, y + .5);
+    for (const dir of p.type === 'split2' ? splitExits(p) : [p.dir]) arrow(g, dir, .72, color);
+    g.restore();
   }
   if (act === 'no' || act === 'scrap') {
     g.beginPath(); g.moveTo(x + .3, y + .3); g.lineTo(x + .7, y + .7); g.moveTo(x + .7, y + .3); g.lineTo(x + .3, y + .7);
@@ -2520,7 +2540,7 @@ $('rebuild').onclick = () => {
 };
 
 // What is usable from the start comes first, then each stage's tools in the order they open.
-const TOOLBAR = ['hand','erase','belt','mine','ligase','turret','sting','maw','wall','cyst','bridge','gate','split','sort','pack','pump','join','wire','track','pocket','worm'];
+const TOOLBAR = ['hand','erase','belt','mine','ligase','turret','sting','maw','wall','cyst','bridge','gate','split2','split','sort','pack','pump','join','wire','track','pocket','worm'];
 for (const [type,info] of TOOLBAR.map(type => [type,TYPES[type]])) {
   const b = document.createElement('button'), icon = document.createElement('canvas'), g = icon.getContext('2d');
   icon.width = icon.height = 52; b.dataset.type = type;
