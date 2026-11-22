@@ -253,7 +253,7 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 
 - **Breaches sleep** while nothing is built or drawn inside their circle. Each guards a rich deposit and shows its weak gene and creature count.
 - **Levels**: every 160 cells from the core, up to level 5 at 640: 70 to 260 creatures, 1 to 3 times as tough, guarding x4 to x8. Carbon far out goes from x2 to x6, unguarded.
-- **Fog**: the core sees 28 cells, a structure 18, a drone at work or a worm 8. What was seen stays, dimmed, as last seen, without creatures. A nest shows once ground in sight reaches its circle, so none wakes unseen.
+- **Fog**: the core sees 56 cells, a structure 18, a drone at work or a worm 8. What was seen stays, dimmed, as last seen, without creatures. A nest shows once ground in sight reaches its circle, so none wakes unseen. Its edge is a soft dark mist that breathes, never drawn lines.
 - **Few nests**: six on the landing square, a single one, to the north, within 30 cells of the core. Two x2 deposits are free, the other rich ones are guarded. Beyond, nests stand at least 30 cells apart, about one in 70 cells each way.
 - Once awake, a breach sends prowlers and assaults. **Emptied, it fades**, returns the ground and pays in ADN.
 - Defense is prepared at the edge of the circle, then the player expands: each advance needs its outpost and its supply.
