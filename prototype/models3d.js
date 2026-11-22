@@ -611,8 +611,12 @@ window.createModels3D = (B, scene) => {
 
   // ---- The ground
   function fields(area) {
-    for (const [kind, x, y, w, h] of FIELDS) {
-      if (x + w < area.x0 || x > area.x1 || y + h < area.y0 || y > area.y1) continue;
+    for (const [kind, x, y, w, h] of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
+      // From very far, one big sign for a field.
+      if (cam.zoom < 6.5) {
+        base(kind, x + w / 2, y + h / 2, 0.8, Math.min(w, h) * 0.22);
+        continue;
+      }
       for (let i = x; i < x + w; i++) {
         for (let j = y; j < y + h; j++) {
           if (i < area.x0 - 1 || i > area.x1 + 1 || j < area.y0 - 1 || j > area.y1 + 1) continue;
@@ -694,7 +698,13 @@ window.createModels3D = (B, scene) => {
 
   // A crater with a maw: eggs for what is left inside, arms that curl shut while it sleeps.
   function breaches(area) {
-    for (const b of G.breaches) {
+    for (const b of breachesIn(area.x0, area.y0, area.x1, area.y1)) {
+      if (cam.zoom < 6.5 && b.state !== 'spent') {
+        const sleeping = b.state === 'sleep';
+        add('lip', sleeping ? 'sleep2' : 'flesh', b.x + 0.5, b.y + 0.5, 0.3, 3.4, 1.6, 3.4);
+        add('ball', sleeping ? 'sleep' : 'alarm', b.x + 0.5, b.y + 0.5, 0.4, 1.5);
+        continue;
+      }
       if (b.x < area.x0 - 6 || b.x > area.x1 + 6 || b.y < area.y0 - 6 || b.y > area.y1 + 6) continue;
       const fade = b.state === 'spent' ? 1 - (G.time - b.ended) / 8 : 1;
       if (fade <= 0) continue;
@@ -880,13 +890,31 @@ window.createModels3D = (B, scene) => {
     }
   }
 
+  // What a tap would put there, on the plane where it would stand.
+  let aimed = null;
+  function ghost() {
+    if (!aimed?.type) return;
+    const { type, act, dir } = aimed;
+    const x = aimed.x + 0.5;
+    const y = aimed.y + 0.5;
+    add.plane = true;
+    add.ghost = act === 'no' ? 'scrap' : 'site';
+    add.solid = 0;
+    if (type === 'worm') add('sac', 'skin2', x, y, 0.34, 0.86, 0.6, 0.68);
+    else if (type === 'track') arrow('scent', x, y, 0.06, dir, 0.3);
+    else BUILDINGS[type]?.(cell(type, aimed.x, aimed.y, dir), x, y);
+    add.ghost = false;
+    add.plane = false;
+  }
   function cells(area) {
     for (const c of Object.values(G.cells)) {
       if (c.x < area.x0 - 1 || c.x > area.x1 || c.y < area.y0 - 1 || c.y > area.y1) continue;
       const x = c.x + 0.5;
       const y = c.y + 0.5;
       const waiting = !built(c);
-      add.ghost = c.cut ? 'scrap' : waiting;
+      const doomed = aimed?.act === 'scrap' && !aimed.worm && aimed.x === c.x && aimed.y === c.y;
+      add.ghost = c.cut || doomed ? 'scrap' : waiting;
+      if (doomed) add.solid = 0.12;
       // Solid from the bottom up, as far as it stands: taken down, it goes from the top.
       if (waiting) add.solid = woven(c) * 0.9;
       BUILDINGS[c.type]?.(c, x, y);
@@ -955,7 +983,7 @@ window.createModels3D = (B, scene) => {
         return [x + (tx - x) * k, y + (ty - y) * k];
       });
       const track = G.tracks[w.path[0]];
-      add.ghost = w.cut ? 'scrap' : !built(w);
+      add.ghost = w.cut || (aimed?.act === 'scrap' && aimed.worm === w) ? 'scrap' : !built(w);
       add.solid = add.ghost ? woven(w) * 0.7 : 0;
       for (let i = spots.length - 1; i >= 0; i--) {
         const [x, y] = spots[i];
@@ -1137,7 +1165,9 @@ window.createModels3D = (B, scene) => {
       breaches(area);
       organism();
       links();
+      aimed = preview();
       cells(area);
+      ghost();
       worms();
       creatures(area);
       shots();

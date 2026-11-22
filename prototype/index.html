@@ -1505,6 +1505,7 @@ function draw() {
     rect(ctx,e.x-.3,e.y-.38,.6*Math.max(0,e.hp/e.max),.07,'#FF6B6B');
   }
   drawDrones();
+  drawPreview(ctx);
   // What is off screen keeps an arrow on the edge.
   ctx.setTransform(view.dpr,0,0,view.dpr,0,0);
   for (const e of G.enemies) marker(e.x,e.y,'#FF6B6B');
@@ -1850,7 +1851,7 @@ function refresh() {
   }).join('');
   const asleep = G.breaches.filter(b => b.state === 'sleep').length;
   const text = orderHTML() + here + (first
-    ? `<b>${active ? 'Assaut' : `Dans ${left} s`}, ${bearing(first)}</b>${geneMark(shown)}<span>→</span><span class="need">${geneMark(opposite(shown))}</span>${awake.length > 1 ? `<span class="none">+${awake.length - 1} brèche${awake.length > 2 ? 's' : ''}</span>` : ''}`
+    ? `<b>${active ? 'Assaut' : `Dans ${left} s`}, ${bearing(first)}${first.id ? ` à ${Math.round(span(first, CORE))} cases` : ''}</b>${geneMark(shown)}<span>→</span><span class="need">${geneMark(opposite(shown))}</span>${awake.length > 1 ? `<span class="none">+${awake.length - 1} brèche${awake.length > 2 ? 's' : ''}</span>` : ''}`
     : asleep ? `<span>${asleep} brèches dormantes autour de la base</span>` : '<span>Alentours vidés : la carte continue plus loin</span>');
   if (text !== briefText) { briefText = text; $('brief').innerHTML = text; }
   $('brief').classList.toggle('hot', Boolean(first) && (active || left <= 25));
@@ -2013,9 +2014,147 @@ function extend(to) {
     // A belt drawn through a bridge takes that lane with it.
     for (const c of [from, next]) if (c?.type === 'bridge' && c.ways?.[dir % 2] != null) c.ways[dir % 2] = dir;
     if (!next) { if (!buildable(x,y)) { drag = null; return; } build('belt',x,y,dir); }
-    drag = {x, y, moved:true, existing:Boolean(next)};
+    drag = {x, y, moved:true, existing:Boolean(next), heading:dir};
     if (next && !isBelt(next) && next.type !== 'bridge') { drag = null; return; }
   }
+}
+// What a tap here would do, without doing it. It follows place(): a test holds the two together.
+let hovered = null;
+function preview() {
+  if (G.over || gesture?.mode === 'pan' || gesture?.mode === 'pinch') return null;
+  const point = gesture ? gesture.now : hovered;
+  if (!point) return null;
+  const drawing = gesture?.mode === 'draw';
+  const {x, y} = view3d && !drawing ? view3d.pick(point) : position(point);
+  if (!inside(x, y)) return null;
+  const id = key(x, y), old = G.cells[id], to = (act, more) => ({x, y, act, ...more}), no = (why, more) => to('no', {why, ...more});
+  const hive = 'Zone de ruche', free = () => buildable(x, y);
+  const fromVein = (drawing && drag?.vein) || (linking && G.cells[linking]);
+  if (fromVein) {
+    if (old && (old.type !== 'pump' || (old.x === fromVein.x && old.y === fromVein.y))) return no('Finit sur une pompe', {from:fromVein});
+    if (!old && !free()) return no(hive, {from:fromVein});
+    const ghost = old ? {} : {type:'pump', dir:0};
+    return span(fromVein, {x, y}) > VEIN.reach ? no(`Trop loin : ${VEIN.reach} cases au plus`, {from:fromVein, ...ghost}) : to('link', {from:fromVein, ...ghost});
+  }
+  const fromWire = (drawing && drag?.nerve) || (wiring && G.cells[wiring]);
+  if (fromWire) {
+    if (x === fromWire.x && y === fromWire.y) return to('select');
+    if (!NERVE.ends.includes(old?.type)) return no('Tourelle, feu ou trieur', {from:fromWire});
+    if (span(fromWire, old) > NERVE.reach) return no(`Trop loin : ${NERVE.reach} cases au plus`, {from:fromWire});
+    const a = key(fromWire.x, fromWire.y);
+    if (G.wires.some(w => (w.a === a && w.b === id) || (w.a === id && w.b === a))) return no('Déjà reliés', {from:fromWire});
+    return to('link', {from:fromWire});
+  }
+  if (tool === 'wire') return NERVE.ends.includes(old?.type) ? to('link') : no('Tourelle, feu ou trieur');
+  const worm = G.worms.find(w => w.path.includes(id));
+  if (tool === 'erase') {
+    const ruin = G.ruins[id], track = G.tracks[id], top = worm || old || ruin || track;
+    if (!top) return to('none');
+    if (top.type === 'core') return no('Le cœur ne se démonte pas');
+    if (top.out != null) return to('none', {label:'Déjà dans la file'});
+    const name = worm ? 'ver' : old ? TYPES[old.type].name.toLowerCase() : ruin ? 'débris' : 'piste';
+    const back = !worm && old ? refund(old) : 0;
+    return to('scrap', {worm, label:`Démonter : ${name}${back ? ` · +${back} ADN` : ''}`});
+  }
+  if (old?.type === 'gate') return G.wires.some(w => w.a === id || w.b === id) ? to('select', {label:'Feu intelligent'}) : to('use', {label:old.open ? 'Passer au rouge' : 'Passer au vert'});
+  if (worm && (tool === 'hand' || tool === 'worm')) return to('select', {worm, label:'Ver'});
+  if (tool === 'worm') {
+    const cost = price('worm'), ghost = {type:'worm', cost};
+    if (!G.tracks[id]) return no('Sur une piste seulement', ghost);
+    if (worm) return no('Case occupée', ghost);
+    return cost > G.dna ? no(`Il manque ${cost - G.dna} ADN`, ghost) : to('build', ghost);
+  }
+  if (tool === 'track') {
+    if (!free()) return no(hive);
+    const track = G.tracks[id];
+    if (!track) return to('build', {type:'track', dir:heading});
+    return drawing ? to('select') : to('turn', {type:'track', dir:(track.dir + 1) % 4, label:'Tourner'});
+  }
+  if (tool === 'hand') {
+    if (old) return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
+    if (G.tracks[id]) return to('select', {label:'Piste'});
+    const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
+    if (b) return to('select', {label:`Brèche : ${b.left} créatures`});
+    const base = depositAt(x, y);
+    return to('none', base ? {label:`Gisement : ${BASE[base].toLowerCase()} ×${richAt(x, y)}`} : {});
+  }
+  if (old) {
+    if (drawing) return to('select');
+    if (old.type === tool && ['belt','mine','ligase','join','cyst','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
+    if (old.type === 'belt' && ['bridge','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
+    return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
+  }
+  const cost = price(tool), ghost = {type:tool, dir:drawing && drag?.heading != null ? drag.heading : heading, cost};
+  if (!free()) return no(hive, ghost);
+  if (cost > G.dna) return no(`Il manque ${cost - G.dna} ADN`, ghost);
+  if (tool === 'mine' && !depositAt(x, y)) return no('Sur un gisement seulement', ghost);
+  return to('build', ghost);
+}
+const PREVIEW = {no:'#FF6B6B', scrap:'#FF6B6B', build:'#55D6E8', link:'#55D6E8', turn:'#F0A03C', use:'#F0A03C', select:'#B7F34A', none:'#D5FAFF'};
+// Both views use it: their canvas is in map units, squashed or not. It stays on the plane where things get built.
+function drawPreview(g, models) {
+  const p = preview();
+  if (!p) return;
+  const {x, y, act} = p, color = PREVIEW[act];
+  if (p.type && !models) {
+    g.save(); g.globalAlpha = .55; g.translate(x + .5, y + .5);
+    if (p.type === 'worm') circle(g, 0, 0, .42, '#2A4A22', '#C9F77A', .07);
+    else if (p.type === 'track') arrow(g, p.dir, .46, '#B7F34A');
+    else drawCell(g, cell(p.type, x, y, p.dir));
+    g.restore();
+  }
+  if (p.from) {
+    g.beginPath(); g.moveTo(p.from.x + .5, p.from.y + .5); g.lineTo(x + .5, y + .5);
+    g.strokeStyle = color + 'AA'; g.lineWidth = .1; g.setLineDash([.3, .25]); g.stroke(); g.setLineDash([]);
+  }
+  const cells = p.worm ? p.worm.path.map(id => id.split(',').map(Number)) : [[x, y]];
+  for (const [cx, cy] of cells) {
+    g.beginPath(); g.rect(cx + .02, cy + .02, .96, .96);
+    g.fillStyle = color + (act === 'none' ? '18' : '2A'); g.fill();
+    g.strokeStyle = color + (act === 'none' ? '55' : 'DD'); g.lineWidth = 1.5 / cam.zoom; g.stroke();
+  }
+  // The way out, where it matters.
+  if (p.dir != null && !['wall','turret','pump','pocket','bridge'].includes(p.type)) {
+    g.save(); g.translate(x + .5, y + .5); arrow(g, p.dir, .72, color); g.restore();
+  }
+  if (act === 'no' || act === 'scrap') {
+    g.beginPath(); g.moveTo(x + .3, y + .3); g.lineTo(x + .7, y + .7); g.moveTo(x + .7, y + .3); g.lineTo(x + .3, y + .7);
+    g.strokeStyle = color; g.lineWidth = 2 / cam.zoom; g.stroke();
+  }
+  const text = p.why || p.label || (p.cost ? `${p.cost} ADN` : '');
+  if (!text) return;
+  // The words keep one size at every zoom, and stay on the board.
+  g.save(); g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  g.font = '600 12px Verdana';
+  const wide = g.measureText(text).width + 12, squash = cam.zoom * flat();
+  const left = Math.max(4, Math.min(view.w - wide - 4, view.w / 2 + (x + .5 - cam.x) * cam.zoom - wide / 2));
+  let top = view.h / 2 + (y + 1 - cam.y) * squash + 14;
+  if (top > view.h - 24) top -= squash + 48;
+  g.fillStyle = '#05090BE6'; g.fillRect(left, top, wide, 20);
+  g.fillStyle = act === 'none' ? '#E6F0EC' : color; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillText(text, left + 6, top + 10);
+  g.restore();
+}
+// The pointer carries the tool in hand, struck out where it cannot act.
+const CURSORS = new Map();
+let cursor = '';
+function setCursor() {
+  let next = 'grabbing';
+  if (gesture?.mode !== 'pan' && gesture?.mode !== 'pinch') {
+    const p = hovered && preview(), held = linking ? 'pump' : wiring ? 'wire' : tool, id = held + (p?.act === 'no' ? '-no' : '');
+    if (!CURSORS.has(id)) {
+      const c = document.createElement('canvas'), g = c.getContext('2d');
+      c.width = c.height = 32;
+      polygon(g, [[1.5,1.5],[1.5,16],[5.5,12.5],[8.5,18],[11.5,16.5],[9,11.5],[14,11]], '#E6F0EC', '#05090B', 1.5);
+      const icon = $('tools').querySelector(`[data-type="${held}"] canvas`);
+      circle(g, 22, 22, 9.5, '#091013', p?.act === 'no' ? '#FF6B6B' : held === 'erase' ? '#FF6B6B' : '#55D6E8', 1.5);
+      if (icon) g.drawImage(icon, 13.5, 13.5, 17, 17);
+      if (p?.act === 'no') { g.beginPath(); g.moveTo(16, 28); g.lineTo(28, 16); g.strokeStyle = '#FF6B6B'; g.lineWidth = 2.5; g.stroke(); }
+      CURSORS.set(id, `url(${c.toDataURL()}) 2 2, crosshair`);
+    }
+    next = CURSORS.get(id);
+  }
+  if (next !== cursor) { cursor = next; canvas.style.cursor = next; }
 }
 // One finger pans, except with Tapis and Démonter where it draws. Two fingers always pan and zoom.
 const pointers = new Map();
@@ -2024,13 +2163,16 @@ canvas.addEventListener('pointerdown', event => {
   if (G.over) return;
   event.preventDefault();
   try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+  if (event.pointerType === 'touch') hovered = null;
   const p = screenPoint(event);
   pointers.set(event.pointerId,p);
   drag = null;
   if (pointers.size > 1) { gesture = {mode:'pinch'}; return; }
   gesture = {mode:event.button > 0 ? 'pan' : 'tap', start:p, now:p};
 });
+canvas.addEventListener('pointerleave', () => { hovered = null; });
 canvas.addEventListener('pointermove', event => {
+  hovered = event.pointerType === 'touch' ? null : screenPoint(event);
   const last = pointers.get(event.pointerId);
   if (!last || !gesture) return;
   const p = screenPoint(event);
@@ -2246,6 +2388,7 @@ function frame(now) {
   if (now-shownAt > 250) { refresh(); shownAt = now; }
   if (now-savedAt > 3000) { save(); savedAt = now; }
   followEdge(elapsed);
+  setCursor();
   draw();
   requestAnimationFrame(frame);
 }

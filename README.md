@@ -22,7 +22,7 @@ npx playwright install chromium   # once
 npm run check
 ```
 
-`npm test` replays the prototype in headless Chromium: belt motion, sorters, bridges, gates, deposits and veins, breaches and damage, economy, construction and repair, worms, progression, nerves and the 3D view. Each run is seeded and compared with the recorded results in `tests/prototype/__snapshots__/`, and saves from earlier prototype versions must still load.
+`npm test` replays the prototype in headless Chromium: belt motion, sorters, bridges, gates, deposits and veins, breaches and damage, economy, construction by drone, dismantling and repair, the endless map, the preview under the pointer, worms, progression, nerves and the 3D view. Each run is seeded and compared with the recorded results in `tests/prototype/__snapshots__/`, and saves from earlier prototype versions must still load.
 
 When a rule changes on purpose, rerun with `npm test -- -u` and read the snapshot diff before committing it: that diff is the gameplay change.
 

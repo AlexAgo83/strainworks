@@ -104,7 +104,7 @@ window.createView3D = (glCanvas) => {
     }
     B.Quaternion.RotationYawPitchRollToRef(angle, 0, roll, turn);
     // Everything rides the ground, which is at height 0 under what is built.
-    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, h + terrain.height(x, y), -y), matrix);
+    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, add.plane ? h : h + terrain.height(x, y), -y), matrix);
     matrix.copyToArray(batch.data, batch.count * 16);
     batch.count++;
   }
@@ -128,7 +128,7 @@ window.createView3D = (glCanvas) => {
   };
 
   // ---- Read-outs stay on the 2D canvas, flattened on the ground and lifted to their object's height.
-  function drawOverlay() {
+  function drawOverlay(area) {
     const s = cam.zoom * view.dpr;
     const g = ctx;
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -155,10 +155,10 @@ window.createView3D = (glCanvas) => {
     if (tool !== 'hand' && cam.zoom >= 11) {
       const a = worldAt(0, 0);
       const b = worldAt(view.w, view.h);
-      const x0 = Math.max(0, Math.floor(a.x));
-      const x1 = Math.min(W, Math.ceil(b.x));
-      const y0 = Math.max(0, Math.floor(a.y));
-      const y1 = Math.min(H, Math.ceil(b.y));
+      const x0 = Math.floor(a.x);
+      const x1 = Math.ceil(b.x);
+      const y0 = Math.floor(a.y);
+      const y1 = Math.ceil(b.y);
       g.beginPath();
       for (let x = x0; x <= x1; x++) {
         g.moveTo(x, y0);
@@ -172,14 +172,14 @@ window.createView3D = (glCanvas) => {
       g.lineWidth = px;
       g.stroke();
     }
-    for (const [, x, y, w, h] of FIELDS) {
+    for (const [, x, y, w, h] of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
       const rich = richness(x + w / 2, y + h / 2);
       if (rich < 2) continue;
       const color = rich > richCap() ? '#8B989C' : '#B7F34A';
       rect(g, x, y, w, h, null, color);
       label(`×${rich}`, x + 0.4, y - 0.5, Math.min(90, Math.max(18, (13 * 40) / cam.zoom)), color);
     }
-    for (const b of G.breaches) {
+    for (const b of breachesIn(area.x0, area.y0, area.x1, area.y1)) {
       if (b.state === 'spent') continue;
       const x = b.x + 0.5;
       const y = b.y + 0.5;
@@ -292,6 +292,7 @@ window.createView3D = (glCanvas) => {
       g.stroke();
       g.setLineDash([]);
     }
+    drawPreview(g, true);
     g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     for (const e of G.enemies) marker(e.x, e.y, '#FF6B6B');
     for (const b of G.breaches) if (b.state === 'wake') marker(b.x + 0.5, b.y + 0.5, '#F0A03C');
@@ -302,7 +303,7 @@ window.createView3D = (glCanvas) => {
   let height = 0;
   return {
     tilt,
-    ground: terrain.height,
+    ground: terrain.groundAt,
     // A tap on the top of a tall object means that object, though the ground behind it is another cell.
     pick(point) {
       const p = worldAt(point.x, point.y);
@@ -342,12 +343,12 @@ window.createView3D = (glCanvas) => {
       // Tall things just south of the screen still show their tops.
       const area = { x0: Math.floor(a.x) - 1, y0: Math.floor(a.y) - 2, x1: Math.ceil(b.x) + 1, y1: Math.ceil(b.y) + 2 };
       heartbeat();
-      terrain.update();
+      terrain.update(area);
       terrain.draw(add, area, G.time + owed);
       models.draw(add, area);
       flush();
       scene.render();
-      drawOverlay();
+      drawOverlay(area);
     },
     dispose() {
       scene.dispose();

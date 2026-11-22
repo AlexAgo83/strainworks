@@ -1,17 +1,15 @@
-// The ground of the 3D view: living terrain, with worn steel plates left over it in patches.
+// The ground of the 3D view: endless living terrain, with worn steel plates left over it in patches.
+// It is made by chunks round the camera, and every part is a function of where it is, so chunks meet seamlessly.
 // It is decor: it reads the game state and never changes it. It settles to height 0 under whatever is built,
 // so what is built sits on the plane a finger points at.
 window.createTerrain3D = (B, scene, glow) => {
-  const MARGIN = 16; // cells of rising rim around the map
-  const STEPS = 2; // vertices per cell
-  const CHUNK = 32; // cells per culled piece of ground
+  const CHUNK = 32; // cells per piece of ground
+  const FINE = 0.5; // cells between two vertices
+  const COARSE = 2; // the same seen from very far, without roots or small things
+  const BUDGET = 8; // ms a frame may spend making ground
   const PLATE = 0.014; // top of the steel
   const GRAIN = 7.3; // cells one tile of grain covers
   const REACH = 1.4; // how far around a building the ground is packed down
-  const SIZE_X = W + MARGIN * 2;
-  const SIZE_Y = H + MARGIN * 2;
-  const NX = SIZE_X * STEPS + 1;
-  const NY = SIZE_Y * STEPS + 1;
   const TAU = Math.PI * 2;
   const still = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -249,75 +247,59 @@ window.createTerrain3D = (B, scene, glow) => {
   bark.specularColor = new B.Color3(0.3, 0.22, 0.2);
   bark.specularPower = 36;
 
-  const natural = new Float32Array(NX * NY); // the ground left alone
-  const packed = new Float32Array(NX * NY); // 1 where something built presses it down
-  const aim = new Float32Array(NX * NY);
-  const current = new Float32Array(NX * NY);
-  const tint = new Float32Array(NX * NY * 3);
-  const metal = new Uint8Array(SIZE_X * SIZE_Y);
-  let used = new Uint8Array(SIZE_X * SIZE_Y);
-  let wasUsed = new Uint8Array(SIZE_X * SIZE_Y);
-  const settling = new Set();
-  let decor = new Map();
-  let pools = [];
-  let roots = []; // one mesh per region, for culling
-  let plates = [];
-  let steel = null;
-  let known = null;
-
-  const cellAt = (x, y) => {
-    const i = Math.floor(x) + MARGIN;
-    const j = Math.floor(y) + MARGIN;
-    return i < 0 || j < 0 || i >= SIZE_X || j >= SIZE_Y ? -1 : j * SIZE_X + i;
-  };
-  function height(x, y) {
-    const gx = clamp((x + MARGIN) * STEPS, 0, NX - 1.001);
-    const gy = clamp((y + MARGIN) * STEPS, 0, NY - 1.001);
-    const i = Math.floor(gx);
-    const j = Math.floor(gy);
-    const k = j * NX + i;
-    const h = mix(mix(current[k], current[k + 1], gx - i), mix(current[k + NX], current[k + NX + 1], gx - i), gy - j);
-    const cell = cellAt(x, y);
-    return cell >= 0 && metal[cell] ? Math.max(h, PLATE) : h;
-  }
   const outside = (x, y, left, top, right, bottom) => Math.hypot(Math.max(left - x, 0, x - right), Math.max(top - y, 0, y - bottom));
-  const nearField = (x, y, room) => FIELDS.some(([, fx, fy, w, h]) => outside(x, y, fx, fy, fx + w, fy + h) < room);
+  const nearField = (fields, x, y, room) => fields.some(([, fx, fy, w, h]) => outside(x, y, fx, fy, fx + w, fy + h) < room);
+  const fieldsAround = (x, y, room) => fieldsIn(x - room, y - room, x + room, y + room);
+  const onSteel = (plates, x, y) => plates.some((p) => x >= p.x - 1 && x < p.x + 1 && y >= p.y - 1 && y < p.y + 1);
+
+  // What an anchor of the endless world holds is remembered while one is near it.
+  let anchors = new Map();
+  function anchor(kind, gx, gy, make) {
+    const id = `${kind}${gx},${gy}`;
+    if (!anchors.has(id)) anchors.set(id, make(gx, gy));
+    return anchors.get(id);
+  }
+  function everyAnchor(size, x0, y0, x1, y1, visit) {
+    for (let gx = Math.floor(x0 / size) * size; gx <= x1; gx += size) for (let gy = Math.floor(y0 / size) * size; gy <= y1; gy += size) visit(gx, gy);
+  }
 
   // ---- Patches of station: a few plates in a block, some missing, some knocked askew.
-  function layPlates() {
-    plates = [];
-    metal.fill(0);
-    function patch(cx, cy, across, down, seed) {
-      for (let i = 0; i < across; i++) {
-        for (let j = 0; j < down; j++) {
-          const x = cx + (i - (across - 1) / 2) * 2;
-          const y = cy + (j - (down - 1) / 2) * 2;
-          const border = !i || !j || i === across - 1 || j === down - 1;
-          if (hash(i, j, seed) < (border ? 0.3 : 0.06)) continue;
-          if (x < 1 || y < 1 || x > W - 1 || y > H - 1 || nearField(x, y, 1.5)) continue;
-          const askew = border && hash(i, j, seed + 1) < 0.3 ? (hash(i, j, seed + 2) - 0.5) * 0.3 : 0;
-          plates.push({ x, y, angle: askew, kind: Math.floor(hash(i, j, seed + 3) * 4), border, seed: seed + i * 17 + j * 131 });
-          for (const a of [-0.5, 0.5]) for (const b of [-0.5, 0.5]) metal[cellAt(x + a, y + b)] = 1;
-        }
+  function patch(cx, cy, across, down, seed) {
+    const found = [];
+    const fields = fieldsAround(cx, cy, 10);
+    for (let i = 0; i < across; i++) {
+      for (let j = 0; j < down; j++) {
+        const x = cx + (i - (across - 1) / 2) * 2;
+        const y = cy + (j - (down - 1) / 2) * 2;
+        const border = !i || !j || i === across - 1 || j === down - 1;
+        if (hash(i, j, seed) < (border ? 0.3 : 0.06) || nearField(fields, x, y, 1.5)) continue;
+        const askew = border && hash(i, j, seed + 1) < 0.3 ? (hash(i, j, seed + 2) - 0.5) * 0.3 : 0;
+        found.push({ x, y, angle: askew, kind: Math.floor(hash(i, j, seed + 3) * 4), border, seed: seed + i * 17 + j * 131 });
       }
     }
+    return found;
+  }
+  function makePatch(gx, gy) {
+    const cx = Math.round((gx + 2 + hash(gx, gy, 41) * 7) / 2) * 2;
+    const cy = Math.round((gy + 2 + hash(gx, gy, 42) * 7) / 2) * 2;
+    const away = Math.hypot(cx - CORE.x, cy - CORE.y);
+    if (away < 7 || hash(gx, gy, 43) > mix(0.95, 0.4, smooth(12, 60, away))) return [];
+    return patch(cx, cy, 1 + Math.floor(hash(gx, gy, 44) * 4), 1 + Math.floor(hash(gx, gy, 45) * 4), 1000 + gx * 97 + gy);
+  }
+  function platesIn(x0, y0, x1, y1) {
+    const found = [];
+    const meets = (p) => p.x + 1 >= x0 && p.x - 1 <= x1 && p.y + 1 >= y0 && p.y - 1 <= y1;
+    const keep = (list) => {
+      for (const p of list) if (meets(p)) found.push(p);
+    };
+    everyAnchor(10, x0 - 14, y0 - 14, x1 + 4, y1 + 4, (gx, gy) => keep(anchor('plates', gx, gy, makePatch)));
     // The landing: what is left of the station around the core.
-    patch(CORE.x + 1, CORE.y, 4, 3, 901);
-    for (let gx = 0; gx < W; gx += 10) {
-      for (let gy = 0; gy < H; gy += 10) {
-        const seed = 1000 + gx * 97 + gy;
-        const cx = Math.round((gx + 2 + hash(gx, gy, 41) * 7) / 2) * 2;
-        const cy = Math.round((gy + 2 + hash(gx, gy, 42) * 7) / 2) * 2;
-        const away = Math.hypot(cx - CORE.x, cy - CORE.y);
-        if (away < 7 || hash(gx, gy, 43) > mix(0.95, 0.5, smooth(12, 44, away))) continue;
-        patch(cx, cy, 1 + Math.floor(hash(gx, gy, 44) * 4), 1 + Math.floor(hash(gx, gy, 45) * 4), seed);
-      }
-    }
+    if (outside(CORE.x, CORE.y, x0, y0, x1, y1) < 9) keep(anchor('landing', 0, 0, () => patch(CORE.x + 1, CORE.y, 4, 3, 901)));
+    return found;
   }
 
-  function steelMesh() {
-    steel?.dispose();
-    steel = null;
+  function steelMesh(plates) {
+    if (!plates.length) return null;
     const positions = [];
     const normals = [];
     const uvs = [];
@@ -352,26 +334,45 @@ window.createTerrain3D = (B, scene, glow) => {
         indices.push(middle, top[next], top[i], top[i], top[next], low[next], top[i], low[next], low[i]);
       }
     }
-    if (!plates.length) return;
-    steel = new B.Mesh('steel', scene);
+    const steel = new B.Mesh('steel', scene);
     Object.assign(new B.VertexData(), { positions, normals, uvs, indices }).applyToMesh(steel);
     steel.material = iron;
     steel.receiveShadows = true;
     steel.isPickable = false;
+    return steel;
   }
 
-  // ---- Shape and colour of the ground, worked out once for a map.
+  function makePool(gx, gy) {
+    if (hash(gx, gy, 61) > 0.4) return null;
+    const x = gx + 1 + hash(gx, gy, 62) * 7;
+    const y = gy + 1 + hash(gx, gy, 63) * 7;
+    const r = 0.6 + hash(gx, gy, 64) * 0.8;
+    if (Math.hypot(x - CORE.x, y - CORE.y) < 7 || nearField(fieldsAround(x, y, r + 1), x, y, r + 1)) return null;
+    if (platesIn(x - 5, y - 5, x + 5, y + 5).some((p) => Math.hypot(p.x - x, p.y - y) < r + 2.4)) return null;
+    return { x, y, r, n: hash(gx, gy, 65) };
+  }
+  function poolsIn(x0, y0, x1, y1) {
+    const found = [];
+    everyAnchor(9, x0 - 11, y0 - 11, x1 + 3, y1 + 3, (gx, gy) => {
+      const pool = anchor('pool', gx, gy, makePool);
+      if (pool) found.push(pool);
+    });
+    return found;
+  }
+
+  // ---- Shape and colour of the ground, worked out once per chunk
   const ROCK = [78, 82, 80];
   const MUD = [42, 37, 33];
   const CRUST = [78, 56, 50];
   const MOSS = [42, 56, 36];
   const SOIL = { S: [36, 64, 27], F: [86, 52, 24], C: [90, 84, 68], N: [17, 58, 65] };
-  function shapeGround() {
-    for (let j = 0; j < NY; j++) {
-      for (let i = 0; i < NX; i++) {
-        const k = j * NX + i;
-        const x = i / STEPS - MARGIN;
-        const y = j / STEPS - MARGIN;
+  function shapeGround(chunk, fields, plates, pools) {
+    const { ox, oy, step: apart, size, natural, tint } = chunk;
+    for (let j = 0; j < size; j++) {
+      for (let i = 0; i < size; i++) {
+        const k = j * size + i;
+        const x = ox + (i - 1) * apart;
+        const y = oy + (j - 1) * apart;
         const wx = x + (noise(x / 7, y / 7, 1) - 0.5) * 5;
         const wy = y + (noise(x / 7, y / 7, 2) - 0.5) * 5;
         const hills = fractal(wx / 7, wy / 7, 3, 4) - 0.5;
@@ -382,7 +383,7 @@ window.createTerrain3D = (B, scene, glow) => {
 
         let near = 99;
         let kind = 'S';
-        for (const [base, fx, fy, w, d] of FIELDS) {
+        for (const [base, fx, fy, w, d] of fields) {
           const away = outside(x, y, fx, fy, fx + w, fy + d);
           if (away < near) {
             near = away;
@@ -391,6 +392,7 @@ window.createTerrain3D = (B, scene, glow) => {
         }
         h *= mix(0.3, 1, smooth(0, 1.5, near));
         for (const pool of pools) {
+          if (Math.abs(x - pool.x) > 2.5 || Math.abs(y - pool.y) > 2.5) continue;
           const away = Math.hypot(x - pool.x, y - pool.y);
           if (away < pool.r + 1) h = mix(-0.4, h, smooth(pool.r * 0.55, pool.r + 1, away));
         }
@@ -404,33 +406,31 @@ window.createTerrain3D = (B, scene, glow) => {
           const under = spill > 0 ? Math.min(0.2, spill) : -0.07;
           h = mix(under, h, smooth(0, 1.3, plated));
         }
-        const beyond = Math.max(0, outside(x, y, 0, 0, W, H) + (noise(x / 5, y / 5, 13) - 0.65) * 5);
-        if (beyond > 1) h += Math.min(3.2, (beyond - 1) * 0.5) * (0.65 + noise(x / 4, y / 4, 15) * 0.7);
         natural[k] = h;
 
-        let color = ROCK.map((v, c) => mix(MUD[c], v, smooth(-0.22, 0.4, h + lumps * 0.4)));
+        const wet = smooth(-0.22, 0.4, h + lumps * 0.4);
         const crust = smooth(0.52, 0.68, fractal(x / 9, y / 9, 16, 3)) * 0.8;
         const moss = smooth(0.55, 0.68, fractal(x / 5, y / 5, 18, 3)) * 0.8;
-        color = color.map((v, c) => mix(mix(v, CRUST[c], crust), MOSS[c], moss));
         // The ground takes the colour of what grows out of it, with a ragged edge.
         const ragged = near + (noise(x / 1.4, y / 1.4, 19) - 0.5) * 2;
         const halo = (1 - smooth(0, 5, ragged)) * 0.5 + (1 - smooth(-0.3, 0.8, ragged)) * 0.45;
-        const speck = 0.84 + noise(x * 1.3, y * 1.3, 20) * 0.32;
-        const dim = mix(1, 0.3, smooth(0, 11, beyond)) * mix(1, 0.72, channel);
-        for (let c = 0; c < 3; c++) tint[k * 3 + c] = (mix(color[c], SOIL[kind][c], halo) / 255) * speck * dim;
+        const light = (0.84 + noise(x * 1.3, y * 1.3, 20) * 0.32) * mix(1, 0.72, channel);
+        for (let c = 0; c < 3; c++) {
+          const color = mix(mix(mix(MUD[c], ROCK[c], wet), CRUST[c], crust), MOSS[c], moss);
+          tint[k * 3 + c] = (mix(color, SOIL[kind][c], halo) / 255) * light;
+        }
       }
     }
   }
 
-  function scatter() {
-    decor = new Map();
-    for (let y = -2; y < H + 2; y++) {
-      for (let x = -2; x < W + 2; x++) {
-        const cell = cellAt(x, y);
-        if (metal[cell]) continue;
+  function scatter(chunk, fields) {
+    const { ox, oy, decor, metal } = chunk;
+    for (let y = oy; y < oy + CHUNK; y++) {
+      for (let x = ox; x < ox + CHUNK; x++) {
+        if (metal[(y - oy) * CHUNK + x - ox]) continue;
         let kind = '';
         let best = 5;
-        for (const [base, fx, fy, w, h] of FIELDS) {
+        for (const [base, fx, fy, w, h] of fields) {
           const away = outside(x + 0.5, y + 0.5, fx, fy, fx + w, fy + h);
           if (away < best) {
             best = away;
@@ -446,22 +446,7 @@ window.createTerrain3D = (B, scene, glow) => {
         else if (roll > 0.9) type = 'bones';
         else if (noise(x / 4, y / 4, 52) > 0.66 && roll > 0.45) type = 'cilia';
         else if (roll > 0.85) type = 'grit';
-        if (type) decor.set(cell, { x: x + 0.2 + hash(x, y, 53) * 0.6, y: y + 0.2 + hash(x, y, 54) * 0.6, n: hash(x, y, 55), type });
-      }
-    }
-  }
-
-  function placePools() {
-    pools = [];
-    for (let gx = 0; gx < W; gx += 9) {
-      for (let gy = 0; gy < H; gy += 9) {
-        if (hash(gx, gy, 61) > 0.4) continue;
-        const x = gx + 1 + hash(gx, gy, 62) * 7;
-        const y = gy + 1 + hash(gx, gy, 63) * 7;
-        const r = 0.6 + hash(gx, gy, 64) * 0.8;
-        if (Math.hypot(x - CORE.x, y - CORE.y) < 7 || nearField(x, y, r + 1)) continue;
-        if (plates.some((p) => Math.hypot(p.x - x, p.y - y) < r + 2.4)) continue;
-        pools.push({ x, y, r, n: hash(gx, gy, 65) });
+        if (type) decor.push({ x: x + 0.2 + hash(x, y, 53) * 0.6, y: y + 0.2 + hash(x, y, 54) * 0.6, n: hash(x, y, 55), type });
       }
     }
   }
@@ -470,8 +455,8 @@ window.createTerrain3D = (B, scene, glow) => {
   const SIDES = 6;
   const SAP_RUN = 22; // cells between two pulses
   const SAP_SPEED = 1.6;
-  const REGION = 32;
-  function wander(x, y, bend, length, seed) {
+  const SPREAD = 30; // how far a root can get from where it starts
+  function wander(x, y, bend, length, seed, ground) {
     const path = [[x, y]];
     let turn = bend;
     for (let j = 0; j < length / 0.8; j++) {
@@ -479,8 +464,7 @@ window.createTerrain3D = (B, scene, glow) => {
       turn = mix(turn, bend, 0.18) + (hash(seed, j, 72) - 0.5) * 1.05;
       const nx = x + Math.cos(turn) * 0.8;
       const ny = y + Math.sin(turn) * 0.8;
-      const cell = cellAt(nx, ny);
-      if (cell < 0 || metal[cell] || nearField(nx, ny, 0.8)) break;
+      if (onSteel(ground.plates, nx, ny) || nearField(ground.fields, nx, ny, 0.8)) break;
       x = nx;
       y = ny;
       path.push([x, y]);
@@ -489,31 +473,27 @@ window.createTerrain3D = (B, scene, glow) => {
   }
   function smoothed(path) {
     const out = [];
-    const at = (i) => path[clamp(i, 0, path.length - 1)];
+    const point = (i) => path[clamp(i, 0, path.length - 1)];
     for (let i = 0; i < path.length - 1; i++) {
-      const [a, b, c, d] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
-      for (let piece3 = 0; piece3 < 3; piece3++) {
-        const u = piece3 / 3;
+      const [a, b, c, d] = [point(i - 1), point(i), point(i + 1), point(i + 2)];
+      for (let part3 = 0; part3 < 3; part3++) {
+        const u = part3 / 3;
         out.push([0, 1].map((n) => 0.5 * (2 * b[n] + (c[n] - a[n]) * u + (2 * a[n] - 5 * b[n] + 4 * c[n] - d[n]) * u * u + (3 * b[n] - a[n] - 3 * c[n] + d[n]) * u * u * u)));
       }
     }
     out.push(path[path.length - 1]);
     return out;
   }
-  function growRoots() {
-    for (const part of roots) part.mesh.dispose();
-    roots = [];
-    const regions = new Map();
-    function branch(x, y, bend, length, thick, run, level, seed, alive) {
-      const path = wander(x, y, bend, length, seed);
+  // One root and its forks: lines of rings, wherever they go.
+  function growRoot(x, y, seed, alive) {
+    const ground = { fields: fieldsAround(x, y, SPREAD), plates: platesIn(x - SPREAD, y - SPREAD, x + SPREAD, y + SPREAD) };
+    if (onSteel(ground.plates, x, y) || nearField(ground.fields, x, y, 0.8)) return [];
+    const lines = [];
+    function branch(bx, by, bend, length, thick, run, level, id) {
+      const path = wander(bx, by, bend, length, id, ground);
       if (path.length < 3) return;
       const line = smoothed(path);
-      const id = `${Math.floor(x / REGION)},${Math.floor(y / REGION)}`;
-      if (!regions.has(id)) regions.set(id, { rings: [], uvs: [], indices: [] });
-      const region = regions.get(id);
-      const first = region.rings.length * (SIDES + 1);
-      const sizes = [];
-      const runs = [];
+      const rings = [];
       let travelled = run;
       for (let i = 0; i < line.length; i++) {
         const [px, py] = line[i];
@@ -521,67 +501,91 @@ window.createTerrain3D = (B, scene, glow) => {
         const after = line[Math.min(line.length - 1, i + 1)];
         if (i) travelled += Math.hypot(px - before[0], py - before[1]);
         const part = i / (line.length - 1);
-        const knot = 0.8 + noise(i * 0.55, seed, 95) * 0.45;
+        const knot = 0.8 + noise(i * 0.55, id, 95) * 0.45;
         // A trunk swells out of the ground, a fork out of its parent, and both end in a point.
         const born = level ? mix(1.3, 1, smooth(0, 0.15, part)) : mix(0.15, 1, smooth(0, 0.12, part));
         const size = thick * (1 - part) ** 0.65 * knot * born + 0.004;
         const tangent = Math.atan2(after[1] - before[1], after[0] - before[0]);
-        const lift = (noise(i * 0.3, seed, 96) - 0.4) * size;
-        region.rings.push({ x: px, y: py, size, lift, side: [-Math.sin(tangent), Math.cos(tangent)], twist: i * 0.5 + seed });
-        for (let s = 0; s <= SIDES; s++) region.uvs.push(hash(seed % 1000, 0, 97) * 0.02 + travelled / SAP_RUN, (alive ? 0.01 : 0.51) + (s / SIDES) * 0.48);
-        if (i) {
-          for (let s = 0; s < SIDES; s++) {
-            const a = first + (i - 1) * (SIDES + 1) + s;
-            const b = a + SIDES + 1;
-            region.indices.push(a, b, a + 1, a + 1, b, b + 1);
-          }
-        }
-        sizes.push(size);
-        runs.push(travelled);
+        const lift = (noise(i * 0.3, id, 96) - 0.4) * size;
+        const u = hash(id % 1000, 0, 97) * 0.02 + travelled / SAP_RUN;
+        rings.push({ x: px, y: py, size, lift, u, v: alive ? 0.01 : 0.51, travelled, side: [-Math.sin(tangent), Math.cos(tangent)], twist: i * 0.5 + (id % 1000) });
       }
+      lines.push(rings);
       if (level > 1) return;
-      const forks = level ? 1 + Math.floor(hash(seed, 1, 98) * 2) : 3 + Math.floor(hash(seed, 1, 98) * 3);
+      const forks = level ? 1 + Math.floor(hash(id, 1, 98) * 2) : 3 + Math.floor(hash(id, 1, 98) * 3);
       for (let k = 0; k < forks; k++) {
-        const i = Math.min(line.length - 2, Math.max(1, Math.floor(line.length * (0.15 + ((k + hash(seed, k, 99)) / forks) * 0.72))));
+        const i = Math.min(line.length - 2, Math.max(1, Math.floor(line.length * (0.15 + ((k + hash(id, k, 99)) / forks) * 0.72))));
         const [fx, fy] = line[i];
         const onward = Math.atan2(line[i + 1][1] - fy, line[i + 1][0] - fx);
-        const side = (k + (seed % 2)) % 2 ? 1 : -1;
-        branch(fx, fy, onward + side * (0.5 + hash(seed, k, 100) * 0.5), length * (0.25 + hash(seed, k, 101) * 0.2), sizes[i] * 0.68, runs[i], level + 1, seed * 7 + k + 1, alive);
+        const side = (k + (id % 2)) % 2 ? 1 : -1;
+        const sway = onward + side * (0.5 + hash(id, k, 100) * 0.5);
+        branch(fx, fy, sway, length * (0.25 + hash(id, k, 101) * 0.2), rings[i].size * 0.68, rings[i].travelled, level + 1, id * 7 + k + 1);
       }
     }
-    for (let i = 0; i < 62; i++) {
-      // The last ten circle the core, where a game opens.
-      const round = (i - 52) * 0.628 + hash(i, 7, 71) * 0.3;
-      const far = 7 + hash(i, 8, 71) * 7;
-      const x = i < 52 ? hash(i, 1, 71) * W : CORE.x + Math.cos(round) * far;
-      const y = i < 52 ? hash(i, 2, 71) * H : CORE.y + Math.sin(round) * far;
-      const cell = cellAt(x, y);
-      if (metal[cell] || nearField(x, y, 0.8)) continue;
-      branch(x, y, hash(i, 3, 71) * TAU, 8 + hash(i, 4, 71) * 11, 0.14 + hash(i, 5, 71) * 0.1, hash(i, 6, 71) * SAP_RUN, 0, i + 1, i % 3 !== 2);
+    branch(x, y, hash(seed, 3, 71) * TAU, 8 + hash(seed, 4, 71) * 11, 0.14 + hash(seed, 5, 71) * 0.1, hash(seed, 6, 71) * SAP_RUN, 0, seed);
+    return lines;
+  }
+  function makeRoot(gx, gy) {
+    if (hash(gx, gy, 70) > 0.84) return [];
+    return growRoot(gx + hash(gx, gy, 74) * 14, gy + hash(gx, gy, 75) * 14, 1 + Math.floor(hash(gx, gy, 73) * 99999), hash(gx, gy, 76) < 0.67);
+  }
+  function makeCoreRoot(i) {
+    // Ten circle the core, where a game opens.
+    const round = i * 0.628 + hash(i + 52, 7, 71) * 0.3;
+    const far = 7 + hash(i + 52, 8, 71) * 7;
+    return growRoot(CORE.x + Math.cos(round) * far, CORE.y + Math.sin(round) * far, i + 53, i % 3 !== 2);
+  }
+  // The stretch of every root that lies in this chunk. Each segment goes to the chunk it starts in.
+  function rootMesh(ox, oy) {
+    const rings = [];
+    const uvs = [];
+    const indices = [];
+    const take = (line) => {
+      let last = -1;
+      let lastAt = -1;
+      const ring = (i) => {
+        rings.push(line[i]);
+        for (let s = 0; s <= SIDES; s++) uvs.push(line[i].u, line[i].v + (s / SIDES) * 0.48);
+        return rings.length - 1;
+      };
+      for (let i = 1; i < line.length; i++) {
+        const { x, y } = line[i - 1];
+        if (x < ox || x >= ox + CHUNK || y < oy || y >= oy + CHUNK) continue;
+        const from = lastAt === i - 1 ? last : ring(i - 1);
+        last = ring(i);
+        lastAt = i;
+        for (let s = 0; s < SIDES; s++) {
+          const a = from * (SIDES + 1) + s;
+          const b = last * (SIDES + 1) + s;
+          indices.push(a, b, a + 1, a + 1, b, b + 1);
+        }
+      }
+    };
+    everyAnchor(14, ox - SPREAD, oy - SPREAD, ox + CHUNK + SPREAD, oy + CHUNK + SPREAD, (gx, gy) => anchor('root', gx, gy, makeRoot).forEach(take));
+    if (outside(CORE.x, CORE.y, ox, oy, ox + CHUNK, oy + CHUNK) < SPREAD + 14) {
+      for (let i = 0; i < 10; i++) anchor('coreRoot', i, 0, makeCoreRoot).forEach(take);
     }
-    for (const { rings, uvs, indices } of regions.values()) {
-      const count = rings.length * (SIDES + 1) * 3;
-      const part = { rings, indices, positions: new Float32Array(count), normals: new Float32Array(count), mesh: new B.Mesh('roots', scene) };
-      const { positions, normals } = part;
-      Object.assign(new B.VertexData(), { positions, normals, uvs, indices }).applyToMesh(part.mesh, true);
-      part.mesh.material = bark;
-      part.mesh.receiveShadows = true;
-      part.mesh.isPickable = false;
-      glow.addIncludedOnlyMesh(part.mesh);
-      const xs = rings.map((ring) => ring.x);
-      const ys = rings.map((ring) => ring.y);
-      part.box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-      roots.push(part);
-    }
+    if (!indices.length) return null;
+    const count = rings.length * (SIDES + 1) * 3;
+    const part = { rings, indices, positions: new Float32Array(count), normals: new Float32Array(count), mesh: new B.Mesh('roots', scene) };
+    const { positions, normals } = part;
+    Object.assign(new B.VertexData(), { positions, normals, uvs, indices }).applyToMesh(part.mesh, true);
+    part.mesh.material = bark;
+    part.mesh.receiveShadows = true;
+    part.mesh.isPickable = false;
+    glow.addIncludedOnlyMesh(part.mesh);
+    return part;
   }
   // Roots lie on the relief, half buried, and dive under what is built.
   // While settling a ring only sinks: its lighting and its box are kept.
-  function layRoots(part, whole) {
-    const { rings, indices, positions, normals } = part;
+  function layRoots(chunk, whole) {
+    const { ox, oy, step: apart, size: across, packed } = chunk;
+    const { rings, indices, positions, normals, mesh } = chunk.roots;
     let n = 0;
     for (const { x, y, size, lift, side, twist } of rings) {
-      const k = Math.round(clamp((y + MARGIN) * STEPS, 0, NY - 1)) * NX + Math.round(clamp((x + MARGIN) * STEPS, 0, NX - 1));
-      const middle = height(x, y) + size * 0.3 + lift - packed[k] * (size * 2.2 + 0.03);
+      const gx = Math.round(clamp((x - ox) / apart + 1, 0, across - 1));
+      const gy = Math.round(clamp((y - oy) / apart + 1, 0, across - 1));
+      const middle = surface(chunk, x, y) + size * 0.3 + lift - packed[gy * across + gx] * (size * 2.2 + 0.03);
       for (let s = 0; s <= SIDES; s++) {
         const a = (s / SIDES) * TAU - Math.PI / 2;
         const ridge = size * (1 + Math.sin(a * 3 + twist) * 0.17);
@@ -590,55 +594,109 @@ window.createTerrain3D = (B, scene, glow) => {
         positions[n++] = -(y + side[1] * Math.cos(a) * ridge);
       }
     }
-    part.mesh.updateVerticesData(B.VertexBuffer.PositionKind, positions);
+    mesh.updateVerticesData(B.VertexBuffer.PositionKind, positions);
     if (!whole) return;
     B.VertexData.ComputeNormals(positions, indices, normals);
-    part.mesh.updateVerticesData(B.VertexBuffer.NormalKind, normals);
-    part.mesh.refreshBoundingInfo();
+    mesh.updateVerticesData(B.VertexBuffer.NormalKind, normals);
+    mesh.refreshBoundingInfo();
   }
 
-  // ---- The meshes, and what moves when something is built
-  const settled = (k) => natural[k] * (1 - packed[k]);
-  const chunks = [];
-  const dirty = new Set();
-  for (let cy = 0; cy < SIZE_Y; cy += CHUNK) {
-    for (let cx = 0; cx < SIZE_X; cx += CHUNK) {
-      const i0 = cx * STEPS;
-      const j0 = cy * STEPS;
-      const i1 = Math.min(NX - 1, i0 + CHUNK * STEPS);
-      const j1 = Math.min(NY - 1, j0 + CHUNK * STEPS);
-      const across = i1 - i0 + 1;
-      const count = across * (j1 - j0 + 1);
-      const chunk = { i0, j0, i1, j1, positions: new Float32Array(count * 3), normals: new Float32Array(count * 3), colors: new Float32Array(count * 4), mesh: new B.Mesh('ground', scene) };
-      const uvs = new Float32Array(count * 2);
-      const indices = [];
-      for (let j = j0, n = 0; j <= j1; j++) {
-        for (let i = i0; i <= i1; i++, n++) {
-          chunk.positions[n * 3] = i / STEPS - MARGIN;
-          chunk.positions[n * 3 + 2] = -(j / STEPS - MARGIN);
-          chunk.normals[n * 3 + 1] = 1;
-          chunk.colors[n * 4 + 3] = 1;
-          uvs[n * 2] = i / STEPS / GRAIN;
-          uvs[n * 2 + 1] = j / STEPS / GRAIN;
-          if (i < i1 && j < j1) indices.push(n + 1 + across, n + 1, n, n + across, n + 1 + across, n);
-        }
-      }
-      const { positions, normals, colors } = chunk;
-      Object.assign(new B.VertexData(), { positions, normals, colors, uvs, indices }).applyToMesh(chunk.mesh, true);
-      chunk.mesh.material = soil;
-      chunk.mesh.receiveShadows = true;
-      chunk.mesh.isPickable = false;
-      chunks.push(chunk);
+  // ---- Chunks. Each carries one ring of vertices more than it shows, so lighting matches its neighbour's.
+  const chunks = new Map();
+  const spot = (cx, cy) => (cx + 4096) * 8192 + cy + 4096;
+  let last = null;
+  function chunkAt(x, y) {
+    if (last && x >= last.ox && x < last.ox + CHUNK && y >= last.oy && y < last.oy + CHUNK) return last;
+    const found = chunks.get(spot(Math.floor(x / CHUNK), Math.floor(y / CHUNK)));
+    if (found) last = found;
+    return found;
+  }
+  function surface(chunk, x, y) {
+    const { ox, oy, step: apart, size, current } = chunk;
+    const gx = clamp((x - ox) / apart + 1, 0, size - 1.001);
+    const gy = clamp((y - oy) / apart + 1, 0, size - 1.001);
+    const i = Math.floor(gx);
+    const j = Math.floor(gy);
+    const k = j * size + i;
+    return mix(mix(current[k], current[k + 1], gx - i), mix(current[k + size], current[k + size + 1], gx - i), gy - j);
+  }
+  function height(x, y) {
+    const chunk = chunkAt(x, y);
+    if (!chunk) return 0;
+    const h = surface(chunk, x, y);
+    return chunk.metal[(Math.floor(y) - chunk.oy) * CHUNK + Math.floor(x) - chunk.ox] ? Math.max(h, PLATE) : h;
+  }
+
+  // What presses the ground: a set of cells. 15 bits a side are plenty to tell cells apart.
+  let used = new Map();
+  const code = (x, y) => ((x & 32767) << 15) | (y & 32767);
+  const pressed = (x, y) => used.has(code(Math.floor(x), Math.floor(y)));
+  function occupy(box) {
+    const now = new Map();
+    const mark = (x, y) => now.set(code(x, y), [x, y]);
+    for (const list of [G.cells, G.tracks, G.ruins]) for (const c of Object.values(list)) mark(c.x, c.y);
+    for (const c of Object.values(G.cells)) {
+      const to = c.type === 'pump' && c.to && G.cells[c.to];
+      if (!to) continue;
+      const steps = Math.ceil(span(c, to) * 2);
+      for (let i = 1; i < steps; i++) mark(Math.floor(c.x + 0.5 + ((to.x - c.x) * i) / steps), Math.floor(c.y + 0.5 + ((to.y - c.y) * i) / steps));
     }
+    for (let x = -1; x < 2; x++) for (let y = -1; y < 2; y++) mark(CORE.x + x, CORE.y + y);
+    for (const b of breachesIn(...box)) {
+      if (b.state === 'spent' && G.time - b.ended >= 8) continue;
+      for (let x = -3; x < 4; x++) for (let y = -3; y < 4; y++) if (Math.hypot(x, y) < 3.4) mark(b.x + x, b.y + y);
+    }
+    return now;
+  }
+  // Coarse vertices are too far apart for the close falloff: they pack down wider, so what is built stays on the plane.
+  const falloff = (apart) => (apart === FINE ? [0.2, REACH] : [1, 3.2]);
+  function nodesAround(chunk, x, y, visit) {
+    const { ox, oy, step: apart, size } = chunk;
+    const [, reach] = falloff(apart);
+    const i0 = Math.max(0, Math.ceil((x - reach - ox) / apart + 1));
+    const i1 = Math.min(size - 1, Math.floor((x + 1 + reach - ox) / apart + 1));
+    const j0 = Math.max(0, Math.ceil((y - reach - oy) / apart + 1));
+    const j1 = Math.min(size - 1, Math.floor((y + 1 + reach - oy) / apart + 1));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) visit(j * size + i, ox + (i - 1) * apart, oy + (j - 1) * apart);
+  }
+
+  function groundMesh(chunk) {
+    const { ox, oy, step: apart, size } = chunk;
+    const across = size - 2;
+    const count = across * across;
+    chunk.positions = new Float32Array(count * 3);
+    chunk.normals = new Float32Array(count * 3);
+    chunk.colors = new Float32Array(count * 4);
+    const uvs = new Float32Array(count * 2);
+    const indices = [];
+    for (let j = 0, n = 0; j < across; j++) {
+      for (let i = 0; i < across; i++, n++) {
+        chunk.positions[n * 3] = ox + i * apart;
+        chunk.positions[n * 3 + 2] = -(oy + j * apart);
+        chunk.normals[n * 3 + 1] = 1;
+        chunk.colors[n * 4 + 3] = 1;
+        // 73 cells are exactly 10 tiles of grain: the uvs stay small however far it is.
+        uvs[n * 2] = ((ox % 73) + i * apart) / GRAIN;
+        uvs[n * 2 + 1] = ((oy % 73) + j * apart) / GRAIN;
+        if (i < across - 1 && j < across - 1) indices.push(n + 1 + across, n + 1, n, n + across, n + 1 + across, n);
+      }
+    }
+    const { positions, normals, colors } = chunk;
+    chunk.mesh = new B.Mesh('ground', scene);
+    Object.assign(new B.VertexData(), { positions, normals, colors, uvs, indices }).applyToMesh(chunk.mesh, true);
+    chunk.mesh.material = soil;
+    chunk.mesh.receiveShadows = true;
+    chunk.mesh.isPickable = false;
   }
   function remesh(chunk) {
-    const { i0, j0, i1, j1, positions, normals, colors } = chunk;
-    for (let j = j0, n = 0; j <= j1; j++) {
-      for (let i = i0; i <= i1; i++, n++) {
-        const k = j * NX + i;
+    const { step: apart, size, current, packed, tint, positions, normals, colors, mesh } = chunk;
+    for (let j = 1, n = 0; j < size - 1; j++) {
+      for (let i = 1; i < size - 1; i++, n++) {
+        const k = j * size + i;
         // Slopes are lit steeper than they are: a lot of relief, very little hidden behind it.
-        const slopeX = ((i < NX - 1 ? current[k + 1] : current[k]) - (i ? current[k - 1] : current[k])) * STEPS * 1.15;
-        const slopeY = ((j < NY - 1 ? current[k + NX] : current[k]) - (j ? current[k - NX] : current[k])) * STEPS * 1.15;
+        const steep = 1.15 / apart;
+        const slopeX = (current[k + 1] - current[k - 1]) * steep;
+        const slopeY = (current[k + size] - current[k - size]) * steep;
         const long = Math.hypot(slopeX, 1, slopeY);
         positions[n * 3 + 1] = current[k];
         normals[n * 3] = -slopeX / long;
@@ -648,96 +706,175 @@ window.createTerrain3D = (B, scene, glow) => {
         for (let c = 0; c < 3; c++) colors[n * 4 + c] = tint[k * 3 + c] * trodden;
       }
     }
-    chunk.mesh.updateVerticesData(B.VertexBuffer.PositionKind, positions);
-    chunk.mesh.updateVerticesData(B.VertexBuffer.NormalKind, normals);
-    chunk.mesh.updateVerticesData(B.VertexBuffer.ColorKind, colors);
-    // Culling needs the true box, the rim is tall.
-    chunk.mesh.refreshBoundingInfo();
-  }
-  function touch(i, j) {
-    for (const chunk of chunks) if (i >= chunk.i0 - 1 && i <= chunk.i1 + 1 && j >= chunk.j0 - 1 && j <= chunk.j1 + 1) dirty.add(chunk);
+    mesh.updateVerticesData(B.VertexBuffer.PositionKind, positions);
+    mesh.updateVerticesData(B.VertexBuffer.NormalKind, normals);
+    mesh.updateVerticesData(B.VertexBuffer.ColorKind, colors);
+    mesh.refreshBoundingInfo();
   }
 
-  function occupy() {
-    used.fill(0);
-    const mark = (x, y) => {
-      const cell = cellAt(x, y);
-      if (cell >= 0) used[cell] = 1;
-    };
-    for (const list of [G.cells, G.tracks, G.ruins]) for (const c of Object.values(list)) mark(c.x, c.y);
-    for (const c of Object.values(G.cells)) {
-      const to = c.type === 'pump' && c.to && G.cells[c.to];
-      if (!to) continue;
-      const steps = Math.ceil(span(c, to) * 2);
-      for (let i = 1; i < steps; i++) mark(c.x + 0.5 + ((to.x - c.x) * i) / steps, c.y + 0.5 + ((to.y - c.y) * i) / steps);
+  function drop(chunk) {
+    chunk.mesh.dispose();
+    chunk.steel?.dispose();
+    if (chunk.roots) {
+      glow.removeIncludedOnlyMesh(chunk.roots.mesh);
+      chunk.roots.mesh.dispose();
     }
-    for (let x = -1; x < 2; x++) for (let y = -1; y < 2; y++) mark(CORE.x + x, CORE.y + y);
-    for (const b of G.breaches) {
-      if (b.state === 'spent' && G.time - b.ended >= 8) continue;
-      for (let x = -3; x < 4; x++) for (let y = -3; y < 4; y++) if (Math.hypot(x, y) < 3.4) mark(b.x + x, b.y + y);
-    }
+    if (last === chunk) last = null;
+    chunks.delete(spot(chunk.cx, chunk.cy));
   }
-  function settle(instant) {
-    occupy();
-    const around = Math.ceil(REACH);
-    for (let cell = 0; cell < used.length; cell++) {
-      if (used[cell] === wasUsed[cell]) continue;
-      const cx = cell % SIZE_X;
-      const cy = Math.floor(cell / SIZE_X);
-      for (let j = Math.max(0, (cy - around) * STEPS); j <= Math.min(NY - 1, (cy + 1 + around) * STEPS); j++) {
-        for (let i = Math.max(0, (cx - around) * STEPS); i <= Math.min(NX - 1, (cx + 1 + around) * STEPS); i++) {
-          const x = i / STEPS;
-          const y = j / STEPS;
-          let press = 0;
-          for (let oy = Math.max(0, Math.floor(y) - around - 1); oy <= Math.min(SIZE_Y - 1, Math.floor(y) + around); oy++) {
-            for (let ox = Math.max(0, Math.floor(x) - around - 1); ox <= Math.min(SIZE_X - 1, Math.floor(x) + around); ox++) {
-              if (used[oy * SIZE_X + ox]) press = Math.max(press, 1 - smooth(0.2, REACH, outside(x, y, ox, oy, ox + 1, oy + 1)));
+  function raise(cx, cy, apart) {
+    const ox = cx * CHUNK;
+    const oy = cy * CHUNK;
+    const edgeX = ox + CHUNK;
+    const edgeY = oy + CHUNK;
+    const size = CHUNK / apart + 3;
+    const count = size * size;
+    const natural = new Float32Array(count);
+    const packed = new Float32Array(count);
+    const aim = new Float32Array(count);
+    const current = new Float32Array(count);
+    const tint = new Float32Array(count * 3);
+    const chunk = { cx, cy, ox, oy, step: apart, size, natural, packed, aim, current, tint, decor: [], metal: new Uint8Array(CHUNK * CHUNK), settling: new Set() };
+    const fields = fieldsIn(ox - 9, oy - 9, edgeX + 9, edgeY + 9);
+    const plates = platesIn(ox - 5, oy - 5, edgeX + 5, edgeY + 5);
+    const pools = poolsIn(ox - 5, oy - 5, edgeX + 5, edgeY + 5);
+    shapeGround(chunk, fields, plates, pools);
+    for (const p of plates) {
+      for (const x of [p.x - 1, p.x]) {
+        for (const y of [p.y - 1, p.y]) if (x >= ox && x < edgeX && y >= oy && y < edgeY) chunk.metal[(Math.floor(y) - oy) * CHUNK + Math.floor(x) - ox] = 1;
+      }
+    }
+    const mine = (p) => p.x >= ox && p.x < edgeX && p.y >= oy && p.y < edgeY;
+    chunk.plates = plates.filter(mine);
+    chunk.pools = pools.filter(mine);
+
+    // It arrives already packed under what is built.
+    const [near, reach] = falloff(apart);
+    for (const [x, y] of used.values()) {
+      if (x < ox - 6 || x > edgeX + 6 || y < oy - 6 || y > edgeY + 6) continue;
+      nodesAround(chunk, x, y, (k, nx, ny) => {
+        packed[k] = Math.max(packed[k], 1 - smooth(near, reach, outside(nx, ny, x, y, x + 1, y + 1)));
+      });
+    }
+    aim.set(packed);
+    for (let k = 0; k < count; k++) current[k] = natural[k] * (1 - packed[k]);
+
+    groundMesh(chunk);
+    remesh(chunk);
+    chunk.steel = steelMesh(chunk.plates);
+    if (apart === FINE) chunk.bare = fields;
+    const old = chunks.get(spot(cx, cy));
+    if (old) drop(old);
+    chunks.set(spot(cx, cy), chunk);
+    return chunk;
+  }
+
+  // Roots and small things come a frame after their ground, so no frame carries the whole chunk.
+  function furnish(chunk) {
+    scatter(chunk, chunk.bare);
+    chunk.bare = null;
+    chunk.roots = rootMesh(chunk.ox, chunk.oy);
+    if (chunk.roots) layRoots(chunk, true);
+  }
+
+  function settle(now, instant) {
+    const changed = [];
+    for (const [id, cell] of now) if (!used.has(id)) changed.push(cell);
+    for (const [id, cell] of used) if (!now.has(id)) changed.push(cell);
+    used = now;
+    for (const [x, y] of changed) {
+      for (let cx = Math.floor((x - 6) / CHUNK); cx <= Math.floor((x + 6) / CHUNK); cx++) {
+        for (let cy = Math.floor((y - 6) / CHUNK); cy <= Math.floor((y + 6) / CHUNK); cy++) {
+          const chunk = chunks.get(spot(cx, cy));
+          if (!chunk) continue;
+          const [near, reach] = falloff(chunk.step);
+          const around = Math.ceil(reach) + 1;
+          nodesAround(chunk, x, y, (k, nx, ny) => {
+            let press = 0;
+            const px = Math.floor(nx);
+            const py = Math.floor(ny);
+            for (let i = px - around; i < px + around; i++) {
+              for (let j = py - around; j < py + around; j++) {
+                if (used.has(code(i, j))) press = Math.max(press, 1 - smooth(near, reach, outside(nx, ny, i, j, i + 1, j + 1)));
+              }
             }
-          }
-          const k = j * NX + i;
-          aim[k] = press;
-          settling.add(k);
+            chunk.aim[k] = press;
+            chunk.settling.add(k);
+          });
         }
       }
     }
-    [used, wasUsed] = [wasUsed, used];
-    let moved = null;
-    for (const k of settling) {
-      const mx = (k % NX) / STEPS - MARGIN;
-      const my = Math.floor(k / NX) / STEPS - MARGIN;
-      if (!moved) moved = [mx, my, mx, my];
-      moved = [Math.min(moved[0], mx), Math.min(moved[1], my), Math.max(moved[2], mx), Math.max(moved[3], my)];
-      const gap = aim[k] - packed[k];
-      const done = instant || Math.abs(gap) < 0.01;
-      packed[k] = done ? aim[k] : packed[k] + gap * 0.2;
-      current[k] = settled(k);
-      touch(k % NX, Math.floor(k / NX));
-      if (done) settling.delete(k);
-    }
-    for (const chunk of dirty) remesh(chunk);
-    dirty.clear();
-    if (!moved) return;
-    for (const part of roots) {
-      const [x0, y0, x1, y1] = part.box;
-      if (instant || (moved[0] < x1 + 1 && moved[2] > x0 - 1 && moved[1] < y1 + 1 && moved[3] > y0 - 1)) layRoots(part);
+    for (const chunk of chunks.values()) {
+      if (!chunk.settling.size) continue;
+      const { natural, packed, aim, current, settling } = chunk;
+      for (const k of settling) {
+        const gap = aim[k] - packed[k];
+        const done = instant || Math.abs(gap) < 0.01;
+        packed[k] = done ? aim[k] : packed[k] + gap * 0.2;
+        current[k] = natural[k] * (1 - packed[k]);
+        if (done) settling.delete(k);
+      }
+      remesh(chunk);
+      if (chunk.roots) layRoots(chunk, false);
     }
   }
 
-  function shape() {
-    layPlates();
-    steelMesh();
-    placePools();
-    shapeGround();
-    scatter();
-    growRoots();
-    packed.fill(0);
-    aim.fill(0);
-    wasUsed.fill(0);
-    settling.clear();
-    current.set(natural);
-    for (const chunk of chunks) dirty.add(chunk);
-    settle(true);
-    for (const part of roots) layRoots(part, true);
+  let known = null;
+  let detail = 0;
+  function update(area) {
+    const world = `${G.seed}|${FIELDS.map((f) => f.join(':')).join()}`;
+    if (world !== known) {
+      known = world;
+      for (const chunk of [...chunks.values()]) drop(chunk);
+      anchors = new Map();
+      used = new Map();
+    }
+    if (!detail) detail = cam.zoom < 8.5 ? COARSE : FINE;
+    if (cam.zoom < 8) detail = COARSE;
+    if (cam.zoom > 9) detail = FINE;
+
+    const x0 = Math.floor(area.x0 / CHUNK);
+    const y0 = Math.floor(area.y0 / CHUNK);
+    const x1 = Math.floor(area.x1 / CHUNK);
+    const y1 = Math.floor(area.y1 / CHUNK);
+    settle(occupy([(x0 - 2) * CHUNK, (y0 - 2) * CHUNK, (x1 + 3) * CHUNK, (y1 + 3) * CHUNK]), still.matches);
+
+    // What is on screen first, nearest the middle first, then one ring ahead of the camera.
+    const missing = [];
+    const upcoming = [];
+    let onScreen = false;
+    for (let cx = x0 - 1; cx <= x1 + 1; cx++) {
+      for (let cy = y0 - 1; cy <= y1 + 1; cy++) {
+        const visible = cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1;
+        const chunk = chunks.get(spot(cx, cy));
+        if (visible && chunk) onScreen = true;
+        if (chunk?.step === detail) continue;
+        const away = Math.abs((cx + 0.5) * CHUNK - cam.x) + Math.abs((cy + 0.5) * CHUNK - cam.y);
+        (visible ? missing : upcoming).push([away, cx, cy]);
+      }
+    }
+    missing.sort((a, b) => a[0] - b[0]);
+    const since = performance.now();
+    for (const [, cx, cy] of missing) {
+      const chunk = raise(cx, cy, detail);
+      // Arriving somewhere all at once: no holes and nothing bare on that first frame.
+      if (!onScreen && chunk.bare) furnish(chunk);
+      if (onScreen && performance.now() - since > BUDGET) break;
+    }
+    let bare = null;
+    if (!missing.length) {
+      const inView = (c) => c.cx >= x0 && c.cx <= x1 && c.cy >= y0 && c.cy <= y1;
+      for (const chunk of chunks.values()) if (chunk.bare && (!bare || inView(chunk))) bare = chunk;
+      if (bare) furnish(bare);
+    }
+    if (!missing.length && !bare && upcoming.length) {
+      upcoming.sort((a, b) => a[0] - b[0]);
+      raise(upcoming[0][1], upcoming[0][2], detail);
+    }
+    for (const chunk of [...chunks.values()]) {
+      if (chunk.cx < x0 - 2 || chunk.cx > x1 + 2 || chunk.cy < y0 - 2 || chunk.cy > y1 + 2) drop(chunk);
+    }
+    if (anchors.size > 12000) anchors = new Map();
   }
 
   // ---- Small things lying on it. They leave where something is built.
@@ -747,10 +884,6 @@ window.createTerrain3D = (B, scene, glow) => {
     ripple: ['#4F8B7A', 0.12, 0.35, 0.8], bubble: ['#79B59E', 0.15, 0.6, 1], dryFibre: ['#6B4526', 0.03, 1, 0.4],
     cable: ['#0B1012', 0, 1, 0.6],
   };
-  function pressed(x, y) {
-    const cell = cellAt(x, y);
-    return cell >= 0 && wasUsed[cell] === 1;
-  }
   function piece(add, p, t, close) {
     const { x, y, n, type } = p;
     const a = n * TAU;
@@ -791,40 +924,35 @@ window.createTerrain3D = (B, scene, glow) => {
     if (cam.zoom < 9) return;
     const close = cam.zoom >= 18;
     const shown = (x, y, room = 1) => x > area.x0 - room && x < area.x1 + room && y > area.y0 - room && y < area.y1 + room;
+    const here = [...chunks.values()].filter((c) => c.ox < area.x1 + 3 && c.ox + CHUNK > area.x0 - 3 && c.oy < area.y1 + 3 && c.oy + CHUNK > area.y0 - 3);
     if (cam.zoom >= 11) {
-      for (let y = Math.max(-2, area.y0); y < Math.min(H + 2, area.y1); y++) {
-        for (let x = Math.max(-2, area.x0); x < Math.min(W + 2, area.x1); x++) {
-          const cell = cellAt(x, y);
-          const p = decor.get(cell);
-          if (p && !wasUsed[cell]) piece(add, p, t, close);
-        }
-      }
+      for (const chunk of here) for (const p of chunk.decor) if (shown(p.x, p.y, 0) && !pressed(p.x, p.y)) piece(add, p, t, close);
     }
-    for (const pool of pools) {
+    for (const pool of here.flatMap((chunk) => chunk.pools)) {
       const { x, y, r, n } = pool;
       if (!shown(x, y, 3)) continue;
       // Built on, a pool drains.
       if ([[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]].some(([dx, dy]) => pressed(x + dx, y + dy))) continue;
-      const surface = -0.22 - height(x, y);
-      add('stain', 'shore', x, y, surface + 0.04, r * 2.9, 0.02, r * 2.4, n * 6 + 1);
-      add('stain', 'water', x, y, surface + 0.07, r * 2.1, 0.02, r * 1.7, n * 6);
-      add('stain', 'shine', x - r * 0.25, y - r * 0.2, surface + 0.1, r * 0.9, 0.01, r * 0.45, n * 3);
+      const level = -0.22 - height(x, y);
+      add('stain', 'shore', x, y, level + 0.04, r * 2.9, 0.02, r * 2.4, n * 6 + 1);
+      add('stain', 'water', x, y, level + 0.07, r * 2.1, 0.02, r * 1.7, n * 6);
+      add('stain', 'shine', x - r * 0.25, y - r * 0.2, level + 0.1, r * 0.9, 0.01, r * 0.45, n * 3);
       if (!close) continue;
       const wave = (t * 0.22 + n) % 1;
-      if (wave < 0.55) add('ring', 'ripple', x + (n - 0.5) * 0.5, y, surface + 0.12, 0.15 + wave * r * 1.6, 0.3, 0.15 + wave * r * 1.6);
+      if (wave < 0.55) add('ring', 'ripple', x + (n - 0.5) * 0.5, y, level + 0.12, 0.15 + wave * r * 1.6, 0.3, 0.15 + wave * r * 1.6);
       const bubble = (t / (4 + n * 4) + n) % 1;
-      if (bubble < 0.14) add('bead', 'bubble', x + 0.2, y + (n - 0.5) * 0.6, surface + 0.12, 0.06 + bubble * 1.1);
+      if (bubble < 0.14) add('bead', 'bubble', x + 0.2, y + (n - 0.5) * 0.6, level + 0.12, 0.06 + bubble * 1.1);
     }
     // Torn cables out of the broken edges.
     if (close) {
-      for (const p of plates) {
+      for (const p of here.flatMap((chunk) => chunk.plates)) {
         if (!p.border || hash(p.seed, 0, 81) > 0.3 || !shown(p.x, p.y, 2) || pressed(p.x, p.y)) continue;
         const a = hash(p.seed, 1, 81) * TAU;
         for (let i = 0; i < 2; i++) add('arch', 'cable', p.x + Math.cos(a + i * 0.4) * 0.9, p.y + Math.sin(a + i * 0.4) * 0.9, -0.02, 0.7, 0.22, 0.7, a + i * 0.4);
       }
     }
     // Around a sleeping breach, the ground breathes.
-    for (const b of G.breaches) {
+    for (const b of breachesIn(area.x0, area.y0, area.x1, area.y1)) {
       if (b.state !== 'sleep' || !shown(b.x, b.y, 4)) continue;
       for (let i = 0; i < 6; i++) {
         const a = i * 1.047 + b.x;
@@ -837,14 +965,12 @@ window.createTerrain3D = (B, scene, glow) => {
   return {
     PAINT,
     height,
-    // Follows the game: a new map is shaped again, a new building settles into the mud.
-    update() {
-      const map = FIELDS.map((f) => f.join(':')).join();
-      if (map !== known) {
-        known = map;
-        shape();
-      } else settle(still.matches);
+    // The ground of any cell, made on the spot if it is off screen. For checks.
+    groundAt(x, y) {
+      if (!chunkAt(x, y)) raise(Math.floor(x / CHUNK), Math.floor(y / CHUNK), FINE);
+      return height(x, y);
     },
+    update,
     draw,
   };
 };
