@@ -85,6 +85,11 @@ Rejected are the operator's decisions, rows marked Proposed are open.
 - The fog: draw a nest from shownNests, a creature only inSight, a deposit cell only known,
   and gate any new way of building with placeable(), never buildable() alone. look() is
   the only writer of what was seen and runs in step(), never while drawing.
+- The game opens on the planet, one hexagon a game, each under its own storage key.
+  Never write over a game but by its own autosave or a held press. An import is
+  somebody else's data: a new field in the saved state needs its rule in checkGame,
+  and the test with one of everything must still pass. Pictures of the opening
+  screen are in `prototype/planet/`, named in ART, and published beside the page.
 - `tests/prototype/` records its behavior. An intended rule change updates the
   snapshot in the same commit and the concept with it. Never update a snapshot to
   silence a failure you cannot explain.

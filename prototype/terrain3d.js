@@ -11,7 +11,7 @@ window.createTerrain3D = (B, scene, glow) => {
   const GRAIN = 7.3; // cells one tile of grain covers
   const REACH = 1.4; // how far around a building the ground is packed down
   const TAU = Math.PI * 2;
-  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const still = STILL; // the system's wish, or the one picked in the menu
 
   const clamp = (v, low = 0, high = 1) => Math.max(low, Math.min(high, v));
   const mix = (a, b, t) => a + (b - a) * t;

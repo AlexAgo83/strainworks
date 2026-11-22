@@ -125,7 +125,7 @@ it("draws the same game and lands a finger on the same cell", async () => {
     await page.mouse.up();
     expect(await page.evaluate(() => [16, 17, 18, 19, 20, 21, 22].map((x) => G.cells[`${x},83`]?.type))).toEqual(Array(7).fill("belt"));
 
-    await fromMenu(page, "dimension");
+    await fromMenu(page, "flat");
     expect(await page.evaluate(() => [view3d, document.querySelector("#gl").hidden, flat()])).toEqual([null, true, 1]);
     expect(errors).toEqual([]);
   } finally {

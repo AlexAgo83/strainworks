@@ -57,6 +57,7 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Deposit shape | Decided | Irregular round patches with splashes, never rectangles |
 | Distance | Decided | Nests are sparse and come in four bodies. Five levels by distance, capped at 640 cells: harder nests, richer deposits |
 | Fog of war | Decided | Never seen, seen before, seen now round structures, drones and worms. No building in the unknown. An assault is always announced |
+| Games | Decided | The game opens on an organic planet, one hexagon a game, denser as it advances. Export, import and copy never write over a game |
 | Carbon and containers | Decided | Carbon stays outside the genetic code. The Encapsulator packs magazines for turrets and tech capsules for the core |
 | Higher tech matter | Decided | Later stages ask for a rarer matter instead of carbon, like uranium found farther. Its mutagen effect is a proposal |
 | Four bases, genes of three | Proposed | See sections 3 and 4 |

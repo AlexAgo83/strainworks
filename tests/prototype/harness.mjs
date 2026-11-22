@@ -66,20 +66,29 @@ function seenEverywhere() {
   });
 }
 
+// Tests of the game step past the opening screen into the last game played, or a first one.
+function pastThePlanet() {
+  document.addEventListener("DOMContentLoaded", () => {
+    if (typeof resumeLast === "function") resumeLast();
+  });
+}
+
 export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
     close: () => browser.close(),
-    async newContext({ fog = false, ...options } = {}) {
+    async newContext({ fog = false, planet = false, ...options } = {}) {
       const context = await browser.newContext(options);
       if (!fog) await context.addInitScript(seenEverywhere);
+      if (!planet) await context.addInitScript(pastThePlanet);
       await context.addInitScript(seedRandom);
       await context.addInitScript(layoutProbe);
       return context;
     },
-    async newPage({ fog = false, ...options } = {}) {
+    async newPage({ fog = false, planet = false, ...options } = {}) {
       const page = await browser.newPage(options);
       if (!fog) await page.addInitScript(seenEverywhere);
+      if (!planet) await page.addInitScript(pastThePlanet);
       await page.addInitScript(seedRandom);
       await page.addInitScript(layoutProbe);
       return page;

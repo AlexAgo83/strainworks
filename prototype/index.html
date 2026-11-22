@@ -407,6 +407,99 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 @keyframes dying { 50% { transform:scale(.92); opacity:.65; } }
 @keyframes rise { from { opacity:0; transform:translateY(40px); } }
 @keyframes join { from { transform:translate(var(--dx),var(--dy)) scale(.4); opacity:.2; } }
+
+/* Opening screen: docs/design/interface, boards 8 to 14. */
+#planet { position:absolute; inset:0; z-index:20; overflow:hidden; background:#03070A; pointer-events:auto; }
+#planet.leaving { pointer-events:none; animation:dive .7s cubic-bezier(.6,0,.8,.4) both; }
+#planet > * { position:absolute; }
+#space { inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; }
+#globe { inset:0; width:100%; height:100%; pointer-events:none; }
+#globe-still { pointer-events:none; max-width:none; }
+#hexes { inset:0; width:100%; height:100%; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+#hexes.dragged { cursor:grabbing; }
+#hexes .grid { fill:none; stroke:#66D9EA; stroke-width:1; }
+#hexes .taken { fill:rgba(4,10,12,.5); stroke:var(--cyan); stroke-width:1.6; }
+#hexes .taken.fallen { stroke:#8A3040; }
+#hexes .lit { fill:rgba(183,243,74,.12); stroke:var(--acid); stroke-width:3; stroke-linejoin:round; }
+#hexes .beam { pointer-events:none; animation:beam 1.8s ease-in-out infinite; }
+#hexes .flow { pointer-events:none; stroke:var(--cyan); stroke-width:1.5; stroke-dasharray:7 11; animation:flow 1s linear infinite; }
+#hexes .heartbeat { animation:heartbeat 1.4s ease-in-out infinite; }
+#games { left:0; top:0; }
+#games button { position:absolute; width:56px; height:56px; padding:0; translate:-50% -50%; border:0; border-radius:50%; background:none; pointer-events:none; }
+#station { pointer-events:none; max-width:none; animation:float 7s ease-in-out infinite; }
+#brand { left:calc(44px + var(--l)); top:calc(34px + var(--t)); pointer-events:none; }
+#brand h1 { color:var(--acid); font:700 46px/1 var(--display); }
+#brand p { margin-top:4px!important; color:var(--muted); }
+#app #planet-menu { position:absolute; right:calc(24px + var(--r)); top:calc(26px + var(--t)); width:52px; height:52px; }
+#projection { display:flex; flex-direction:column; gap:12px; padding:26px; }
+#projection.open { transform-origin:top; animation:projected .55s cubic-bezier(.2,1.2,.4,1) both; }
+#projection > .skin path:first-child { fill:rgba(6,22,27,.9); stroke:var(--cyan); }
+#projection > .scan { position:absolute; inset:14px; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(102,217,234,.07) 0 1px,transparent 1px 5px); animation:scan 2.4s linear infinite; }
+#slot-head { position:relative; display:flex; gap:20px; min-width:0; }
+#slot-head > svg { flex:none; width:124px; height:124px; overflow:visible; }
+#slot-head > div { min-width:0; flex:1; }
+#slot-kicker { color:var(--cyan); font:700 12px var(--display); text-transform:uppercase; }
+#projection.fallen #slot-kicker { color:var(--alarm); }
+#projection.free #slot-kicker { color:var(--acid); }
+#slot-name { margin-top:3px!important; font:700 30px/1.05 var(--display); overflow-wrap:anywhere; }
+#slot-sub { margin-top:4px!important; color:var(--muted); }
+#slot-facts { display:flex; justify-content:space-between; gap:8px 12px; margin-top:14px; }
+#slot-facts:empty { display:none; }
+#slot-facts p { color:var(--muted); font-size:12px; }
+#slot-facts b { display:block; color:var(--ink); font:700 21px var(--display); white-space:nowrap; }
+#slot-note { position:relative; min-height:1.3em; color:var(--muted); font-size:13px; }
+#slot-note.bad { color:var(--alarm); }
+#slot-actions { position:relative; display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; }
+#app .act { position:relative; overflow:hidden; min-height:48px; padding:6px 16px; border:1.5px solid var(--edge); border-radius:20px 7px; background:var(--membrane); white-space:nowrap; }
+#app .act:hover { border-color:var(--cyan); }
+#app .act.go { border-color:var(--acid); background:var(--acid); color:var(--night); font-weight:600; }
+#app .act.bad { border-color:var(--alarm); color:var(--alarm); }
+#app .act i { position:absolute; left:0; bottom:0; width:100%; height:4px; background:currentColor; transform:scaleX(0); transform-origin:left; }
+#app .act.holding i { transform:scaleX(1); transition:transform 1s linear; }
+#over .ways { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+
+/* One menu for the planet and the game. */
+#menu { width:min(380px,calc(100vw - 20px)); max-height:calc(100% - 90px); overflow:auto; padding:18px 22px; align-items:stretch; gap:0; border:1.5px solid #46636B; border-radius:30px 12px; background:#081214F5; pointer-events:auto; }
+#menu > * { animation:none; }
+#menu:not([hidden]) { animation:sprout .35s cubic-bezier(.2,1.5,.4,1) both; }
+.on-planet #menu { z-index:30; top:calc(88px + var(--t)); }
+#menu h2 { margin-bottom:6px; color:var(--acid); font:700 20px var(--display); }
+#menu .row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:56px; padding-block:5px; border-bottom:1px solid #1D3036; }
+#menu .choice { display:flex; gap:6px; }
+#app #menu [aria-pressed="true"] { border-color:var(--acid); color:var(--acid); }
+#menu .last { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+#app #menu #to-planet { border-color:var(--acid); background:var(--acid); color:var(--night); font-weight:600; }
+#app #menu #restart { color:var(--alarm); border-color:var(--alarm); }
+#menu #speed { align-self:flex-end; }
+.on-planet #menu .in-game, .on-planet #menu #speed { display:none; }
+#app:not(.on-planet) #menu .at-planet { display:none; }
+#app.calm-motion *, #app.calm-motion *::before, #app.calm-motion *::after { animation:none!important; transition:none!important; }
+
+@media (max-width:759px), (max-height:520px), (max-aspect-ratio:11/10) {
+  #brand { left:calc(16px + var(--l)); top:calc(12px + var(--t)); }
+  #brand h1 { font-size:24px; }
+  #app #planet-menu { right:calc(12px + var(--r)); top:calc(10px + var(--t)); }
+  #projection { gap:9px; padding:18px 18px 20px; }
+  #slot-head { gap:13px; }
+  #slot-head > svg { width:80px; height:80px; }
+  #slot-name { font-size:22px; }
+  #slot-facts { gap:6px; margin-top:8px; }
+  #slot-facts b { font-size:15px; }
+  #slot-facts p { font-size:11px; }
+  #app #slot-actions .act { flex:1 1 40%; min-width:max-content; }
+}
+@media (max-height:520px) {
+  #slot-head > svg { display:none; }
+  #app #slot-actions .act { min-height:44px; }
+}
+
+@keyframes dive { to { opacity:0; transform:scale(3.2); } }
+@keyframes beam { 50% { opacity:.55; } }
+@keyframes flow { to { stroke-dashoffset:-18; } }
+@keyframes heartbeat { 50% { opacity:.45; } }
+@keyframes float { 50% { transform:translateY(-5px); } }
+@keyframes projected { from { opacity:0; transform:scaleY(.08); } }
+@keyframes scan { to { background-position:0 20px; } }
 @media (prefers-reduced-motion:reduce) { #app *, #app *::before, #app *::after { animation:none!important; transition:none!important; } }
 </style>
 
@@ -465,11 +558,18 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <button id="menu-toggle" class="node" aria-label="Menu" aria-expanded="false" aria-controls="menu"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"/><circle cx="4" cy="15" r="2.4" fill="currentColor"/><circle cx="16" cy="15" r="2.4" fill="currentColor"/><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"/></svg></button>
   </nav>
   <div id="menu" hidden>
-    <h1>STRAINWORKS</h1>
-    <button id="dimension" class="tip">Passer en 3D</button>
-    <button id="help" class="tip">Commandes clavier et tactile</button>
-    <button id="open-all" class="tip">Tout débloquer (test)</button>
-    <button id="restart" class="tip"><span>Recommencer : maintenir</span><i></i></button>
+    <h2>Réglages</h2>
+    <div class="row" id="view-row"><span>Vue</span><span class="choice"><button id="flat" class="tip" aria-pressed="true">2D</button><button id="dimension" class="tip" aria-pressed="false">3D</button></span></div>
+    <div class="row"><span>Animations</span><span class="choice"><button id="motion-auto" class="tip">Auto</button><button id="motion-less" class="tip">Réduites</button></span></div>
+    <div class="row"><span>Clavier et tactile</span><button id="help" class="tip">Voir</button></div>
+    <div class="row at-planet"><span>Importer une partie</span><button id="import" class="tip">Choisir</button></div>
+    <div class="row at-planet"><span>Sauvegarder la planète</span><button id="export-all" class="tip">Tout exporter</button></div>
+    <div class="row in-game"><span>Cette partie</span><button id="export-game" class="tip">Exporter</button></div>
+    <div class="row in-game" id="open-row"><span>Tout débloquer (test)</span><button id="open-all" class="tip">Activer</button></div>
+    <div class="last in-game">
+      <button id="to-planet" class="tip">Retour à la planète</button>
+      <button id="restart" class="tip"><span>Recommencer : maintenir</span><i></i></button>
+    </div>
   </div>
 
   <nav id="zoom" aria-label="Caméra">
@@ -523,8 +623,27 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <svg viewBox="-310 -150 620 260" aria-hidden="true"><path class="vein" stroke-width="9" d="M-300 60 C-200 20 -130 80 -60 20"/><path class="vein" stroke-width="9" d="M300 40 C210 90 140 -10 64 20"/><path class="vein" stroke-width="7" d="M-40 -150 C-70 -110 0 -90 -10 -50"/><g class="dying"><circle r="76" fill="#4A1B25"/><circle cx="-36" cy="-22" r="30" fill="#32151C"/><circle cx="38" cy="18" r="26" fill="#32151C"/><circle r="24" fill="#FF6B74"/><path d="M-4 -70l14 34-16 24 18 30-10 46" fill="none" stroke="#070C0E" stroke-width="5"/></g></svg>
     <h1>Le cœur est tombé</h1>
     <div id="score"></div>
-    <button id="again" class="tip">Fonder une autre station</button>
+    <div class="ways"><button id="again" class="tip">Fonder une autre station</button><button id="over-planet" class="tip">Retour à la planète</button></div>
   </section>
+
+  <section id="planet" hidden aria-label="Choix de la partie">
+    <img id="space" alt="" aria-hidden="true">
+    <canvas id="globe" aria-hidden="true"></canvas>
+    <img id="globe-still" alt="" aria-hidden="true" hidden>
+    <svg id="hexes" aria-hidden="true"></svg>
+    <div id="games"></div>
+    <img id="station" alt="" aria-hidden="true">
+    <header id="brand"><h1>STRAINWORKS</h1><p>Chaque hexagone est une partie</p></header>
+    <button id="planet-menu" class="node" aria-label="Réglages" aria-expanded="false" aria-controls="menu"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"/><circle cx="4" cy="15" r="2.4" fill="currentColor"/><circle cx="16" cy="15" r="2.4" fill="currentColor"/><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"/></svg></button>
+    <section id="projection" aria-label="Projection de la station">
+      <svg class="skin" viewBox="0 0 590 330" preserveAspectRatio="none" aria-hidden="true"><path d="M30 10 C180 2 410 4 560 12 C586 30 586 90 576 140 C590 220 584 290 556 320 C410 332 170 326 40 322 C8 312 0 250 10 180 C0 100 4 30 30 10 Z"/></svg>
+      <i class="scan" aria-hidden="true"></i>
+      <div id="slot-head"><svg id="slot-icon" viewBox="0 0 132 132" aria-hidden="true"></svg><div aria-live="polite"><p id="slot-kicker"></p><h2 id="slot-name"></h2><p id="slot-sub"></p><div id="slot-facts"></div></div></div>
+      <p id="slot-note" role="status"></p>
+      <div id="slot-actions"></div>
+    </section>
+  </section>
+  <input id="file" type="file" accept=".json,application/json" hidden>
 
   <dialog id="commands" aria-labelledby="commands-title">
     <h2 id="commands-title">Commandes</h2>
@@ -2198,6 +2317,7 @@ function resize() {
   view = {w:Math.max(1, box.width), h:Math.max(1, box.height), dpr:Math.min(2, window.devicePixelRatio || 1)};
   canvas.width = view.w * view.dpr; canvas.height = view.h * view.dpr;
   layoutHud();
+  if (orbit.on) layoutPlanet();
 }
 // The 3D camera is tilted, which only flattens y: everything else is shared with the 2D view.
 let view3d = null;
@@ -3579,7 +3699,6 @@ async function show3D(on) {
   const toggle = $('dimension');
   try {
     if (on && !made3d) {
-      toggle.textContent = '…';
       showMenu(false); $('loading').hidden = false;
       if (!window.BABYLON) await script(BABYLON_SRC, BABYLON_HASH);
       if (!window.createModels3D) await script('models3d.js');
@@ -3597,13 +3716,24 @@ async function show3D(on) {
     tell('Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.');
     console.warn('3D view unavailable:', error.message);
   }
-  toggle.textContent = view3d ? 'Passer en 2D' : 'Passer en 3D';
+  toggle.setAttribute('aria-pressed', Boolean(view3d));
+  $('flat').setAttribute('aria-pressed', !view3d);
   $('loading').hidden = true;
   showMenu(false);
   replay($('board'), 'switched');
   switching = false;
 }
-$('dimension').onclick = () => show3D(!view3d);
+function chooseView(three) {
+  if (!orbit.on) return show3D(three);
+  // On the planet it is only noted: the engine loads with the game.
+  if (!three) view3d = null;
+  $('gl').hidden = !view3d;
+  try { localStorage.setItem(VIEW_KEY, three ? '3d' : '2d'); } catch (_) {}
+  $('dimension').setAttribute('aria-pressed', three);
+  $('flat').setAttribute('aria-pressed', !three);
+}
+$('dimension').onclick = () => chooseView(true);
+$('flat').onclick = () => chooseView(false);
 $('rebuild').onclick = () => {
   for (const w of G.wires) if (!w.hp && w.out == null) Object.assign(w, {hp:NERVE.hp, left:1, order:G.seq = (G.seq || 0) + 1});
   for (const c of pumps()) {
@@ -3750,7 +3880,12 @@ $('restart').onclick = event => {
   if (Date.now() > armed) { armed = Date.now() + 3000; restartText('Sûr ? Encore une fois'); return; }
   armed = 0; restartText('Recommencer : maintenir'); showMenu(false); begin();
 };
-$('again').onclick = () => begin();
+$('again').onclick = () => {
+  // The fallen one keeps its scar: the new one takes another hexagon.
+  save();
+  if (foundGame()) return;
+  openPlanet();
+};
 // R turns what is under the pointer, or the piece in hand. Shift turns the other way.
 function rotate(back) {
   const by = back ? 3 : 1, building = tool !== 'hand' && tool !== 'erase';
@@ -3777,7 +3912,6 @@ document.addEventListener('keydown', event => {
 });
 
 const SAVE = 'souche-proto-2', OLD_SAVE = 'souche-proto-1';
-function save() { try { localStorage.setItem(SAVE, JSON.stringify(G)); } catch (_) {} }
 // The bonus is gone: what it cost comes back.
 let repaid = 0;
 function repayBonus() {
@@ -3795,11 +3929,14 @@ function uncover() {
 }
 function load() {
   try {
-    let saved = JSON.parse(localStorage.getItem(SAVE));
-    if (!saved) {
+    const from = slotKey || SAVE;
+    let saved = JSON.parse(localStorage.getItem(from));
+    const old = !saved && from === SAVE;
+    if (old) saved = JSON.parse(localStorage.getItem(OLD_SAVE));
+    if (old || saved?.board === 11) {
       // A game from the 11 x 14 board continues in the middle of the big map.
-      saved = JSON.parse(localStorage.getItem(OLD_SAVE));
       if (saved?.cells) {
+        delete saved.board;
         const moved = {};
         for (const c of Object.values(saved.cells)) { c.x += OX; c.y += OY; moved[key(c.x,c.y)] = c; }
         saved.cells = moved; saved.shots = [];
@@ -3821,10 +3958,10 @@ function begin() {
 }
 
 // ---- The grafted interface. It reads the game and calls the same actions as a finger: no rule lives here.
-const STILL = matchMedia('(prefers-reduced-motion: reduce)'), NARROW = matchMedia('(max-width:759px), (max-height:520px)');
+const LESS_MOTION = matchMedia('(prefers-reduced-motion: reduce)'), STILL = {wanted:false, get matches() { return this.wanted || LESS_MOTION.matches; }}, NARROW = matchMedia('(max-width:759px), (max-height:520px)');
 const ui = {family:null, menu:false, html:{}, dna:null, stage:null, locked:new Map(), events:[], point:null, saidAt:0, refusedAt:-1e9, grown:0, travel:null, picked:'', pickedAt:0, safe:{left:8, top:8, right:8, bottom:8}, at:'', dry:[]};
 const motionTime = () => STILL.matches ? 0 : performance.now() / 1000;
-const modalOpen = () => $('commands').open;
+const modalOpen = () => $('commands').open || orbit.on;
 function paint(id, html, el = $(id)) {
   if (ui.html[id] === html) return false;
   ui.html[id] = html; el.innerHTML = html;
@@ -3922,12 +4059,13 @@ function showMenu(open) {
   ui.menu = open;
   $('menu').hidden = !open;
   $('menu-toggle').setAttribute('aria-expanded', open);
+  $('planet-menu').setAttribute('aria-expanded', open);
   $('menu-toggle').classList.toggle('on', open);
 }
 // Where floating things may go without landing under the interface.
 function layoutHud() {
   const narrow = NARROW.matches, speedButton = $('speed'), home = narrow ? $('menu') : $('time');
-  if (speedButton.parentElement !== home) home.insertBefore(speedButton, $(narrow ? 'dimension' : 'menu-toggle'));
+  if (speedButton.parentElement !== home) home.insertBefore(speedButton, $(narrow ? 'view-row' : 'menu-toggle'));
   ui.safe = {
     left:8,
     top:narrow ? (view.h <= 520 ? 108 : 154) : view.w < 1180 ? 180 : 146,
@@ -4100,7 +4238,7 @@ function paintHud() {
   $('app').classList.toggle('fast', speed > 1);
   $('speed').classList.toggle('on', speed > 1);
   $('pause').classList.toggle('on', paused);
-  $('open-all').hidden = Boolean(G.open);
+  $('open-row').hidden = Boolean(G.open);
 }
 
 const screenAt = p => ({x:view.w / 2 + (p.x - cam.x) * cam.zoom, y:view.h / 2 + (p.y - cam.y) * cam.zoom * flat()});
@@ -4301,6 +4439,13 @@ $('threat-toggle').onclick = () => {
   $('threat-toggle').setAttribute('aria-expanded', open);
 };
 $('menu-toggle').onclick = () => showMenu(!ui.menu);
+function setMotion(less) {
+  STILL.wanted = less;
+  $('app').classList.toggle('calm-motion', less);
+  $('motion-auto').setAttribute('aria-pressed', !less);
+  $('motion-less').setAttribute('aria-pressed', less);
+}
+for (const [id, less] of [['motion-auto', false], ['motion-less', true]]) $(id).onclick = () => { setMotion(less); keep(MOTION_KEY, less ? 'less' : 'auto'); };
 $('help').onclick = () => { showMenu(false); $('commands').showModal(); };
 // Not a form: the frame the game is served in may refuse to submit one.
 $('help-close').onclick = () => $('commands').close();
@@ -4319,7 +4464,7 @@ for (let i = 0; i < BUILDERS; i++) {
 }
 document.addEventListener('pointerdown', event => {
   ui.point = {x:event.clientX, y:event.clientY};
-  if (ui.menu && !event.target.closest?.('#menu, #menu-toggle')) showMenu(false);
+  if (ui.menu && !event.target.closest?.('#menu, #menu-toggle, #planet-menu')) showMenu(false);
   if (event.target === canvas) ui.travel = null;
 }, true);
 canvas.addEventListener('wheel', () => { ui.travel = null; }, {passive:true});
@@ -4337,16 +4482,839 @@ document.addEventListener('keydown', event => {
 });
 NARROW.addEventListener('change', layoutHud);
 
+// ---- Games: one a hexagon, each under its own key. The list can be rebuilt from the keys, never the reverse.
+// Nothing here writes over a game, except its own autosave and what a held press asked for.
+const LIST_KEY = 'strainworks-planet', GAME_KEY = 'strainworks-game:', MOTION_KEY = 'strainworks-motion';
+const NAMES = ['Rhizome', 'Synapse', 'Moelle', 'Chitine', 'Mycélium', 'Spirale', 'Écorce', 'Plasmide', 'Axone', 'Spore', 'Ganglion', 'Lymphe', 'Tendon', 'Cilium', 'Germe', 'Kératine'];
+const FILE = {one:'strainworks', all:'strainworks-planet', bytes:16e6, cells:60000, values:3e6};
+let slotKey = null, slotId = null, saveFailed = false;
+
+function stored(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
+function keep(key, text) { try { localStorage.setItem(key, text); return true; } catch (_) { return false; } }
+function parsed(text) { try { return JSON.parse(text); } catch (_) { return null; } }
+function summaryOf(game) {
+  const cells = Object.values(game?.cells || {});
+  let level = 0, rank = 1;
+  for (const c of cells) { level = Math.max(level, tierAt(c.x, c.y) + 1); rank = Math.max(rank, c.mk || 1); }
+  return {
+    stage:game?.stage ?? 0, over:Boolean(game?.over), dna:Math.floor(game?.dna || 0), kills:game?.kills || 0,
+    played:Math.floor(game?.played ?? game?.time ?? 0), built:cells.length, level, rank,
+    spent:(Array.isArray(game?.breaches) ? game.breaches : []).filter(b => b?.state === 'spent').length
+  };
+}
+// Read again before each change: another tab may have changed it.
+function readList() {
+  const found = parsed(stored(LIST_KEY)), games = found?.games && typeof found.games === 'object' ? found.games : {};
+  const list = {v:1, last:found?.last ?? null, games:{}};
+  for (const [id, g] of Object.entries(games)) {
+    if (CELLS_OF_GLOBE[id] && typeof g?.key === 'string' && stored(g.key) !== null) list.games[id] = g;
+  }
+  return list;
+}
+function writeList(list) { return keep(LIST_KEY, JSON.stringify(list)); }
+function freeHex(list, near) {
+  const free = PREFERRED.filter(id => !list.games[id]);
+  if (near == null) return free[0];
+  const c = CELLS_OF_GLOBE[near].c;
+  return free.sort((a, b) => dot3(CELLS_OF_GLOBE[b].c, c) - dot3(CELLS_OF_GLOBE[a].c, c))[0];
+}
+function newName(list) {
+  const used = new Set(Object.values(list.games).map(g => g.name)), free = NAMES.find(name => !used.has(name));
+  return free || `Souche ${Object.keys(list.games).length + 1}`;
+}
+// What an older version left, and any game the list lost.
+function findGames() {
+  const list = readList(), listed = new Set(Object.values(list.games).map(g => g.key));
+  let changed = false;
+  const adopt = (key, text, wanted) => {
+    const id = wanted != null && CELLS_OF_GLOBE[wanted] && !list.games[wanted] ? wanted : freeHex(list);
+    if (id == null) return;
+    list.games[id] = {key, name:newName(list), ...summaryOf(parsed(text))};
+    listed.add(key); list.last = id; changed = true;
+  };
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(GAME_KEY) || listed.has(key)) continue;
+      adopt(key, stored(key), key.slice(GAME_KEY.length).split(':')[0]);
+    }
+  } catch (_) {}
+  if (!listed.has(SAVE)) {
+    let text = stored(SAVE);
+    const older = text === null ? stored(OLD_SAVE) : null;
+    // The 11 x 14 board is moved by load(), under the same key as ever.
+    if (older !== null && keep(SAVE, older.replace(/^\{/, '{"board":11,'))) text = older;
+    if (text !== null) adopt(SAVE, text);
+  }
+  if (changed) writeList(list);
+}
+function save() {
+  if (!slotKey) return false;
+  // Its hexagon emptied from another tab: this one does not bring it back.
+  const list = readList(), entry = list.games[slotId];
+  if (!entry && stored(slotKey) === null && slotSaved) return false;
+  const ok = keep(slotKey, JSON.stringify(G));
+  if (!ok) {
+    if (!saveFailed) tell('Sauvegarde impossible, le stockage du navigateur est plein ou bloqué. Exporte ta partie depuis le menu.', {bad:true});
+    saveFailed = true;
+    return false;
+  }
+  saveFailed = false; slotSaved = true;
+  list.games[slotId] = {name:slotName, ...entry, key:slotKey, ...summaryOf(G)};
+  list.last = slotId;
+  writeList(list);
+  return true;
+}
+let slotSaved = false, slotName = '';
+function openSlot(id, key, name) { slotId = id; slotKey = key; slotName = name; slotSaved = false; saveFailed = false; }
+// All that belongs to the game being left.
+function settleIn() {
+  ui.dna = ui.stage = null; ui.grown = 0; ui.travel = null;
+  $('growth').hidden = true; $('over').hidden = true;
+  forgetEvents();
+  paused = false; owed = 0; hovered = null; gesture = null; drag = null;
+  paces.clear(); NET = new Map();
+}
+function foundGame(wanted) {
+  const list = readList(), id = wanted != null && !list.games[wanted] ? wanted : freeHex(list);
+  if (id == null) { noteOnPlanet('La planète est pleine : efface ou exporte une partie.', true); return false; }
+  // The first one keeps the key every earlier version wrote.
+  let key = SAVE;
+  if (stored(key) !== null || Object.values(list.games).some(g => g.key === key)) {
+    key = `${GAME_KEY}${id}`;
+    if (stored(key) !== null) key += `:${Date.now()}`;
+  }
+  openSlot(id, key, newName(list));
+  settleIn(); begin();
+  return true;
+}
+function openGame(id) {
+  const game = readList().games[id];
+  if (!game) return false;
+  openSlot(id, game.key, game.name);
+  settleIn();
+  let ok = load();
+  if (ok) {
+    try { NET = new Map(); choose('hand'); home(); refresh(); } catch (_) { ok = false; }
+  }
+  if (!ok) {
+    // Unreadable is not empty: it stays where it is, to export or erase.
+    slotKey = slotId = null;
+    return false;
+  }
+  slotSaved = true;
+  if (repaid) tell(`Le bonus de débit a disparu : ${repaid} ADN remboursés, pour des tapis et récolteurs MK2 ou MK3.`);
+  tell('Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.');
+  return true;
+}
+function eraseGame(id) {
+  const list = readList(), game = list.games[id];
+  if (!game) return false;
+  try {
+    localStorage.removeItem(game.key);
+    if (game.key === SAVE) localStorage.removeItem(OLD_SAVE);
+  } catch (_) { return false; }
+  delete list.games[id];
+  if (String(list.last) === String(id)) list.last = Object.keys(list.games)[0] ?? null;
+  writeList(list);
+  if (String(slotId) === String(id)) slotKey = slotId = null;
+  return true;
+}
+// Written beside what exists, all or none.
+function graftGames(found, near) {
+  const list = readList(), made = [];
+  for (const {name, game} of found) {
+    const id = !made.length && near != null && !list.games[near] ? near : freeHex(list, made[0]?.id ?? near);
+    let key = `${GAME_KEY}${id}`;
+    if (stored(key) !== null) key += `:${Date.now()}`;
+    if (id == null || !keep(key, JSON.stringify(game))) {
+      for (const one of made) { try { localStorage.removeItem(one.key); } catch (_) {} }
+      return null;
+    }
+    made.push({id, key});
+    list.games[id] = {key, name:String(name || newName(list)).slice(0, 40), ...summaryOf(game)};
+    list.last = made[0].id;
+  }
+  if (writeList(list)) return made[0]?.id ?? null;
+  for (const one of made) { try { localStorage.removeItem(one.key); } catch (_) {} }
+  return null;
+}
+
+// ---- A file is somebody else's data: every value is looked at before a byte is stored.
+function checkGame(game) {
+  const plain = v => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+  const list = (v, test) => Array.isArray(v) && v.every(test);
+  const code = v => typeof v === 'string' && /^[SFCN]{3}$/.test(v);
+  const thing = v => typeof v === 'string' && /^([SFCNK]|[SFCN]{3}|[SFCN]{6}|[AT]:([SFCN]{3}|[SFCN]{6}))$/.test(v);
+  const where = v => typeof v === 'string' && /^-?\d{1,6},-?\d{1,6}$/.test(v);
+  const place = v => plain(v) && Number.isInteger(v.x) && Number.isInteger(v.y) && Math.abs(v.x) < LIMIT && Math.abs(v.y) < LIMIT;
+  const spot = v => plain(v) && Number.isFinite(v.x) && Number.isFinite(v.y) && Math.abs(v.x) <= LIMIT && Math.abs(v.y) <= LIMIT;
+  const side = v => [0, 1, 2, 3].includes(v);
+  const count = v => Number.isFinite(v) && v >= 0;
+  if (!plain(game)) return false;
+
+  // No markup, no key that reaches a prototype, nothing endless.
+  let values = 0;
+  const clean = (v, deep) => {
+    if (++values > FILE.values || deep > 12) return false;
+    if (v === null || typeof v === 'boolean') return true;
+    if (typeof v === 'number') return Number.isFinite(v) && Math.abs(v) < 1e15;
+    if (typeof v === 'string') return v.length <= 300 && !/[<>&"`\\]/.test(v);
+    if (Array.isArray(v)) return v.every(one => clean(one, deep + 1));
+    if (typeof v !== 'object') return false;
+    return Object.entries(v).every(([name, one]) => name.length < 80 && !/[<>&"`\\]/.test(name) && !['__proto__', 'constructor', 'prototype'].includes(name) && clean(one, deep + 1));
+  };
+  if (!clean(game, 0)) return false;
+
+  for (const name of ['time', 'dna', 'kills', 'made', 'threat', 'fed', 'held', 'seed', 'played', 'upgrades', 'woken', 'stage']) {
+    if (game[name] != null && !count(game[name])) return false;
+  }
+  if (!count(game.time) || !count(game.dna) || !count(game.kills)) return false;
+  if (game.stage != null && !(Number.isInteger(game.stage) && game.stage <= STAGES.length)) return false;
+  if (game.upgrades > 20 || game.threat > 10) return false;
+  if (!list(game.families, code) || !game.families.length || game.families.length > MAX_FAMILIES) return false;
+  if (!plain(game.cells) || Object.keys(game.cells).length > FILE.cells || game.cells[key(CORE.x, CORE.y)]?.type !== 'core') return false;
+
+  const rank = c => c.mk == null || [1, 2, 3].includes(c.mk);
+  const known = c => c.type === 'core' || (Object.hasOwn(TYPES, c.type) && !['hand', 'erase', 'track', 'worm', 'wire'].includes(c.type));
+  const pieces = c => count(c.hp) && side(c.dir)
+    && (c.to == null || where(c.to)) && (c.box == null || Object.hasOwn(BOX, c.box)) && (c.side == null || [1, 3].includes(c.side))
+    && (c.read == null || side(c.read)) && (c.want == null || /^([SFCNK?]|[SFCN?]{3}|[SFCN?]{6})$/.test(c.want))
+    && (c.on == null || Object.hasOwn(MATTER, c.on)) && (c.ways == null || list(c.ways, w => w === null || side(w)))
+    && (c.item == null || thing(c.item)) && (!c.last || thing(c.last)) && (c.from == null || c.from === -1 || side(c.from))
+    && (c.turn == null || Number.isInteger(c.turn) && c.turn >= 0)
+    && Array.isArray(c.ports) && c.ports.length === 3 && c.ports.every(port => list(port, thing))
+    && list(c.stock, thing) && Array.isArray(c.made) && plain(c.ammo) && Object.entries(c.ammo).every(([gene, n]) => code(gene) && count(n))
+    && (c.packets == null ? c.type !== 'pump' : list(c.packets, p => plain(p) && thing(p.item) && count(p.n) && p.n <= 64 && count(p.t)))
+    && (c.lanes == null ? c.type !== 'bridge' : c.lanes.length === 2 && list(c.lanes, l => l === null || (plain(l) && thing(l.item) && side(l.dir) && count(l.t))))
+    && (c.due == null || list(c.due, d => plain(d) && count(d.at) && side(d.from)))
+    && (c.portDue == null || list(c.portDue, port => list(port, d => plain(d) && count(d.at) && side(d.from))))
+    && (c.gulp == null || (thing(c.gulp.item) && side(c.gulp.from) && count(c.gulp.t)))
+    && (c.up == null || (Object.hasOwn(RANKS, c.type) && count(c.up) && [2, 3].includes(c.upTo) && count(c.upPaid)));
+  for (const [id, c] of Object.entries(game.cells)) if (!place(c) || id !== key(c.x, c.y) || !known(c) || !rank(c) || !pieces(c)) return false;
+
+  if (game.ruins != null) {
+    if (!plain(game.ruins)) return false;
+    for (const [id, c] of Object.entries(game.ruins)) if (!place(c) || id !== key(c.x, c.y) || !known(c) || !rank(c) || (c.to != null && !where(c.to)) || (c.dir != null && !side(c.dir))) return false;
+  }
+  if (game.tracks != null) {
+    if (!plain(game.tracks)) return false;
+    for (const [id, t] of Object.entries(game.tracks)) if (!place(t) || id !== key(t.x, t.y) || !side(t.dir)) return false;
+  }
+  if (game.worms != null && !list(game.worms, w => plain(w) && count(w.hp) && list(w.path, where) && w.path.length > 0 && w.path.length <= 5 && list(w.holds, h => plain(h) && count(h.n) && (!h.kind || thing(h.kind))) && w.holds.length === 3)) return false;
+  if (game.wires != null && !list(game.wires, w => plain(w) && where(w.a) && where(w.b) && count(w.hp))) return false;
+  if (game.enemies != null && !list(game.enemies, e => spot(e) && code(e.gene) && Number.isFinite(e.hp) && count(e.max) && (!e.goal || spot(e.goal)))) return false;
+  if (game.shots != null && !list(game.shots, s => spot(s) && [1, 2, 5, 12].includes(s.hurt) && Number.isFinite(s.tx) && Number.isFinite(s.ty))) return false;
+  if (game.breaches != null && !list(game.breaches, b => place(b) && count(b.r) && b.r < 40 && count(b.left) && count(b.total) && ['sleep', 'wake', 'spent'].includes(b.state) && list(b.genes, code) && b.genes.length > 0 && (b.form == null || side(b.form)) && (b.tier == null || (Number.isInteger(b.tier) && b.tier >= 0 && b.tier < LEVEL.total.length)) && (!b.post || spot(b.post)) && (!b.gene || code(b.gene)) && (!b.born || code(b.born)))) return false;
+  if (game.drones != null && !(game.drones.length === BUILDERS && list(game.drones, d => spot(d) && count(d.h) && count(d.w) && typeof d.job === 'string' && spot(d.was) && (!d.goal || spot(d.goal))))) return false;
+  if (game.seen != null && !(plain(game.seen) && Object.entries(game.seen).every(([id, rows]) => where(id) && rows?.length === 16 && list(rows, n => Number.isInteger(n) && n >= 0 && n < 65536)))) return false;
+  if (game.cleared != null && !list(game.cleared, id => typeof id === 'string')) return false;
+  if (game.meals != null && !list(game.meals, count)) return false;
+  return true;
+}
+// Either one game, a whole planet, or a bare save.
+function readFileGames(text) {
+  if (text.length > FILE.bytes) return {error:'Ce fichier est trop gros pour être une partie Strainworks.'};
+  const data = parsed(text);
+  if (!data || typeof data !== 'object') return {error:'Ce fichier est illisible. Rien n’a été modifié.'};
+  const many = data.format === FILE.all && Array.isArray(data.games);
+  const found = many ? data.games : data.format === FILE.one ? [{name:data.name, game:data.game}] : [{name:'', game:data}];
+  const fine = found.length > 0 && found.length <= CELLS_OF_GLOBE.length && found.every(one => {
+    if (one?.name != null && typeof one.name !== 'string') return false;
+    try { return checkGame(one?.game); } catch (_) { return false; }
+  });
+  return fine ? {found} : {error:'Ce n’est pas une partie Strainworks valide. Rien n’a été modifié.'};
+}
+let downloads;
+async function handFile(name, data) {
+  const filename = `${name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'partie'}.strainworks.json`;
+  if (window.claude?.use) {
+    downloads ??= await window.claude.use('downloads');
+    if (!downloads) return 'Cette vue ne permet pas de télécharger. Ouvre le jeu dans claude.ai.';
+    try {
+      await downloads.save({filename, data});
+      return `${filename} exporté.`;
+    } catch (error) {
+      return error?.code === 'declined' ? 'Export annulé.' : 'Export impossible ici, réessaie dans un instant.';
+    }
+  }
+  const link = document.createElement('a'), href = URL.createObjectURL(new Blob([data], {type:'application/json'}));
+  link.href = href; link.download = filename;
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 10000);
+  return `${filename} exporté.`;
+}
+async function exportGame(id) {
+  const entry = readList().games[id], text = entry && stored(entry.key);
+  if (!text) return 'Cette partie est introuvable.';
+  const game = parsed(text);
+  // Unreadable, it still leaves as it is.
+  return handFile(entry.name, game ? JSON.stringify({format:FILE.one, v:1, name:entry.name, game}) : text);
+}
+async function exportAll() {
+  const games = Object.values(readList().games).map(g => ({name:g.name, game:parsed(stored(g.key))})).filter(one => one.game);
+  if (!games.length) return 'Aucune partie à exporter.';
+  return handFile('planete', JSON.stringify({format:FILE.all, v:1, games}));
+}
+
+// ---- The opening screen. The globe and its grid share one rotation, the station projects the hexagon picked.
+const ART = {space:'planet/space.webp', station:'planet/station.webp', ground:'planet/globe.webp', glow:'planet/globe-glow.webp', still:'planet/planet.webp'};
+// Where the projector's lens is in the station's picture.
+const LENS = {x:.3296, y:.5522};
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const unit3 = v => { const n = Math.hypot(...v); return v.map(x => x / n); };
+// The dual of a divided icosahedron: 150 hexagons and twelve pentagons.
+function goldberg(freq) {
+  const p = (1 + Math.sqrt(5)) / 2;
+  const ico = [[-1,p,0],[1,p,0],[-1,-p,0],[1,-p,0],[0,-1,p],[0,1,p],[0,-1,-p],[0,1,-p],[p,0,-1],[p,0,1],[-p,0,-1],[-p,0,1]].map(unit3);
+  const faces = [[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+  const points = [], known = new Map(), round = new Map();
+  for (const [a, b, c] of faces) {
+    const grid = [];
+    for (let i = 0; i <= freq; i++) {
+      grid[i] = [];
+      for (let j = 0; j <= freq - i; j++) {
+        const v = unit3([0, 1, 2].map(k => ico[a][k] * (freq - i - j) / freq + ico[b][k] * i / freq + ico[c][k] * j / freq));
+        const id = v.map(x => Math.round(x * 1e5)).join();
+        if (!known.has(id)) { known.set(id, points.length); points.push(v); }
+        grid[i][j] = known.get(id);
+      }
+    }
+    for (let i = 0; i < freq; i++) for (let j = 0; j < freq - i; j++) {
+      const tris = [[grid[i][j], grid[i + 1][j], grid[i][j + 1]]];
+      if (i + j < freq - 1) tris.push([grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]]);
+      for (const tri of tris) {
+        const mid = unit3([0, 1, 2].map(k => points[tri[0]][k] + points[tri[1]][k] + points[tri[2]][k]));
+        for (const at of tri) round.set(at, [...(round.get(at) || []), mid]);
+      }
+    }
+  }
+  // Set askew as in the mockup, so no pole faces the player.
+  const askew = ([x, y, z]) => {
+    const up = y * Math.cos(.3) - z * Math.sin(.3), near = y * Math.sin(.3) + z * Math.cos(.3);
+    return [x * Math.cos(.17) + near * Math.sin(.17), up, -x * Math.sin(.17) + near * Math.cos(.17)];
+  };
+  return points.map((point, at) => {
+    const c = askew(point), e1 = unit3(cross3([.31, .9, .17], c)), e2 = cross3(c, e1);
+    const ring = round.get(at).map(askew).sort((u, v) => Math.atan2(dot3(u, e2), dot3(u, e1)) - Math.atan2(dot3(v, e2), dot3(v, e1)));
+    return {c, ring, size:ring.reduce((sum, q) => sum + Math.hypot(q[0] - c[0], q[1] - c[1], q[2] - c[2]), 0) / ring.length};
+  });
+}
+const CELLS_OF_GLOBE = goldberg(4);
+// New games take the mockup's places first, then whatever faces the player most.
+const PREFERRED = (() => {
+  const order = [];
+  const take = v => {
+    let best = -1;
+    CELLS_OF_GLOBE.forEach((cell, id) => { if (!order.includes(id) && (best < 0 || dot3(cell.c, v) > dot3(CELLS_OF_GLOBE[best].c, v))) best = id; });
+    order.push(best);
+  };
+  for (const [x, y] of [[430,300],[560,470],[370,600],[610,250],[240,420],[600,660],[690,400],[440,160]]) {
+    const u = (x - 260) / 527.7, v = -(y - 510) / 527.7;
+    take([u, v, Math.sqrt(Math.max(0, 1 - u * u - v * v))]);
+  }
+  while (order.length < CELLS_OF_GLOBE.length) take([.45, .12, .88]);
+  return order;
+})();
+
+const orbit = {on:false, yaw:0, pitch:0, to:null, pick:null, list:null, incoming:null, dirty:true, drag:null, gl:null, box:null, seenAt:0};
+function layoutPlanet() {
+  const w = view.w, h = view.h, low = h <= 520 && w > h * 1.3, wide = !low && w >= 760 && w / h > 1.1;
+  const panel = $('projection').style;
+  let box;
+  if (wide) {
+    const ss = Math.min(h * .62, w * .39), pw = Math.min(590, w * .43);
+    box = {cx:Math.min(h * .289, w * .2), cy:h * .567, r:h * .586, sx:w - ss - w * .035, sy:h * .011, ss};
+    Object.assign(panel, {left:`${w - pw - w * .035}px`, width:`${pw}px`, bottom:`${h * .045}px`, minHeight:`${Math.min(310, h * .355)}px`});
+  } else if (low) {
+    const ss = h * .46, pw = Math.min(420, w * .52);
+    box = {cx:w * .17, cy:h * .55, r:h * .68, sx:w - ss - 70, sy:0, ss};
+    Object.assign(panel, {left:`${w - pw - 8}px`, width:`${pw}px`, bottom:'6px', minHeight:'0'});
+  } else {
+    const r = Math.min(w * .77, h * .5), ss = Math.min(w * .374, 240), pw = Math.min(w - 16, 560);
+    box = {cx:w * .236, cy:Math.max(r * .95, h * .42), r, sx:w * .57, sy:40, ss};
+    Object.assign(panel, {left:`${(w - pw) / 2}px`, width:`${pw}px`, bottom:'calc(6px + var(--b))', minHeight:'0'});
+  }
+  Object.assign($('station').style, {left:`${box.sx}px`, top:`${box.sy}px`, width:`${box.ss}px`, height:`${box.ss}px`});
+  const side = box.r / 556 * 1180;
+  Object.assign($('globe-still').style, {left:`${box.cx - side / 2}px`, top:`${box.cy - side / 2}px`, width:`${side}px`, height:`${side}px`});
+  box.lens = [box.sx + box.ss * LENS.x, box.sy + box.ss * LENS.y];
+  orbit.box = box; orbit.dirty = true;
+}
+function turn([x, y, z]) {
+  const a = Math.cos(orbit.yaw), b = Math.sin(orbit.yaw), c = Math.cos(orbit.pitch), d = Math.sin(orbit.pitch);
+  const away = -x * b + z * a;
+  return [x * a + z * b, y * c - away * d, y * d + away * c];
+}
+function onScreen(v) { return [orbit.box.cx + orbit.box.r * v[0], orbit.box.cy - orbit.box.r * v[1]]; }
+function hexAt(x, y) {
+  const u = (x - orbit.box.cx) / orbit.box.r, v = -(y - orbit.box.cy) / orbit.box.r, d = u * u + v * v;
+  if (d > 1) return null;
+  const at = [u, v, Math.sqrt(1 - d)];
+  let best = 0, close = -2;
+  CELLS_OF_GLOBE.forEach((cell, id) => { const near = dot3(turn(cell.c), at); if (near > close) { close = near; best = id; } });
+  return best;
+}
+// Turns the planet until that hexagon is where the beam likes it, if it is not already in view.
+function faceHex(id, force) {
+  const v = turn(CELLS_OF_GLOBE[id].c), [x, y] = onScreen(v);
+  const panelTop = $('projection').getBoundingClientRect().top || view.h;
+  if (!force && v[2] > .4 && x > 24 && x < view.w - 24 && y > 60 && y < Math.max(120, view.h < view.w ? view.h - 30 : panelTop - 20)) return;
+  const [cx, cy, cz] = CELLS_OF_GLOBE[id].c, flatR = Math.hypot(cx, cz), tx = flatR > .4 ? .32 : 0, ty = .3;
+  let yaw = Math.atan2(tx, Math.sqrt(Math.max(0, flatR * flatR - tx * tx))) - Math.atan2(cx, cz);
+  const depth = Math.sqrt(Math.max(1e-6, flatR * flatR - tx * tx));
+  const pitch = within(Math.atan2(cy, depth) - Math.atan2(ty, Math.sqrt(1 - tx * tx - ty * ty)), -1.35, 1.35);
+  while (yaw - orbit.yaw > Math.PI) yaw -= Math.PI * 2;
+  while (yaw - orbit.yaw < -Math.PI) yaw += Math.PI * 2;
+  if (STILL.matches) Object.assign(orbit, {yaw, pitch, to:null, dirty:true});
+  else orbit.to = {yaw, pitch};
+}
+
+// ---- What a game looks like from orbit: more of it the farther it went.
+function dotsOf(points) { return points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' '); }
+function settlementSVG(to, game, seed, k) {
+  const tier = game.over ? 5 : within((Number(game.stage) || 0) + 1, 1, 4), roll = n => spotHash(Number(seed) || 0, n, 77);
+  const [base, spread] = [[3, .45], [6, .62], [9, .74], [14, .82], [6, .62]][tier - 1];
+  const arms = base + within(Math.floor((Number(game.built) || 0) / 180), 0, 4), dead = tier === 5, ends = [], out = [];
+  const line = (points, color, width) => out.push(`<polyline points="${dotsOf(points.map(p => to(...p)))}" fill="none" stroke="${color}" stroke-width="${(width * k).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round"/>`);
+  const spotted = (p, color, size, cls = '') => {
+    const [x, y] = to(...p);
+    out.push(`<circle class="${cls}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * k).toFixed(1)}" fill="${color}"/>`);
+  };
+  for (let i = 0; i < arms; i++) {
+    const a = i * 2.39996 + roll(i) * .3, long = spread * (.55 + roll(i + 40) * .45), x = Math.cos(a) * long, y = Math.sin(a) * long;
+    const rail = dead ? '#6B2531' : game.rank >= 3 && i % 4 === 0 ? '#A45CF0' : game.rank >= 2 && i % 3 === 0 ? '#F0A03C' : '#66D9EA';
+    line(i % 2 ? [[0, 0], [x, 0], [x, y]] : [[0, 0], [0, y], [x, y]], rail, 1.5);
+    spotted([x, y], dead ? (i % 3 ? '#4A1B25' : '#FF6B74') : ['#B7F34A', '#F0A03C', '#F3E6C8', '#66D9EA'][i % 4], 2.6);
+    ends.push([x, y]);
+  }
+  if (tier === 3 || tier === 4) ends.forEach(([x, y], i) => {
+    line([[x, y], ends[(i + 3) % ends.length]], '#66D9EA59', .8);
+    for (let j = 0; j < 3; j++) {
+      const bx = x + (roll(i * 3 + j + 100) - .5) * .22, by = y + (roll(i * 3 + j + 200) - .5) * .22;
+      line([[bx, by], [bx + .06, by]], '#E9F3EF', 1.6);
+    }
+  });
+  // A crown of outposts: past the last stage, or out in the far levels.
+  if (tier === 4 || (!dead && game.level > 1)) {
+    const ring = Array.from({length:25}, (_, i) => [Math.cos(i * Math.PI / 12) * .88, Math.sin(i * Math.PI / 12) * .88]);
+    line(ring, '#B7F34A', 1.1);
+    for (let i = 0; i < 24; i += Math.max(2, 7 - within(Number(game.level) || 1, 1, 5))) spotted(ring[i], '#E9F3EF', 2);
+  }
+  if (dead) line([[-.6, .5], [-.2, .15], [-.1, -.2], [.2, -.1], [.55, -.6]], '#0A0405', 3);
+  const core = [4, 6, 8, 10, 6][tier - 1];
+  spotted([0, 0], dead ? '#32151C' : '#366426', core + 2.5);
+  spotted([0, 0], dead ? '#FF6B74' : '#B7F34A', core * .7, 'heartbeat');
+  return out.join('');
+}
+function drawGrid() {
+  const {r, lens} = orbit.box, games = orbit.list.games;
+  let grid = '', taken = '', picked = '', defs = '';
+  const buttons = new Map([...$('games').children].map(b => [b.dataset.hex, b]));
+  CELLS_OF_GLOBE.forEach(({c, ring, size}, id) => {
+    const v = turn(c), b = buttons.get(String(id));
+    if (b) {
+      const [x, y] = onScreen(v);
+      b.style.left = `${x}px`; b.style.top = `${y}px`;
+    }
+    if (v[2] < .08) return;
+    const turned = ring.map(q => onScreen(unit3(turn([0, 1, 2].map(k => c[k] * .06 + q[k] * .94)))));
+    const shape = dotsOf(turned), game = games[id];
+    grid += `<polygon class="grid" points="${shape}" stroke-opacity="${(.06 + v[2] * .24).toFixed(2)}"/>`;
+    if (game) {
+      const e1 = unit3(cross3([0, 1, .001], c)), e2 = cross3(c, e1);
+      const to = (u, w) => onScreen(turn(unit3([0, 1, 2].map(k => c[k] + e1[k] * u * size + e2[k] * w * size))));
+      taken += `<polygon class="taken${game.over ? ' fallen' : ''}" points="${shape}"/>${settlementSVG(to, game, id, r / 527.7)}`;
+    }
+    if (id !== orbit.pick) return;
+    const [x, y] = onScreen(v);
+    // The cone is the two edges the lens sees widest apart.
+    const aim = Math.atan2(y - lens[1], x - lens[0]);
+    const off = ([px, py]) => Math.sin(Math.atan2(py - lens[1], px - lens[0]) - aim);
+    const left = turned.reduce((a, q) => off(q) < off(a) ? q : a), right = turned.reduce((a, q) => off(q) > off(a) ? q : a);
+    defs = `<defs><linearGradient id="beam-light" gradientUnits="userSpaceOnUse" x1="${lens[0]}" y1="${lens[1]}" x2="${x}" y2="${y}"><stop offset="0" stop-color="#66D9EA" stop-opacity=".42"/><stop offset="1" stop-color="#66D9EA" stop-opacity=".06"/></linearGradient></defs>`;
+    picked = `<polygon class="beam" points="${dotsOf([lens, left, right])}" fill="url(#beam-light)"/><line class="flow" x1="${lens[0]}" y1="${lens[1]}" x2="${x}" y2="${y}"/><polygon class="lit" points="${shape}"/>`;
+  });
+  const panel = $('projection').getBoundingClientRect();
+  const down = dotsOf([lens, [panel.left + panel.width * .14, panel.top + 8], [panel.left + panel.width * .86, panel.top + 8]]);
+  $('hexes').setAttribute('viewBox', `0 0 ${view.w} ${view.h}`);
+  $('hexes').innerHTML = `${defs}${grid}${taken}<polygon class="beam" points="${down}" fill="#66D9EA17"/>${picked}`;
+}
+
+// ---- The globe: one quad, the sphere worked out for each point of it.
+const GLOBE_SHADER = `precision highp float;
+uniform vec2 size, centre;
+uniform float radius;
+uniform mat3 back;
+uniform sampler2D ground, glow;
+const float PI = 3.14159265;
+void main() {
+  vec2 at = (vec2(gl_FragCoord.x, size.y - gl_FragCoord.y) - centre) / radius;
+  vec2 p = vec2(at.x, -at.y);
+  float d = length(p);
+  vec3 sun = normalize(vec3(.84, .48, .12));
+  if (d >= 1.0) {
+    float halo = pow(1.0 - smoothstep(1.0, 1.062, d), 2.0) * clamp(.3 + dot(p / d, sun.xy) * .8, 0.0, 1.0) * .67;
+    gl_FragColor = vec4(vec3(.35, .88, .8) * halo, halo);
+    return;
+  }
+  vec3 n = vec3(p, sqrt(1.0 - d * d));
+  vec3 w = back * n;
+  vec2 uv = vec2(atan(w.x, w.z) / (2.0 * PI) + .5, .5 - asin(clamp(w.y, -1.0, 1.0)) / PI);
+  float facing = dot(n, sun);
+  float day = smoothstep(-.2, .85, facing);
+  float night = 1.0 - smoothstep(-.05, .45, facing);
+  vec3 colour = texture2D(ground, uv).rgb * (.16 + day * 1.65) / 1.4 + texture2D(glow, uv).rgb * (.3 + night * .8);
+  colour += vec3(.27, .75, .69) * pow(1.0 - n.z, 3.2) * clamp(.25 + facing, 0.0, 1.0) * .75;
+  float edge = smoothstep(1.0, 1.0 - 1.5 / radius, d);
+  gl_FragColor = vec4(mix(vec3(.2, .55, .5), colour, edge), 1.0);
+}`;
+function globeFailed(error) {
+  orbit.gl = null;
+  $('globe').hidden = true;
+  $('globe-still').src = ART.still;
+  $('globe-still').hidden = false;
+  console.warn('planet without WebGL:', error?.message || error);
+}
+function makeGlobe() {
+  try {
+    const gl = $('globe').getContext('webgl', {premultipliedAlpha:true, antialias:false});
+    if (!gl) return globeFailed('no context');
+    const program = gl.createProgram();
+    for (const [kind, text] of [[gl.VERTEX_SHADER, 'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }'], [gl.FRAGMENT_SHADER, GLOBE_SHADER]]) {
+      const part = gl.createShader(kind);
+      gl.shaderSource(part, text); gl.compileShader(part);
+      if (!gl.getShaderParameter(part, gl.COMPILE_STATUS)) return globeFailed(gl.getShaderInfoLog(part));
+      gl.attachShader(program, part);
+    }
+    gl.bindAttribLocation(program, 0, 'p');
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return globeFailed('link');
+    gl.useProgram(program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    const at = {};
+    for (const name of ['size', 'centre', 'radius', 'back', 'ground', 'glow']) at[name] = gl.getUniformLocation(program, name);
+    const made = {gl, at, ready:0};
+    [['ground', ART.ground], ['glow', ART.glow]].forEach(([name, src], i) => {
+      const picture = new Image();
+      picture.onerror = () => globeFailed(`no ${name}`);
+      picture.onload = () => {
+        try {
+          gl.activeTexture(gl.TEXTURE0 + i);
+          gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, picture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.uniform1i(at[name], i);
+          made.ready++; orbit.dirty = true;
+        } catch (error) { globeFailed(error); }
+      };
+      picture.src = src;
+    });
+    $('globe').addEventListener('webglcontextlost', () => globeFailed('context lost'));
+    orbit.gl = made;
+  } catch (error) { globeFailed(error); }
+}
+function drawGlobe() {
+  if (!orbit.gl || orbit.gl.ready < 2) return;
+  const {gl, at} = orbit.gl, canvasOf = $('globe'), dpr = Math.min(1.6, window.devicePixelRatio || 1);
+  const w = Math.round(view.w * dpr), h = Math.round(view.h * dpr);
+  if (canvasOf.width !== w || canvasOf.height !== h) { canvasOf.width = w; canvasOf.height = h; }
+  gl.viewport(0, 0, w, h);
+  gl.uniform2f(at.size, w, h);
+  gl.uniform2f(at.centre, orbit.box.cx * dpr, orbit.box.cy * dpr);
+  gl.uniform1f(at.radius, orbit.box.r * dpr);
+  // The columns of the matrix back are the rows of the one turn() applies.
+  const x = turn([1, 0, 0]), y = turn([0, 1, 0]), z = turn([0, 0, 1]);
+  gl.uniformMatrix3fv(at.back, false, new Float32Array([x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]]));
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+function drawPlanet(elapsed) {
+  if (orbit.to) {
+    const by = Math.min(1, elapsed * 4.5), {yaw, pitch} = orbit.to;
+    orbit.yaw += (yaw - orbit.yaw) * by; orbit.pitch += (pitch - orbit.pitch) * by;
+    if (Math.abs(yaw - orbit.yaw) + Math.abs(pitch - orbit.pitch) < .002) Object.assign(orbit, {yaw, pitch, to:null});
+    orbit.dirty = true;
+  }
+  if (!orbit.dirty || !orbit.box) return;
+  orbit.dirty = false;
+  drawGlobe(); drawGrid();
+}
+
+// ---- The projection
+function holdToDo(b, done) {
+  let wait = 0, twice = 0;
+  const stop = () => { clearTimeout(wait); b.classList.remove('holding'); };
+  const start = () => { stop(); b.classList.add('holding'); wait = setTimeout(() => { stop(); done(); }, 1000); };
+  b.onpointerdown = start;
+  for (const name of ['pointerup', 'pointercancel', 'pointerleave', 'blur']) b.addEventListener(name, stop);
+  b.onkeydown = event => { if (event.key !== 'Enter') return; event.preventDefault(); if (!event.repeat) start(); };
+  b.onkeyup = event => { if (event.key === 'Enter') stop(); };
+  // A screen reader cannot hold: it presses twice.
+  b.onclick = event => {
+    if (event.detail) return;
+    if (Date.now() < twice) done(); else twice = Date.now() + 3000;
+  };
+}
+function noteOnPlanet(text, bad) {
+  $('slot-note').textContent = text;
+  $('slot-note').classList.toggle('bad', Boolean(bad));
+  orbit.dirty = true;
+}
+function durationText(seconds) {
+  const min = Math.floor((Number(seconds) || 0) / 60);
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
+}
+function stageText(game) {
+  const stage = within(Math.floor(Number(game.stage) || 0), 0, STAGES.length);
+  if (game.over) return `Le cœur est tombé au stade ${Math.min(STAGES.length, stage + 1)}`;
+  const far = game.level > 1 ? ` · avant-postes au niveau ${game.level}` : '';
+  return (stage === STAGES.length ? `Stade ${stage} achevé` : `Stade ${stage + 1} · ${STAGES[stage].name}`) + far;
+}
+function projectSlot(note = '', bad = false) {
+  const id = orbit.pick, game = orbit.list.games[id], incoming = !game && orbit.incoming;
+  const first = incoming && {name:incoming[0].name || 'Partie sans nom', ...summaryOf(incoming[0].game)};
+  const shown = game || first, box = $('projection');
+  box.classList.toggle('free', !shown);
+  box.classList.toggle('fallen', Boolean(shown?.over));
+  $('slot-kicker').textContent = incoming ? 'Fichier reçu' : !game ? 'Hexagone libre' : game.over ? 'Station tombée' : 'Partie en cours';
+  $('slot-name').textContent = incoming?.length > 1 ? `${incoming.length} parties` : shown ? shown.name : 'Terre vierge';
+  $('slot-sub').textContent = incoming?.length > 1 ? 'Elles prendront les hexagones libres autour de celui-ci.' : shown ? stageText(shown) : 'Fonde une station, ou greffes-y une partie exportée.';
+  const six = dotsOf(Array.from({length:6}, (_, i) => [66 + Math.cos(i * Math.PI / 3) * 63, 66 + Math.sin(i * Math.PI / 3) * 63]));
+  const color = !shown ? '#B7F34A' : shown.over ? '#FF6B74' : '#66D9EA';
+  const inner = shown ? settlementSVG((u, v) => [66 + u * 55, 66 - v * 55], shown, id, .85) : '<path d="M52 66h28M66 52v28" stroke="#B7F34A" stroke-width="3"/>';
+  $('slot-icon').innerHTML = `<polygon points="${six}" fill="#040A0C99" stroke="${color}" stroke-width="1.5"/>${inner}`;
+  const facts = game ? [[durationText(game.played), 'de jeu'], [Math.floor(Number(game.dna) || 0).toLocaleString('fr-FR'), 'ADN'], [Number(game.spent) || 0, 'nids vidés'], [(Number(game.kills) || 0).toLocaleString('fr-FR'), 'tuées']] : [];
+  $('slot-facts').replaceChildren(...facts.map(([value, label]) => {
+    const p = document.createElement('p'), b = document.createElement('b');
+    b.textContent = value; p.append(b, label);
+    return p;
+  }));
+  $('slot-actions').replaceChildren();
+  const act = (label, cls, done, held) => {
+    const b = document.createElement('button');
+    b.className = `act ${cls}`; b.textContent = label;
+    if (held) { b.append(document.createElement('i')); holdToDo(b, done); } else b.onclick = done;
+    $('slot-actions').append(b);
+  };
+  const gone = () => {
+    if (!eraseGame(id)) return noteOnPlanet('Impossible d’effacer cette partie.', true);
+    orbit.list = readList(); nameGames(); projectSlot('Hexagone libéré.');
+  };
+  if (incoming) {
+    act(incoming.length > 1 ? `Greffer les ${incoming.length} parties` : 'Greffer dans cet hexagone', 'go', () => {
+      const made = graftGames(orbit.incoming, orbit.pick);
+      if (made == null) return noteOnPlanet('Import impossible : le stockage du navigateur est plein, ou la planète l’est.', true);
+      orbit.incoming = null; orbit.list = readList(); nameGames();
+      pickHex(Number(made), 'Greffe réussie.');
+    });
+    act('Annuler', '', () => { orbit.incoming = null; projectSlot(); });
+  } else if (!game) {
+    act('Fonder une station', 'go', () => leavePlanet(() => foundGame(orbit.pick)));
+    act('Importer un fichier', '', () => $('file').click());
+  } else {
+    if (game.over) {
+      act('Refonder ici : maintenir', 'go', () => { if (eraseGame(id)) leavePlanet(() => foundGame(id)); }, true);
+    } else act('Reprendre', 'go', () => playPicked());
+    act('Exporter', '', async () => noteOnPlanet(await exportGame(id)));
+    if (!game.over) act('Dupliquer', '', () => {
+      const copy = parsed(stored(game.key));
+      const made = copy && graftGames([{name:`${game.name} bis`, game:copy}], freeHex(orbit.list, id));
+      if (made == null) return noteOnPlanet('Copie impossible : partie illisible ou stockage plein.', true);
+      orbit.list = readList(); nameGames();
+      pickHex(Number(made), 'Copie faite.');
+    });
+    act('Effacer : maintenir', 'bad', gone, true);
+  }
+  noteOnPlanet(note || (incoming ? 'Rien n’est écrit avant ta validation. Aucune partie n’est écrasée.' : ''), bad);
+}
+// The drawn hexagons are for pointers, these for keyboards and screen readers.
+function nameGames() {
+  $('games').replaceChildren(...Object.entries(orbit.list.games).map(([id, game]) => {
+    const b = document.createElement('button');
+    b.dataset.hex = id;
+    b.setAttribute('aria-label', `${game.name}, ${stageText(game)}`);
+    b.onclick = () => pickHex(Number(id));
+    b.onfocus = () => faceHex(Number(id));
+    return b;
+  }));
+  orbit.dirty = true;
+}
+function pickHex(id, note) {
+  orbit.pick = id;
+  // What came in a file waits for a free hexagon.
+  if (orbit.incoming && orbit.list.games[id]) orbit.incoming = null;
+  replay($('projection'), 'open');
+  projectSlot(note);
+  faceHex(id);
+}
+async function takeFile(file) {
+  if (!file) return;
+  showMenu(false);
+  if (file.size > FILE.bytes) return noteOnPlanet('Ce fichier est trop gros pour être une partie Strainworks.', true);
+  let text;
+  try { text = await file.text(); } catch (_) { return noteOnPlanet('Ce fichier n’a pas pu être lu.', true); }
+  if (!orbit.on) return;
+  const {found, error} = readFileGames(text);
+  if (error) return noteOnPlanet(error, true);
+  const id = orbit.list.games[orbit.pick] ? freeHex(orbit.list, orbit.pick) : orbit.pick;
+  if (id == null || Object.keys(orbit.list.games).length + found.length > CELLS_OF_GLOBE.length) return noteOnPlanet('Pas assez d’hexagones libres.', true);
+  orbit.incoming = found;
+  pickHex(id);
+}
+
+// ---- In and out
+function backgroundInert(on) {
+  for (const el of $('app').children) if (!['planet', 'menu', 'commands', 'file'].includes(el.id)) el.inert = on;
+}
+function openPlanet(intro) {
+  if (slotKey) save();
+  orbit.on = true;
+  slotKey = slotId = null;
+  arrows.clear(); gesture = null; drag = null;
+  showMenu(false);
+  orbit.list = readList();
+  orbit.incoming = null;
+  const last = Number(orbit.list.last);
+  orbit.pick = orbit.list.last != null && orbit.list.games[last] ? last : Number(Object.keys(orbit.list.games)[0] ?? PREFERRED[0]);
+  if (!$('station').src) {
+    $('space').src = ART.space; $('station').src = ART.station;
+    makeGlobe();
+  }
+  const el = $('planet');
+  el.classList.remove('leaving');
+  el.hidden = false;
+  $('app').classList.add('on-planet');
+  backgroundInert(true);
+  nameGames(); projectSlot(); layoutPlanet();
+  orbit.yaw = orbit.pitch = 0; orbit.to = null;
+  faceHex(orbit.pick);
+  if (intro && !STILL.matches) {
+    // It swings in from its far side.
+    const to = orbit.to || {yaw:0, pitch:0};
+    orbit.yaw = to.yaw - 1.1; orbit.pitch = to.pitch + .25; orbit.to = to;
+  }
+}
+// enter readies the game and says whether it could.
+function leavePlanet(enter, at) {
+  if (!orbit.on) return false;
+  orbit.on = false;
+  if (!enter()) {
+    orbit.on = true;
+    return false;
+  }
+  const el = $('planet'), [x, y] = onScreen(turn(CELLS_OF_GLOBE[slotId].c));
+  $('app').classList.remove('on-planet');
+  backgroundInert(false);
+  showMenu(false);
+  orbit.seenAt = performance.now();
+  el.style.transformOrigin = `${x}px ${y}px`;
+  if (at === 'now' || STILL.matches) el.hidden = true;
+  else {
+    el.classList.add('leaving');
+    setTimeout(() => { if (!orbit.on) el.hidden = true; }, 720);
+  }
+  resize(); home();
+  canvas.focus({preventScroll:true});
+  try { if (localStorage.getItem(VIEW_KEY) === '3d' && !view3d) show3D(true); } catch (_) {}
+  return true;
+}
+function playPicked(at) {
+  const id = orbit.pick;
+  if (!leavePlanet(() => openGame(id), at)) projectSlot('Cette partie est illisible. Elle n’a pas été modifiée : exporte-la ou efface-la.', true);
+}
+// The last game played, or a first one.
+function resumeLast() {
+  if (!orbit.on) return;
+  const game = orbit.list.games[orbit.pick];
+  if (game && !game.over) playPicked('now');
+  else leavePlanet(() => foundGame(game ? null : orbit.pick), 'now');
+}
+
+$('hexes').addEventListener('pointerdown', event => {
+  try { $('hexes').setPointerCapture(event.pointerId); } catch (_) {}
+  orbit.drag = {id:event.pointerId, x:event.clientX, y:event.clientY, far:0};
+  showMenu(false);
+});
+$('hexes').addEventListener('pointermove', event => {
+  const d = orbit.drag;
+  if (!d || d.id !== event.pointerId) return;
+  const dx = event.clientX - d.x, dy = event.clientY - d.y;
+  d.far += Math.hypot(dx, dy);
+  if (d.far < 8) return;
+  $('hexes').classList.add('dragged');
+  orbit.to = null;
+  orbit.yaw += dx / orbit.box.r;
+  orbit.pitch = within(orbit.pitch + dy / orbit.box.r, -1.35, 1.35);
+  d.x = event.clientX; d.y = event.clientY;
+  orbit.dirty = true;
+});
+$('hexes').addEventListener('pointerup', event => {
+  const d = orbit.drag;
+  orbit.drag = null;
+  $('hexes').classList.remove('dragged');
+  if (!d || d.id !== event.pointerId || d.far >= 8) return;
+  const id = hexAt(event.clientX, event.clientY);
+  if (id != null) pickHex(id);
+});
+$('hexes').addEventListener('pointercancel', () => { orbit.drag = null; $('hexes').classList.remove('dragged'); });
+$('planet').addEventListener('dragover', event => event.preventDefault());
+$('planet').addEventListener('drop', event => { event.preventDefault(); takeFile(event.dataTransfer.files[0]); });
+$('file').onchange = () => { takeFile($('file').files[0]); $('file').value = ''; };
+$('planet-menu').onclick = () => showMenu(!ui.menu);
+$('import').onclick = () => $('file').click();
+$('export-all').onclick = async () => { const said = await exportAll(); showMenu(false); noteOnPlanet(said); };
+$('export-game').onclick = async () => {
+  if (!save()) return refuse('Sauvegarde impossible, rien à exporter.');
+  const said = await exportGame(slotId);
+  showMenu(false); tell(said);
+};
+$('to-planet').onclick = () => openPlanet();
+$('over-planet').onclick = () => openPlanet();
+document.addEventListener('keydown', event => {
+  if (!orbit.on || $('commands').open || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    if (ui.menu) showMenu(false);
+    else if (orbit.incoming) { orbit.incoming = null; projectSlot(); }
+  } else if (event.key === 'Enter' && !event.repeat && !event.target.closest?.('button, input')) {
+    event.preventDefault();
+    if (orbit.incoming) return;
+    const game = orbit.list.games[orbit.pick];
+    if (!game) leavePlanet(() => foundGame(orbit.pick));
+    else if (!game.over) playPicked();
+  } else if (GLIDE[event.key]) {
+    event.preventDefault();
+    const [x, y] = GLIDE[event.key];
+    orbit.to = null; orbit.yaw -= x * .12; orbit.pitch = within(orbit.pitch - y * .12, -1.35, 1.35); orbit.dirty = true;
+  }
+});
+window.addEventListener('pagehide', () => { save(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+
 growDock();
 resize();
-if (load()) { choose('hand'); home(); if (repaid) tell(`Le bonus de débit a disparu : ${repaid} ADN remboursés, pour des tapis et récolteurs MK2 ou MK3.`); tell('Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.'); }
-else begin();
+setMotion(stored(MOTION_KEY) === 'less');
+$('dimension').setAttribute('aria-pressed', stored(VIEW_KEY) === '3d');
+$('flat').setAttribute('aria-pressed', stored(VIEW_KEY) !== '3d');
+// A world to stand on, kept nowhere, until a hexagon is picked.
+begin();
+forgetEvents();
+findGames();
+openPlanet(true);
 new ResizeObserver(resize).observe($('board'));
 
 let before = performance.now(), owed = 0, shownAt = 0, savedAt = 0;
 function frame(now) {
   const elapsed = Math.min(.15,(now-before)/1000); before = now;
+  if (orbit.on) { drawPlanet(elapsed); requestAnimationFrame(frame); return; }
   if (!paused && !document.hidden) {
+    if (!G.over) G.played = (G.played ?? G.time) + elapsed;
     owed += elapsed*speed;
     while (owed >= STEP) { step(STEP); owed -= STEP; }
   }
@@ -4363,5 +5331,4 @@ function frame(now) {
 }
 refresh();
 requestAnimationFrame(frame);
-try { if (localStorage.getItem(VIEW_KEY) === '3d') show3D(true); } catch (_) {}
 </script>
