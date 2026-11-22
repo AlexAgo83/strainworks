@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>20. Style retenu : verre, organisme en console</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./hud.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&amp;family=Chakra+Petch:wght@600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sw" style="width: 1440px; height: 900px">
+<style>
+.sw { position: relative; overflow: hidden; background: #03070a; color: #e9f3ef; font: 500 14px Barlow, sans-serif; }
+.sw * { box-sizing: border-box; }
+.sw p { margin: 0; }
+.plate { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%); }
+.panel, .cluster, .lead, .drones, .bar { position: absolute; }
+.panel > * { position: absolute; }
+.panel .row, .panel .slots, .panel .acts { display: flex; align-items: center; gap: 8px; }
+.kicker { left: 18px; top: 12px; font: 700 11px "Chakra Petch", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #66d9ea; }
+.title { font: 700 22px/1 "Chakra Petch", sans-serif; }
+.big { font: 700 22px "Chakra Petch", sans-serif; }
+.dim { color: #a9bdb8; } .acid { color: #b7f34a; } .alarm { color: #ff6b74; } .amber { color: #f0a03c; } .cyan { color: #66d9ea; }
+.gain { color: #b7f34a; font-size: 13px; }
+.sep { width: 1px; height: 18px; background: rgba(255,255,255,.15); margin: 0 4px; }
+.ring { position: absolute; }
+.cluster { display: flex; gap: 8px; } .cluster.column { flex-direction: column; } .gap { display: block; height: 10px; }
+.node { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; color: #e9f3ef; font: 700 14px "Chakra Petch", sans-serif; cursor: pointer; }
+.node .b { width: 16px; height: 16px; }
+.toast { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 14px; }
+.toast > * { position: static; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #ff6b74; box-shadow: 0 0 0 4px rgba(255,107,116,.2); }
+.lead { left: 0; top: 0; pointer-events: none; }
+.leader { stroke: #66d9ea; stroke-width: 1.2; }
+.slot { display: grid; place-items: center; width: 30px; height: 30px; }
+.slot .b { width: 16px; height: 16px; }
+.drones { display: flex; gap: 12px; align-items: flex-end; }
+.drone { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 66px; }
+.tag { font-size: 12px; padding: 1px 8px; }
+.bar { left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 6px; }
+.pod { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 92px; padding: 0 0 4px; background: none; border: 0; color: #e9f3ef; font: 600 13px Barlow, sans-serif; cursor: pointer; }
+.pod .porthole { position: relative; display: grid; place-items: center; width: 64px; height: 64px; overflow: hidden; }
+.pod .porthole img { position: absolute; }
+.pod .key { position: absolute; right: 12px; top: 0; font: 700 11px "Chakra Petch", sans-serif; }
+.porthole { overflow: hidden; } .porthole img { position: absolute; max-width: none; }
+
+.section { left: 18px; font: 700 11px "Chakra Petch", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #8fb8bf; }
+.hp { width: 196px; height: 6px; background: rgba(255,255,255,.08); }
+.hp i { display: block; height: 100%; background: #b7f34a; }
+.want { display: flex; align-items: center; gap: 18px; }
+.crate { display: inline-flex; align-items: center; gap: 3px; padding: 6px 10px; border: 1.5px solid #e8738a; border-radius: 10px; background: rgba(232,115,138,.08); }
+.crate .b { width: 20px; height: 20px; } .crate b { margin-left: 6px; font: 700 18px "Chakra Petch", sans-serif; color: #e8738a; }
+.crate.small { padding: 3px 6px; } .crate.small .b { width: 13px; height: 13px; }
+.goal { display: flex; flex-direction: column; } .goal .big { font-size: 30px; line-height: 1; }
+.gauge { position: absolute; height: 10px; background: rgba(255,255,255,.07); }
+.gauge .now { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #f0a03c, #f7c35c); }
+.gauge .mark { position: absolute; top: -4px; width: 2px; height: 18px; background: #b7f34a; margin-left: -2px; }
+.gauge span { position: absolute; top: 13px; left: 0; font-size: 12px; } .gauge .right { left: auto; right: 0; color: #b7f34a; }
+.recipe { display: flex; align-items: center; gap: 6px; }
+.recipe .in { position: relative; display: grid; place-items: center; width: 34px; height: 34px; background: rgba(255,255,255,.05); border: 1px solid rgba(102,217,234,.3); }
+.recipe .in.wide { display: flex; gap: 4px; width: auto; padding: 0 8px; } .recipe .in b { font: 700 13px "Chakra Petch", sans-serif; }
+.recipe .in .b { width: 18px; height: 18px; }
+.recipe .num { position: absolute; top: -8px; left: -6px; width: 15px; height: 15px; border-radius: 50%; background: #66d9ea; color: #04080a; font: 700 10px/15px "Chakra Petch", sans-serif; text-align: center; }
+.recipe .plus { color: #a9bdb8; font: 700 16px "Chakra Petch", sans-serif; }
+.recipe .machine { position: relative; flex: none; width: 42px; height: 42px; overflow: hidden; border: 1px solid rgba(240,160,60,.6); }
+.inner { position: absolute; left: 0; top: 0; width: 60px; height: 60px; transform-origin: 0 0; }
+.hints { display: flex; flex-direction: column; gap: 8px; }
+.hints p { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #e9f3ef; } .hints .b { width: 16px; height: 16px; }
+.unlocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; width: 364px; }
+.unlock { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #e9f3ef; }
+.unlock .thumb { position: relative; flex: none; width: 34px; height: 34px; overflow: hidden; border: 1px solid rgba(183,243,74,.5); }
+
+/* Glass: dark frosted panes, one-pixel edge, soft depth, organic only in the icons. */
+.panel { background: rgba(12,24,28,.5); backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3); border: 1px solid rgba(255,255,255,.09); border-radius: 18px; box-shadow: 0 12px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07); }
+.panel.threat { border-color: rgba(255,107,116,.3); background: linear-gradient(160deg, rgba(60,14,22,.45), rgba(12,24,28,.5)); }
+.hazard { display: none; }
+.kicker { color: #8fb8bf; letter-spacing: .08em; }
+.title { font-weight: 600; }
+.node { border-radius: 50%; background: rgba(12,24,28,.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.node.on { border-color: rgba(183,243,74,.7); color: #b7f34a; }
+.node.danger { border-color: rgba(255,107,116,.5); }
+.toast { border-radius: 999px; padding: 9px 16px; }
+.slot { border-radius: 9px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+.slot.full { border-color: rgba(183,243,74,.4); }
+.slot.next { border-color: rgba(240,160,60,.7); }
+.card .porthole { border-radius: 14px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.1); }
+.tag { border-radius: 999px; background: rgba(12,24,28,.6); border: 1px solid rgba(255,255,255,.08); }
+.bar { padding: 8px 12px 6px; border-radius: 24px; background: rgba(12,24,28,.5); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 12px 32px rgba(0,0,0,.4); }
+.pod .porthole { border-radius: 50%; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); }
+.pod.on .porthole { border-color: #b7f34a; box-shadow: 0 0 0 3px rgba(183,243,74,.15); }
+.pod .key { color: #8fb8bf; }
+.leader { stroke-opacity: .6; }
+
+/* The organism keeps the console frame. */
+.panel.organism { backdrop-filter: none; -webkit-backdrop-filter: none; border: 0; border-radius: 0; }
+.panel.organism { background: linear-gradient(180deg, rgba(10,20,24,.92), rgba(5,12,15,.9)); clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); box-shadow: inset 0 0 0 1px rgba(102,217,234,.28); }
+.panel.organism::before { content: ""; position: absolute; left: 0; top: 0; width: 42px; height: 42px; border-left: 2px solid #66d9ea; border-top: 2px solid #66d9ea; clip-path: polygon(14px 0, 100% 0, 100% 2px, 2px 100%, 0 100%, 0 14px); }
+.panel.organism::after { content: ""; position: absolute; right: 0; bottom: 0; width: 42px; height: 42px; border-right: 2px solid #66d9ea; border-bottom: 2px solid #66d9ea; }
+.organism .kicker::after { content: " · secteur 7"; color: #52707a; }
+.organism .kicker { color: #66d9ea; letter-spacing: .12em; }
+.tag { word-spacing: normal; letter-spacing: 0; white-space: nowrap; }
+</style>
+
+<img class="plate" src="/_blob/56b5bfc8add3710fd419de76967f2b48" alt="La station en jeu, une brèche au nord">
+<div class="vignette"></div>
+
+<section class="panel organism" aria-label="Organisme" style="left: 18px; top: 16px; width: 420px; height: 132px">
+<p class="kicker">Organisme · stade 3</p>
+<svg class="ring" width="96" height="96" viewBox="-50 -50 100 100" aria-hidden="true" style="left: 16px; top: 28px">
+<circle r="44" fill="none" stroke="#1b2c31" stroke-width="6"/><circle r="44" fill="none" stroke="#b7f34a" stroke-width="6" stroke-dasharray="110 277" transform="rotate(-90)"/>
+<circle r="35" fill="none" stroke="#1b2c31" stroke-width="3"/><circle r="35" fill="none" stroke="#b7f34a" stroke-width="3" stroke-dasharray="207 220" transform="rotate(-90)"/>
+<circle r="20" fill="#22401d"/><circle cx="-10" cy="-6" r="9" fill="#366426"/><circle cx="10" cy="-3" r="8" fill="#5e9e2b"/><circle r="9" fill="#b7f34a"/><ellipse rx="2.5" ry="5" fill="#091013"/>
+</svg>
+<p class="title" style="left: 128px; top: 30px">Organe</p>
+<div class="row" style="left: 128px; top: 62px"><span class="gene" aria-label="Capsule SFSFFF"><i class="b S"></i><i class="b F"></i><i class="b S"></i><i class="b F"></i><i class="b F"></i><i class="b F"></i></span><b class="big">4<span class="dim"> / 10</span></b></div>
+<div class="row" style="left: 128px; top: 96px"><span class="dim">Cœur</span><b>94</b><span class="sep"></span><b class="big acid">312</b><span class="dim">ADN</span><b class="gain">+6</b></div>
+</section>
+
+<section class="panel threat" aria-label="Menace" style="left: 884px; top: 16px; width: 330px; height: 116px">
+<i class="hazard" aria-hidden="true"></i>
+<p class="kicker alarm">Menace</p>
+<p class="title alarm" style="left: 18px; top: 30px">Assaut dans 18 s</p>
+<p class="dim" style="left: 18px; top: 60px; font-size: 13px">Nord · 6 éclaireurs sur la carte</p>
+<div class="row" style="left: 18px; top: 84px"><span class="gene" aria-label="Créature SFN"><i class="b S"></i><i class="b F"></i><i class="b N"></i></span><svg width="22" height="12" viewBox="0 0 22 12" aria-hidden="true"><path d="M1 6h18M14 1l6 5-6 5" fill="none" stroke="#a9bdb8" stroke-width="1.5"/></svg><span class="gene" aria-label="Antidote CNF"><i class="b C"></i><i class="b N"></i><i class="b F"></i></span><b class="acid" style="margin-left: 10px">24 en stock</b></div>
+</section>
+
+<nav class="cluster" aria-label="Menu" style="left: 1370px; top: 22px"><button class="node"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"/><circle cx="4" cy="15" r="2.4" fill="currentColor"/><circle cx="16" cy="15" r="2.4" fill="currentColor"/><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"/></svg></button></nav>
+
+<nav class="cluster column" aria-label="Caméra" style="left: 1370px; top: 220px">
+<button class="node"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v14M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button><button class="node"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button><button class="node"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="4" fill="#b7f34a"/><path d="M11 1v4M11 17v4M1 11h4M17 11h4" stroke="currentColor" stroke-width="2"/></svg></button><button class="node num on">3D</button><i class="gap" aria-hidden="true"></i><button class="node"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 2v14M13 2v14" stroke="currentColor" stroke-width="3"/></svg></button><button class="node num">×1</button>
+</nav>
+
+<p class="panel toast" role="status" style="left: 18px; top: 168px"><i class="dot" aria-hidden="true"></i>Brèche réveillée au nord</p>
+
+<svg class="lead" width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true">
+<g transform="translate(700 520)"><circle class="reticle" r="44" fill="none" stroke="#b7f34a" stroke-width="2" stroke-dasharray="22 17.8"/><path d="M0 -56l7 9h-14z" fill="#b7f34a"/></g>
+<path class="leader" d="M744 500 L800 420 L950 420" fill="none"/>
+</svg>
+<section class="panel card core" aria-label="Cœur" style="left: 950px; top: 150px; width: 400px; height: 560px">
+<span class="porthole" aria-hidden="true" style="left: 18px; top: 18px; width: 56px; height: 56px; border-radius: 50%"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -388px; top: -110px"></span>
+<p class="kicker" style="left: 88px; top: 20px">Sélection</p>
+<p class="title" style="left: 88px; top: 38px">Cœur</p>
+<div class="hp" style="left: 88px; top: 68px"><i style="width: 100%"></i></div><span class="dim" style="left: 300px; top: 61px; font-size: 13px">100 PV</span>
+
+<p class="section" style="left: 18px; top: 96px">Il réclame</p>
+<div class="want" style="left: 18px; top: 118px">
+<span class="crate" aria-label="Capsule de six gènes CCF"><i class="b C"></i><i class="b C"></i><i class="b F"></i><b>×6</b></span>
+<div class="goal"><b class="big">2<span class="dim"> / s</span></b><span class="dim">pendant 60 s</span></div>
+</div>
+<div class="gauge" style="left: 18px; top: 176px; width: 364px"><i class="now" style="width: 40%"></i><i class="mark" style="left: 100%"></i><span class="dim">0,8 / s</span><span class="dim right">2 / s</span></div>
+<div class="row" style="left: 18px; top: 206px"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="#a9bdb8" stroke-width="1.5"/><path d="M8 4v4l3 2" stroke="#a9bdb8" stroke-width="1.5" fill="none"/></svg><span class="dim" style="font-size: 13px">tenu</span><b>0 / 60 s</b></div>
+
+<p class="section" style="left: 18px; top: 240px">Recette</p>
+<div class="recipe" style="left: 18px; top: 262px">
+<span class="in"><span class="num">1</span><i class="b C"></i></span><span class="in"><span class="num">2</span><i class="b C"></i></span><span class="in"><span class="num">3</span><i class="b F"></i></span>
+<svg class="arrow" width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><path d="M1 6h22M18 1l6 5-6 5" fill="none" stroke="#66d9ea" stroke-width="1.6"/></svg>
+<span class="machine porthole" aria-label="Ligase"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -268px; top: -18px"></span>
+<svg class="arrow" width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><path d="M1 6h22M18 1l6 5-6 5" fill="none" stroke="#66d9ea" stroke-width="1.6"/></svg>
+<span class="gene" aria-label="Gène CCF"><i class="b C"></i><i class="b C"></i><i class="b F"></i></span>
+</div>
+<div class="recipe" style="left: 18px; top: 318px">
+<span class="in wide"><b>6×</b><span class="gene" aria-label="Gène CCF"><i class="b C"></i><i class="b C"></i><i class="b F"></i></span></span><span class="plus">+</span><span class="in wide"><b>2×</b><i class="b K"></i></span>
+<svg class="arrow" width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><path d="M1 6h22M18 1l6 5-6 5" fill="none" stroke="#66d9ea" stroke-width="1.6"/></svg>
+<span class="machine porthole" aria-label="Encapsuleur"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -508px; top: -18px"></span>
+<svg class="arrow" width="20" height="12" viewBox="0 0 26 12" aria-hidden="true"><path d="M1 6h22M18 1l6 5-6 5" fill="none" stroke="#66d9ea" stroke-width="1.6"/></svg>
+<span class="crate small" aria-label="Capsule"><i class="b C"></i><i class="b C"></i><i class="b F"></i></span>
+</div>
+<div class="hints" style="left: 18px; top: 376px">
+<p><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h12M3 13h12" stroke="#f0a03c" stroke-width="2.2"/></svg><span>2 lignes en parallèle</span></p>
+<p><i class="b K"></i><span>carbone à l’est du cœur</span><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><path d="M1 6h14M11 1l5 5-5 5" fill="none" stroke="#a9bdb8" stroke-width="1.5"/></svg></p>
+</div>
+
+<p class="section" style="left: 18px; top: 448px">Débloque</p>
+<div class="unlocks" style="left: 18px; top: 470px">
+<span class="unlock"><span class="thumb"><span class="porthole inner" style="transform: scale(.55)"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -388px; top: -202px"></span></span><span>Veines</span></span><span class="unlock"><span class="thumb"><span class="porthole inner" style="transform: scale(.55)"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -628px; top: -110px"></span></span><span>Nerfs</span></span><span class="unlock"><span class="thumb"><span class="porthole inner" style="transform: scale(.55)"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -148px; top: -18px"></span></span><span>Gisements ×2</span></span><span class="unlock"><span class="thumb"><span class="porthole inner" style="transform: scale(.55)"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -388px; top: -18px"></span></span><span>Assembleur</span></span><span class="unlock"><span class="thumb"><span class="porthole inner" style="transform: scale(.55)"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -148px; top: -18px"></span></span><span>Grand récolteur</span></span><span class="unlock"><span class="thumb"><span class="porthole inner" style="transform: scale(.55)"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -388px; top: -110px"></span></span><span>Grand kyste</span></span>
+</div>
+</section>
+
+<section class="drones" aria-label="Drones" style="left: 22px; bottom: 22px">
+<div class="drone"><svg width="44" height="32" viewBox="0 0 48 36" aria-hidden="true"><path d="M12 9l24 18M36 9L12 27" stroke="#93aab0" stroke-width="2.5"/><ellipse cx="11" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="37" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="11" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="37" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="24" cy="18" rx="9" ry="7" fill="#d8cdb6"/><circle cx="24" cy="18" r="3" fill="#f0a03c"/></svg><span class="tag">Kyste 1 s</span></div><div class="drone"><svg width="44" height="32" viewBox="0 0 48 36" aria-hidden="true"><path d="M12 9l24 18M36 9L12 27" stroke="#93aab0" stroke-width="2.5"/><ellipse cx="11" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="37" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="11" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="37" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="24" cy="18" rx="9" ry="7" fill="#d8cdb6"/><circle cx="24" cy="18" r="3" fill="#b7f34a"/></svg><span class="tag">Au nid</span></div><div class="drone"><svg width="44" height="32" viewBox="0 0 48 36" aria-hidden="true"><path d="M12 9l24 18M36 9L12 27" stroke="#93aab0" stroke-width="2.5"/><ellipse cx="11" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="37" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="11" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="37" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"/><ellipse cx="24" cy="18" rx="9" ry="7" fill="#d8cdb6"/><circle cx="24" cy="18" r="3" fill="#b7f34a"/></svg><span class="tag">Au nid</span></div>
+</section>
+
+<nav class="bar" aria-label="Construction">
+<button class="pod on"><span class="porthole" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="12" cy="12" r="8" fill="none" stroke="#e9f3ef" stroke-width="2.5"/><path d="M18 18l8 8" stroke="#e9f3ef" stroke-width="3"/></svg></span><span class="name">Inspecter</span><span class="key">1</span></button>
+<button class="pod"><span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -148px; top: -18px"></span><span class="name">Récolter</span><span class="key">2</span></button><button class="pod"><span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -28px; top: -18px"></span><span class="name">Acheminer</span><span class="key">3</span></button><button class="pod"><span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -268px; top: -18px"></span><span class="name">Transformer</span><span class="key">4</span></button><button class="pod"><span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -628px; top: -18px"></span><span class="name">Défendre</span><span class="key">5</span></button><button class="pod"><span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -628px; top: -110px"></span><span class="name">Commander</span><span class="key">6</span></button>
+<button class="pod"><span class="porthole" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28"><path d="M5 5l18 18M23 5L5 23" stroke="#ff6b74" stroke-width="3.5" stroke-linecap="round"/></svg></span><span class="name">Démonter</span><span class="key">7</span></button>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

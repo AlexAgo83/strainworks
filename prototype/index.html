@@ -276,6 +276,59 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #commands dt { color:var(--cyan); }
 #commands dd { margin:0; }
 
+
+/* ---- Approved style, docs/design/interface board 20: bio-tech glass, the organism in a console frame. */
+#app { --glass:rgba(12,24,28,.58); --glass-edge:rgba(255,255,255,.1); --glass-shadow:0 12px 32px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.07); }
+.veins { display:none; }
+#organism > .skin, #brief > .skin, #card > .skin, #card .skin { display:none; }
+#brief, #families, #card, #menu, #hint {
+  background:var(--glass); -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--glass-edge); border-radius:18px; box-shadow:var(--glass-shadow);
+}
+#brief { border-color:rgba(255,107,116,.3); background:linear-gradient(160deg, rgba(60,14,22,.45), var(--glass)); }
+#brief.calm { border-color:var(--glass-edge); background:var(--glass); }
+#brief.calm .skin { animation:none; }
+#organism {
+  background:linear-gradient(180deg, rgba(10,20,24,.92), rgba(5,12,15,.9));
+  clip-path:polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  box-shadow:inset 0 0 0 1px rgba(102,217,234,.3);
+}
+#organism::before, #organism::after { content:""; position:absolute; width:44px; height:44px; pointer-events:none; }
+#organism::before { left:0; top:0; border-left:2px solid var(--cyan); border-top:2px solid var(--cyan); clip-path:polygon(16px 0, 100% 0, 100% 2px, 2px 100%, 0 100%, 0 16px); }
+#organism::after { right:0; bottom:0; border-right:2px solid var(--cyan); border-bottom:2px solid var(--cyan); }
+#app .node {
+  border:1px solid var(--glass-edge); border-radius:50%; background:var(--glass);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); box-shadow:0 6px 18px rgba(0,0,0,.35);
+  transition:transform .18s ease, border-color .2s;
+}
+#app .node:hover { transform:scale(1.06); border-radius:50%; border-color:rgba(183,243,74,.7); }
+#app .node.on { border-color:rgba(183,243,74,.75); }
+#app .tip { border:1px solid var(--glass-edge); border-radius:12px; background:rgba(255,255,255,.04); }
+#app .event { border:1px solid var(--glass-edge); border-radius:999px; background:var(--glass); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
+#app .event.bad { border-color:rgba(255,107,116,.55); }
+/* The glass sits behind the dock: a backdrop filter on the dock itself would hold its fixed phone tools. */
+.dock { position:relative; isolation:isolate; box-sizing:border-box; padding:8px 12px 6px; }
+@media (max-width:759px) { .dock { padding:6px 2px 4px; } }
+.dock::before { content:""; position:absolute; inset:0; z-index:-1; border-radius:24px; background:var(--glass); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); border:1px solid var(--glass-edge); box-shadow:var(--glass-shadow); pointer-events:none; }
+.porthole { border:1px solid var(--glass-edge); border-radius:50%; background-color:rgba(0,0,0,.3); transition:transform .2s ease, border-color .2s; }
+.pod:hover .porthole { transform:translateY(-4px) scale(1.04); border-radius:50%; border-color:rgba(102,217,234,.7); }
+.pod[aria-pressed="true"] .porthole { transform:translateY(-4px) scale(1.05); border-color:#B7F34A; box-shadow:0 0 0 3px rgba(183,243,74,.15); animation:none; }
+.pod .name { background:none; }
+.pod .key { border-color:var(--glass-edge); background:rgba(0,0,0,.45); }
+#app #ranks button { border:1px solid var(--glass-edge); border-radius:12px; background:var(--glass); }
+#app #actions button { border:1px solid var(--glass-edge); border-radius:14px; background:var(--glass); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
+#actions .icon { border:1px solid var(--glass-edge); border-radius:50%; }
+#app #actions button.slot { border-radius:10px; }
+.cellule { border:1px solid var(--glass-edge); border-radius:8px; }
+.cellule.full { border-color:rgba(102,217,234,.6); }
+.sac { border-radius:8px; border-color:var(--glass-edge); }
+#cells { border-top-color:rgba(255,255,255,.08); }
+#menu .row { border-bottom-color:rgba(255,255,255,.07); }
+#menu { border-radius:18px; }
+/* Time under the view switch, apart from the camera by a little gap. */
+#zoom #view-toggle { margin-bottom:10px; }
+#app #organism > .skin { display:none; }
+@media (min-width:760px) and (min-height:521px) { #organism { width:340px; height:200px; } }
 @media (max-width:1179px) {
   #organism { transform:scale(.8); transform-origin:left top; }
   #brief { right:calc(8px + var(--r)); top:calc(78px + var(--t)); transform:scale(.88); transform-origin:right top; }
@@ -322,7 +375,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   #zoom .step { display:none; }
   /* The view switch sits left of Centrer, on its row: the rail below it holds the tools. */
   #zoom { flex-direction:row; }
-  #zoom #view-toggle { order:-1; }
+  #zoom #view-toggle { order:-1; margin-bottom:0; }
   #events { left:calc(8px + var(--l)); top:calc(154px + var(--t)); }
   #app .event { max-width:min(250px,calc(100vw - 80px)); font-size:12px; }
   .event .text { -webkit-line-clamp:2; }
@@ -467,7 +520,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #over .ways { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
 
 /* One menu for the planet and the game. */
-#menu { width:min(380px,calc(100vw - 20px)); max-height:calc(100% - 90px); overflow:auto; padding:18px 22px; align-items:stretch; gap:0; border:1.5px solid #46636B; border-radius:30px 12px; background:#081214F5; pointer-events:auto; }
+#menu { width:min(380px,calc(100vw - 20px)); max-height:calc(100% - 90px); overflow:auto; padding:18px 22px; align-items:stretch; gap:0; pointer-events:auto; }
 #menu > * { animation:none; }
 #menu:not([hidden]) { animation:sprout .35s cubic-bezier(.2,1.5,.4,1) both; }
 .on-planet #menu { z-index:30; top:calc(88px + var(--t)); }
@@ -4155,8 +4208,13 @@ function showMenu(open) {
 }
 // Where floating things may go without landing under the interface.
 function layoutHud() {
-  const narrow = NARROW.matches, speedButton = $('speed'), home = narrow ? $('menu') : $('time');
-  if (speedButton.parentElement !== home) home.insertBefore(speedButton, $(narrow ? 'view-row' : 'menu-toggle'));
+  const narrow = NARROW.matches, speedButton = $('speed'), pauseButton = $('pause');
+  if (narrow) {
+    if (speedButton.parentElement !== $('menu')) $('menu').insertBefore(speedButton, $('view-row'));
+    if (pauseButton.parentElement !== $('time')) $('time').insertBefore(pauseButton, $('menu-toggle'));
+  } else {
+    for (const b of [pauseButton, speedButton]) if (b.parentElement !== $('zoom')) $('zoom').append(b);
+  }
   ui.safe = {
     left:8,
     top:narrow ? (view.h <= 520 ? 108 : 154) : view.w < 1180 ? 180 : 146,
