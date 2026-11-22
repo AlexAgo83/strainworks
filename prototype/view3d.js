@@ -51,7 +51,7 @@ window.createView3D = (glCanvas) => {
   const glow = new B.GlowLayer('glow', scene, { mainTextureFixedSize: 512, blurKernelSize: 24 });
   glow.intensity = 0.6;
 
-  const terrain = window.createTerrain3D(B, scene);
+  const terrain = window.createTerrain3D(B, scene, glow);
 
   // ---- Each shape and paint pair of the models is one draw call.
   const models = window.createModels3D(B, scene);

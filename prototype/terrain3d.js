@@ -1,7 +1,7 @@
 // The ground of the 3D view: living terrain, with worn steel plates left over it in patches.
 // It is decor: it reads the game state and never changes it. It settles to height 0 under whatever is built,
 // so what is built sits on the plane a finger points at.
-window.createTerrain3D = (B, scene) => {
+window.createTerrain3D = (B, scene, glow) => {
   const MARGIN = 16; // cells of rising rim around the map
   const STEPS = 2; // vertices per cell
   const CHUNK = 32; // cells per culled piece of ground
@@ -214,6 +214,41 @@ window.createTerrain3D = (B, scene) => {
   iron.specularPower = 40;
   iron.backFaceCulling = false;
 
+  // Wet bark, and one soft pulse of sap that slides along it. Half the roots never light up.
+  function rootSkin() {
+    const n = 256;
+    const bark = new Uint8Array(n * n * 4);
+    const sap = new Uint8Array(n * n * 4);
+    for (let py = 0; py < n; py++) {
+      const v = py / n;
+      const across = (v % 0.5) * 2; // 0 underneath, .5 along the top
+      for (let px = 0; px < n; px++) {
+        const u = px / n;
+        const fibre = noise(u * 8, v * 48 + noise(u * 16, v * 8, 91, 16) * 4, 92, 64);
+        const fleck = noise(u * 64, v * 64, 93, 64);
+        const k = (py * n + px) * 4;
+        const light = 0.45 + fibre * 0.55 + (fleck - 0.5) * 0.3;
+        bark.set([clamp(0.4 * light) * 255, clamp(0.2 * light) * 255, clamp(0.19 * light) * 255, 255], k);
+        const behind = 0.5 - u; // a sharp front, a long fading tail
+        const pulse = behind < 0 ? Math.exp(-((behind / 0.018) ** 2)) : Math.exp(-((behind / 0.07) ** 2));
+        const thread = 1 - smooth(0.04, 0.22, Math.abs(across - 0.5 + (noise(u * 32, 0.5, 94, 32) - 0.5) * 0.16));
+        const lit = v < 0.5 ? pulse * (0.18 + thread * 0.82) : 0;
+        sap.set([lit * 235, lit * 70, lit * 100, 255], k);
+      }
+    }
+    return [bark, sap].map((data) => {
+      const texture = B.RawTexture.CreateRGBATexture(data, n, n, scene, true, false, B.Texture.TRILINEAR_SAMPLINGMODE);
+      texture.wrapU = texture.wrapV = B.Texture.WRAP_ADDRESSMODE;
+      return texture;
+    });
+  }
+  const bark = new B.StandardMaterial('roots', scene);
+  [bark.diffuseTexture, bark.emissiveTexture] = rootSkin();
+  bark.diffuseTexture.uScale = 7;
+  bark.useEmissiveAsIllumination = true;
+  bark.specularColor = new B.Color3(0.3, 0.22, 0.2);
+  bark.specularPower = 36;
+
   const natural = new Float32Array(NX * NY); // the ground left alone
   const packed = new Float32Array(NX * NY); // 1 where something built presses it down
   const aim = new Float32Array(NX * NY);
@@ -225,7 +260,7 @@ window.createTerrain3D = (B, scene) => {
   const settling = new Set();
   let decor = new Map();
   let pools = [];
-  let roots = [];
+  let roots = []; // one mesh per region, for culling
   let plates = [];
   let steel = null;
   let known = null;
@@ -431,23 +466,135 @@ window.createTerrain3D = (B, scene) => {
     }
   }
 
-  function growRoots() {
-    roots = [];
-    for (let i = 0; i < 56; i++) {
-      let x = hash(i, 1, 71) * W;
-      let y = hash(i, 2, 71) * H;
-      let bend = hash(i, 3, 71) * TAU;
-      const path = [];
-      for (let j = 0; j < 8 + hash(i, 4, 71) * 12; j++) {
-        const cell = cellAt(x, y);
-        if (cell < 0 || metal[cell] || nearField(x, y, 0.8)) break;
-        path.push([x, y]);
-        bend += (hash(i, j, 72) - 0.5) * 0.9;
-        x += Math.cos(bend) * 0.8;
-        y += Math.sin(bend) * 0.8;
-      }
-      if (path.length > 4) roots.push(path);
+  // Roots are continuous tubes: a trunk that snakes and thins, forks that start inside it, hairs at the ends.
+  const SIDES = 6;
+  const SAP_RUN = 22; // cells between two pulses
+  const SAP_SPEED = 1.6;
+  const REGION = 32;
+  function wander(x, y, bend, length, seed) {
+    const path = [[x, y]];
+    let turn = bend;
+    for (let j = 0; j < length / 0.8; j++) {
+      // Drawn back to where it was going, or it would curl into knots.
+      turn = mix(turn, bend, 0.18) + (hash(seed, j, 72) - 0.5) * 1.05;
+      const nx = x + Math.cos(turn) * 0.8;
+      const ny = y + Math.sin(turn) * 0.8;
+      const cell = cellAt(nx, ny);
+      if (cell < 0 || metal[cell] || nearField(nx, ny, 0.8)) break;
+      x = nx;
+      y = ny;
+      path.push([x, y]);
     }
+    return path;
+  }
+  function smoothed(path) {
+    const out = [];
+    const at = (i) => path[clamp(i, 0, path.length - 1)];
+    for (let i = 0; i < path.length - 1; i++) {
+      const [a, b, c, d] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+      for (let piece3 = 0; piece3 < 3; piece3++) {
+        const u = piece3 / 3;
+        out.push([0, 1].map((n) => 0.5 * (2 * b[n] + (c[n] - a[n]) * u + (2 * a[n] - 5 * b[n] + 4 * c[n] - d[n]) * u * u + (3 * b[n] - a[n] - 3 * c[n] + d[n]) * u * u * u)));
+      }
+    }
+    out.push(path[path.length - 1]);
+    return out;
+  }
+  function growRoots() {
+    for (const part of roots) part.mesh.dispose();
+    roots = [];
+    const regions = new Map();
+    function branch(x, y, bend, length, thick, run, level, seed, alive) {
+      const path = wander(x, y, bend, length, seed);
+      if (path.length < 3) return;
+      const line = smoothed(path);
+      const id = `${Math.floor(x / REGION)},${Math.floor(y / REGION)}`;
+      if (!regions.has(id)) regions.set(id, { rings: [], uvs: [], indices: [] });
+      const region = regions.get(id);
+      const first = region.rings.length * (SIDES + 1);
+      const sizes = [];
+      const runs = [];
+      let travelled = run;
+      for (let i = 0; i < line.length; i++) {
+        const [px, py] = line[i];
+        const before = line[Math.max(0, i - 1)];
+        const after = line[Math.min(line.length - 1, i + 1)];
+        if (i) travelled += Math.hypot(px - before[0], py - before[1]);
+        const part = i / (line.length - 1);
+        const knot = 0.8 + noise(i * 0.55, seed, 95) * 0.45;
+        // A trunk swells out of the ground, a fork out of its parent, and both end in a point.
+        const born = level ? mix(1.3, 1, smooth(0, 0.15, part)) : mix(0.15, 1, smooth(0, 0.12, part));
+        const size = thick * (1 - part) ** 0.65 * knot * born + 0.004;
+        const tangent = Math.atan2(after[1] - before[1], after[0] - before[0]);
+        const lift = (noise(i * 0.3, seed, 96) - 0.4) * size;
+        region.rings.push({ x: px, y: py, size, lift, side: [-Math.sin(tangent), Math.cos(tangent)], twist: i * 0.5 + seed });
+        for (let s = 0; s <= SIDES; s++) region.uvs.push(hash(seed % 1000, 0, 97) * 0.02 + travelled / SAP_RUN, (alive ? 0.01 : 0.51) + (s / SIDES) * 0.48);
+        if (i) {
+          for (let s = 0; s < SIDES; s++) {
+            const a = first + (i - 1) * (SIDES + 1) + s;
+            const b = a + SIDES + 1;
+            region.indices.push(a, b, a + 1, a + 1, b, b + 1);
+          }
+        }
+        sizes.push(size);
+        runs.push(travelled);
+      }
+      if (level > 1) return;
+      const forks = level ? 1 + Math.floor(hash(seed, 1, 98) * 2) : 3 + Math.floor(hash(seed, 1, 98) * 3);
+      for (let k = 0; k < forks; k++) {
+        const i = Math.min(line.length - 2, Math.max(1, Math.floor(line.length * (0.15 + ((k + hash(seed, k, 99)) / forks) * 0.72))));
+        const [fx, fy] = line[i];
+        const onward = Math.atan2(line[i + 1][1] - fy, line[i + 1][0] - fx);
+        const side = (k + (seed % 2)) % 2 ? 1 : -1;
+        branch(fx, fy, onward + side * (0.5 + hash(seed, k, 100) * 0.5), length * (0.25 + hash(seed, k, 101) * 0.2), sizes[i] * 0.68, runs[i], level + 1, seed * 7 + k + 1, alive);
+      }
+    }
+    for (let i = 0; i < 62; i++) {
+      // The last ten circle the core, where a game opens.
+      const round = (i - 52) * 0.628 + hash(i, 7, 71) * 0.3;
+      const far = 7 + hash(i, 8, 71) * 7;
+      const x = i < 52 ? hash(i, 1, 71) * W : CORE.x + Math.cos(round) * far;
+      const y = i < 52 ? hash(i, 2, 71) * H : CORE.y + Math.sin(round) * far;
+      const cell = cellAt(x, y);
+      if (metal[cell] || nearField(x, y, 0.8)) continue;
+      branch(x, y, hash(i, 3, 71) * TAU, 8 + hash(i, 4, 71) * 11, 0.14 + hash(i, 5, 71) * 0.1, hash(i, 6, 71) * SAP_RUN, 0, i + 1, i % 3 !== 2);
+    }
+    for (const { rings, uvs, indices } of regions.values()) {
+      const count = rings.length * (SIDES + 1) * 3;
+      const part = { rings, indices, positions: new Float32Array(count), normals: new Float32Array(count), mesh: new B.Mesh('roots', scene) };
+      const { positions, normals } = part;
+      Object.assign(new B.VertexData(), { positions, normals, uvs, indices }).applyToMesh(part.mesh, true);
+      part.mesh.material = bark;
+      part.mesh.receiveShadows = true;
+      part.mesh.isPickable = false;
+      glow.addIncludedOnlyMesh(part.mesh);
+      const xs = rings.map((ring) => ring.x);
+      const ys = rings.map((ring) => ring.y);
+      part.box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+      roots.push(part);
+    }
+  }
+  // Roots lie on the relief, half buried, and dive under what is built.
+  // While settling a ring only sinks: its lighting and its box are kept.
+  function layRoots(part, whole) {
+    const { rings, indices, positions, normals } = part;
+    let n = 0;
+    for (const { x, y, size, lift, side, twist } of rings) {
+      const k = Math.round(clamp((y + MARGIN) * STEPS, 0, NY - 1)) * NX + Math.round(clamp((x + MARGIN) * STEPS, 0, NX - 1));
+      const middle = height(x, y) + size * 0.3 + lift - packed[k] * (size * 2.2 + 0.03);
+      for (let s = 0; s <= SIDES; s++) {
+        const a = (s / SIDES) * TAU - Math.PI / 2;
+        const ridge = size * (1 + Math.sin(a * 3 + twist) * 0.17);
+        positions[n++] = x + side[0] * Math.cos(a) * ridge;
+        positions[n++] = middle + Math.sin(a) * ridge * 0.85;
+        positions[n++] = -(y + side[1] * Math.cos(a) * ridge);
+      }
+    }
+    part.mesh.updateVerticesData(B.VertexBuffer.PositionKind, positions);
+    if (!whole) return;
+    B.VertexData.ComputeNormals(positions, indices, normals);
+    part.mesh.updateVerticesData(B.VertexBuffer.NormalKind, normals);
+    part.mesh.refreshBoundingInfo();
   }
 
   // ---- The meshes, and what moves when something is built
@@ -554,7 +701,12 @@ window.createTerrain3D = (B, scene) => {
       }
     }
     [used, wasUsed] = [wasUsed, used];
+    let moved = null;
     for (const k of settling) {
+      const mx = (k % NX) / STEPS - MARGIN;
+      const my = Math.floor(k / NX) / STEPS - MARGIN;
+      if (!moved) moved = [mx, my, mx, my];
+      moved = [Math.min(moved[0], mx), Math.min(moved[1], my), Math.max(moved[2], mx), Math.max(moved[3], my)];
       const gap = aim[k] - packed[k];
       const done = instant || Math.abs(gap) < 0.01;
       packed[k] = done ? aim[k] : packed[k] + gap * 0.2;
@@ -564,6 +716,11 @@ window.createTerrain3D = (B, scene) => {
     }
     for (const chunk of dirty) remesh(chunk);
     dirty.clear();
+    if (!moved) return;
+    for (const part of roots) {
+      const [x0, y0, x1, y1] = part.box;
+      if (instant || (moved[0] < x1 + 1 && moved[2] > x0 - 1 && moved[1] < y1 + 1 && moved[3] > y0 - 1)) layRoots(part);
+    }
   }
 
   function shape() {
@@ -580,14 +737,15 @@ window.createTerrain3D = (B, scene) => {
     current.set(natural);
     for (const chunk of chunks) dirty.add(chunk);
     settle(true);
+    for (const part of roots) layRoots(part, true);
   }
 
   // ---- Small things lying on it. They leave where something is built.
   const PAINT = {
     pebble: ['#4B4C46', 0, 1, 0.35], slate: ['#34332E', 0, 1, 0.3], bonedust: ['#8C836D', 0, 1, 0.3],
     cilia: ['#48543A', 0.04, 1, 0.5], ciliaTip: ['#8E9B63', 0.12, 1, 0.5], water: ['#0A1714', 0.05, 0.9, 1], shore: ['#17120E', 0, 0.55, 1], shine: ['#45685C', 0.05, 0.22, 1],
-    ripple: ['#4F8B7A', 0.12, 0.35, 0.8], bubble: ['#79B59E', 0.15, 0.6, 1], root: ['#3A1A20', 0.03, 1, 0.8],
-    root1: ['#B84A62', 0.5, 0.8, 0.2], root2: ['#8A3247', 0.3, 0.7, 0.2], cable: ['#0B1012', 0, 1, 0.6],
+    ripple: ['#4F8B7A', 0.12, 0.35, 0.8], bubble: ['#79B59E', 0.15, 0.6, 1], dryFibre: ['#6B4526', 0.03, 1, 0.4],
+    cable: ['#0B1012', 0, 1, 0.6],
   };
   function pressed(x, y) {
     const cell = cellAt(x, y);
@@ -616,7 +774,7 @@ window.createTerrain3D = (B, scene) => {
         add('horn', tip ? (type === 'S' ? 'sprout' : 'ciliaTip') : 'cilia', ...out(turn, 0.14), -0.02, 0.2, tall, 0.2, turn, sway);
       }
     } else if (type === 'F') {
-      add('arch', n < 0.07 ? 'F' : 'root', x, y, -0.04, 0.5 + n * 0.3, 0.34, 1, a);
+      for (let i = 0; i < (close ? 4 : 2); i++) add('horn', i ? 'dryFibre' : 'F', ...out(a + i * 1.7, 0.1), -0.02, 0.34, 0.2 + ((n + i * 0.3) % 1) * 0.16, 0.34, a + i * 1.7);
     } else if (type === 'C') {
       add('crystal', 'bonedust', x, y, 0.07, 0.14, 0.26, 0.14, a, 0.4);
       if (close) add('rock', 'bonedust', ...out(a, 0.25), 0.02, 0.14, 0.1, 0.12, a);
@@ -628,8 +786,9 @@ window.createTerrain3D = (B, scene) => {
     }
   }
   function draw(add, area, clock) {
-    if (cam.zoom < 9) return;
     const t = still.matches ? 0 : clock;
+    bark.emissiveTexture.uOffset = -((t * SAP_SPEED) / SAP_RUN) % 1;
+    if (cam.zoom < 9) return;
     const close = cam.zoom >= 18;
     const shown = (x, y, room = 1) => x > area.x0 - room && x < area.x1 + room && y > area.y0 - room && y < area.y1 + room;
     if (cam.zoom >= 11) {
@@ -655,22 +814,6 @@ window.createTerrain3D = (B, scene) => {
       if (wave < 0.55) add('ring', 'ripple', x + (n - 0.5) * 0.5, y, surface + 0.12, 0.15 + wave * r * 1.6, 0.3, 0.15 + wave * r * 1.6);
       const bubble = (t / (4 + n * 4) + n) % 1;
       if (bubble < 0.14) add('bead', 'bubble', x + 0.2, y + (n - 0.5) * 0.6, surface + 0.12, 0.06 + bubble * 1.1);
-    }
-    for (let i = 0; i < roots.length; i++) {
-      const path = roots[i];
-      if (!shown(...path[0], 17)) continue;
-      const glowAt = ((t * 1.6 + i * 7) % (path.length + 14)) - 1; // a slow light, then a long rest
-      for (let j = 0; j < path.length - 1; j++) {
-        const [ax, ay] = path[j];
-        const [bx, by] = path[j + 1];
-        const x = (ax + bx) / 2;
-        const y = (ay + by) / 2;
-        if (!shown(x, y) || pressed(x, y)) continue;
-        const width = 0.17 * (1 - (j / path.length) * 0.7);
-        const behind = glowAt - j;
-        const paint = i % 2 === 0 && behind >= 0 && behind < 2 ? (behind < 1 ? 'root1' : 'root2') : 'root';
-        add('tube', paint, x, y, 0.005, width, Math.hypot(bx - ax, by - ay) + 0.08, width, Math.atan2(by - ay, bx - ax), -Math.PI / 2);
-      }
     }
     // Torn cables out of the broken edges.
     if (close) {
