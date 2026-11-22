@@ -368,7 +368,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #app #organism > .skin { display:none; }
 @media (min-width:760px) and (min-height:521px) { #organism { width:380px; height:200px; } }
 @media (max-width:759px) {
-  #info.docked { right:calc(62px + var(--r)); }
+  #app #info.docked { right:calc(62px + var(--r)); }
   #card { max-height:min(56vh, 520px); overflow-y:auto; }
   #sheet h3:nth-of-type(3), #sheet .gives { display:none; }
 }
@@ -3245,6 +3245,7 @@ function choose(type) {
     return refuse(`${TYPES[type].name} s’ouvre quand le stade ${NEEDS[type]}, ${want.name}, est achevé. Touche le cœur pour voir ce qu’il réclame.`);
   }
   tool = type; linking = null; wiring = null; select(null); say(TYPES[type].help);
+  if (FAMILY_OF[type]) (ui.lastOf ||= {})[FAMILY_OF[type]] = type;
   for (const b of $('tools').querySelectorAll('[data-type]')) b.setAttribute('aria-pressed', b.dataset.type === type);
   paintRanks();
   // On a phone the fan folds once picked: the ground is needed.
@@ -4245,6 +4246,9 @@ function paintRanks() {
 }
 function toggleFamily(id) {
   if (ui.family === id) return choose('hand');
+  // Back to a family, back to the tool last taken from it.
+  const last = ui.lastOf?.[id];
+  if (last && last !== tool && unlocked(NEEDS[last] || 0)) return choose(last);
   if (FAMILY_OF[tool] !== id) choose('hand');
   openFamily(id);
 }

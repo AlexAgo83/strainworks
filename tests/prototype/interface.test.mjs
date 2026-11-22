@@ -99,6 +99,18 @@ it("answers the keys, the menu and the moments without changing a rule", async (
     // An event takes the camera to where it happened.
     await page.evaluate(() => tell("Ici", { at: { x: 70, y: 20 } }));
     await page.locator("#events button", { hasText: "Ici" }).click();
+    // A family gives back the tool last taken from it.
+    const back = await page.evaluate(() => {
+      choose("belt");
+      choose("hand");
+      toggleFamily(FAMILY_OF.belt);
+      const belt = tool;
+      choose("bridge");
+      choose("hand");
+      toggleFamily(FAMILY_OF.bridge);
+      return [belt, tool];
+    });
+    expect(back).toEqual(["belt", "bridge"]);
     // Events stay until closed, the latest five kept.
     const kept = await page.evaluate(async () => {
       for (let i = 0; i < 7; i++) tell(`Événement ${i}`);
