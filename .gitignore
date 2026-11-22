@@ -4,6 +4,7 @@ coverage/
 .tmp/
 test-results/
 *.png
+!docs/design/**/*.png
 logics/.cache/
 .DS_Store
 .claude/

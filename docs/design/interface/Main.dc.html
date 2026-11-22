@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Strainworks en jeu</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./hud.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&amp;family=Chakra+Petch:wght@600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sw {{motion}}" style="width: 1440px; height: 900px">
+<img class="plate" src="/_blob/56b5bfc8add3710fd419de76967f2b48" alt="La station vue de dessus, une brèche attaque au nord">
+<div class="edges {{hot}}"></div>
+
+<svg class="abs" width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true" style="left: 0; top: 0; pointer-events: none">
+<path class="vein" stroke-width="7" d="M0 258 C24 214 18 172 40 140"></path>
+<path class="vein" stroke-width="4" d="M0 300 C34 268 22 232 62 206"></path>
+<path class="vein live" stroke-width="2" d="M0 258 C24 214 18 172 40 140"></path>
+<path class="vein" stroke-width="7" d="M1330 0 C1322 22 1300 22 1286 40"></path>
+<path class="vein" stroke-width="5" d="M1440 172 C1410 180 1406 214 1390 240"></path>
+<path class="vein live late" stroke-width="2" d="M1440 172 C1410 180 1406 214 1390 240"></path>
+<path class="vein" stroke-width="10" d="M300 900 C340 862 410 886 452 852 C500 814 560 858 612 840"></path>
+<path class="vein" stroke-width="10" d="M1140 900 C1100 862 1030 886 988 852 C940 814 880 858 828 840"></path>
+<path class="vein live" stroke-width="2.5" d="M300 900 C340 862 410 886 452 852 C500 814 560 858 612 840"></path>
+<path class="vein live late" stroke-width="2.5" d="M1140 900 C1100 862 1030 886 988 852 C940 814 880 858 828 840"></path>
+</svg>
+
+<section class="abs" aria-label="Organisme" style="left: 18px; top: 16px; width: 446px; height: 214px">
+<svg class="abs" width="446" height="214" viewBox="0 0 446 214" aria-hidden="true" style="left: 0; top: 0">
+<path class="skin" d="M80 14 C118 4 140 24 176 22 L408 18 C434 22 444 42 438 64 C434 86 418 100 390 100 L190 104 C166 106 168 122 188 126 L292 126 C320 130 326 170 296 178 L170 182 C138 182 134 152 100 154 C44 156 8 126 10 80 C12 46 42 22 80 14 Z"></path>
+<path class="seam" d="M152 32 C210 30 330 30 420 32"></path>
+<path class="vein live" stroke-width="1.5" d="M146 94 C230 98 340 98 420 88"></path>
+<g transform="translate(78 84)">
+<circle r="62" fill="#091013" stroke="#1d3036" stroke-width="2"></circle>
+<circle r="56" fill="none" stroke="#1b2c31" stroke-width="6"></circle>
+<circle class="arc progress" r="56" stroke="#b7f34a" stroke-width="6" stroke-dasharray="{{stageArc}} 352"></circle>
+<circle r="47" fill="none" stroke="#1b2c31" stroke-width="3"></circle>
+<circle class="arc" r="47" stroke="{{lifeColor}}" stroke-width="3" stroke-dasharray="{{lifeArc}} 296"></circle>
+<g class="organ">
+<circle r="30" fill="#22401d"></circle>
+<g class="lobe"><circle cx="-18" cy="-9" r="14" fill="#366426"></circle></g>
+<g class="lobe two"><circle cx="18" cy="-5" r="12" fill="#5e9e2b"></circle></g>
+<g class="lobe three"><circle cx="-2" cy="19" r="13" fill="#366426"></circle></g>
+<circle r="14" fill="{{lifeColor}}"></circle>
+<ellipse rx="4" ry="7" fill="#091013"></ellipse>
+</g>
+<g class="orbit"><circle cx="0" cy="-56" r="3" fill="#e9f3ef"></circle></g>
+</g>
+</svg>
+<p class="abs display" style="left: 158px; top: 34px; font-size: 13px; color: #b7f34a">STADE 3 · ORGANE</p>
+<div class="abs" style="left: 158px; top: 56px; display: flex; align-items: center; gap: 12px">
+<span class="crate" aria-label="Capsule de six brins SFSFFF"><i class="b S"></i><i class="b F"></i><i class="b S"></i><i class="b F"></i><i class="b F"></i><i class="b F"></i></span>
+<b class="display" style="font-size: 22px">4<span class="muted" style="font-size: 15px"> / 10</span></b>
+</div>
+<p class="abs muted" style="left: 30px; top: 154px; width: 100px; text-align: center; font-size: 13px"><span class="{{lifeClass}}">Cœur {{life}}</span></p>
+<div class="abs helix" aria-hidden="true" style="left: 170px; top: 133px; width: 26px; height: 40px">
+<i style="top: 0"></i><i class="b" style="top: 0"></i><i style="top: 11px; animation-delay: -.3s"></i><i class="b" style="top: 11px; animation-delay: -1.2s"></i><i style="top: 22px; animation-delay: -.6s"></i><i class="b" style="top: 22px; animation-delay: -1.5s"></i><i style="top: 33px; animation-delay: -.9s"></i><i class="b" style="top: 33px; animation-delay: 0s"></i>
+</div>
+<b class="abs display" style="left: 208px; top: 138px; font-size: 24px">312 <span class="muted" style="font-size: 13px">ADN</span></b>
+<b class="abs gain acid" style="left: 300px; top: 130px">+6</b>
+</section>
+
+<section class="abs" aria-label="Menace" style="left: 884px; top: 14px; width: 354px; height: 122px">
+<svg class="abs" width="354" height="122" viewBox="0 0 354 122" aria-hidden="true" style="left: 0; top: 0">
+<path class="skin" d="M26 10 C120 2 240 6 326 10 C350 18 352 48 342 66 C352 96 330 114 298 112 L60 114 C20 116 4 96 12 70 C2 44 4 22 26 10 Z"></path>
+<polyline class="ecg" points="22,34 46,34 54,20 64,48 72,28 80,34 108,34"></polyline>
+</svg>
+<p class="abs display alarm" style="left: 120px; top: 18px; font-size: 16px">{{threatTitle}}</p>
+<p class="abs muted" style="left: 120px; top: 39px; font-size: 13px">{{threatDetail}}</p>
+<div class="abs" style="left: 26px; top: 72px; display: flex; align-items: center; gap: 9px">
+<span class="gene" aria-label="Créature SFN"><i class="b S"></i><i class="b F"></i><i class="b N"></i></span>
+<svg width="22" height="12" viewBox="0 0 22 12" aria-hidden="true"><path d="M1 6h18M14 1l6 5-6 5" fill="none" stroke="#a9bdb8" stroke-width="1.5"></path></svg>
+<span class="gene" aria-label="Antidote CNF"><i class="b C"></i><i class="b N"></i><i class="b F"></i></span>
+<b class="{{stockClass}}" style="margin-left: 12px">{{stock}}</b>
+</div>
+</section>
+
+<nav class="abs" aria-label="Temps et menu" style="left: 1256px; top: 22px; display: flex; gap: 8px">
+<button class="node {{pauseOn}}" onClick="{{togglePause}}" aria-label="Pause, touche Espace">
+<sc-if value="{{paused}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 2l12 7-12 7z" fill="currentColor"></path></svg></sc-if>
+<sc-if value="{{running}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 2v14M13 2v14" stroke="currentColor" stroke-width="3"></path></svg></sc-if>
+</button>
+<button class="node display {{speedOn}}" onClick="{{toggleSpeed}}" aria-label="Vitesse">{{speed}}</button>
+<button class="node" onClick="{{toggleMenu}}" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"></circle><circle cx="4" cy="15" r="2.4" fill="currentColor"></circle><circle cx="16" cy="15" r="2.4" fill="currentColor"></circle><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"></path></svg></button>
+</nav>
+
+<sc-if value="{{menu}}" hint-placeholder-val="{{false}}">
+<div class="abs grow" style="right: 20px; top: 84px; z-index: 5; display: flex; flex-direction: column; align-items: flex-end; gap: 6px">
+<button class="tip" style="border: 1px solid #52707a; min-height: 44px">Vue 2D ou 3D</button>
+<button class="tip" style="border: 1px solid #52707a; min-height: 44px">Commandes clavier et tactile</button>
+<button class="tip" style="border: 1px solid #52707a; min-height: 44px">Tout débloquer (test)</button>
+<button class="tip alarm" style="border: 1px solid #ff6b74; min-height: 44px">Recommencer : maintenir</button>
+</div>
+</sc-if>
+
+<nav class="abs" aria-label="Caméra" style="left: 1376px; top: 226px; display: flex; flex-direction: column; gap: 9px">
+<button class="node" aria-label="Zoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v14M2 9h14" stroke="currentColor" stroke-width="2"></path></svg></button>
+<button class="node" aria-label="Dézoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 9h14" stroke="currentColor" stroke-width="2"></path></svg></button>
+<button class="node" aria-label="Revenir au cœur"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="4" fill="#b7f34a"></circle><path d="M11 1v4M11 17v4M1 11h4M17 11h4" stroke="currentColor" stroke-width="2"></path></svg></button>
+</nav>
+
+<sc-if value="{{showToast}}" hint-placeholder-val="{{true}}">
+<p class="abs tip toast" role="status" style="left: 22px; top: 250px"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle class="ring" cx="9" cy="9" r="6" fill="none" stroke="#ff6b74" stroke-width="1.5"></circle><circle cx="9" cy="9" r="2.5" fill="#ff6b74"></circle></svg>{{toast}}</p>
+</sc-if>
+
+<section class="abs" aria-label="Drones" style="left: 22px; bottom: 20px; display: flex; flex-direction: column; gap: 8px">
+<sc-if value="{{assault}}" hint-placeholder-val="{{false}}">
+<button class="tip toast amber" style="border: 1px solid #f0a03c; min-height: 44px">Reconstruire 3 · 45 ADN</button>
+</sc-if>
+<div style="display: flex; gap: 10px; align-items: flex-end">
+<sc-for list="{{drones}}" as="d" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 70px">
+<svg class="drone {{d.phase}}" width="48" height="36" viewBox="0 0 48 36" aria-hidden="true">
+<path d="M12 9l24 18M36 9L12 27" stroke="#93aab0" stroke-width="2.5"></path>
+<g class="rotor"><ellipse cx="11" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"></ellipse></g><g class="rotor"><ellipse cx="37" cy="8" rx="8" ry="3" fill="none" stroke="#66d9ea"></ellipse></g>
+<g class="rotor"><ellipse cx="11" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"></ellipse></g><g class="rotor"><ellipse cx="37" cy="28" rx="8" ry="3" fill="none" stroke="#66d9ea"></ellipse></g>
+<ellipse cx="24" cy="18" rx="9" ry="7" fill="#d8cdb6"></ellipse><circle cx="24" cy="18" r="3" fill="{{d.eye}}"></circle>
+</svg>
+<span class="tip" style="padding: 1px 7px; font-size: 12px">{{d.label}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<sc-if value="{{selection}}" hint-placeholder-val="{{true}}">
+<svg class="abs" width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true" style="left: 0; top: 0; pointer-events: none">
+<path class="draw" d="M1048 616 C1088 560 1096 510 1142 474" fill="none" stroke="#66d9ea" stroke-width="1.5"></path>
+<g transform="translate(1026 649)">
+<g class="reticle"><circle r="38" fill="none" stroke="#b7f34a" stroke-width="2" stroke-dasharray="22 17.8"></circle></g>
+<path d="M0 -50l7 9h-14z" fill="#b7f34a"></path>
+</g>
+</svg>
+<button class="abs node grow" aria-label="Recette : capsule" style="left: 931px; top: 561px"><svg width="24" height="20" viewBox="0 0 24 20" aria-hidden="true"><path d="M4 2h16l3 5v8l-3 4H4l-3-4V7z" fill="none" stroke="#66d9ea" stroke-width="2"></path></svg></button>
+<button class="abs node grow d1" aria-label="Tourner, touche R" style="left: 905px; top: 625px"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M18 11a7 7 0 1 1-2-5M16 1v5h-5" fill="none" stroke="currentColor" stroke-width="2"></path></svg></button>
+<button class="abs node grow d2" aria-label="Changer le côté du carbone" style="left: 931px; top: 691px"><i class="b K"></i></button>
+<button class="abs node grow d3" aria-label="Vider" style="left: 1002px; top: 722px"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2v12M6 10l5 5 5-5M3 19h16" fill="none" stroke="currentColor" stroke-width="2"></path></svg></button>
+<button class="abs node danger grow d4" aria-label="Démonter" style="left: 1075px; top: 691px"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3l14 14M17 3L3 17" stroke="#ff6b74" stroke-width="2.5"></path></svg></button>
+
+<section class="abs grow" aria-label="Encapsuleur" style="left: 1102px; top: 258px; width: 262px; height: 222px">
+<svg class="abs" width="262" height="222" viewBox="0 0 262 222" aria-hidden="true" style="left: 0; top: 0">
+<path class="skin" d="M22 8 C90 2 180 4 236 10 C260 24 258 60 250 88 C262 130 260 176 242 200 C200 218 96 214 42 216 C12 210 2 184 8 150 C0 106 0 40 22 8 Z"></path>
+<path class="seam" d="M18 82 H244"></path>
+</svg>
+<span class="abs porthole" aria-hidden="true" style="left: 16px; top: 14px; width: 60px; height: 60px"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -510px; top: -18px"></span>
+<h2 class="abs display" style="left: 88px; top: 22px; font-size: 17px">Encapsuleur</h2>
+<p class="abs cyan" style="left: 88px; top: 46px; font-size: 13px">Capsule · sortie à droite</p>
+<div class="abs" style="left: 18px; top: 94px; display: flex; gap: 6px">
+<span class="slot full"><i class="b C"></i></span><span class="slot full"><i class="b C"></i></span><span class="slot full"><i class="b C"></i></span><span class="slot full"><i class="b C"></i></span><span class="slot next"></span><span class="slot"></span>
+</div>
+<div class="abs" style="left: 18px; top: 137px; display: flex; align-items: center; gap: 6px">
+<span class="slot full"><i class="b K"></i></span><span class="slot full"><i class="b K"></i></span>
+<span class="muted" style="margin-left: 6px; font-size: 13px">4 gènes sur 6, carbone prêt</span>
+</div>
+<p class="abs amber" style="left: 18px; top: 183px; font-size: 13px">Il manque 2 gènes CCF</p>
+</section>
+</sc-if>
+
+<sc-if value="{{placing}}" hint-placeholder-val="{{false}}">
+<svg class="abs" width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true" style="left: 0; top: 0; pointer-events: none">
+<g transform="translate(774 339)">
+<ellipse rx="{{rangeX}}" ry="{{rangeY}}" fill="rgba(102,217,234,.05)" stroke="#66d9ea" stroke-width="1.5" stroke-dasharray="10 8"></ellipse>
+<rect x="-18" y="-14" width="36" height="28" fill="rgba(102,217,234,.2)" stroke="#66d9ea" stroke-width="2"></rect>
+<g class="reticle"><circle r="31" fill="none" stroke="#66d9ea" stroke-dasharray="12 12"></circle></g>
+<path d="M0 -44l7 10h-14z" fill="#66d9ea"></path>
+</g>
+</svg>
+<p class="abs tip grow" style="left: 822px; top: 322px"><b>{{toolName}}</b><span class="acid">{{toolPrice}}</span><span class="kbd">R</span><span class="muted">tourner</span><span class="kbd">Échap</span><span class="muted">lâcher</span></p>
+</sc-if>
+
+<sc-if value="{{assault}}" hint-placeholder-val="{{false}}">
+<svg class="abs" width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true" style="left: 0; top: 0; pointer-events: none">
+<g transform="translate(520 252)"><circle class="ring" r="36" fill="none" stroke="#ff6b74" stroke-width="3"></circle><circle class="ring late" r="36" fill="none" stroke="#ff6b74" stroke-width="3"></circle></g>
+</svg>
+<p class="abs tip alarm grow" style="left: 330px; top: 237px; border: 1px solid #ff6b74">Tourelle à sec</p>
+</sc-if>
+
+<sc-if value="{{trayOpen}}" hint-placeholder-val="{{false}}">
+<div class="abs tray" style="left: 50%; bottom: 124px; transform: translateX(-50%); display: flex; gap: 6px">
+<sc-for list="{{tools}}" as="t" hint-placeholder-count="4">
+<button class="pod {{t.cls}}" onClick="{{t.pick}}" disabled="{{t.shut}}">
+<span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: {{t.l}}; top: {{t.t}}"></span>
+<sc-if value="{{t.tag}}" hint-placeholder-val="{{false}}"><span class="tag {{t.tagClass}}">{{t.tag}}</span></sc-if>
+<span class="name">{{t.name}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<nav class="abs" aria-label="Construction" style="left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 2px">
+<button class="pod {{inspectOn}}" onClick="{{inspect}}">
+<span class="porthole" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="12" cy="12" r="8" fill="none" stroke="#e9f3ef" stroke-width="2.5"></circle><path d="M18 18l8 8" stroke="#e9f3ef" stroke-width="3"></path></svg></span>
+<span class="name">Inspecter</span><span class="key">1</span>
+</button>
+<sc-for list="{{categories}}" as="c" hint-placeholder-count="5">
+<button class="pod {{c.cls}}" onClick="{{c.open}}">
+<span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: {{c.l}}; top: {{c.t}}"></span>
+<span class="name">{{c.name}}</span><span class="key">{{c.key}}</span>
+</button>
+</sc-for>
+<button class="pod {{eraseOn}}" onClick="{{erase}}">
+<span class="porthole" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28"><path d="M5 5l18 18M23 5L5 23" stroke="#ff6b74" stroke-width="3.5" stroke-linecap="round"></path></svg></span>
+<span class="name">Démonter</span><span class="key">7</span>
+</button>
+</nav>
+
+<sc-if value="{{grown}}" hint-placeholder-val="{{false}}">
+<div class="veil"></div>
+<section class="abs" aria-label="Stade atteint" style="left: 370px; top: 130px; width: 700px; height: 640px; text-align: center">
+<svg class="abs" width="700" height="400" viewBox="0 0 700 400" aria-hidden="true" style="left: 0; top: 0">
+<g transform="translate(350 200)">
+<g class="bloom"><path d="M0 -150 C42 -110 40 -70 0 -44 C-40 -70 -42 -110 0 -150Z M150 0 C110 42 70 40 44 0 C70 -40 110 -42 150 0Z M0 150 C-42 110 -40 70 0 44 C40 70 42 110 0 150Z M-150 0 C-110 -42 -70 -40 -44 0 C-70 40 -110 42 -150 0Z" fill="#22401d" stroke="#b7f34a" stroke-width="2"></path></g>
+<g class="bloom late"><path d="M0 -150 C42 -110 40 -70 0 -44 C-40 -70 -42 -110 0 -150Z M150 0 C110 42 70 40 44 0 C70 -40 110 -42 150 0Z M0 150 C-42 110 -40 70 0 44 C40 70 42 110 0 150Z M-150 0 C-110 -42 -70 -40 -44 0 C-70 40 -110 42 -150 0Z" transform="rotate(45) scale(.8)" fill="#4a1b25" stroke="#e8738a" stroke-width="2"></path></g>
+<g class="organ"><circle r="48" fill="#366426"></circle><circle r="22" fill="#b7f34a"></circle><ellipse rx="6" ry="11" fill="#091013"></ellipse></g>
+<circle class="ring" r="170" fill="none" stroke="#b7f34a" stroke-width="2"></circle>
+</g>
+</svg>
+<p class="abs display acid" style="left: 0; right: 0; top: 384px; font-size: 14px">STADE 3 ACHEVÉ · +40 ADN</p>
+<h1 class="abs display" style="left: 0; right: 0; top: 406px; font-size: 52px">Le cœur grandit</h1>
+<div class="abs tray" style="left: 0; right: 0; top: 486px; display: flex; justify-content: center; gap: 6px">
+<sc-for list="{{rewards}}" as="r" hint-placeholder-count="3">
+<div class="pod"><span class="porthole" aria-hidden="true" style="border-color: #b7f34a"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: {{r.l}}; top: {{r.t}}"></span><span class="name">{{r.name}}</span></div>
+</sc-for>
+</div>
+<button class="abs tip display" onClick="{{dismiss}}" style="left: 282px; top: 590px; min-height: 46px; border: 1.5px solid #b7f34a; color: #b7f34a">Continuer</button>
+</section>
+</sc-if>
+
+<sc-if value="{{lost}}" hint-placeholder-val="{{false}}">
+<div class="veil" style="background: rgba(24, 4, 8, .8)"></div>
+<section class="abs" aria-label="Fin de partie" style="left: 370px; top: 150px; width: 700px; height: 600px; text-align: center">
+<svg class="abs" width="700" height="320" viewBox="0 0 700 320" aria-hidden="true" style="left: 0; top: 0">
+<g transform="translate(350 160)">
+<path class="vein" stroke-width="9" d="M-300 60 C-200 20 -130 80 -60 20"></path><path class="vein" stroke-width="9" d="M300 40 C210 90 140 -10 64 20"></path><path class="vein" stroke-width="7" d="M-40 -160 C-70 -110 0 -90 -10 -50"></path>
+<g class="dying"><circle r="76" fill="#4a1b25"></circle><circle cx="-36" cy="-22" r="30" fill="#32151c"></circle><circle cx="38" cy="18" r="26" fill="#32151c"></circle><circle r="24" fill="#ff6b74"></circle><path d="M-4 -70l14 34-16 24 18 30-10 46" fill="none" stroke="#070c0e" stroke-width="5"></path></g>
+</g>
+</svg>
+<h1 class="abs display alarm" style="left: 0; right: 0; top: 300px; font-size: 52px">Le cœur est tombé</h1>
+<div class="abs" style="left: 0; right: 0; top: 390px; display: flex; justify-content: center; gap: 44px">
+<p><b class="display" style="display: block; font-size: 30px">3</b><span class="muted">brèches vidées</span></p>
+<p><b class="display" style="display: block; font-size: 30px">214</b><span class="muted">créatures tuées</span></p>
+<p><b class="display" style="display: block; font-size: 30px">1 840</b><span class="muted">gènes produits</span></p>
+</div>
+<button class="abs tip display" onClick="{{dismiss}}" style="left: 222px; top: 494px; min-height: 48px; border: 1.5px solid #e9f3ef">Fonder une autre station</button>
+</section>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","default":"jeu","options":["jeu","pose","assaut","stade","fin"]},"animations":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { cat: undefined, tool: undefined, paused: false, fast: false, menu: false, gone: false };
+
+  // Where each model sits on the sheet of real 3D renders.
+  sprite(id) {
+    const order = ['belt', 'mine', 'ligase', 'join', 'pack', 'turret', 'sting', 'maw', 'wall', 'cyst', 'bridge', 'gate', 'split2', 'split', 'sort', 'pump', 'pocket'];
+    const i = Math.max(0, order.indexOf(id));
+    return { l: (2 - (i % 6) * 120 - 30) + 'px', t: (-18 - Math.floor(i / 6) * 92) + 'px' };
+  }
+
+  groups() {
+    return [
+      ['rec', 'Récolter', 'mine', [['mine', 'Récolteur'], ['mine', 'Grand récolteur', '2 × 2'], ['cyst', 'Kyste'], ['cyst', 'Grand kyste', '2 × 2']]],
+      ['tra', 'Acheminer', 'belt', [['belt', 'Tapis'], ['bridge', 'Pont'], ['split2', 'Diviseur 2'], ['split', 'Diviseur 3'], ['pump', 'Veine'], ['pocket', 'Piste et poche'], ['pocket', 'Ver', '30 ADN']]],
+      ['fab', 'Transformer', 'ligase', [['ligase', 'Ligase'], ['join', 'Assembleur'], ['pack', 'Encapsuleur']]],
+      ['def', 'Défendre', 'turret', [['turret', 'Tourelle', '50', 6.8], ['sting', 'Dard', '70', 13], ['maw', 'Gueule', '60', 4], ['wall', 'Mur', '5']]],
+      ['cmd', 'Commander', 'gate', [['gate', 'Feu'], ['sort', 'Trieur'], ['sort', 'Nerf']]]
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const etat = s.gone ? 'jeu' : (this.props.etat ?? 'jeu');
+    const cat = s.cat === undefined ? (etat === 'pose' ? 'def' : null) : s.cat;
+    const picked = s.tool === undefined ? (etat === 'pose' ? 'Tourelle' : null) : s.tool;
+    const groups = this.groups();
+    const group = groups.find((g) => g[0] === cat);
+    const list = group ? group[3] : [];
+    const tool = list.find((t) => t[1] === picked);
+    const range = tool && tool[3] ? tool[3] : 0;
+    const assault = etat === 'assaut';
+    const life = etat === 'fin' ? 0 : assault ? 31 : 94;
+    return {
+      motion: (this.props.animations ?? true) ? '' : 'still',
+      hot: assault ? 'hot' : '',
+      assault,
+      stageArc: etat === 'stade' ? 352 : 141,
+      life,
+      lifeArc: Math.max(1, Math.round(life * 2.96)),
+      lifeColor: life < 40 ? '#ff6b74' : '#b7f34a',
+      lifeClass: life < 40 ? 'alarm' : '',
+      threatTitle: assault ? 'ASSAUT AU NORD' : 'ASSAUT DANS 18 S',
+      threatDetail: assault ? '14 créatures sur la carte' : 'Nord · 6 éclaireurs sur la carte',
+      stock: assault ? 'Aucun antidote' : '24 en stock',
+      stockClass: assault ? 'alarm' : 'acid',
+      paused: s.paused,
+      running: !s.paused,
+      pauseOn: s.paused ? 'on' : '',
+      togglePause: () => this.setState({ paused: !s.paused }),
+      speed: s.fast ? '×3' : '×1',
+      speedOn: s.fast ? 'on' : '',
+      toggleSpeed: () => this.setState({ fast: !s.fast }),
+      menu: s.menu,
+      toggleMenu: () => this.setState({ menu: !s.menu }),
+      showToast: etat === 'jeu' || assault,
+      toast: assault ? 'Ligne coupée au nord' : 'Brèche réveillée au nord',
+      drones: [
+        { phase: '', eye: '#f0a03c', label: 'Kyste 1 s' },
+        { phase: 'two', eye: '#b7f34a', label: 'Au nid' },
+        { phase: 'three', eye: '#b7f34a', label: 'Au nid' }
+      ],
+      selection: cat === null && etat === 'jeu',
+      placing: Boolean(tool),
+      toolName: tool ? tool[1] : '',
+      toolPrice: tool && tool[2] && tool[2] !== '2 × 2' ? tool[2].replace(' ADN', '') + ' ADN' : '',
+      rangeX: range * 36,
+      rangeY: range * 27.6,
+      trayOpen: Boolean(group) && cat !== null,
+      tools: list.map(([model, name, tag]) => ({
+        ...this.sprite(model), name, tag: tag || '', tagClass: tag === '2 × 2' ? 'lock' : '', shut: false,
+        cls: name === picked ? 'on' : '',
+        pick: () => this.setState({ cat, tool: name })
+      })),
+      categories: groups.map(([id, name, model], i) => ({
+        ...this.sprite(model), name, key: i + 2,
+        cls: id === cat ? 'on' : '',
+        open: () => this.setState({ cat: id === cat ? null : id, tool: null })
+      })),
+      inspectOn: cat === null ? 'on' : '',
+      inspect: () => this.setState({ cat: null, tool: null }),
+      eraseOn: cat === 'out' ? 'on' : '',
+      erase: () => this.setState({ cat: 'out', tool: null }),
+      grown: etat === 'stade',
+      lost: etat === 'fin',
+      rewards: [['pocket', 'Piste'], ['pocket', 'Poche'], ['pocket', 'Ver'], ['mine', 'Gisements ×4']].map(([model, name]) => ({ ...this.sprite(model), name })),
+      dismiss: () => this.setState({ gone: true, cat: null, tool: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

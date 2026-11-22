@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Strainworks sur téléphone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./hud.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&amp;family=Chakra+Petch:wght@600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sw {{motion}}" style="width: 390px; height: 844px">
+<img class="plate" src="/_blob/7bc6f5a43c4720478de11f286e5ddd08" alt="La station vue de dessus sur téléphone">
+<div class="edges"></div>
+
+<svg class="abs" width="390" height="844" viewBox="0 0 390 844" aria-hidden="true" style="left: 0; top: 0; pointer-events: none">
+<path class="vein" stroke-width="6" d="M0 150 C16 124 10 96 30 78"></path>
+<path class="vein live" stroke-width="2" d="M0 150 C16 124 10 96 30 78"></path>
+<path class="vein" stroke-width="8" d="M0 792 C40 754 70 786 110 768"></path>
+<path class="vein" stroke-width="8" d="M390 792 C350 754 320 786 280 768"></path>
+<path class="vein live late" stroke-width="2" d="M390 792 C350 754 320 786 280 768"></path>
+</svg>
+
+<section class="abs" aria-label="Organisme" style="left: 8px; top: 10px; width: 250px; height: 92px">
+<svg class="abs" width="250" height="92" viewBox="0 0 250 92" aria-hidden="true" style="left: 0; top: 0">
+<path class="skin" d="M42 6 C100 4 170 6 226 10 C248 20 250 50 240 70 C220 88 140 82 92 84 C40 92 4 78 4 44 C4 22 18 8 42 6 Z"></path>
+<g transform="translate(42 44)">
+<circle r="31" fill="none" stroke="#1b2c31" stroke-width="4"></circle>
+<circle class="arc progress" r="31" stroke="#b7f34a" stroke-width="4" stroke-dasharray="78 195"></circle>
+<circle class="arc" r="25" stroke="#66d9ea" stroke-width="2" stroke-dasharray="147 157"></circle>
+<g class="organ"><circle r="17" fill="#366426"></circle><g class="lobe"><circle cx="-9" cy="-5" r="8" fill="#5e9e2b"></circle></g><circle r="8" fill="#b7f34a"></circle><ellipse rx="2.5" ry="4" fill="#091013"></ellipse></g>
+</g>
+</svg>
+<div class="abs" style="left: 84px; top: 15px; display: flex; align-items: center; gap: 7px">
+<span class="crate" style="padding: 4px 6px; gap: 1px" aria-label="Capsule SFSFFF"><i class="b S" style="width: 12px; height: 12px"></i><i class="b F" style="width: 12px"></i><i class="b S" style="width: 12px; height: 12px"></i><i class="b F" style="width: 12px"></i><i class="b F" style="width: 12px"></i><i class="b F" style="width: 12px"></i></span>
+<b class="display">4/10</b>
+</div>
+<b class="abs display" style="left: 86px; top: 53px; font-size: 18px">312 <span class="muted" style="font-size: 12px">ADN</span></b>
+</section>
+
+<nav class="abs" aria-label="Temps" style="right: 8px; top: 14px; display: flex; gap: 6px">
+<button class="node {{pauseOn}}" onClick="{{togglePause}}" aria-label="Pause"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 2v14M13 2v14" stroke="currentColor" stroke-width="3"></path></svg></button>
+<button class="node" aria-label="Menu et vitesse"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="4" r="2.5" fill="currentColor"></circle><circle cx="4" cy="15" r="2.5" fill="currentColor"></circle><circle cx="16" cy="15" r="2.5" fill="currentColor"></circle></svg></button>
+</nav>
+
+<button class="abs tip toast" style="left: 10px; top: 108px; min-height: 44px; border: 1px solid #ff6b74" aria-label="Voir l’assaut au nord">
+<svg width="46" height="22" viewBox="0 0 46 22" aria-hidden="true"><polyline class="ecg" points="0,11 10,11 15,2 21,20 27,8 32,11 46,11"></polyline></svg>
+<b class="display alarm">18 s</b>
+<span class="gene" aria-label="Antidote CNF"><i class="b C"></i><i class="b N"></i><i class="b F"></i></span>
+<b class="acid">24</b>
+</button>
+
+<button class="abs node" style="right: 10px; top: 360px" aria-label="Revenir au cœur"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="4" fill="#b7f34a"></circle><path d="M11 1v4M11 17v4M1 11h4M17 11h4" stroke="currentColor" stroke-width="2"></path></svg></button>
+<button class="abs node danger" style="right: 10px; top: 420px" aria-label="Démonter"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3l14 14M17 3L3 17" stroke="#ff6b74" stroke-width="2.5"></path></svg></button>
+
+<sc-if value="{{selection}}" hint-placeholder-val="{{true}}">
+<svg class="abs" width="390" height="844" viewBox="0 0 390 844" aria-hidden="true" style="left: 0; top: 0; pointer-events: none">
+<g transform="translate(145 269)"><ellipse rx="170" ry="130" fill="none" stroke="#66d9ea" stroke-dasharray="8 8"></ellipse><g class="reticle"><circle r="25" fill="none" stroke="#b7f34a" stroke-width="2" stroke-dasharray="15 11"></circle></g></g>
+</svg>
+<section class="abs sheet" aria-label="Tourelle" style="left: 8px; right: 8px; top: 570px; height: 148px">
+<svg class="abs" width="374" height="148" viewBox="0 0 374 148" aria-hidden="true" style="left: 0; top: 0">
+<path class="skin" d="M28 8 C120 2 250 4 346 10 C370 22 372 64 362 100 C368 134 344 144 300 142 L50 144 C12 146 2 120 8 88 C2 50 4 18 28 8 Z"></path>
+</svg>
+<span class="abs porthole" aria-hidden="true" style="left: 14px; top: 12px; width: 58px; height: 58px"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: -633px; top: -20px"></span>
+<h2 class="abs display" style="left: 82px; top: 18px; font-size: 17px">Tourelle</h2>
+<p class="abs cyan" style="left: 82px; top: 42px; font-size: 13px">180 PV · 20 CNF en stock</p>
+<div class="abs" style="left: 16px; top: 84px; display: flex; gap: 8px">
+<button class="tip grow" style="min-height: 46px; border: 1px solid #52707a">Tir : sur tout</button>
+<button class="tip grow d1" style="min-height: 46px; border: 1px solid #52707a">Relier un nerf</button>
+<button class="node danger grow d2" aria-label="Démonter la tourelle"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3l14 14M17 3L3 17" stroke="#ff6b74" stroke-width="2.5"></path></svg></button>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{trayOpen}}" hint-placeholder-val="{{false}}">
+<div class="abs tray" style="left: 4px; right: 4px; top: 610px; display: flex; justify-content: center; gap: 4px">
+<sc-for list="{{tools}}" as="t" hint-placeholder-count="4">
+<button class="pod" style="width: 76px"><span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: {{t.l}}; top: {{t.t}}"></span><span class="name" style="font-size: 12px">{{t.name}}</span></button>
+</sc-for>
+</div>
+</sc-if>
+
+<nav class="abs" aria-label="Construction" style="left: 5px; right: 5px; bottom: 14px; display: flex; justify-content: space-between">
+<sc-for list="{{categories}}" as="c" hint-placeholder-count="5">
+<button class="pod {{c.cls}}" style="width: 76px" onClick="{{c.open}}"><span class="porthole" aria-hidden="true"><img src="/_blob/076b7211a56f72a520be06e6141d93bd" alt="" style="left: {{c.l}}; top: {{c.t}}"></span><span class="name" style="font-size: 12px; padding: 1px 3px">{{c.name}}</span></button>
+</sc-for>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"animations":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  state = { cat: null, paused: false };
+
+  sprite(id) {
+    const order = ['belt', 'mine', 'ligase', 'join', 'pack', 'turret', 'sting', 'maw', 'wall', 'cyst', 'bridge', 'gate', 'split2', 'split', 'sort', 'pump', 'pocket'];
+    const i = Math.max(0, order.indexOf(id));
+    return { l: (2 - (i % 6) * 120 - 30) + 'px', t: (-18 - Math.floor(i / 6) * 92) + 'px' };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const groups = [
+      ['rec', 'Récolter', 'mine', [['mine', 'Récolteur'], ['mine', 'Grand'], ['cyst', 'Kyste'], ['cyst', 'Grand kyste']]],
+      ['tra', 'Acheminer', 'belt', [['belt', 'Tapis'], ['bridge', 'Pont'], ['split2', 'Diviseur'], ['pump', 'Veine']]],
+      ['fab', 'Transformer', 'ligase', [['ligase', 'Ligase'], ['join', 'Assembleur'], ['pack', 'Capsules']]],
+      ['def', 'Défendre', 'turret', [['turret', 'Tourelle'], ['sting', 'Dard'], ['maw', 'Gueule'], ['wall', 'Mur']]],
+      ['cmd', 'Commander', 'gate', [['gate', 'Feu'], ['sort', 'Trieur'], ['sort', 'Nerf']]]
+    ];
+    const group = groups.find((g) => g[0] === s.cat);
+    return {
+      motion: (this.props.animations ?? true) ? '' : 'still',
+      pauseOn: s.paused ? 'on' : '',
+      togglePause: () => this.setState({ paused: !s.paused }),
+      selection: !group,
+      trayOpen: Boolean(group),
+      tools: (group ? group[3] : []).map(([model, name]) => ({ ...this.sprite(model), name })),
+      categories: groups.map(([id, name, model]) => ({
+        ...this.sprite(model), name,
+        cls: id === s.cat ? 'on' : '',
+        open: () => this.setState({ cat: id === s.cat ? null : id })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

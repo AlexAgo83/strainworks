@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Inventaire UX et UI</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./hud.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&amp;family=Chakra+Petch:wght@600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="sw" style="width: 1440px; height: 2240px; padding: 56px 56px 40px; display: flex; flex-direction: column; gap: 28px">
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px">
+<h1 class="display" style="font-size: 40px">Tous les éléments d’interface</h1>
+<p style="display: flex; gap: 18px; font-size: 15px"><span class="cyan">Existe, redessiné</span><span class="amber">Existe, déplacé</span><span class="acid">Nouveau, à valider</span></p>
+</header>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 56px; align-items: start">
+<sc-for list="{{columns}}" as="column" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 30px">
+<sc-for list="{{column.groups}}" as="g" hint-placeholder-count="4">
+<section style="display: flex; flex-direction: column">
+<h2 class="display" style="padding-bottom: 8px; border-bottom: 2px solid #35505a; font-size: 20px">{{g.title}}</h2>
+<sc-for list="{{g.rows}}" as="r" hint-placeholder-count="5">
+<div style="display: grid; grid-template-columns: 170px minmax(0, 1fr) 160px; gap: 14px; padding: 9px 0; border-bottom: 1px solid #1d3036; font-size: 14px">
+<b class="{{r.kind}}">{{r.name}}</b><span>{{r.place}}</span><span class="muted">{{r.motion}}</span>
+</div>
+</sc-for>
+</section>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = 'cyan';
+    const D = 'amber';
+    const N = 'acid';
+    const group = (title, rows) => ({ title, rows: rows.map(([kind, name, place, motion]) => ({ kind, name, place, motion })) });
+    return {
+      columns: [
+        { groups: [
+          group('A. État permanent', [
+            [R, 'Stade et objectif', 'Anneau de l’organisme en haut à gauche, objet demandé, avancement', 'l’anneau se remplit'],
+            [D, 'Vie du cœur', 'Anneau intérieur et couleur de l’organe', 'battement, rougit'],
+            [R, 'ADN', 'Hélice sous l’objectif', 'torsion, gain qui monte'],
+            [D, 'Menace', 'Pouls dans la membrane d’alerte', 'plus rapide avec le danger'],
+            [R, 'Prochain assaut', 'Délai, direction, distance, gène', 'tracé cardiaque'],
+            [R, 'Antidote et stock', 'À côté du gène ennemi', 'rougit si absent'],
+            [R, 'Créatures par famille', 'Membrane d’alerte, dépliée au toucher', 'déploiement'],
+            [D, 'Brèches dormantes', 'Membrane d’alerte au calme', 'respiration lente'],
+            [D, 'Chantiers et file', 'Les trois drones en bas à gauche', 'rotors, état de chacun']
+          ]),
+          group('B. Temps et caméra', [
+            [R, 'Pause', 'En haut à droite, Espace', 'la sève se fige'],
+            [R, 'Vitesse ×1 et ×3', 'En haut à droite', 'sève accélérée'],
+            [R, 'Zoom', 'Bord droit, molette, pincement', 'rebond court'],
+            [R, 'Retour au cœur', 'Bord droit', 'glissé de caméra'],
+            [D, 'Vue 2D ou 3D', 'Dans le menu', 'fondu'],
+            [R, 'Flèches et Maj', 'Déplacement au clavier', 'glissé'],
+            [R, 'Repères hors écran', 'Bords de la scène', 'ondes vers la cible']
+          ]),
+          group('C. Construction', [
+            [D, '7 familles', 'Dock : Inspecter, Récolter, Acheminer, Transformer, Défendre, Commander, Démonter', 'hublots organiques'],
+            [D, '24 outils', 'Éventail au-dessus de la famille', 'pousse en cascade'],
+            [R, 'Icône', 'Vrai modèle 3D dans un hublot', 'soulèvement au survol'],
+            [R, 'Prix et manque d’ADN', 'Pastille de l’outil et curseur', 'secousse si refus'],
+            [R, 'Verrou de stade', 'Hublot éteint et stade requis', 'éclosion au déblocage'],
+            [R, 'Emprise 2 × 2', 'Pastille et fantôme', 'glisse pour s’ajuster'],
+            [R, 'Sens', 'Flèches du fantôme, R et Maj+R', 'quart de tour'],
+            [R, 'Curseur d’outil', 'Suit le pointeur', 'se barre si refus'],
+            [N, 'Raccourcis 1 à 7', 'Sur chaque famille', 'pression visible'],
+            [R, 'Lâcher l’outil', 'Échap ou Inspecter', 'repli']
+          ]),
+          group('D. Dans la scène', [
+            [R, 'Case survolée', 'Sur le plan de pose', 'halo bref'],
+            [R, 'Fantôme et refus', 'Sous le curseur, avec la raison', 'balayage'],
+            [R, 'Portée et rayon', 'Tourelles, veines, nerfs', 'cercle qui pousse'],
+            [R, 'Cibles de liaison', 'Objets compatibles en surbrillance', 'pulsation'],
+            [R, 'Trajet des drones', 'Pointillé vers le chantier', 'flux orienté'],
+            [R, 'Chantier et démontage', 'Cadre et avancement autour de l’objet', 'tissage, défaite'],
+            [R, 'Vie et réparation', 'Arc sous l’objet, seulement si touché', 'cicatrisation'],
+            [R, 'Gisement', 'Matière et richesse au survol ou au loin', 'apparition au zoom'],
+            [R, 'Brèche', 'Compteur, gènes, cercle de réveil', 'respiration, réveil'],
+            [R, 'Gène des créatures', 'Au-dessus, groupé par famille', 'impact du bon gène'],
+            [R, 'Ports et sorties', 'Numéros et flèches de près', 'flux vers l’entrée'],
+            [R, 'Chaîne bloquée', 'Maillons fautifs en rouge', 'remonte la chaîne']
+          ])
+        ] },
+        { groups: [
+          group('E. Objet sélectionné', [
+            [R, 'Réticule', 'Autour de l’objet', 'rotation lente'],
+            [D, 'Actions', 'Pétales autour de l’objet', 'éclosion en cascade'],
+            [D, 'Fiche', 'Reliée à l’objet par un filament', 'le filament se trace'],
+            [R, 'Entrées et stocks', 'Alvéoles qui se remplissent', 'remplissage'],
+            [R, 'Débit et diagnostic', 'Une ligne : réel, théorique, cause', 'alerte si bloqué'],
+            [R, 'Recette et côté', 'Encapsuleur, ligase, assembleur', 'bascule'],
+            [R, 'Filtre', 'Trieur : base, gène, brin, dernier passé', 'bases qui tournent'],
+            [R, 'Lecture du nerf', 'Entier ou position 1, 2, 3', 'position éclairée'],
+            [R, 'Réglage sans nerf', 'Feu et trieur : valeur si coupé', 'bascule'],
+            [R, 'Sens des voies', 'Pont : deux axes', 'flèche qui tourne'],
+            [R, 'Veine', 'Tirer, couper, annuler, vider', 'impulsion'],
+            [R, 'Poche et ver', 'Charge, départ, soutes, retrait', 'soutes qui gonflent'],
+            [R, 'Tir', 'Tout ou deux bases justes', 'anneau de tir'],
+            [R, 'Amélioration du cœur', 'Débits +20 % et prix', 'onde de sève'],
+            [R, 'Démonter et annuler', 'Pétale rouge, remboursement', 'défaite inversable']
+          ]),
+          group('F. Messages et moments', [
+            [R, 'Conseil de l’outil', 'Bulle courte au survol', 'fondu'],
+            [D, 'Événement', 'Pile au bord gauche, touche pour y aller', 'greffe puis repli'],
+            [R, 'Refus', 'Près du geste, jamais au loin', 'secousse brève'],
+            [R, 'Reconstruire', 'Près des drones, nombre et prix', 'pulsation ambre'],
+            [N, 'Tourelle à sec', 'Alerte sur la tourelle', 'ondes rouges'],
+            [N, 'Assaut', 'Bords de l’écran qui rougissent', 'battement'],
+            [R, 'Famille mutée', 'Alerte avec le gène né', 'gène qui se réécrit'],
+            [R, 'Brèche vidée', 'Événement et gain d’ADN', 'nécrose, gain'],
+            [N, 'Stade atteint', 'Floraison, gain et déblocages', 'éclosion'],
+            [R, 'Défaite', 'Cœur nécrosé, bilan, recommencer', 'battement mourant']
+          ]),
+          group('G. Menu et démarrage', [
+            [D, 'Recommencer', 'Dans le menu, maintien pour confirmer', 'anneau de confirmation'],
+            [D, 'Tout débloquer (test)', 'Dans le menu', 'aucune'],
+            [N, 'Commandes', 'Clavier, souris et tactile', 'aucune'],
+            [R, 'Partie reprise', 'Événement au chargement', 'fondu'],
+            [N, 'Chargement 3D', 'Organe qui s’assemble', 'cellules qui se joignent'],
+            [R, '3D indisponible', 'Événement, retour en 2D', 'fondu']
+          ]),
+          group('H. Téléphone et accessibilité', [
+            [D, 'Barre du pouce', 'Cinq familles en bas, Démonter à droite', 'éventail'],
+            [D, 'Fiche', 'Feuille basse au-dessus de la barre', 'montée courte'],
+            [R, 'Aperçu au doigt', 'Décalé au-dessus du doigt', 'suit le geste'],
+            [R, 'Zones de toucher', '44 px au minimum, encoches respectées', 'aucune'],
+            [R, 'Lecture', 'Contraste, forme en plus de la couleur', 'aucune'],
+            [N, 'Moins d’animations', 'Suit le réglage de l’appareil', 'tout se fige']
+          ])
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
