@@ -7,7 +7,7 @@ import { launch, pageHTML } from "./harness.mjs";
 
 const file = (path) => fileURLToPath(new URL(path, import.meta.url));
 const ENGINE = file("../../node_modules/babylonjs/babylon.js");
-const VIEW = file("../../prototype/view3d.js");
+const PARTS = ["view3d.js", "models3d.js"];
 
 async function open(browser, { network = true } = {}) {
   const page = await browser.newPage({ viewport: { width: 375, height: 700 }, hasTouch: true });
@@ -17,7 +17,8 @@ async function open(browser, { network = true } = {}) {
     const url = route.request().url();
     const script = { contentType: "application/javascript", headers: { "access-control-allow-origin": "*" } };
     if (url.includes("cdn.jsdelivr.net/npm/babylonjs@")) return network ? route.fulfill({ path: ENGINE, ...script }) : route.abort();
-    if (url === "http://proto.test/prototype/view3d.js") return route.fulfill({ path: VIEW, ...script });
+    const part = PARTS.find((name) => url === `http://proto.test/prototype/${name}`);
+    if (part) return route.fulfill({ path: file(`../../prototype/${part}`), ...script });
     if (url.startsWith("http://proto.test")) return route.fulfill({ body: pageHTML(), contentType: "text/html" });
     return route.abort();
   });
