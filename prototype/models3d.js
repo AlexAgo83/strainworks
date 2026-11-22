@@ -887,8 +887,11 @@ window.createModels3D = (B, scene) => {
       const y = c.y + 0.5;
       const waiting = !built(c);
       add.ghost = waiting;
+      // Solid from the bottom up, as far as it has been woven.
+      if (waiting) add.solid = (1 - c.left / (BUILD[c.type] || 1)) * 0.9;
       BUILDINGS[c.type]?.(c, x, y);
       add.ghost = false;
+      add.solid = 0;
       if (waiting) {
         // A hologram inside a scaffold, scanned from the bottom up.
         for (const a of [-1, 1]) {
@@ -952,6 +955,7 @@ window.createModels3D = (B, scene) => {
       });
       const track = G.tracks[w.path[0]];
       add.ghost = !built(w);
+      add.solid = add.ghost ? (1 - w.left / BUILD.worm) * 0.7 : 0;
       for (let i = spots.length - 1; i >= 0; i--) {
         const [x, y] = spots[i];
         const before = spots[i - 1];
@@ -997,6 +1001,7 @@ window.createModels3D = (B, scene) => {
         add('dome', 'membraneGlass', x, y, h + 0.14, 0.56, 0.4 + full * 0.36, 0.56);
       }
       add.ghost = false;
+      add.solid = 0;
     }
   }
 
@@ -1049,6 +1054,65 @@ window.createModels3D = (B, scene) => {
     });
   }
 
+  // Builders: a biomechanical body on four rotors. Legs trail in flight and spread to weave.
+  function drones(area) {
+    const s = Math.max(1, Math.min(1.8, 17 / cam.zoom));
+    G.drones.forEach((d, index) => {
+      const { x, y, h, w, a, goal } = dronePose(d);
+      if (x < area.x0 - 2 || x > area.x1 + 2 || y < area.y0 - 2 || y > area.y1 + 2) return;
+      const flying = Math.max(0, Math.min(1, h - 0.6));
+      const speed = Math.min(1, Math.hypot(d.x - d.was.x, d.y - d.was.y) * 2);
+      const dip = speed * (1 - w) * 0.36;
+      const bob = Math.sin(clock * 7 + index * 2) * 0.05 * flying;
+      // Nose down when it travels.
+      const part = (f, side, up) => [...from(x, y, a, f * s, side * s), h + bob + (up - f * dip) * s];
+      const piece = (shape, paint, f, side, up, sx, sy, sz, roll = 0) => add(shape, paint, ...part(f, side, up), sx * s, sy * s, sz * s, a, roll);
+      const bone = (paint, one, two, width, shape) => limb(paint, ...part(...one), ...part(...two), width * s, shape);
+      piece('sac', 'skin2', -0.14, 0, 0, 0.3, 0.22, 0.24);
+      piece('bead', w > 0.5 ? 'amber' : 'acid', -0.22, 0, 0.09, 0.11, 0.08, 0.11);
+      piece('hull', 'steel2', 0.06, 0, 0.02, 0.3, 0.13, 0.2, -dip);
+      piece('shell', 'bone', 0.02, 0, 0.07, 0.32, 0.18, 0.24, -dip);
+      piece('hull', 'hazard', -0.07, 0, 0.14, 0.05, 0.04, 0.2, -dip);
+      piece('bead', 'pale', 0.22, 0, 0.05, 0.12, 0.1, 0.14);
+      for (const side of [-1, 1]) piece('bead', 'cyan', 0.19, side * 0.09, 0.1, 0.06, 0.06, 0.06);
+      for (const fore of [-1, 1]) {
+        for (const side of [-1, 1]) {
+          const tip = [fore * 0.19, side * 0.25, 0.12];
+          bone('chrome', [fore * 0.06, side * 0.07, 0.05], tip, 0.05, 'taper');
+          piece('ring', 'steel2', ...tip, 0.23, 0.5, 0.23);
+          if (flying) piece('tube', 'glass', ...tip, 0.2, 0.01, 0.2);
+          piece('bead', fore > 0 ? 'cyan' : 'alarm', tip[0] + fore * 0.11, tip[1], tip[2], 0.07, 0.06, 0.07);
+          const spin = (flying ? clock * 34 : 0) + fore + side + index;
+          const [rx, ry, rh] = part(...tip);
+          add('box', 'smoke', rx, ry, rh + 0.02, 0.21 * s, 0.012, 0.03 * s, spin);
+          if (flying) add('box', 'smoke', rx, ry, rh + 0.02, 0.21 * s, 0.012, 0.03 * s, spin + 1.57);
+          if (!fine) continue;
+          const twitch = Math.sin(clock * 16 + fore * 2 + side) * 0.06 * w;
+          const knee = [fore * 0.16 - speed * 0.12, side * (0.12 + w * 0.1), -0.08 + twitch];
+          const foot = [fore * 0.12 - speed * 0.26 + w * 0.16, side * (0.1 + w * 0.06), -0.2 - w * 0.12 - twitch];
+          bone('steel2', [fore * 0.07, side * 0.06, -0.02], knee, 0.05, 'taper');
+          bone('bone', knee, foot, 0.04, 'taper');
+        }
+      }
+      if (!goal || w < 0.5) return;
+      // Three threads sweep the height the site has reached, and throw sparks.
+      const c = G.cells[`${Math.floor(goal.x)},${Math.floor(goal.y)}`];
+      const level = c && !built(c) ? 0.05 + (1 - c.left / (BUILD[c.type] || 1)) * 0.75 : 0.15;
+      for (let i = 0; i < 3; i++) {
+        const tx = goal.x + Math.sin(clock * 7 + i * 2.1 + index) * 0.36;
+        const ty = goal.y + Math.cos(clock * 5 + i * 2.1 + index) * 0.36;
+        limb(i ? 'cyan' : 'acid', ...part(0.24, (i - 1) * 0.06, -0.08), tx, ty, level, 0.025);
+        add('bead', i ? 'pale' : 'amber', tx, ty, level, 0.1 + Math.sin(clock * 31 + i) * 0.03);
+        for (let j = 0; j < (fine ? 4 : 1); j++) {
+          const fall = (clock * 2.4 + j / 4 + i * 0.31) % 1;
+          const spray = j * 2.4 + i + Math.floor(clock * 2.4 + j / 4 + i * 0.31);
+          const away = fall * 0.42;
+          add('bead', j % 2 ? 'ember' : 'amber', tx + Math.cos(spray) * away, ty + Math.sin(spray) * away, Math.max(0.03, level + fall * 0.7 - fall * fall * 1.1), 0.07 * (1 - fall));
+        }
+      }
+    });
+  }
+
   function shots() {
     for (const s of G.shots) {
       const paint = { 1: 'steel2', 2: 'pink', 5: 'amber', 12: 'acid' }[s.hurt];
@@ -1076,6 +1140,7 @@ window.createModels3D = (B, scene) => {
       worms();
       creatures(area);
       shots();
+      drones(area);
     },
   };
 };

@@ -59,7 +59,7 @@ it("nerves behaves as the recorded prototype", async () => {
       G.wires[0].hp=.01; foe('SFN',23.5,20.5); run(.1);
       out.cut=[G.wires[0].hp,accepts(g,'C',1)];
       G.enemies=[]; refresh(); const offered=!document.querySelector('#rebuild').hidden;
-      document.querySelector('#rebuild').onclick(); run(1.1);
+      document.querySelector('#rebuild').onclick(); run(4); // a drone flies there first
       out.repaired=[offered,G.wires[0].hp,listens(g),accepts(g,'C',1)];
       const relay=put('sort',36,20,1); wire(g,relay); sense(); out.relay=listens(relay);
       lab(); g=put('gate',20,20,1); const s=put('sort',24,20,1); g.open=true; wire(g,s); sense(); out.noTurretIsManual=accepts(g,'C',1);

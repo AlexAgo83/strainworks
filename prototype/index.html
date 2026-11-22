@@ -193,8 +193,9 @@ const owned = type => type === 'worm' ? G.worms.length : Object.values(G.cells).
 const price = type => PRICE[type] ? PRICE[type](owned(type)) : 0;
 // Taking one down returns what the last one cost, less its damage: building and removing never earns.
 const refund = c => PRICE[c.type] ? Math.floor(PRICE[c.type](owned(c.type) - 1) * Math.max(0, c.hp) / TYPES[c.type].hp) : 0;
-// Work only advances with the simulation, three sites at once, in the order they were laid.
+// Work only advances with the simulation and only with a drone at the site: one drone a site, oldest site first.
 const BUILDERS = 3;
+const DRONE = {speed:20, reach:2};
 const BUILD = {belt:.15, gate:.5, bridge:.5, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5};
 const built = c => !(c?.left > 0);
 // Healing starts after some quiet, so a wall under attack still falls. The core heals more slowly.
@@ -226,18 +227,87 @@ function sites() {
   for (const c of [...Object.values(G.tracks), ...G.worms, ...G.wires]) if (!built(c)) jobs.push({c, field:'left', order:c.order});
   return jobs.sort((a, b) => a.order - b.order);
 }
-function construct(dt) {
-  const queue = sites();
-  for (let i = 0; i < BUILDERS; i++) {
-    // A builder that finishes early spends the rest of the tick on the next site.
-    let time = dt;
-    while (time > 1e-9 && i < queue.length) {
-      const job = queue[i], used = Math.min(time, job.c[job.field]);
-      job.c[job.field] -= used; time -= used;
-      if (job.c[job.field] > 1e-9) break;
-      job.c[job.field] = 0; queue.splice(i, 1);
-    }
+function perch(i) {
+  const a = -Math.PI / 2 + i * Math.PI * 2 / BUILDERS;
+  return {x:CORE.x + .5 + Math.cos(a) * 1.05, y:CORE.y + .5 + Math.sin(a) * 1.05};
+}
+function hatchDrones() {
+  // h is the height and w how far into its working pose it is. was: one tick ago, for drawing in between.
+  G.drones = Array.from({length:BUILDERS}, (_, i) => {
+    const {x, y} = perch(i), a = Math.atan2(y - CORE.y - .5, x - CORE.x - .5);
+    return {x, y, a, h:.55, w:0, job:'', goal:null, was:{x, y, h:.55, w:0}};
+  });
+}
+const jobId = job => job.field + job.order;
+// Where a drone has to be. Along a vein or a nerve, that advances with the work.
+function workAt({c, field}) {
+  const at = id => { const [x, y] = id.split(',').map(Number); return {x, y}; };
+  let a, b;
+  if (field === 'veinLeft') { a = c; b = at(c.to); }
+  else if (c.a) { a = at(c.a); b = at(c.b); }
+  else {
+    const p = c.path ? at(c.path[0]) : c;
+    return {x:p.x + .5, y:p.y + .5};
   }
+  const total = field === 'veinLeft' ? .5 + span(a, b) / 12 : .4 + span(a, b) / 16;
+  const k = Math.max(0, Math.min(1, 1 - c[field] / total));
+  return {x:a.x + .5 + (b.x - a.x) * k, y:a.y + .5 + (b.y - a.y) * k};
+}
+function construct(dt) {
+  const open = new Map(sites().map(job => [jobId(job), job])), held = new Set();
+  for (const d of G.drones) {
+    d.was = {x:d.x, y:d.y, h:d.h, w:d.w};
+    if (open.has(d.job)) held.add(d.job); else d.job = '';
+  }
+  const free = G.drones.filter(d => !d.job);
+  for (const [id, job] of open) {
+    if (!free.length) break;
+    if (held.has(id)) continue;
+    const to = workAt(job), far = d => Math.hypot(d.x - to.x, d.y - to.y);
+    const d = free.reduce((best, other) => far(other) < far(best) ? other : best);
+    free.splice(free.indexOf(d), 1);
+    d.job = id; held.add(id);
+  }
+  G.drones.forEach((d, i) => {
+    const fly = (to, distance) => {
+      const dx = to.x - d.x, dy = to.y - d.y, all = Math.hypot(dx, dy);
+      if (all < 1e-6 || distance <= 0) return;
+      const k = Math.min(1, distance / all);
+      d.x += dx * k; d.y += dy * k; d.a = Math.atan2(dy, dx);
+    };
+    let time = dt, working = false;
+    while (d.job && time > 1e-9) {
+      const job = open.get(d.job), to = workAt(job), gap = Math.hypot(to.x - d.x, to.y - d.y) - DRONE.reach;
+      d.goal = to;
+      if (gap > 1e-6) {
+        const used = Math.min(time, gap / DRONE.speed);
+        fly(to, used * DRONE.speed); time -= used;
+        if (used * DRONE.speed < gap - 1e-6) break;
+      }
+      // In reach it works, closing in on the middle as it does.
+      const used = Math.min(time, job.c[job.field]);
+      job.c[job.field] -= used; time -= used; working = true;
+      fly(to, used * DRONE.speed);
+      if (job.c[job.field] > 1e-9) break;
+      // Straight on to the oldest site nobody has, without going home.
+      job.c[job.field] = 0; open.delete(d.job); d.job = '';
+      for (const id of open.keys()) if (!held.has(id)) { d.job = id; held.add(id); break; }
+    }
+    const nest = perch(i);
+    if (!d.job) { d.goal = null; fly(nest, time * DRONE.speed); }
+    const landed = !d.job && Math.hypot(nest.x - d.x, nest.y - d.y) < .01;
+    if (landed) d.a = Math.atan2(nest.y - CORE.y - .5, nest.x - CORE.x - .5);
+    d.h += ((landed ? .55 : working ? 1.05 : 1.7) - d.h) * Math.min(1, dt * 7);
+    d.w += ((working ? 1 : 0) - d.w) * Math.min(1, dt * 9);
+  });
+}
+// Where to draw a drone: between two ticks, and circling its site while it works.
+function dronePose(d) {
+  const k = Math.max(0, Math.min(1, owed / STEP)), mix = name => d.was[name] + (d[name] - d.was[name]) * k;
+  const w = mix('w'), turn = (G.time + owed) * 2.6 + G.drones.indexOf(d) * 2.1;
+  const x = mix('x') + Math.cos(turn) * .7 * w, y = mix('y') + Math.sin(turn) * .7 * w;
+  const facing = d.goal && w > .5 ? Math.atan2(d.goal.y - y, d.goal.x - x) : d.a;
+  return {x, y, w, a:facing, h:mix('h'), goal:d.goal};
 }
 function repair(dt) {
   for (const w of G.wires) if (w.hp > 0 && w.hp < NERVE.hp && G.time - (w.hitAt ?? -99) >= REPAIR.quiet) w.hp = Math.min(NERVE.hp, w.hp + NERVE.hp * dt * REPAIR.share);
@@ -289,6 +359,7 @@ function fresh() {
   put('mine',57,57,3); run(56,57,55,57,3); run(54,57,54,49,0); run(54,48,49,48,3); run(48,48,48,45,0);
   put('ligase',48,44,0); run(48,43,48,40,0); put('cyst',48,39,0); run(48,38,48,35,0); put('turret',48,34,0);
   nest();
+  hatchDrones();
   selected = null; chain = []; paused = false; NET = new Map();
 }
 
@@ -819,7 +890,12 @@ function diagnose(c) {
   chain = [];
   if (!built(c)) {
     const place = sites().findIndex(job => job.c === c && job.field === 'left');
-    return place < BUILDERS ? `${TYPES[c.type].name} en chantier : ${c.left.toFixed(1).replace('.', ',')} s de jeu${paused ? ', en attente de la reprise' : ''}.` : `${TYPES[c.type].name} en attente, position ${place - BUILDERS + 1} dans la file. Trois chantiers à la fois, dans l’ordre de pose.`;
+    const drone = G.drones.find(d => d.job === jobId({order:c.order, field:'left'}));
+    if (drone) {
+      const away = Math.hypot(drone.x - c.x - .5, drone.y - c.y - .5);
+      if (away > DRONE.reach + 1e-6) return `${TYPES[c.type].name} : drone en route, à ${Math.ceil(away)} cases. Le chantier commence quand il arrive.`;
+    }
+    return place < BUILDERS ? `${TYPES[c.type].name} en chantier : ${c.left.toFixed(1).replace('.', ',')} s de jeu${paused ? ', en attente de la reprise' : ''}.` : `${TYPES[c.type].name} en attente, position ${place - BUILDERS + 1} dans la file. Trois drones, un par chantier, dans l’ordre de pose.`;
   }
   if ((c.type === 'gate' || c.type === 'sort') && G.wires.some(w => w.a === key(c.x, c.y) || w.b === key(c.x, c.y))) {
     const what = c.read ? `la position ${c.read}` : 'le gène entier', name = TYPES[c.type].name;
@@ -1246,11 +1322,36 @@ function draw() {
     [...e.gene].forEach((b,i) => glyph(ctx,b,e.x+(i-1)*.22,e.y,.1));
     rect(ctx,e.x-.3,e.y-.38,.6*Math.max(0,e.hp/e.max),.07,'#FF6B6B');
   }
+  drawDrones();
   // What is off screen keeps an arrow on the edge.
   ctx.setTransform(view.dpr,0,0,view.dpr,0,0);
   for (const e of G.enemies) marker(e.x,e.y,'#FF6B6B');
   for (const b of G.breaches) if (b.state === 'wake') marker(b.x + .5,b.y + .5,'#F0A03C');
   marker(CORE.x + .5,CORE.y + .5,'#B7F34A');
+}
+function drawDrones() {
+  const t = G.time + owed, s = Math.max(1, Math.min(1.8, 17 / cam.zoom));
+  for (const d of G.drones) {
+    const {x, y, w, a, goal} = dronePose(d);
+    if (goal && w < .5) {
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(goal.x,goal.y);
+      ctx.strokeStyle = '#55D6E8AA'; ctx.lineWidth = 1 / cam.zoom; ctx.setLineDash([.3,.3]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (goal && w >= .5) for (let i = 0; i < 3; i++) {
+      const tx = goal.x + Math.sin(t * 7 + i * 2.1) * .36, ty = goal.y + Math.cos(t * 5 + i * 2.1) * .36;
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(tx,ty); ctx.strokeStyle = '#D5FAFF99'; ctx.lineWidth = .035; ctx.stroke();
+      circle(ctx,tx,ty,.06,i ? '#B7F34A' : '#F0A03C');
+    }
+    ctx.save(); ctx.translate(x,y); ctx.rotate(a); ctx.scale(s,s);
+    for (const [ax,ay] of [[.17,.21],[.17,-.21],[-.17,.21],[-.17,-.21]]) {
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(ax,ay); ctx.strokeStyle = '#8B989C'; ctx.lineWidth = .05; ctx.stroke();
+      circle(ctx,ax,ay,.12,'#8FE3EF44','#55D6E8',.025);
+    }
+    ctx.beginPath(); ctx.ellipse(0,0,.22,.13,0,0,Math.PI * 2); ctx.fillStyle = '#3A5A2B'; ctx.fill();
+    ctx.strokeStyle = '#B7F34A'; ctx.lineWidth = .04; ctx.stroke();
+    circle(ctx,.17,0,.07,'#D5FAFF');
+    ctx.restore();
+  }
 }
 function drawVeins() {
   const stroke = (a,b,color,width,dash = []) => {
@@ -1920,7 +2021,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } return true; }
+    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } return true; }
   } catch (_) {}
   return false;
 }

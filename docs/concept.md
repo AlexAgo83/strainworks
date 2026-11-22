@@ -35,6 +35,7 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Breaches | Decided | They do not last: once emptied they fade. They push the player to explore and to defend in many places |
 | Limited defenses | Decided | Walls and turrets are not unlimited: rising ADN cost, proposed scale in section 10 |
 | Build time | Decided | Nothing appears at once: sites do not advance while paused |
+| Builder drones | Decided | As many drones as simultaneous sites: a site only advances while its drone is beside it |
 | Repair | Decided | Damaged buildings repair over time |
 | Goal besides defense | Decided | The core demands shapes: delivering them grows it and unlocks what follows. Three stages in the prototype |
 | Nervous system | Decided | Nerves link smart objects that emit or read what is needed, including in position 1, 2 or 3 |
@@ -100,7 +101,8 @@ Ages unlock technologies, not matters. A gene is unlocked by delivering it in qu
 ### Building takes time
 
 - Planning while paused is allowed, but sites only advance while the game runs.
-- Prototype: **3 sites at a time**, in placement order. Belt 0.15 s, gate and bridge 0.5 s, splitter and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, turret 6 s, vein by length.
+- **3 drones live on the core, one per site**, and take sites in placement order. A site only advances while its drone is within 2 cells. A drone flies 20 cells per second and goes from one site to the next without returning to its nest.
+- Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitter and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, turret 6 s, vein by length.
 - A site does not carry, shoot, block or attract creatures.
 
 ### Damaged buildings repair

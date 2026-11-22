@@ -18,6 +18,31 @@ exports[`construction-and-repair behaves as the recorded prototype 1`] = `
         true,
       ],
       "cancel": 0,
+      "drones": {
+        "allBuilt": true,
+        "alone": 0,
+        "arrives": 2.7,
+        "belts": [
+          41,
+          4.05,
+        ],
+        "count": 3,
+        "home": true,
+        "inReach": true,
+        "longLine": [
+          98,
+          6.55,
+        ],
+        "mostAtOnce": 3,
+        "oldSave": [
+          3,
+          true,
+        ],
+        "onTheWay": true,
+        "savedInFlight": true,
+        "sent": 1,
+        "untouched": true,
+      },
       "inert": [
         false,
         99,
@@ -25,8 +50,8 @@ exports[`construction-and-repair behaves as the recorded prototype 1`] = `
       ],
       "longBelt": [
         60,
-        32,
-        1,
+        39,
+        15,
       ],
       "rebuild": false,
       "repair": {
@@ -48,7 +73,7 @@ exports[`construction-and-repair behaves as the recorded prototype 1`] = `
       "turrets": [
         0,
         3,
-        4,
+        3,
         6,
         10,
       ],

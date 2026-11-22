@@ -80,7 +80,8 @@ window.createView3D = (glCanvas) => {
   const spot = new B.Vector3();
   // angle is a game angle (0 east, clockwise). roll lays an upright shape along that angle.
   function add(shape, paint, x, y, h, sx, sy = sx, sz = sx, angle = 0, roll = 0) {
-    const name = add.ghost ? 'site' : paint; // ghost: a construction site
+    // ghost: a construction site, a hologram above the height it has been woven to.
+    const name = add.ghost && !(add.solid > 0 && h <= add.solid) ? 'site' : paint;
     let batch = batches.get(`${shape}|${name}`);
     if (!batch) {
       const mesh = SHAPES[shape]();
@@ -238,6 +239,18 @@ window.createView3D = (glCanvas) => {
         rect(g, e.x - 0.4, y - 0.26, 0.8 * Math.max(0, e.hp / e.max), 0.08, '#FF6B6B');
         if (n > 1) label(`×${n}`, e.x + 0.75, y, 15, '#FFD0D0');
       }
+    }
+    for (const d of G.drones) {
+      const pose = dronePose(d);
+      if (!pose.goal || pose.w >= 0.5) continue;
+      g.beginPath();
+      g.moveTo(pose.x, up(pose.y, pose.h));
+      g.lineTo(pose.goal.x, pose.goal.y);
+      g.strokeStyle = '#55D6E8AA';
+      g.lineWidth = px;
+      g.setLineDash([0.3, 0.3]);
+      g.stroke();
+      g.setLineDash([]);
     }
     for (const c of chain) rect(g, c.x + 0.04, c.y + 0.04, 0.92, 0.92, null, '#FF6B6B');
     const picked = selected && G.cells[selected];
