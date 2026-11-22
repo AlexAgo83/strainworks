@@ -6,10 +6,10 @@ exports[`gate behaves as the recorded prototype 1`] = `
     "logic",
     {
       "bad": [],
-      "blocked": "Ligase CNF : 0,0 sur 1,0/s. Entrées : 1 chitine, 2 nerf, 3 fibre. Arrêt au feu rouge : touche-le pour rouvrir.",
+      "blocked": "Ligase CNF : 0,0 sur 1,0/s. Entrées : 1 chitine C, 2 nerf N, 3 fibre F. Arrêt au feu rouge : touche-le pour rouvrir.",
       "n": 24,
       "rebuiltRed": true,
-      "starved": "Ligase : 0,0 sur 1,0/s. Entrées : 1 chitine, 2 vide, 3 fibre. L’entrée 2 manque de matière : un feu rouge coupe sa ligne.",
+      "starved": "Ligase : 0,0 sur 1,0/s. Entrées : 1 chitine C, 2 vide, 3 fibre F. L’entrée 2 manque de matière : un feu rouge coupe sa ligne.",
     },
   ],
   [

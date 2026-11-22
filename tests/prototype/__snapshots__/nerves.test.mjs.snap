@@ -67,7 +67,7 @@ exports[`nerves behaves as the recorded prototype 1`] = `
         "48,34>44,39",
       ],
       3,
-      "Trieur, lit la position 3 : fibre, position 3 de CNF. Le reste, et le trop-plein, continue tout droit.",
+      "Trieur, lit la position 3 : fibre F, position 3 de CNF. Le reste, et le trop-plein, continue tout droit.",
     ],
   ],
   [

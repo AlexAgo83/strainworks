@@ -52,6 +52,9 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 .gene { display:inline-flex; align-items:center; gap:2px; vertical-align:middle; }
 .gene svg { width:17px; height:17px; }
 .gene .cut { width:1px; height:17px; margin-inline:2px; background:var(--acid); }
+.gene.inline { gap:1px; margin-inline:2px; white-space:nowrap; }
+.gene.inline svg { width:14px; height:14px; }
+.gene.inline .cut { height:14px; }
 .need { color:var(--acid); }
 .none { color:var(--alarm); }
 
@@ -915,10 +918,12 @@ const key = (x, y) => x + ',' + y;
 const buildable = (x, y) => inside(x, y) && !breachesIn(x, y, x, y).some(h => h.state !== 'spent' && Math.hypot(x - h.x, y - h.y) < 3.5);
 const inside = (x, y) => Math.abs(x) < LIMIT && Math.abs(y) < LIMIT;
 const MATTER = {...BASE, K:'Carbone'};
+// A base in a sentence has its name and its drawing.
+const named = base => MATTER[base] ? `${MATTER[base].toLowerCase()} ${base}` : 'rien';
 function itemName(item) {
   const box = boxOf(item);
   if (box) return `${BOX[box].name.toLowerCase()} ${contentOf(item)}`;
-  return MATTER[item]?.toLowerCase() || (item.length === 6 ? 'brin ' : 'gène ') + item;
+  return MATTER[item] ? named(item) : (item.length === 6 ? 'brin ' : 'gène ') + item;
 }
 const opposite = gene => [...gene].map(b => PAIR[b]).join('');
 const geneName = gene => GENES[gene] ? `${GENES[gene]} (${gene})` : gene;
@@ -1969,11 +1974,11 @@ function diagnose(c) {
   }
   if ((c.type === 'gate' || c.type === 'sort') && G.wires.some(w => w.a === key(c.x, c.y) || w.b === key(c.x, c.y))) {
     const what = c.read ? `la position ${c.read}` : 'le gène entier', name = TYPES[c.type].name;
-    const spare = c.type === 'gate' ? (c.open ? 'vert' : 'rouge') : `filtre ${c.want}`;
+    const spare = c.type === 'gate' ? (c.open ? 'vert' : 'rouge') : `filtre ${c.want === '?' ? 'tout' : c.want}`;
     if (!listens(c)) return `${name} : nerf en chantier, coupé ou sans tourelle. Réglage manuel appliqué : ${spare}.`;
     const net = netOf(c);
     if (!net.focus) return `${name}, lit ${what} : rien n’est demandé, ${c.type === 'gate' ? 'il reste rouge' : 'tout va tout droit'}.`;
-    const now = c.read ? `${BASE[net.focus[c.read - 1]].toLowerCase()}, position ${c.read} de ${net.focus}` : net.list.join(', ');
+    const now = c.read ? `${named(net.focus[c.read - 1])}, position ${c.read} de ${net.focus}` : net.list.join(', ');
     return `${name}, lit ${what} : ${now}. ${c.type === 'gate' ? 'Le reste attend derrière.' : c.read ? 'Le reste, et le trop-plein, continue tout droit.' : 'Le reste continue tout droit.'}`;
   }
   if (c.type === 'gate') return c.open ? 'Feu vert : ça passe. Touche-le pour couper la ligne.' : 'Feu rouge : la ligne attend derrière. Touche-le pour rouvrir.';
@@ -1999,14 +2004,14 @@ function diagnose(c) {
     const rich = richUnder(c), later = rich > richCap() ? ` Ce gisement est ×${rich}, exploitable ainsi au stade ${rich === 2 ? 2 : 3}.` : '';
     const fastest = Math.max(BELT_SPEED, ...edgesOf(c).map(door => mouthPace(door, door.dir))), belts = Math.ceil(perSecond(c) / fastest - 1e-6);
     const full = c.stock.length >= BORER.hold ? ` Il déborde : il lui faut ${belts} tapis MK${fastest / BELT_SPEED}, 8 bords au plus.` : '';
-    return `Grand récolteur de ${(MATTER[matterUnder(c)] || 'rien').toLowerCase()} : ${per} sur ${figure(perSecond(c))}/s.${full}${later}`;
+    return `Grand récolteur de ${named(matterUnder(c))} : ${per} sur ${figure(perSecond(c))}/s.${full}${later}`;
   }
   if (c.type === 'sort') {
     const left = c.side === 3 ? 'à gauche' : 'à droite', what = {1:'les bases', 3:'les gènes', 6:'les brins'}[c.want.length];
-    let state = `Trieur : ${what} ${c.want} sortent ${left}, le reste va tout droit.`;
+    let state = `Trieur : ${what}${c.want === '?' ? '' : ` ${c.want}`} sortent ${left}, le reste va tout droit.`;
     if (c.item && c.t >= .999) {
       const dir = exitOf(c), to = ahead(c, dir);
-      if (!to || !accepts(to, c.item, dir)) state = `Trieur bloqué : ${c.item} doit sortir ${dir === c.dir ? 'tout droit' : left}, et cette sortie est fermée ou pleine.`;
+      if (!to || !accepts(to, c.item, dir)) state = `Trieur bloqué : ${itemName(c.item)} doit sortir ${dir === c.dir ? 'tout droit' : left}, et cette sortie est fermée ou pleine.`;
       if (to) chain = [to];
     }
     return state;
@@ -2060,7 +2065,7 @@ function diagnose(c) {
       const waiting = from.c.item;
       if (what === 'les gènes' && waiting && !packTakes(c, waiting, 0)) {
         chain = [from.c];
-        return `${head} ${waiting} attend dehors : ${goods.length ? `la boîte se remplit de ${goods[0]}, vide-la pour changer` : c.box === 'A' ? 'un chargeur ne prend que des gènes de 3 bases' : 'il faut un gène ou un brin en vrac'}.`;
+        return `${head} ${itemName(waiting)} attend dehors : ${goods.length ? `la boîte se remplit de ${goods[0]}, vide-la pour changer` : c.box === 'A' ? 'un chargeur ne prend que des gènes de 3 bases' : 'il faut un gène ou un brin en vrac'}.`;
       }
     }
     return `${head} Il tourne.`;
@@ -2083,15 +2088,15 @@ function diagnose(c) {
   if (c.type !== 'mine' && c.type !== 'ligase') return TYPES[c.type].help;
 
   const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', ',');
-  const entries = c.type === 'ligase' ? ' Entrées : ' + c.ports.map((p, i) => `${i + 1} ${p.length ? BASE[p[0]].toLowerCase() : 'vide'}`).join(', ') + '.' : '';
-  const head = `${c.type === 'mine' ? 'Récolteur de ' + (MATTER[matterUnder(c)] || 'rien').toLowerCase() : 'Ligase' + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', ',')}/s.${entries}${c.type === 'mine' && richUnder(c) > richCap() ? ` Ce gisement est ×${richUnder(c)}, exploitable ainsi au stade ${richUnder(c) === 2 ? 2 : 3}.` : ''}`;
+  const entries = c.type === 'ligase' ? ' Entrées : ' + c.ports.map((p, i) => `${i + 1} ${p.length ? named(p[0]) : 'vide'}`).join(', ') + '.' : '';
+  const head = `${c.type === 'mine' ? 'Récolteur de ' + named(matterUnder(c)) : 'Ligase' + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', ',')}/s.${entries}${c.type === 'mine' && richUnder(c) > richCap() ? ` Ce gisement est ×${richUnder(c)}, exploitable ainsi au stade ${richUnder(c) === 2 ? 2 : 3}.` : ''}`;
   if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
     let to = c, dir = c.dir;
     for (let i = 0; i < W * H; i++) {
       to = ahead(to, dir);
       if (!to || chain.includes(to)) break;
       chain.push(to);
-      if (to.type === 'gate' && listens(to) && !asked(to, c.item)) return `${head} Un feu intelligent attend autre chose que ${c.item}.`;
+      if (to.type === 'gate' && listens(to) && !asked(to, c.item)) return `${head} Un feu intelligent attend autre chose que ${itemName(c.item)}.`;
       if (to.type === 'gate' && !listens(to) && !to.open) return `${head} Arrêt au feu rouge : touche-le pour rouvrir.`;
       if (isBelt(to)) dir = to.dir; else if (to.type !== 'bridge') break;
     }
@@ -2676,7 +2681,43 @@ function geneMark(gene) {
   if (!/^([SFCN]{3}){1,2}$/.test(gene)) return '';
   return `<span class="gene" role="img" aria-label="${[...gene].map(b => BASE[b]).join(', ')}">${[...gene].map((b, i) => `${i === 3 ? '<i class="cut"></i>' : ''}<svg viewBox="0 0 18 18">${SHAPE[b]}</svg>`).join('')}</span>`;
 }
-function say(text) { note = text; ui.saidAt = performance.now(); $('message').textContent = text; }
+// A code (SFS, C?F, SFSFFF, or a lone base) is never read as letters. C’est, MK2 and words are left alone.
+const CODE = /(?<![\p{L}\p{N}_?’'])([SFCNK?]{6}|[SFCNK?]{3}|[SFCNK])(?![\p{L}\p{N}_?’'])/gu;
+const piecesOf = text => String(text).split(CODE).map((part, i) => ({part, code:i % 2 === 1}));
+// The code stays in the text for copying and for what reads it, hidden behind its drawing.
+function write(el, text) {
+  if (el.textContent === text) return;
+  el.replaceChildren(...piecesOf(text).map(({part, code}) => {
+    if (!code) return document.createTextNode(part);
+    const mark = document.createElement('span'), letters = document.createElement('span');
+    mark.className = 'gene inline';
+    mark.setAttribute('role', 'img');
+    mark.setAttribute('aria-label', [...part].map(base => MATTER[base] || 'n’importe laquelle').join(', '));
+    mark.innerHTML = [...part].map((base, i) => `${i === 3 ? '<i class="cut"></i>' : ''}${markOf(base) || JOKER}`).join('');
+    letters.hidden = true; letters.textContent = part;
+    mark.append(letters);
+    return mark;
+  }));
+}
+const JOKER = '<svg viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="#A9BDB8" stroke-width="2" stroke-dasharray="3 2.5"/></svg>';
+function sentenceWidth(g, text) {
+  return piecesOf(text).reduce((wide, {part, code}) => wide + (code ? part.length * 14 + 2 : g.measureText(part).width), 0);
+}
+// From the left, y in the middle of the line.
+function drawSentence(g, text, x, y) {
+  const color = g.fillStyle;
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  for (const {part, code} of piecesOf(text)) {
+    g.fillStyle = color;
+    if (!code) { g.fillText(part, x, y); x += g.measureText(part).width; continue; }
+    [...part].forEach((base, i) => {
+      if (base === '?') circle(g, x + 7 + i * 14, y, 5, null, '#A9BDB8', 1.5);
+      else glyph(g, base, x + 7 + i * 14, y, 6);
+    });
+    x += part.length * 14 + 2;
+  }
+}
+function say(text) { note = text; ui.saidAt = performance.now(); write($('message'), text); }
 // One sign per kind of action, the words stay beside it.
 const ICONS = [
   [/^(Démonter|Retirer|Couper)/, '<path d="M4 4l10 10M14 4L4 14"/>'],
@@ -2779,7 +2820,7 @@ function showActions() {
       }));
       b.classList.add('slot');
       b.setAttribute('aria-label', `Filtre, position ${i + 1} : ${MATTER[base] || 'joker'}. Toucher pour changer.`);
-      b.innerHTML = SHAPE[base] ? `<svg viewBox="0 0 18 18" width="20" height="20">${SHAPE[base]}</svg>` : '?';
+      b.innerHTML = SHAPE[base] ? `<svg viewBox="0 0 18 18" width="20" height="20">${SHAPE[base]}</svg>` : JOKER.replace('<svg', '<svg width="20" height="20"');
       row.append(b);
     });
     $('actions').append(row);
@@ -2819,7 +2860,7 @@ function pickedWorm() { return G.worms.find(w => w.id === wormId); }
 function wormState(w) {
   if (w.out != null) return w.cut ? `Ver en retrait : ${Math.max(0, w.out).toFixed(1).replace('.', ',')} s de jeu.` : 'Ver à retirer : un drone le rejoint, il roule en attendant.';
   if (!built(w)) return `Ver en incubation : ${w.left.toFixed(1).replace('.', ',')} s de jeu.`;
-  const cargo = w.holds.map(h => h.n ? `${h.n} ${h.kind in BASE ? h.kind : itemName(h.kind)}` : 'vide').join(', ');
+  const cargo = w.holds.map(h => h.n ? `${h.n} ${itemName(h.kind)}` : 'vide').join(', ');
   const doing = w.docked ? 'à quai' : w.stuck ? `arrêté, ${w.stuck}` : 'en route';
   const why = w.docked && w.rule === 'full' ? ' Il attend que tout soit plein ou vide.' : '';
   return `Ver ${doing}, de la tête à la queue : ${cargo}.${why} ${Math.ceil(w.hp)} PV sur ${WORM.hp}.`;
@@ -2886,11 +2927,11 @@ function refresh() {
   if (selected && G.cells[selected]) {
     const c = G.cells[selected], hurt = c.hp < fullHp(c) - .5;
     const state = hurt ? ` ${Math.floor(c.hp)} PV sur ${fullHp(c)}, ${healing(c) ? 'en réparation' : `réparation dans ${Math.ceil(REPAIR.quiet - (G.time - c.hitAt))} s sans coup`}.` : '';
-    $('message').textContent = diagnose(c) + state;
+    write($('message'), diagnose(c) + state);
   }
   else if (selected) { selected = null; chain = []; showActions(); }
-  else if (pickedWorm()) $('message').textContent = wormState(pickedWorm());
-  else $('message').textContent = note;
+  else if (pickedWorm()) write($('message'), wormState(pickedWorm()));
+  else write($('message'), note);
   $('pause').textContent = paused ? '▶' : 'II';
   $('pause').setAttribute('aria-label', paused ? 'Reprendre' : 'Mettre en pause');
   const lost = Object.values(G.ruins).filter(w => !buried(w)).length;
@@ -3136,7 +3177,7 @@ function preview() {
     const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
     if (b) return to('select', {label:`Brèche niveau ${levelOf(b)} : ${b.left} créatures`});
     const base = depositAt(x, y);
-    return to('none', base ? {label:`Gisement : ${MATTER[base].toLowerCase()} ×${richAt(x, y)}`} : {});
+    return to('none', base ? {label:`Gisement : ${named(base)} ×${richAt(x, y)}`} : {});
   }
   if (old) {
     if (drawing) return to('select');
@@ -3204,7 +3245,7 @@ function drawPreview(g, models) {
   // The words keep one size at every zoom, and stay on the board.
   g.save(); g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   g.font = '600 13px Barlow, Verdana';
-  const wide = g.measureText(text).width + 12, squash = cam.zoom * flat();
+  const wide = sentenceWidth(g, text) + 12, squash = cam.zoom * flat();
   const left = Math.max(4, Math.min(view.w - wide - 4, view.w / 2 + (mx - cam.x) * cam.zoom - wide / 2));
   let top = view.h / 2 + (y + size - cam.y) * squash + 14 + reach;
   // Under a finger nobody reads: the words go above it.
@@ -3213,7 +3254,7 @@ function drawPreview(g, models) {
   if (act === 'no' && age < .35) g.translate(Math.sin(age * 55) * 5 * (1 - age / .35), 0);
   g.fillStyle = '#05090BE6'; g.fillRect(left, top, wide, 20);
   g.fillStyle = act === 'none' ? '#E6F0EC' : color; g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.fillText(text, left + 6, top + 10);
+  drawSentence(g, text, left + 6, top + 10);
   g.restore();
 }
 // The ways in and out of one object, as the transport reads them. dir is the side of the cell, label what it wants there.
@@ -3227,9 +3268,9 @@ function portsOf(c) {
     case 'borer': return edgesOf(c).map(d => ({...d, out:true}));
     case 'ligase': return [out(c.dir), ...[0, 1, 2].map(port => into(portSide(c, port), {label:String(port + 1)}))];
     case 'join': return [out(c.dir), ...[0, 1].map(port => into(joinSide(c, port), {label:String(port + 1)}))];
-    case 'pack': return [out(c.dir), into(back, {label:'gènes'}), into(carbonSide(c), {label:'carbone'})];
+    case 'pack': return [out(c.dir), into(back, {label:'gènes'}), into(carbonSide(c), {label:'carbone K'})];
     case 'split2': case 'split': return [into(back), ...splitExits(c).map(d => out(d))];
-    case 'sort': return [into(back), out(c.dir, {label:'reste'}), out(sideExit(c), {label:'filtre'})];
+    case 'sort': return [into(back), out(c.dir, {label:'reste'}), out(sideExit(c), {label:c.want && c.want !== '?' ? c.want : 'filtre'})];
     case 'bridge': return [0, 1].flatMap(axis => {
       const way = wayOf(c, axis);
       // Grey while guessed from the neighbours, green once set.
@@ -3273,12 +3314,12 @@ function drawPorts(g, p) {
   }
   g.font = '700 14px Barlow, Verdana'; g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const tag of tags) {
-    const wide = Math.max(22, g.measureText(tag.label).width + 12);
+    const said = sentenceWidth(g, tag.label), wide = Math.max(22, said + 12);
     const x = tag.at[0] + tag.dx * (wide / 2 - 11), y = tag.at[1];
     g.beginPath(); g.roundRect(x - wide / 2, y - 11, wide, 22, 11);
     g.fillStyle = '#05090B'; g.fill();
     g.strokeStyle = tag.out ? '#B7F34A' : '#66D9EA'; g.lineWidth = 2; g.stroke();
-    g.fillStyle = '#FFFFFF'; g.fillText(tag.label, x, y + .5);
+    g.fillStyle = '#FFFFFF'; drawSentence(g, tag.label, x - said / 2, y + .5);
   }
   g.restore();
   // How far down they reach, for the words that go under the object.
@@ -3543,7 +3584,7 @@ function toolPod(type) {
   b.onclick = () => choose(type);
   b.addEventListener('pointerenter', event => {
     if (event.pointerType !== 'mouse') return;
-    $('hint').textContent = TYPES[type].help.split(/(?<=[.!?])\s/)[0];
+    write($('hint'), TYPES[type].help.split(/(?<=[.!?])\s/)[0]);
     $('hint').hidden = false;
   });
   b.addEventListener('pointerleave', () => { $('hint').hidden = true; });
@@ -3718,7 +3759,7 @@ function tell(text, {at, gene, bad} = {}) {
   const now = performance.now(), same = ui.events.find(e => e.text === text);
   if (same) { same.until = now + 8000; return; }
   const el = document.createElement(at ? 'button' : 'p'), dot = document.createElement('i'), words = document.createElement('span');
-  el.className = `event${bad ? ' bad' : ''}`; dot.className = 'dot'; words.className = 'text'; words.textContent = text;
+  el.className = `event${bad ? ' bad' : ''}`; dot.className = 'dot'; words.className = 'text'; write(words, text);
   el.append(dot, words);
   if (gene) el.insertAdjacentHTML('beforeend', geneMark(gene));
   if (at) { const there = {x:at.x + .5, y:at.y + .5}; el.onclick = () => travelTo(there); }
@@ -3735,7 +3776,7 @@ function refuse(text) {
   say(text);
   ui.saidAt = 0; ui.refusedAt = performance.now();
   const el = $('refusal'), p = ui.point || {x:view.w / 2, y:view.h / 2};
-  el.textContent = text; el.hidden = false;
+  write(el, text); el.hidden = false;
   const wide = el.offsetWidth, tall = el.offsetHeight;
   el.style.left = `${Math.max(8, Math.min(view.w - wide - 8, p.x - wide / 2))}px`;
   el.style.top = `${p.y - tall - 46 > 8 ? p.y - tall - 46 : Math.min(view.h - tall - 8, p.y + 30)}px`;

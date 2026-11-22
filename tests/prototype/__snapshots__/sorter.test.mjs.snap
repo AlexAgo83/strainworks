@@ -8,7 +8,7 @@ exports[`sorter behaves as the recorded prototype 1`] = `
       "bad": [],
       "cases": 64,
       "strict": true,
-      "why": "Trieur bloqué : C doit sortir à gauche, et cette sortie est fermée ou pleine.",
+      "why": "Trieur bloqué : chitine C doit sortir à gauche, et cette sortie est fermée ou pleine.",
     },
   ],
   [
