@@ -82,6 +82,9 @@ Rejected are the operator's decisions, rows marked Proposed are open.
   Items that enter go through intoStock or intoPort, and leave once settled() says so.
 - No gene is ever shown in letters: put a sentence on the page with write() and on the
   canvas with drawSentence(), they draw any code (SFS, C?F, a lone base) as pictograms.
+- The fog: draw a nest from shownNests, a creature only inSight, a deposit cell only known,
+  and gate any new way of building with placeable(), never buildable() alone. look() is
+  the only writer of what was seen and runs in step(), never while drawing.
 - `tests/prototype/` records its behavior. An intended rule change updates the
   snapshot in the same commit and the concept with it. Never update a snapshot to
   silence a failure you cannot explain.

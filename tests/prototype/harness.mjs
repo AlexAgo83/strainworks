@@ -59,18 +59,27 @@ export async function fromMenu(page, id) {
   await page.click(`#${id}`);
 }
 
+// The rules are tested on ground already seen, whatever is built where. The fog has its own test.
+function seenEverywhere() {
+  document.addEventListener("DOMContentLoaded", () => {
+    if (typeof known === "function") window.known = () => true;
+  });
+}
+
 export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
     close: () => browser.close(),
-    async newContext(options) {
+    async newContext({ fog = false, ...options } = {}) {
       const context = await browser.newContext(options);
+      if (!fog) await context.addInitScript(seenEverywhere);
       await context.addInitScript(seedRandom);
       await context.addInitScript(layoutProbe);
       return context;
     },
-    async newPage(options) {
+    async newPage({ fog = false, ...options } = {}) {
       const page = await browser.newPage(options);
+      if (!fog) await page.addInitScript(seenEverywhere);
       await page.addInitScript(seedRandom);
       await page.addInitScript(layoutProbe);
       return page;

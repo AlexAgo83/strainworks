@@ -637,7 +637,8 @@ function siteFor(type, x, y) {
   let first = null;
   for (const [i, j] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
     const site = {type, x:x - i, y:y - j}, cells = footprint(site);
-    if (cells.some(p => !buildable(p.x, p.y))) site.why = 'Zone de ruche';
+    const bare = cells.find(p => !placeable(p.x, p.y));
+    if (bare) site.why = whyNot(bare.x, bare.y);
     else if (cells.some(p => cellAt(p.x, p.y))) site.why = 'Il faut 2 × 2 cases libres';
     else if (type === 'borer') {
       const kind = depositAt(site.x, site.y);
@@ -870,6 +871,78 @@ function generate(sx, sy, id) {
   }
   return {rich:2 + tierAt(cx, cy), field:['K', left + 12, top + 12, w, 5]};
 }
+// The fog has three states: never seen, seen before (saved), seen now. A tile is two cells,
+// a block sixteen tiles each way and one number a row of tiles.
+const SIGHT = {core:28, built:18, moving:8, nest:6};
+let live = new Map(), passingBy = new Map(), standing = new Map(), movedFrom = '', fogTick = 0;
+function bitAt(get, x, y) {
+  const tx = Math.floor(x / 2), ty = Math.floor(y / 2), rows = get(Math.floor(tx / 16) + ',' + Math.floor(ty / 16));
+  return Boolean(rows && rows[mod(ty, 16)] >> mod(tx, 16) & 1);
+}
+function known(x, y) { return bitAt(id => G.seen?.[id], x, y); }
+function inSight(x, y) { return bitAt(id => live.get(id), x, y) || bitAt(id => passingBy.get(id), x, y); }
+function lightUp(sets, x, y, r) {
+  for (let ty = Math.floor((y - r) / 2); ty <= Math.floor((y + r) / 2); ty++) {
+    const dy = ty * 2 + 1 - y, half = Math.sqrt(Math.max(0, r * r - dy * dy));
+    if (!half) continue;
+    const last = Math.floor((x + half) / 2), by = Math.floor(ty / 16), row = mod(ty, 16);
+    for (let tx = Math.floor((x - half) / 2); tx <= last; tx++) {
+      const id = Math.floor(tx / 16) + ',' + by, bit = 1 << mod(tx, 16);
+      for (const set of sets) set(id)[row] |= bit;
+    }
+  }
+}
+// Who sees, how far, and what that uncovers. A nest shows as soon as ground in sight reaches its circle,
+// so none is ever woken from out of the fog.
+function look(force) {
+  G.seen ||= {};
+  const eyes = new Map(), moving = new Map();
+  const eye = (x, y, r, into = eyes) => {
+    // Neighbours share one eye, or a belt would cost as much as it is long.
+    const ex = Math.floor(x / 4) * 4 + 2, ey = Math.floor(y / 4) * 4 + 2, id = ex + ',' + ey;
+    if (!(into.get(id)?.r >= r)) into.set(id, {x:ex, y:ey, r});
+  };
+  for (const c of Object.values(G.cells)) if (c.type === 'core' || built(c)) eye(c.x, c.y, c.type === 'core' ? SIGHT.core : SIGHT.built);
+  for (const t of Object.values(G.tracks)) if (built(t)) eye(t.x, t.y, SIGHT.built);
+  for (const d of G.drones || []) if (d.job) eye(d.x, d.y, SIGHT.moving, moving);
+  for (const w of G.worms) if (built(w)) { const p = at(w.path[0]); eye(p.x, p.y, SIGHT.moving, moving); }
+  // What stands is only added to, until something falls. What moves is few and drawn again when it moves.
+  const all = force || [...standing].some(([id, e]) => eyes.get(id)?.r !== e.r);
+  const added = [...eyes].filter(([id, e]) => all || standing.get(id)?.r !== e.r).map(([, e]) => e);
+  const movers = [...moving.values()], from = movers.map(e => `${e.x},${e.y},${e.r}`).join(';'), moved = all || from !== movedFrom;
+  if (all || added.length || moved) {
+    standing = eyes; movedFrom = from; fogTick++;
+    if (all) live = new Map();
+    const into = map => id => { if (!map.has(id)) map.set(id, new Array(16).fill(0)); return map.get(id); };
+    const ever = id => (G.seen[id] ||= new Array(16).fill(0));
+    const now = into(live);
+    for (const e of added) lightUp([now, ever], e.x, e.y, e.r);
+    if (moved) {
+      passingBy = new Map();
+      const by = into(passingBy);
+      for (const e of movers) lightUp([by, ever], e.x, e.y, e.r);
+    }
+    const list = moved ? [...added, ...movers] : added;
+    const round = new Map(), nests = new Map(G.breaches.map(b => [b.id || b, b]));
+    for (const e of list) round.set(Math.floor(e.x / SECTOR) + ',' + Math.floor(e.y / SECTOR), e);
+    for (const e of round.values()) eachSector(e.x - 72, e.y - 72, e.x + 72, e.y + 72, s => { if (s.breach && !nests.has(s.breach.id)) nests.set(s.breach.id, s.breach); });
+    for (const b of nests.values()) if (list.some(e => Math.hypot(e.x - b.x, e.y - b.y) <= e.r + b.r + 4)) lightUp([ever], b.x, b.y, SIGHT.nest);
+  }
+  // What was last seen of a nest is what the fog keeps showing.
+  for (const b of G.breaches) if ((!b.known || b.known.left !== b.left || b.known.state !== b.state) && inSight(b.x, b.y)) b.known = {left:b.left, state:b.state};
+}
+// A nest as the player knows it, or nothing.
+function shownNests(x0, y0, x1, y1) {
+  const shown = [];
+  for (const b of breachesIn(x0, y0, x1, y1)) {
+    if (!known(b.x, b.y)) continue;
+    const as = inSight(b.x, b.y) || (!b.known && b.state !== 'spent') ? b : b.known ? {...b, ...b.known} : null;
+    if (as) shown.push(as);
+  }
+  return shown;
+}
+const whyNot = (x, y) => !known(x, y) ? 'Zone inconnue : approche tes structures' : !buildable(x, y) ? 'Zone de ruche' : '';
+const placeable = (x, y) => !whyNot(x, y);
 function eachSector(x0, y0, x1, y1, visit) {
   for (let sx = Math.floor(x0 / SECTOR); sx <= Math.floor(x1 / SECTOR); sx++)
     for (let sy = Math.floor(y0 / SECTOR); sy <= Math.floor(y1 / SECTOR); sy++) { const s = sector(sx, sy); if (s) visit(s); }
@@ -1922,6 +1995,7 @@ function step(dt) {
   if (G.over) return;
   G.time += dt;
   construct(dt); repair(dt); sense(); flow(dt); digest(dt); menace(dt); fire(dt);
+  if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) look();
 }
 
 // Diagnosis: light the links that explain the selected machine's speed.
@@ -2404,7 +2478,9 @@ function draw() {
   for (const field of fieldsIn(x0,y0,x1,y1)) {
     const [base,x,y,w,h] = field, patch = patchOf(field), soil = {K:'#22262A',S:'#1E3A1D',F:'#35220F',C:'#2E2B25',N:'#102F37'}[base];
     ctx.beginPath();
-    for (const p of patch.list) { ctx.moveTo(p.x + 1.18,p.y + .5); ctx.arc(p.x + .5,p.y + .5,.68,0,Math.PI * 2); }
+    const seen = patch.list.filter(p => known(p.x,p.y));
+    if (!seen.length) continue;
+    for (const p of seen) { ctx.moveTo(p.x + 1.18,p.y + .5); ctx.arc(p.x + .5,p.y + .5,.68,0,Math.PI * 2); }
     ctx.fillStyle = soil; ctx.fill();
     // From afar one big glyph names the field.
     const rich = richAt(patch.list[0].x,patch.list[0].y);
@@ -2414,7 +2490,7 @@ function draw() {
       ctx.fillText(`×${rich}`,0,-3); ctx.restore();
     }
     if (cam.zoom < 14) { glyph(ctx,base,x + w / 2,y + h / 2,Math.min(w,h) * .32); continue; }
-    for (const {x:i,y:j} of patch.list)
+    for (const {x:i,y:j} of seen)
       if (i >= x0 - 1 && i <= x1 && j >= y0 - 1 && j <= y1 && !cellAt(i,j)) glyph(ctx,base,i + .5,j + .5,.22);
   }
   ctx.strokeStyle = '#1B2F35'; ctx.lineWidth = 1 / cam.zoom; ctx.beginPath();
@@ -2423,7 +2499,7 @@ function draw() {
   for (let y = Math.ceil(y0 / every) * every; y <= y1; y += every) { ctx.moveTo(x0,y); ctx.lineTo(x1,y); }
   ctx.stroke();
   drawOrganism();
-  for (const b of breachesIn(x0,y0,x1,y1)) drawBreach(b);
+  for (const b of shownNests(x0,y0,x1,y1)) drawBreach(b);
 
   const cells = Object.values(G.cells).filter(c => c.x >= x0 - 2 && c.x <= x1 && c.y >= y0 - 2 && c.y <= y1);
   drawVeins();
@@ -2473,6 +2549,7 @@ function draw() {
   }
   const packs = [];
   for (const e of G.enemies) {
+    if (!inSight(e.x,e.y)) continue;
     const pack = packs.find(p => p.e.gene === e.gene && Math.abs(p.e.x - e.x) < .8 && Math.abs(p.e.y - e.y) < .6);
     if (pack) pack.n++; else packs.push({e, n:1});
   }
@@ -2489,13 +2566,14 @@ function draw() {
     [...e.gene].forEach((b,i) => glyph(ctx,b,e.x+(i-1)*.22,e.y,.1));
     rect(ctx,e.x-.3,e.y-.38,.6*Math.max(0,e.hp/e.max),.07,'#FF6B6B');
   }
+  drawFog(ctx);
   drawDrones();
   sceneSigns(ctx);
   drawPreview(ctx);
   // What is off screen keeps an arrow on the edge.
   ctx.setTransform(view.dpr,0,0,view.dpr,0,0);
-  for (const e of G.enemies) marker(e.x,e.y,'#FF6B6B');
-  for (const b of G.breaches) if (b.state === 'wake') marker(b.x + .5,b.y + .5,'#F0A03C');
+  for (const e of G.enemies) if (inSight(e.x,e.y)) marker(e.x,e.y,'#FF6B6B');
+  for (const b of G.breaches) if (b.state === 'wake' && known(b.x,b.y)) marker(b.x + .5,b.y + .5,'#F0A03C');
   marker(CORE.x + .5,CORE.y + .5,'#B7F34A');
 }
 function drawDrones() {
@@ -3009,7 +3087,7 @@ function place(x,y) {
   if (worm && (tool === 'hand' || tool === 'worm')) return selectWorm(worm);
   if (tool === 'worm') return incubate(x,y);
   if (tool === 'track') {
-    if (!buildable(x,y)) return refuse('La zone des ruches n’est pas constructible.');
+    if (!placeable(x,y)) return refuse(`${whyNot(x,y)}.`);
     const t = G.tracks[id];
     if (t) { t.dir = (t.dir + 1) % 4; setHeading(t.dir); } else layTrack(x,y,heading);
     return say(TYPES.track.help);
@@ -3018,7 +3096,8 @@ function place(x,y) {
     if (old) return select(key(old.x,old.y));
     select(null); say(TYPES.hand.help);
     if (G.tracks[id]) return say(trackAfter(id) || !built(G.tracks[id]) ? 'Piste de phéromones. Pose une poche contre elle, ou un ver dessus.' : 'Fin de piste : les vers s’arrêtent ici. Referme la boucle.');
-    const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
+    if (!known(x,y)) return say('Zone inconnue. Construis dans sa direction : tes structures y verront.');
+    const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && known(h.x,h.y) && Math.hypot(h.x - x, h.y - y) < 3);
     if (!b) return;
     say(`Brèche au ${bearing(b)}, niveau ${levelOf(b)} sur 5 : ${b.left} créatures, gène faible ${b.genes.join(' et ')}, antidote ${b.genes.map(opposite).join(' et ')}. ${b.state === 'sleep' ? 'Elle dort tant que rien n’est bâti dans son cercle.' : 'Elle est réveillée. Vide-la pour qu’elle disparaisse.'}`);
     if (b.state === 'sleep') button('Réveiller', () => { wake(b); $('actions').replaceChildren(); });
@@ -3039,7 +3118,7 @@ function place(x,y) {
     if (due > G.dna) return refuse(`Il manque ${due - G.dna} ADN pour ce rang.`);
     buildRanked(tool,site.x,site.y,heading); select(key(site.x,site.y)); return say(TYPES[tool].help);
   }
-  if (!buildable(x,y)) return refuse('La zone des ruches n’est pas constructible.');
+  if (!placeable(x,y)) return refuse(`${whyNot(x,y)}.`);
   const cost = costInHand(tool);
   if (cost > G.dna) return refuse(`Il manque ${cost - G.dna} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.`);
   if (tool === 'mine' && !depositAt(x,y)) return refuse('Un récolteur se pose sur un gisement coloré.');
@@ -3056,7 +3135,7 @@ function joinVein(from,x,y) {
   if (from?.type !== 'pump') return;
   let to = cellAt(x,y);
   if (!to) {
-    if (!buildable(x,y)) return refuse('La zone des ruches n’est pas constructible.');
+    if (!placeable(x,y)) return refuse(`${whyNot(x,y)}.`);
     if (Math.hypot(x - from.x,y - from.y) > VEIN.reach) return link(from,{x,y,type:'pump'});
     to = build('pump',x,y,0);
   }
@@ -3076,7 +3155,7 @@ function extend(to) {
     if (!inside(x,y)) return;
     if (tool === 'erase') { wipe(x,y); drag.x = x; drag.y = y; drag.moved = true; continue; }
     if (tool === 'track') {
-      if (!buildable(drag.x,drag.y) || !buildable(x,y)) { drag = null; return; }
+      if (!placeable(drag.x,drag.y) || !placeable(x,y)) { drag = null; return; }
       const here = G.tracks[key(drag.x,drag.y)], joins = G.tracks[key(x,y)];
       if (drag.moved && drag.onTrack && here && here.dir !== dir) { refuse('La piste rejoint la ligne existante. Une case n’a qu’une sortie.'); drag = null; return; }
       layTrack(drag.x,drag.y,dir);
@@ -3104,14 +3183,14 @@ function extend(to) {
       return true;
     };
     if (!from) {
-      if (!buildable(drag.x,drag.y)) { drag = null; return; }
+      if (!placeable(drag.x,drag.y)) { drag = null; return; }
       if (short(1)) return;
       buildRanked('belt',drag.x,drag.y,dir);
     } else if (isBelt(from) || (!drag.moved && ['mine','cyst'].includes(from.type))) from.dir = dir;
     const next = cellAt(x,y);
     // A belt drawn through a bridge takes that lane with it.
     for (const c of [from, next]) if (c?.type === 'bridge' && c.ways?.[dir % 2] != null) c.ways[dir % 2] = dir;
-    if (!next) { if (!buildable(x,y)) { drag = null; return; } if (short(1)) return; buildRanked('belt',x,y,dir); }
+    if (!next) { if (!placeable(x,y)) { refuse(`${whyNot(x,y)}.`); drag = null; return; } if (short(1)) return; buildRanked('belt',x,y,dir); }
     drag = {x, y, moved:true, existing:Boolean(next), heading:dir};
     if (next && !isBelt(next) && next.type !== 'bridge') { drag = null; return; }
   }
@@ -3129,7 +3208,7 @@ function preview() {
   // A big one answers as a whole, from its corner.
   const whole = old || (tool === 'erase' ? ruinAt(x, y) : null), over = whole && BIG[whole.type] ? {x:whole.x, y:whole.y, size:2} : {};
   const to = (act, more) => ({x, y, act, ...over, ...more}), no = (why, more) => to('no', {why, ...more});
-  const hive = 'Zone de ruche', free = () => buildable(x, y);
+  const hive = whyNot(x, y), free = () => !hive;
   const fromVein = (drawing && drag?.vein) || (linking && G.cells[linking]);
   if (fromVein) {
     if (old && (old.type !== 'pump' || (old.x === fromVein.x && old.y === fromVein.y))) return no('Finit sur une pompe', {from:fromVein});
@@ -3174,7 +3253,8 @@ function preview() {
   if (tool === 'hand') {
     if (old) return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
     if (G.tracks[id]) return to('select', {label:'Piste'});
-    const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
+    if (!known(x, y)) return to('none', {label:'Zone inconnue'});
+    const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && known(h.x, h.y) && Math.hypot(h.x - x, h.y - y) < 3);
     if (b) return to('select', {label:`Brèche niveau ${levelOf(b)} : ${b.left} créatures`});
     const base = depositAt(x, y);
     return to('none', base ? {label:`Gisement : ${named(base)} ×${richAt(x, y)}`} : {});
@@ -3394,7 +3474,7 @@ canvas.addEventListener('pointermove', event => {
     }
     if (tool === 'pump') {
       if (drag.existing && cellAt(from.x,from.y).type !== 'pump') { drag = null; refuse('Tire depuis une pompe ou un sol libre.'); return; }
-      if (!drag.existing && !buildable(from.x,from.y)) { drag = null; return; }
+      if (!drag.existing && !placeable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
     if (tool === 'erase') wipe(from.x,from.y);
@@ -3705,6 +3785,14 @@ function repayBonus() {
   G.dna += repaid;
   delete G.upgrades;
 }
+// A game from before the fog has seen round all it built and every nest it woke.
+function uncover() {
+  const first = !G.seen;
+  look(true);
+  if (!first) return;
+  for (const b of G.breaches) if (b.state !== 'sleep') lightUp([id => (G.seen[id] ||= new Array(16).fill(0))], b.x, b.y, SIGHT.nest);
+  fogTick++;
+}
 function load() {
   try {
     let saved = JSON.parse(localStorage.getItem(SAVE));
@@ -3718,7 +3806,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); return true; }
+    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
   } catch (_) {}
   return false;
 }
@@ -3726,6 +3814,7 @@ function begin() {
   fresh();
   ui.dna = ui.stage = null; ui.grown = 0; ui.travel = null;
   $('growth').hidden = true;
+  look(true);
   forgetEvents(); choose('hand'); home();
   tell('Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.');
   save(); refresh();
@@ -3885,10 +3974,10 @@ function paintThreat() {
     title = `${G.enemies.length} sur la carte`; short = `${G.enemies.length}`;
     detail.push('Leur brèche est vide');
   } else {
-    const asleep = G.breaches.filter(b => b.state === 'sleep').length;
-    title = asleep ? `${asleep} brèches dormantes` : 'Alentours vidés';
+    const asleep = G.breaches.filter(b => b.state === 'sleep' && known(b.x, b.y)).length;
+    title = asleep ? `${asleep} brèche${asleep > 1 ? 's' : ''} dormante${asleep > 1 ? 's' : ''}` : 'Rien en vue';
     short = asleep ? `${asleep} dorment` : 'Calme';
-    detail.push(asleep ? 'autour de la base' : 'la carte continue plus loin');
+    detail.push(asleep ? 'repérée' + (asleep > 1 ? 's' : '') : 'le brouillard commence plus loin');
   }
   const box = $('brief'), stock = gene ? stockOf(opposite(gene)) : 0;
   paint('title', title, box.querySelector('.title'));
@@ -4084,6 +4173,51 @@ function animateHud(elapsed) {
   }
   if (!$('refusal').hidden && now - ui.refusedAt > 3200) $('refusal').hidden = true;
   if (ui.grown && now > ui.grown) { ui.grown = 0; $('growth').hidden = true; }
+}
+
+// The fog itself: a small picture, one point a tile, stretched soft over the map.
+const fogImage = document.createElement('canvas');
+let fogFor = '', fogEdge = [];
+function drawFog(g) {
+  const a = worldAt(0, 0), b = worldAt(view.w, view.h);
+  const x0 = Math.floor(a.x / 2) - 2, y0 = Math.floor(a.y / 2) - 2, w = Math.ceil(b.x / 2) + 3 - x0, h = Math.ceil(b.y / 2) + 3 - y0;
+  const now = `${fogTick},${x0},${y0},${w},${h}`;
+  if (now !== fogFor) {
+    fogFor = now; fogEdge = [];
+    fogImage.width = w; fogImage.height = h;
+    const f = fogImage.getContext('2d'), picture = f.createImageData(w, h), dark = new Uint8Array(w * h);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const x = (x0 + i) * 2, y = (y0 + j) * 2, k = (j * w + i) * 4, unknown = !known(x, y);
+      dark[j * w + i] = unknown ? 1 : 0;
+      picture.data.set([4, 8, 10, unknown ? 255 : inSight(x, y) ? 0 : 128], k);
+    }
+    f.putImageData(picture, 0, 0);
+    for (let j = 1; j < h - 1; j++) for (let i = 1; i < w - 1; i++) {
+      if (!dark[j * w + i]) continue;
+      const x = x0 + i, y = y0 + j, d = [0, 1, 2, 3].find(side => !dark[(j + DY[side]) * w + i + DX[side]]);
+      if (d != null || spotHash(x, y, 61) < .045) fogEdge.push({x:x * 2 + 1, y:y * 2 + 1, d, n:spotHash(x, y, 62)});
+    }
+  }
+  g.save();
+  g.imageSmoothingEnabled = true;
+  g.drawImage(fogImage, x0 * 2, y0 * 2, w * 2, h * 2);
+  if (cam.zoom >= 7 && fogEdge.length) {
+    // It is alive: cilia along its edge, and a few deep inside.
+    const t = motionTime();
+    g.lineCap = 'round';
+    for (const edge of [true, false]) {
+      g.beginPath();
+      for (const {x, y, d, n} of fogEdge) {
+        if ((d != null) !== edge) continue;
+        const a = (edge ? Math.atan2(DY[d], DX[d]) : n * 7) + Math.sin(t * .9 + n * 9) * .4 + (n - .5);
+        const long = 1 + n * 1.5, cx = Math.cos(a), cy = Math.sin(a), bend = Math.sin(t * .6 + n * 5) * .7;
+        g.moveTo(x - cx * long, y - cy * long);
+        g.quadraticCurveTo(x - cy * bend, y + cx * bend, x + cx * long * .6, y + cy * long * .6);
+      }
+      g.strokeStyle = edge ? '#3A1822' : '#170B10'; g.lineWidth = edge ? .22 : .3; g.stroke();
+    }
+  }
+  g.restore();
 }
 
 // The signs both views draw over the scene, in map units.

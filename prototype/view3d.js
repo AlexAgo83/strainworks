@@ -133,6 +133,7 @@ window.createView3D = (glCanvas) => {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, canvas.width, canvas.height);
     g.setTransform(s, 0, 0, s * tilt, canvas.width / 2 - cam.x * s, canvas.height / 2 - cam.y * s * tilt);
+    drawFog(g);
     const up = (y, h) => y - h * lean;
     const px = 1 / cam.zoom;
     const label = (text, x, y, points, color) => {
@@ -174,10 +175,12 @@ window.createView3D = (glCanvas) => {
     for (const field of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
       const kind = field[0];
       const patch = patchOf(field);
+      if (!patch.list.some((p) => known(p.x, p.y))) continue;
       // Dark on dark ground: carbon is framed and named, or it passes for rubble.
       if (kind === 'K') {
         g.beginPath();
         for (const p of patch.list) {
+          if (!known(p.x, p.y)) continue;
           g.moveTo(p.x + 1.1, p.y + 0.5);
           g.arc(p.x + 0.5, p.y + 0.5, 0.6, 0, Math.PI * 2);
         }
@@ -191,7 +194,7 @@ window.createView3D = (glCanvas) => {
       const color = rich > richCap() ? '#8B989C' : '#B7F34A';
       label(`×${rich}`, patch.cx, patch.top - 0.5, Math.min(90, Math.max(18, (13 * 40) / cam.zoom)), color);
     }
-    for (const b of breachesIn(area.x0, area.y0, area.x1, area.y1)) {
+    for (const b of shownNests(area.x0, area.y0, area.x1, area.y1)) {
       if (b.state === 'spent') continue;
       const x = b.x + 0.5;
       const y = b.y + 0.5;
@@ -229,6 +232,7 @@ window.createView3D = (glCanvas) => {
     if (cam.zoom >= 9) {
       const packs = [];
       for (const e of G.enemies) {
+        if (!inSight(e.x, e.y)) continue;
         const pack = packs.find((p) => p.e.gene === e.gene && Math.abs(p.e.x - e.x) < 0.8 && Math.abs(p.e.y - e.y) < 0.6);
         if (pack) pack.n++;
         else packs.push({ e, n: 1 });
@@ -292,8 +296,8 @@ window.createView3D = (glCanvas) => {
     }
     drawPreview(g, true);
     g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-    for (const e of G.enemies) marker(e.x, e.y, '#FF6B6B');
-    for (const b of G.breaches) if (b.state === 'wake') marker(b.x + 0.5, b.y + 0.5, '#F0A03C');
+    for (const e of G.enemies) if (inSight(e.x, e.y)) marker(e.x, e.y, '#FF6B6B');
+    for (const b of G.breaches) if (b.state === 'wake' && known(b.x, b.y)) marker(b.x + 0.5, b.y + 0.5, '#F0A03C');
     marker(CORE.x + 0.5, CORE.y + 0.5, '#B7F34A');
   }
 

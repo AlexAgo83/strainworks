@@ -799,11 +799,11 @@ window.createModels3D = (B, scene) => {
       const patch = patchOf(field);
       // From very far, one big sign for a field.
       if (cam.zoom < 6.5) {
-        base(kind, patch.cx, patch.cy, 0.8, Math.min(w, h) * 0.22);
+        if (known(patch.cx, patch.cy)) base(kind, patch.cx, patch.cy, 0.8, Math.min(w, h) * 0.22);
         continue;
       }
       for (const { x: i, y: j } of patch.list) {
-        if (i < area.x0 - 1 || i > area.x1 + 1 || j < area.y0 - 1 || j > area.y1 + 1) continue;
+        if (i < area.x0 - 1 || i > area.x1 + 1 || j < area.y0 - 1 || j > area.y1 + 1 || !known(i, j)) continue;
         const n = noise(i, j);
         const m = noise(j + 4, i + 9);
         const cx = i + 0.5;
@@ -971,7 +971,7 @@ window.createModels3D = (B, scene) => {
     },
   ];
   function breaches(area) {
-    for (const b of breachesIn(area.x0, area.y0, area.x1, area.y1)) {
+    for (const b of shownNests(area.x0, area.y0, area.x1, area.y1)) {
       if (cam.zoom < 6.5 && b.state !== 'spent') {
         const sleeping = b.state === 'sleep';
         const form = formOf(b);
@@ -1348,7 +1348,7 @@ window.createModels3D = (B, scene) => {
   };
   function creatures(area) {
     G.enemies.forEach((e, index) => {
-      if (e.x < area.x0 - 1 || e.x > area.x1 + 1 || e.y < area.y0 - 1 || e.y > area.y1 + 1) return;
+      if (e.x < area.x0 - 1 || e.x > area.x1 + 1 || e.y < area.y0 - 1 || e.y > area.y1 + 1 || !inSight(e.x, e.y)) return;
       const goal = e.goal || { x: CORE.x + 0.5, y: CORE.y + 0.5 };
       const a = Math.atan2(goal.y - e.y, goal.x - e.x);
       const kind = silhouette(e.gene);
