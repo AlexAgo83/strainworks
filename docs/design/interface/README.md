@@ -24,3 +24,21 @@ Changed after approval, on request: ways in and out and position numbers are
 hidden at rest. The ghost, the hovered and the selected object show them big,
 at one size on screen whatever the zoom. This replaces the inventory row
 "Ports et sorties".
+
+## Opening screen
+
+Approved on 2026-11-22. `opening.png` shows boards 8 to 14, `titre.css` is their style.
+
+- `Accueil`: the organic planet on the left under a spherical grid of hexagons, one
+  hexagon a game, the orbital station on the right projecting the game picked:
+  resume, export, duplicate, erase by a held press.
+- `AccueilImport`: an export grafted into a free hexagon. Nothing is written before
+  confirmation and no game is ever overwritten.
+- `AccueilTombee`: a fallen station keeps its scar, founded again or erased.
+- `AccueilMobile`: the planet on top, the projection under the thumb.
+- `Reglages`, `ReglagesJeu`: one menu for both. In a game it adds export and the way
+  back to the planet.
+- `Progression`: a hexagon gets denser with the game, from three arms to a crown of
+  outposts.
+
+In the game the planet turns under the finger to reach the other hexagons.

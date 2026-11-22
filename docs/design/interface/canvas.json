@@ -1,19 +1,142 @@
 {
   "v": 3,
-  "createdOnFiles": { "v": 1, "at": "2026-11-22T19:05:00Z" },
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-22T19:05:00Z"
+  },
   "title": "Strainworks Interface",
-  "launch": { "view": "canvas" },
+  "launch": {
+    "view": "canvas"
+  },
   "pages": [],
   "boards": {
-    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "1. En jeu (cliquable)", "is_interactive": true },
-    "Construire.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "2. Construire", "is_interactive": true },
-    "Assaut.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 900, "title": "3. Assaut", "is_interactive": true },
-    "Croissance.dc.html": { "x": 0, "y": 1020, "w": 1440, "h": 900, "title": "4. Stade atteint", "is_interactive": true },
-    "Defaite.dc.html": { "x": 1520, "y": 1020, "w": 1440, "h": 900, "title": "5. Le coeur tombe", "is_interactive": true },
-    "Mobile.dc.html": { "x": 3040, "y": 1020, "w": 390, "h": 844, "title": "6. Téléphone", "is_interactive": true },
-    "Inventaire.dc.html": { "x": 0, "y": 2040, "w": 1440, "h": 2240, "title": "7. Inventaire UX / UI" }
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "1. En jeu (cliquable)",
+      "is_interactive": true
+    },
+    "Construire.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "2. Construire",
+      "is_interactive": true
+    },
+    "Assaut.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "3. Assaut",
+      "is_interactive": true
+    },
+    "Croissance.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "4. Stade atteint",
+      "is_interactive": true
+    },
+    "Defaite.dc.html": {
+      "x": 1520,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "5. Le coeur tombe",
+      "is_interactive": true
+    },
+    "Mobile.dc.html": {
+      "x": 3040,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "6. Téléphone",
+      "is_interactive": true
+    },
+    "Inventaire.dc.html": {
+      "x": 0,
+      "y": 2040,
+      "w": 1440,
+      "h": 2240,
+      "title": "7. Inventaire UX / UI"
+    },
+    "Accueil.dc.html": {
+      "x": 0,
+      "y": 4400,
+      "w": 1440,
+      "h": 900,
+      "title": "8. Écran d’ouverture (cliquable)",
+      "is_interactive": true
+    },
+    "AccueilImport.dc.html": {
+      "x": 1520,
+      "y": 4400,
+      "w": 1440,
+      "h": 900,
+      "title": "9. Importer dans un hexagone",
+      "is_interactive": true
+    },
+    "AccueilMobile.dc.html": {
+      "x": 3040,
+      "y": 4400,
+      "w": 390,
+      "h": 844,
+      "title": "10. Ouverture sur téléphone",
+      "is_interactive": true
+    },
+    "AccueilTombee.dc.html": {
+      "x": 0,
+      "y": 5420,
+      "w": 1440,
+      "h": 900,
+      "title": "11. Une station tombée",
+      "is_interactive": true
+    },
+    "ReglagesJeu.dc.html": {
+      "x": 1520,
+      "y": 5420,
+      "w": 1440,
+      "h": 900,
+      "title": "12. Le même menu en jeu",
+      "is_interactive": true
+    },
+    "Reglages.dc.html": {
+      "x": 3040,
+      "y": 5420,
+      "w": 380,
+      "h": 460,
+      "title": "13. Menu commun",
+      "is_interactive": true
+    },
+    "Progression.dc.html": {
+      "x": 0,
+      "y": 6440,
+      "w": 1440,
+      "h": 420,
+      "title": "14. Un hexagone selon l’avancement"
+    }
   },
-  "order": ["Main.dc.html", "Construire.dc.html", "Assaut.dc.html", "Croissance.dc.html", "Defaite.dc.html", "Mobile.dc.html", "Inventaire.dc.html"],
+  "order": [
+    "Main.dc.html",
+    "Construire.dc.html",
+    "Assaut.dc.html",
+    "Croissance.dc.html",
+    "Defaite.dc.html",
+    "Mobile.dc.html",
+    "Inventaire.dc.html",
+    "Accueil.dc.html",
+    "AccueilImport.dc.html",
+    "AccueilMobile.dc.html",
+    "AccueilTombee.dc.html",
+    "ReglagesJeu.dc.html",
+    "Reglages.dc.html",
+    "Progression.dc.html"
+  ],
   "notes": {},
   "designSystems": []
 }

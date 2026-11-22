@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Menu commun</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./titre.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&amp;family=Chakra+Petch:wght@600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="t" style="width:380px;height:460px;padding:22px 24px;background:#081214;border:1.5px solid #46636b;border-radius:30px 12px"><h2 class="display" style="font-size:20px;color:#b7f34a;margin-bottom:8px">Réglages</h2><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;border-bottom:1px solid #1d3036"><span>Vue</span><span style="display:flex;gap:6px"><button class="t-act {{on2d}}" onClick="{{set2d}}">2D</button><button class="t-act {{on3d}}" onClick="{{set3d}}">3D</button></span></div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;border-bottom:1px solid #1d3036"><span>Animations</span><span style="display:flex;gap:6px"><button class="t-act {{onauto}}" onClick="{{setauto}}">Auto</button><button class="t-act {{onless}}" onClick="{{setless}}">Réduites</button></span></div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;border-bottom:1px solid #1d3036"><span>Clavier et tactile</span><span style="display:flex;gap:6px"><button class="t-act">Voir</button></span></div><sc-if value="{{accueil}}" hint-placeholder-val="{{true}}"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;border-bottom:1px solid #1d3036"><span>Importer une partie</span><span style="display:flex;gap:6px"><button class="t-act">Choisir</button></span></div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;border-bottom:1px solid #1d3036"><span>Sauvegarder la planète</span><span style="display:flex;gap:6px"><button class="t-act">Tout exporter</button></span></div></sc-if>
+<sc-if value="{{jeu}}" hint-placeholder-val="{{false}}"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;border-bottom:1px solid #1d3036"><span>Cette partie</span><span style="display:flex;gap:6px"><button class="t-act">Exporter</button></span></div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;border-bottom:1px solid #1d3036"><span>Tout débloquer (test)</span><span style="display:flex;gap:6px"><button class="t-act">Activer</button></span></div><div style="display:flex;gap:8px;margin-top:16px"><button class="t-act go">Retour à la planète</button><button class="t-act bad">Recommencer</button></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"lieu":{"editor":"enum","default":"accueil","options":["accueil","jeu"]},"$preview":{"width":380,"height":460}}'>
+class Component extends DCLogic {
+  state = { d: '3d', m: 'auto' };
+
+  renderVals() {
+    const { d, m } = this.state;
+    const jeu = (this.props.lieu ?? 'accueil') === 'jeu';
+    return {
+      jeu,
+      accueil: !jeu,
+      on2d: d === '2d' ? 'on' : '',
+      on3d: d === '3d' ? 'on' : '',
+      onauto: m === 'auto' ? 'on' : '',
+      onless: m === 'less' ? 'on' : '',
+      set2d: () => this.setState({ d: '2d' }),
+      set3d: () => this.setState({ d: '3d' }),
+      setauto: () => this.setState({ m: 'auto' }),
+      setless: () => this.setState({ m: 'less' })
+    };
+  }
+}
+</script>
+</body>
+</html>
