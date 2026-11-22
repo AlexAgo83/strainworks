@@ -2576,6 +2576,14 @@ document.addEventListener('keydown', event => {
   if (spacePauses(event) && !event.repeat && !G.over) togglePause();
 });
 document.addEventListener('keyup', spacePauses);
+// Escape puts everything down: the tool, the line being drawn, the link being made, the selection.
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  // Without a gesture, letting the button go builds nothing.
+  gesture = null; drag = null;
+  choose('hand');
+});
 $('speed').onclick = () => { speed = speed === 1 ? 3 : 1; $('speed').textContent = '×' + speed; };
 let armed = 0;
 $('restart').onclick = () => {

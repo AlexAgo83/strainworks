@@ -1,4 +1,4 @@
-// The keyboard: arrows move the camera, Space pauses and resumes.
+// The keyboard: arrows move the camera, Space pauses and resumes, Escape puts the tool down.
 import { expect, it } from "vitest";
 import { launch, pageHTML } from "./harness.mjs";
 
@@ -79,6 +79,27 @@ it("moves the camera with the arrows and pauses with Space", async () => {
     await page.keyboard.press("Tab");
     await page.keyboard.press("Space");
     expect(await state()).toEqual([true, 1, "▶"]);
+
+    // Escape puts the tool down, with what was selected or being linked.
+    await page.evaluate(() => {
+      G.open = true;
+      choose("wire");
+      wiring = "48,34";
+      selected = "48,39";
+    });
+    await page.keyboard.press("Escape");
+    expect(await page.evaluate(() => [tool, wiring, linking, selected])).toEqual(["hand", null, null, null]);
+
+    // In the middle of a press, letting go afterwards builds nothing.
+    await page.click('#tools [data-type="cyst"]');
+    const board = await page.locator("#game").boundingBox();
+    const built = () => page.evaluate(() => Object.keys(G.cells).length);
+    const count = await built();
+    await page.mouse.move(board.x + 120, board.y + 150);
+    await page.mouse.down();
+    await page.keyboard.press("Escape");
+    await page.mouse.up();
+    expect([await page.evaluate(() => tool), await built()]).toEqual(["hand", count]);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();
