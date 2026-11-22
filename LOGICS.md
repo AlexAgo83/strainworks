@@ -63,7 +63,8 @@ Rejected are the operator's decisions, rows marked Proposed are open.
 
 - `prototype/index.html` is the playable reference and is still iterated on, with
   a French interface. `prototype/view3d.js` is its 3D view (camera, lights, batching,
-  read-outs) and `prototype/models3d.js` its models. Both only read the game state,
+  read-outs), `prototype/models3d.js` its models and `prototype/terrain3d.js` its ground,
+  flat at height 0 under whatever is built. They only read the game state,
   and a new kind of object needs a model there as well as its 2D drawing.
 - `tests/prototype/` records its behavior. An intended rule change updates the
   snapshot in the same commit and the concept with it. Never update a snapshot to

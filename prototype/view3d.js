@@ -51,61 +51,12 @@ window.createView3D = (glCanvas) => {
   const glow = new B.GlowLayer('glow', scene, { mainTextureFixedSize: 512, blurKernelSize: 24 });
   glow.intensity = 0.6;
 
-  // Steel deck: one texture tile covers 4 x 4 cells.
-  const deck = new B.DynamicTexture('deck', { width: 1024, height: 1024 }, scene, true);
-  {
-    const g = deck.getContext();
-    g.fillStyle = '#16262B';
-    g.fillRect(0, 0, 1024, 1024);
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 4; j++) {
-        g.fillStyle = ['#16262B', '#152429', '#17272D'][(i * 7 + j * 5) % 3];
-        g.fillRect(i * 256 + 3, j * 256 + 3, 250, 250);
-      }
-    }
-    g.strokeStyle = '#0A1215';
-    g.lineWidth = 9;
-    g.strokeRect(0, 0, 1024, 1024);
-    g.lineWidth = 3;
-    g.strokeRect(24, 24, 976, 976);
-    g.fillStyle = '#101C20';
-    for (let i = 0; i < 9; i++) g.fillRect(640, 106 + i * 18, 220, 6);
-    g.strokeStyle = '#20343A';
-    g.lineWidth = 2;
-    for (let i = 0; i < 70; i++) {
-      const x = (i * 397) % 1000;
-      const y = (i * 613) % 1000;
-      g.beginPath();
-      g.moveTo(x, y);
-      g.lineTo(x + ((i * 31) % 46) - 23, y + ((i * 17) % 18) - 9);
-      g.stroke();
-    }
-    g.fillStyle = '#35505A';
-    for (const x of [42, 512, 982]) {
-      for (const y of [42, 512, 982]) {
-        g.beginPath();
-        g.arc(x, y, 8, 0, Math.PI * 2);
-        g.fill();
-      }
-    }
-    deck.update();
-    deck.wrapU = deck.wrapV = B.Texture.WRAP_ADDRESSMODE;
-    deck.uScale = W / 4;
-    deck.vScale = H / 4;
-    deck.anisotropicFilteringLevel = 8;
-  }
-  const ground = B.MeshBuilder.CreateGround('ground', { width: W, height: H }, scene);
-  ground.position = at(W / 2, 0, H / 2);
-  const steel = new B.StandardMaterial('steel', scene);
-  steel.diffuseTexture = deck;
-  steel.specularColor = new B.Color3(0.12, 0.16, 0.17);
-  steel.specularPower = 28;
-  ground.material = steel;
-  ground.receiveShadows = true;
+  const terrain = window.createTerrain3D(B, scene);
 
   // ---- Each shape and paint pair of the models is one draw call.
   const models = window.createModels3D(B, scene);
-  const { SHAPES, PAINT, CASTERS } = models;
+  const { SHAPES, CASTERS } = models;
+  const PAINT = { ...models.PAINT, ...terrain.PAINT };
   const materials = {};
   function material(name) {
     if (materials[name]) return materials[name];
@@ -151,7 +102,8 @@ window.createView3D = (glCanvas) => {
       batch.grown = true;
     }
     B.Quaternion.RotationYawPitchRollToRef(angle, 0, roll, turn);
-    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, h, -y), matrix);
+    // Everything rides the ground, which is at height 0 under what is built.
+    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, h + terrain.height(x, y), -y), matrix);
     matrix.copyToArray(batch.data, batch.count * 16);
     batch.count++;
   }
@@ -198,6 +150,27 @@ window.createView3D = (glCanvas) => {
       rect(g, x - 0.4, y, 0.8, 0.1, '#05090B');
       rect(g, x - 0.4, y, 0.8 * Math.max(0, part), 0.1, color);
     };
+    // With a tool in hand, the plane the finger points at.
+    if (tool !== 'hand' && cam.zoom >= 11) {
+      const a = worldAt(0, 0);
+      const b = worldAt(view.w, view.h);
+      const x0 = Math.max(0, Math.floor(a.x));
+      const x1 = Math.min(W, Math.ceil(b.x));
+      const y0 = Math.max(0, Math.floor(a.y));
+      const y1 = Math.min(H, Math.ceil(b.y));
+      g.beginPath();
+      for (let x = x0; x <= x1; x++) {
+        g.moveTo(x, y0);
+        g.lineTo(x, y1);
+      }
+      for (let y = y0; y <= y1; y++) {
+        g.moveTo(x0, y);
+        g.lineTo(x1, y);
+      }
+      g.strokeStyle = '#8FBAC426';
+      g.lineWidth = px;
+      g.stroke();
+    }
     for (const [, x, y, w, h] of FIELDS) {
       const rich = richness(x + w / 2, y + h / 2);
       if (rich < 2) continue;
@@ -259,7 +232,7 @@ window.createView3D = (glCanvas) => {
         else packs.push({ e, n: 1 });
       }
       for (const { e, n } of packs) {
-        const y = up(e.y, 0.95);
+        const y = up(e.y, 0.95 + terrain.height(e.x, e.y));
         rect(g, e.x - 0.4, y - 0.16, 0.8, 0.32, '#05090BCC');
         [...e.gene].forEach((kind, i) => glyph(g, kind, e.x + (i - 1) * 0.24, y, 0.11));
         rect(g, e.x - 0.4, y - 0.26, 0.8 * Math.max(0, e.hp / e.max), 0.08, '#FF6B6B');
@@ -296,6 +269,7 @@ window.createView3D = (glCanvas) => {
   let height = 0;
   return {
     tilt,
+    ground: terrain.height,
     // A tap on the top of a tall object means that object, though the ground behind it is another cell.
     pick(point) {
       const p = worldAt(point.x, point.y);
@@ -335,6 +309,8 @@ window.createView3D = (glCanvas) => {
       // Tall things just south of the screen still show their tops.
       const area = { x0: Math.floor(a.x) - 1, y0: Math.floor(a.y) - 2, x1: Math.ceil(b.x) + 1, y1: Math.ceil(b.y) + 2 };
       heartbeat();
+      terrain.update();
+      terrain.draw(add, area, G.time + owed);
       models.draw(add, area);
       flush();
       scene.render();

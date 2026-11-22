@@ -1833,6 +1833,7 @@ async function show3D(on) {
       toggle.textContent = '…';
       if (!window.BABYLON) await script(BABYLON_SRC, BABYLON_HASH);
       if (!window.createModels3D) await script('models3d.js');
+      if (!window.createTerrain3D) await script('terrain3d.js');
       if (!window.createView3D) await script('view3d.js');
       // Built while visible, or the engine would start on an empty canvas.
       $('gl').hidden = false;

@@ -7,7 +7,7 @@ import { launch, pageHTML } from "./harness.mjs";
 
 const file = (path) => fileURLToPath(new URL(path, import.meta.url));
 const ENGINE = file("../../node_modules/babylonjs/babylon.js");
-const PARTS = ["view3d.js", "models3d.js"];
+const PARTS = ["view3d.js", "models3d.js", "terrain3d.js"];
 
 async function open(browser, { network = true } = {}) {
   const page = await browser.newPage({ viewport: { width: 375, height: 700 }, hasTouch: true });
@@ -82,6 +82,19 @@ it("draws the same game and lands a finger on the same cell", async () => {
       return JSON.stringify(G) === before;
     });
     expect(drawn).toBe(true);
+
+    // The ground has relief, and settles to the finger's plane under what is built.
+    // With less motion asked for, it settles in one frame.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const ground = await page.evaluate(() => {
+      const free = [];
+      for (let x = 10; x < 86; x += 2) for (let y = 10; y < 86; y += 2) free.push(view3d.ground(x + 0.5, y + 0.5));
+      view3d.draw();
+      const built = Object.values(G.cells).map((c) => Math.abs(view3d.ground(c.x + 0.5, c.y + 0.5)));
+      return { relief: Math.max(...free) - Math.min(...free), worst: Math.max(...built) };
+    });
+    expect(ground.relief).toBeGreaterThan(0.4);
+    expect(ground.worst).toBeLessThan(0.02);
 
     // Where a cell's centre is projected, a tap builds on that cell.
     await page.evaluate(() => {

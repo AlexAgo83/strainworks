@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. `prototype/index.html` also opens directly as a file, with `view3d.js` and `models3d.js` beside it.
+The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. `prototype/index.html` also opens directly as a file, with `view3d.js`, `models3d.js` and `terrain3d.js` beside it.
 
 The **3D** button beside the zoom draws the same game in Babylon.js. The engine is fetched from jsDelivr on first use, pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
 
@@ -30,7 +30,7 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 
 | Path | Content |
 |---|---|
-| `prototype/` | The playable prototype, its 3D view (`view3d.js`, models in `models3d.js`) and the transport mockup, French interface |
+| `prototype/` | The playable prototype, its 3D view (`view3d.js`, models in `models3d.js`, ground in `terrain3d.js`) and the transport mockup, French interface |
 | `docs/concept.md` | Game concept and decisions |
 | `tests/prototype/` | Behavior tests of the prototype |
 | `tests/fixtures/saves/` | Saved games from earlier prototype versions |

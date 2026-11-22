@@ -121,7 +121,7 @@ window.createModels3D = (B, scene) => {
     glass: ['#8FE3EF', 0.06, 0.2, 1], membraneGlass: ['#B9E88A', 0.06, 0.32, 1],
     S: ['#69AE32', 0.28, 1, 0.7], S2: ['#B9EC7C', 0.35, 1, 0.7], F: ['#C9741F', 0.22, 1, 0.45], F2: ['#FFC06B', 0.3, 1, 0.4],
     C: ['#BFAF8E', 0.08, 1, 0.85], C2: ['#F3E6C8', 0.12, 1, 0.9], N: ['#36AFC6', 0.5, 1, 0.5], N2: ['#B8F3FA', 0.6, 1, 0.5],
-    Ssoil: ['#1B3018', 0.04, 1, 0.4], Fsoil: ['#33200F', 0.04, 1, 0.3], Csoil: ['#2C2921', 0.02, 1, 0.3], Nsoil: ['#0C2A31', 0.06, 1, 0.4],
+    Nsoil: ['#0C2A31', 0.06, 1, 0.4],
     flesh: ['#7C2A3D', 0.07, 1, 0.9], flesh2: ['#A8485C', 0.12, 1, 0.9], pink: ['#E8738A', 0.28, 1, 0.8],
     gore: ['#32151C', 0.02, 1, 0.8], chitin: ['#241319', 0.02, 1, 1], bone: ['#A89C84', 0.03, 1, 0.5],
     skin: ['#22401D', 0.03, 1, 0.7], skin2: ['#366426', 0.07, 1, 0.8], sprout: ['#5E9E2B', 0.22, 1, 0.8],
@@ -620,14 +620,13 @@ window.createModels3D = (B, scene) => {
           const m = noise(j + 4, i + 9);
           const cx = i + 0.5;
           const cy = j + 0.5;
-          add('stain', `${kind}soil`, cx + (n - 0.5) * 0.12, cy + (m - 0.5) * 0.12, 0.018 + n * 0.02, 1.22, 0.03, 1.22, n * 6);
           const covered = G.cells[key(i, j)];
           if (covered) {
             if (covered.type !== 'mine') base(kind, cx - 0.38, cy + 0.38, 0.12, 0.08);
             continue;
           }
           if (cam.zoom < 9 && (i + j) % 2) continue;
-          GROWTH[kind](cx + (n - 0.5) * 0.2, cy + (m - 0.5) * 0.2, n, m, i, j);
+          GROWTH[kind](cx + (n - 0.5) * 0.4, cy + (m - 0.5) * 0.4, n, m, i, j);
         }
       }
     }
@@ -684,8 +683,8 @@ window.createModels3D = (B, scene) => {
       const nj = j + (down ? 1 : 0);
       if (DEPOSIT[key(ni, nj)] !== 'N' || G.cells[key(ni, nj)]) return;
       const n2 = noise(ni, nj);
-      const tx = ni + 0.5 + (n2 - 0.5) * 0.2;
-      const ty = nj + 0.5 + (noise(nj + 4, ni + 9) - 0.5) * 0.2;
+      const tx = ni + 0.5 + (n2 - 0.5) * 0.4;
+      const ty = nj + 0.5 + (noise(nj + 4, ni + 9) - 0.5) * 0.4;
       const th = 0.24 + n2 * 0.14;
       limb('N', x, y, h, tx, ty, th, 0.025);
       const p = (clock * 0.8 + n) % 1;
