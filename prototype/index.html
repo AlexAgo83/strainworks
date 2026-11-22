@@ -500,6 +500,16 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 @keyframes float { 50% { transform:translateY(-5px); } }
 @keyframes projected { from { opacity:0; transform:scaleY(.08); } }
 @keyframes scan { to { background-position:0 20px; } }
+/* Live performance graph, from the menu. */
+#perf { position:absolute; left:50%; top:calc(14px + var(--t)); z-index:7; width:min(420px,calc(100% - 24px)); translate:-50% 0; padding:10px 12px 8px; border:1px solid #2A4048; border-radius:16px 6px; background:#050B0DE8; pointer-events:none; }
+#perf-chart { display:block; width:100%; height:150px; }
+#perf-sum { margin:0 0 4px!important; color:var(--ink); font:600 12px var(--display); }
+#perf-legend { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px 14px; margin-top:4px; }
+#perf-legend p { display:flex; align-items:center; gap:6px; margin:0!important; color:var(--muted); font-size:11px; }
+#perf-legend i { flex:none; width:9px; height:9px; border-radius:2px; }
+#perf-legend b { margin-left:auto; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
+.on-planet #perf { display:none; }
+@media (max-width:759px) { #perf { top:calc(108px + var(--t)); } #perf-chart { height:120px; } }
 @media (prefers-reduced-motion:reduce) { #app *, #app *::before, #app *::after { animation:none!important; transition:none!important; } }
 </style>
 
@@ -561,6 +571,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <h2>Réglages</h2>
     <div class="row" id="view-row"><span>Vue</span><span class="choice"><button id="flat" class="tip" aria-pressed="true">2D</button><button id="dimension" class="tip" aria-pressed="false">3D</button></span></div>
     <div class="row"><span>Animations</span><span class="choice"><button id="motion-auto" class="tip">Auto</button><button id="motion-less" class="tip">Réduites</button></span></div>
+    <div class="row in-game"><span>Graphe de performance</span><button id="perf-toggle" class="tip" aria-pressed="false" aria-controls="perf">Afficher</button></div>
     <div class="row"><span>Clavier et tactile</span><button id="help" class="tip">Voir</button></div>
     <div class="row at-planet"><span>Importer une partie</span><button id="import" class="tip">Choisir</button></div>
     <div class="row at-planet"><span>Sauvegarder la planète</span><button id="export-all" class="tip">Tout exporter</button></div>
@@ -571,6 +582,8 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
       <button id="restart" class="tip"><span>Recommencer : maintenir</span><i></i></button>
     </div>
   </div>
+
+  <section id="perf" hidden aria-label="Performance"><p id="perf-sum">Mesure en cours…</p><canvas id="perf-chart" aria-hidden="true"></canvas><div id="perf-legend"></div></section>
 
   <nav id="zoom" aria-label="Caméra">
     <button id="zoom-in" class="node step" aria-label="Zoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v14M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button>
@@ -886,7 +899,7 @@ function crowdedField(sx, sy) {
   return ['SFCN'[Math.floor(roll(6) * 4)], left + 8 + Math.floor(roll(4) * (17 - w)), top + 8 + Math.floor(roll(5) * (17 - h)), w, h];
 }
 function keepHarvests() {
-  for (const c of [...Object.values(G.cells), ...Object.values(G.ruins)]) {
+  for (const c of [...allCells(), ...Object.values(G.ruins)]) {
     if ((c.type !== 'mine' && c.type !== 'borer') || c.on) continue;
     const home = atHome(c.x, c.y);
     const found = home ? [...(G.far ? [] : INNER), ...CROWDED] : [crowdedField(Math.floor(c.x / SECTOR), Math.floor(c.y / SECTOR))].filter(Boolean);
@@ -902,7 +915,7 @@ function keepHarvests() {
 // A nest the spread-out world would have dealt over what an older game built is not dealt: none wakes on loading.
 function spreadOut() {
   keepHarvests();
-  const built = [...Object.values(G.cells), ...Object.values(G.tracks)].filter(c => c.type !== 'core'), cleared = new Set(), points = [];
+  const built = [...allCells(), ...Object.values(G.tracks)].filter(c => c.type !== 'core'), cleared = new Set(), points = [];
   for (const c of built) {
     for (const p of c.type ? footprint(c) : [c]) points.push(p);
     const to = c.to && G.cells[c.to];
@@ -1014,6 +1027,7 @@ function lightUp(sets, x, y, r) {
 // Who sees, how far, and what that uncovers. A nest shows as soon as ground in sight reaches its circle,
 // so none is ever woken from out of the fog.
 function look(force) {
+  forgetCells();
   G.seen ||= {};
   const eyes = new Map(), moving = new Map();
   const eye = (x, y, r, into = eyes) => {
@@ -1021,7 +1035,7 @@ function look(force) {
     const ex = Math.floor(x / 4) * 4 + 2, ey = Math.floor(y / 4) * 4 + 2, id = ex + ',' + ey;
     if (!(into.get(id)?.r >= r)) into.set(id, {x:ex, y:ey, r});
   };
-  for (const c of Object.values(G.cells)) if (c.type === 'core' || built(c)) eye(c.x, c.y, c.type === 'core' ? SIGHT.core : SIGHT.built);
+  for (const c of allCells()) if (c.type === 'core' || built(c)) eye(c.x, c.y, c.type === 'core' ? SIGHT.core : SIGHT.built);
   for (const t of Object.values(G.tracks)) if (built(t)) eye(t.x, t.y, SIGHT.built);
   for (const d of G.drones || []) if (d.job) eye(d.x, d.y, SIGHT.moving, moving);
   for (const w of G.worms) if (built(w)) { const p = at(w.path[0]); eye(p.x, p.y, SIGHT.moving, moving); }
@@ -1124,7 +1138,7 @@ const START_DNA = 80;
 const gunPrice = type => n => GUNS[type].cost + 10 * n;
 // The three turrets climb one scale, or taking turns between them would get round it.
 const PRICE = {turret:gunPrice('turret'), sting:gunPrice('sting'), maw:gunPrice('maw'), wall:n => 5 + Math.floor(n / 5), worm:n => 20 + 10 * n};
-const owned = type => type === 'worm' ? G.worms.length : Object.values(G.cells).filter(c => GUNS[type] ? GUNS[c.type] : c.type === type).length;
+const owned = type => type === 'worm' ? G.worms.length : allCells().filter(c => GUNS[type] ? GUNS[c.type] : c.type === type).length;
 const price = type => PRICE[type] ? PRICE[type](owned(type)) : 0;
 // Taking one down returns what the last one cost, less its damage: building and removing never earns.
 const refund = c => {
@@ -1236,7 +1250,15 @@ function cell(type, x, y, dir) {
   return {to:null, packets:[], veinHp:VEIN.hp, type, x, y, dir, hp:TYPES[type]?.hp ?? 100, item:null, t:0, clock:0, from:-1,
     ports:[[],[],[]], flip:false, open:true, want:'C', side:3, box:'T', seen:'', stock:[], ammo:{}, lanes:[null,null], made:[], turn:0, last:''};
 }
-function put(type, x, y, dir) { return G.cells[key(x, y)] = cell(type, x, y, dir); }
+// One list of the factory for every reader of a task, instead of a copy each: put and remove forget it,
+// and it never outlives the task, so a change made anywhere else is seen by the next task.
+let cellMemo = null, pumpMemo = null;
+function forgetCells() { cellMemo = pumpMemo = null; }
+function allCells() {
+  if (cellMemo?.of !== G.cells) { cellMemo = {of:G.cells, list:Object.values(G.cells)}; pumpMemo = null; queueMicrotask(forgetCells); }
+  return cellMemo.list;
+}
+function put(type, x, y, dir) { forgetCells(); return G.cells[key(x, y)] = cell(type, x, y, dir); }
 function build(type, x, y, dir) {
   const c = put(type, x, y, dir);
   c.left = BUILD[type] || 0; c.order = G.seq = (G.seq || 0) + 1;
@@ -1249,7 +1271,7 @@ function sites() {
     if (c.out != null) jobs.push({c, field:'out', order:c.outOrder});
     if (c.up != null) jobs.push({c, field:'up', order:c.upOrder});
   };
-  for (const c of Object.values(G.cells)) {
+  for (const c of allCells()) {
     look(c);
     if (c.to && c.veinLeft > 0) jobs.push({c, field:'veinLeft', order:c.veinOrder});
     if (c.to && c.veinOut != null) jobs.push({c, field:'veinOut', order:c.veinOutOrder});
@@ -1416,7 +1438,7 @@ function dronePose(d) {
 function repair(dt) {
   for (const w of G.wires) if (w.hp > 0 && w.hp < NERVE.hp && G.time - (w.hitAt ?? -99) >= REPAIR.quiet) w.hp = Math.min(NERVE.hp, w.hp + NERVE.hp * dt * REPAIR.share);
   for (const w of G.worms) if (w.hp < WORM.hp && G.time - (w.hitAt ?? -99) >= REPAIR.quiet) w.hp = Math.min(WORM.hp, w.hp + WORM.hp * dt * REPAIR.share);
-  for (const c of Object.values(G.cells)) {
+  for (const c of allCells()) {
     if (healing(c)) c.hp = Math.min(fullHp(c), c.hp + fullHp(c) * dt * (c.type === 'core' ? REPAIR.core : REPAIR.share));
     // A severed vein needs Reconstruire, a wounded one closes by itself.
     if (c.to && c.veinHp > 0 && c.veinHp < VEIN.hp && G.time - (c.veinHitAt ?? -99) >= REPAIR.quiet)
@@ -1504,7 +1526,7 @@ function wayOf(c, axis) {
   return null;
 }
 // A vein runs straight from a pump to the one named by `to`. A pump without one empties on its four sides.
-function pumps() { return Object.values(G.cells).filter(c => c.type === 'pump'); }
+function pumps() { const list = allCells(); return pumpMemo ??= list.filter(c => c.type === 'pump'); }
 function drains(c) { return c.type === 'borer' || (c.type === 'pump' && !c.to) || (c.type === 'pocket' && Boolean(c.unload)); }
 function span(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function leaking(c) { return c.veinHp > 0 && c.veinHp < VEIN.hp / 2; }
@@ -1803,7 +1825,7 @@ function receive(c, item, travel, carry = 0) {
 // Keeps what overshoots the end of a cell, unless the item has been waiting there.
 function advance(t, by) { return t >= .999 ? 1 : t + by; }
 function flow(dt) {
-  const cells = Object.values(G.cells).filter(built);
+  const cells = allCells().filter(built);
   paces.clear();
   pulse(dt);
   crawl(dt);
@@ -1934,7 +1956,7 @@ function bearing(b) {
 }
 function nearestBuilding(at) {
   let best = null, close = Infinity;
-  for (const c of Object.values(G.cells)) {
+  for (const c of allCells()) {
     const d = Math.hypot(c.x - at.x, c.y - at.y);
     if (d < close) { best = c; close = d; }
   }
@@ -1962,7 +1984,7 @@ function wake(found, cause) {
   tell(`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? ', avec une nouvelle famille' : ''}.${b.id ? ' Elle vise l’avant-poste qui l’a réveillée.' : ''}`, {at:b, gene:b.born, bad:true});
 }
 function disturb() {
-  const cells = Object.values(G.cells).filter(c => c.type !== 'core');
+  const cells = allCells().filter(c => c.type !== 'core');
   const veins = cells.filter(c => c.type === 'pump' && G.cells[c.to]).map(c => [c, G.cells[c.to]]);
   const tracks = Object.values(G.tracks), seen = new Map(G.breaches.map(b => [b.id || b, b])), around = new Set();
   // The world is only looked at round what is built, so it costs what the factory measures.
@@ -2016,13 +2038,13 @@ function menace(dt) {
   for (const e of G.enemies) {
     const b = G.breaches[e.home];
     if (!b?.post || outposts.has(b)) continue;
-    const standing = () => Object.values(G.cells).filter(c => Math.hypot(c.x - b.post.x, c.y - b.post.y) <= OUTPOST);
+    const standing = () => allCells().filter(c => Math.hypot(c.x - b.post.x, c.y - b.post.y) <= OUTPOST);
     let list = standing();
     if (!list.length) { const next = nearestBuilding(b.post); b.post = {x:next.x, y:next.y}; list = standing(); }
     outposts.set(b, list);
   }
   // The others go for a turret whenever one is closer than the core.
-  const turrets = Object.values(G.cells).filter(c => isGun(c) && built(c));
+  const turrets = allCells().filter(c => isGun(c) && built(c));
   const veins = pumps().filter(p => p.veinHp > 0 && G.cells[p.to]).map(p => [p, G.cells[p.to]]);
   for (const e of G.enemies) {
     let goal = {x:CORE.x + .5, y:CORE.y + .5}, lure = 6, gnawing = false, prey = null, reach = Infinity;
@@ -2068,7 +2090,7 @@ function menace(dt) {
       pace = passable ? .22 : 0;
       if (c.hp <= 0) {
         if (c.type === 'core') { G.over = true; c.hp = 0; }
-        else { dropRise(c); delete G.cells[key(c.x, c.y)]; G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read, mk:c.mk, on:c.on, onRich:c.onRich}; tell('Ligne coupée : le bouton Reconstruire remet tout en place.', {at:c, bad:true}); }
+        else { dropRise(c); delete G.cells[key(c.x, c.y)]; forgetCells(); G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read, mk:c.mk, on:c.on, onRich:c.onRich}; tell('Ligne coupée : le bouton Reconstruire remet tout en place.', {at:c, bad:true}); }
       }
     }
     e.x += dx / distance * pace * dt; e.y += dy / distance * pace * dt;
@@ -2081,7 +2103,7 @@ function damage(ammo, gene) {
   return [1, 2, 5, 12][hits];
 }
 function fire(dt) {
-  for (const c of Object.values(G.cells)) {
+  for (const c of allCells()) {
     if (!isGun(c) || !built(c)) continue;
     c.clock -= dt;
     if (c.clock > 0) continue;
@@ -2111,6 +2133,7 @@ function fire(dt) {
   G.shots = G.shots.filter(s => s.until > G.time);
 }
 function step(dt) {
+  forgetCells();
   if (G.over) return;
   G.time += dt;
   construct(dt); repair(dt); sense(); flow(dt); digest(dt); menace(dt); fire(dt);
@@ -2587,6 +2610,7 @@ function drawCell(g, c, inputs = []) {
   } else if (type === 'core') circle(g,0,0,.31,'#B7F34A','#E2FFB0');
 }
 function draw() {
+  forgetCells();
   if (view3d) return view3d.draw();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.fillStyle = '#05090B'; ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -2621,7 +2645,7 @@ function draw() {
   drawOrganism();
   for (const b of shownNests(x0,y0,x1,y1)) drawBreach(b);
 
-  const cells = Object.values(G.cells).filter(c => c.x >= x0 - 2 && c.x <= x1 && c.y >= y0 - 2 && c.y <= y1);
+  const cells = allCells().filter(c => c.x >= x0 - 2 && c.x <= x1 && c.y >= y0 - 2 && c.y <= y1);
   drawVeins();
   drawTracks();
   for (const w of Object.values(G.ruins)) if (!buried(w)) rect(ctx,w.x + .15,w.y + .15,sizeOf(w) - .3,sizeOf(w) - .3,'#321820','#FF6B6B');
@@ -3094,13 +3118,14 @@ function orderHTML() {
 }
 function stockOf(gene) {
   let n = 0;
-  for (const c of Object.values(G.cells)) {
+  for (const c of allCells()) {
     if (isGun(c)) n += c.ammo[gene] || 0;
     if (['cyst','vault','pump','pocket'].includes(c.type)) for (const item of c.stock) { if (item === gene) n++; else if (item === `A:${gene}`) n += PACK.size; }
   }
   return n;
 }
 function refresh() {
+  forgetCells();
   const jobs = sites().length;
   $('works').hidden = !jobs || G.over;
   $('works').textContent = `${jobs} chantier${jobs > 1 ? 's' : ''}${paused ? ' en pause' : ''}`;
@@ -3158,7 +3183,7 @@ function remove(x,y) {
   const gone = G.cells[key(x,y)];
   G.wires = G.wires.filter(w => w.a !== key(x,y) && w.b !== key(x,y));
   if (gone) { dropRise(gone); G.dna += refund(gone); }
-  delete G.cells[key(x,y)]; delete G.ruins[key(x,y)];
+  delete G.cells[key(x,y)]; delete G.ruins[key(x,y)]; forgetCells();
   for (const c of [...pumps(), ...Object.values(G.ruins)]) if (c.to === key(x,y)) { c.to = null; c.packets = []; delete c.veinOut; delete c.veinCut; }
 }
 // Démonter takes what is on top first: worm, building, then trail.
@@ -4226,7 +4251,7 @@ function paintMoments() {
   }
 }
 function paintDry() {
-  ui.dry = G.over || !G.enemies.length ? [] : Object.values(G.cells).filter(c => isGun(c) && built(c) && !Object.values(c.ammo).some(n => n) && G.enemies.some(e => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range * 2)).slice(0, 4);
+  ui.dry = G.over || !G.enemies.length ? [] : allCells().filter(c => isGun(c) && built(c) && !Object.values(c.ammo).some(n => n) && G.enemies.some(e => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range * 2)).slice(0, 4);
   const box = $('dry');
   while (box.children.length > ui.dry.length) box.lastChild.remove();
   while (box.children.length < ui.dry.length) box.insertAdjacentHTML('beforeend', '<i><b></b><span>Tourelle à sec</span></i>');
@@ -4374,7 +4399,7 @@ function soften(field, w, h) {
 function sceneSigns(g) {
   const t = motionTime(), still = STILL.matches, px = 1 / cam.zoom, a = worldAt(0, 0), b = worldAt(view.w, view.h);
   const seen = c => c.x >= a.x - 2 && c.x <= b.x + 1 && c.y >= a.y - 2 && c.y <= b.y + 1;
-  const cells = Object.values(G.cells).filter(seen);
+  const cells = allCells().filter(seen);
   g.save();
   g.lineCap = 'round';
   for (const c of [...cells, ...Object.values(G.ruins).filter(w => w.out != null && seen(w))]) {
@@ -5297,6 +5322,116 @@ document.addEventListener('keydown', event => {
 window.addEventListener('pagehide', () => { save(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
+// The live performance graph: 30 s of the CPU each drawn frame costs, by kind, with the real time between frames.
+// Off, the wrapped functions pay one test of PERF.on and nothing is timed, kept or drawn.
+const PERF_KEY = 'strainworks-perf';
+const PERF_KINDS = [['sim', 'Simulation', '#418EE8'], ['fog', 'Brouillard', '#9C8CF0'], ['draw', 'Dessin 2D', '#E6C94C'],
+  ['three', 'Vue 3D', '#E07CC8'], ['ui', 'Interface', '#45BFC9'], ['save', 'Sauvegarde', '#F49445']];
+const PERF = {on:false, stack:[], cost:{}, frames:0, gaps:0, frameSum:0, framePeak:0, cpu:0, cpuPeak:0, since:0, lastFrame:0, history:[]};
+const perfZero = () => Object.fromEntries(PERF_KINDS.map(([id]) => [id, 0]));
+// Exclusive time: what a nested scope costs is taken off its parent.
+function timed(kindOf, f) {
+  return function (...args) {
+    if (!PERF.on) return f.apply(this, args);
+    const kind = typeof kindOf === 'function' ? kindOf() : kindOf, scope = {since:performance.now(), inner:0};
+    PERF.stack.push(scope);
+    try { return f.apply(this, args); }
+    finally {
+      const spent = performance.now() - scope.since;
+      PERF.stack.pop();
+      PERF.cost[kind] += spent - scope.inner;
+      if (PERF.stack.length) PERF.stack.at(-1).inner += spent;
+    }
+  };
+}
+step = timed('sim', step);
+look = timed('fog', look);
+drawFog = timed('fog', drawFog);
+draw = timed(() => view3d ? 'three' : 'draw', draw);
+refresh = timed('ui', refresh);
+animateHud = timed('ui', animateHud);
+layoutHud = timed('ui', layoutHud);
+save = timed('save', save);
+
+function perfReset() {
+  Object.assign(PERF, {stack:[], cost:perfZero(), frames:0, gaps:0, frameSum:0, framePeak:0, cpu:0, cpuPeak:0, since:performance.now(), lastFrame:0, history:[]});
+}
+// Called once a frame, after it is drawn: one sample every 100 ms, averaged per frame.
+function perfFrame(now, cpu) {
+  if (!PERF.on || document.hidden) return;
+  if (PERF.lastFrame) { const gap = now - PERF.lastFrame; PERF.gaps++; PERF.frameSum += gap; PERF.framePeak = Math.max(PERF.framePeak, gap); }
+  PERF.lastFrame = now;
+  PERF.frames++; PERF.cpu += cpu; PERF.cpuPeak = Math.max(PERF.cpuPeak, cpu);
+  if (now - PERF.since < 100) return;
+  const n = PERF.frames, costs = Object.fromEntries(Object.entries(PERF.cost).map(([id, ms]) => [id, ms / n]));
+  PERF.history.push({at:now, costs, cpu:PERF.cpu / n, cpuPeak:PERF.cpuPeak, frame:PERF.gaps ? PERF.frameSum / PERF.gaps : 0, framePeak:PERF.framePeak});
+  while (PERF.history.length && PERF.history[0].at < now - 30000) PERF.history.shift();
+  Object.assign(PERF, {cost:perfZero(), frames:0, gaps:0, frameSum:0, framePeak:0, cpu:0, cpuPeak:0, since:now});
+  drawPerf();
+}
+function drawPerf() {
+  const canvas = $('perf-chart'), width = canvas.clientWidth, height = 150;
+  if (!width) return;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2), g = canvas.getContext('2d');
+  if (canvas.width !== Math.round(width * ratio)) { canvas.width = Math.round(width * ratio); canvas.height = Math.round(height * ratio); }
+  g.setTransform(ratio, 0, 0, ratio, 0, 0);
+  g.clearRect(0, 0, width, height);
+  const list = PERF.history, last = list.at(-1), now = last?.at ?? performance.now();
+  // The scale follows the usual frame, a rare stall keeps its value written above the chart.
+  const tops = list.map(s => Math.max(s.cpu, s.frame)).sort((a, b) => a - b);
+  const ceiling = Math.max(36, Math.ceil((tops[Math.max(0, Math.ceil(tops.length * .9) - 1)] ?? 0) / 10) * 10);
+  const left = 30, right = 6, top = 8, bottom = 18;
+  const x = at => left + (at - now + 30000) / 30000 * (width - left - right);
+  const y = ms => height - bottom - Math.min(ms, ceiling) / ceiling * (height - top - bottom);
+  g.font = '10px Barlow, system-ui'; g.lineWidth = 1;
+  for (const tick of [0, 1000 / 60, 1000 / 30]) {
+    g.strokeStyle = tick ? '#FFFFFF2A' : '#FFFFFF14'; g.setLineDash(tick ? [4, 4] : []);
+    g.beginPath(); g.moveTo(left, y(tick)); g.lineTo(width - right, y(tick)); g.stroke();
+    g.fillStyle = '#A9BDB8'; g.textAlign = 'right';
+    g.fillText(tick ? tick.toFixed(1) : '0', left - 4, y(tick) + 3);
+  }
+  g.setLineDash([]); g.textAlign = 'center';
+  for (const s of [30, 20, 10, 0]) g.fillText(s ? `-${s} s` : 'maintenant', Math.min(width - 28, Math.max(left + 14, x(now - s * 1000))), height - 4);
+  g.save(); g.beginPath(); g.rect(left, top, width - left - right, height - top - bottom); g.clip();
+  const under = list.map(() => 0);
+  for (const [id, , color] of PERF_KINDS) {
+    g.beginPath();
+    list.forEach((s, i) => { const px = x(s.at), py = y(under[i] + s.costs[id]); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+    for (let i = list.length - 1; i >= 0; i--) g.lineTo(x(list[i].at), y(under[i]));
+    g.closePath(); g.fillStyle = color + 'CC'; g.fill();
+    list.forEach((s, i) => { under[i] += s.costs[id]; });
+  }
+  const line = (field, color, width, dash = []) => {
+    g.beginPath(); g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash);
+    list.forEach((s, i) => (i ? g.lineTo : g.moveTo).call(g, x(s.at), y(s[field])));
+    g.stroke();
+  };
+  line('cpuPeak', '#F0A03C88', 1, [2, 3]);
+  line('framePeak', '#FFFFFF44', 1, [2, 3]);
+  line('frame', '#FFFFFF', 1.6);
+  g.restore();
+  const peak = Math.max(0, ...list.map(s => Math.max(s.framePeak, s.cpuPeak)));
+  if (peak > ceiling) { g.fillStyle = '#F0A03C'; g.textAlign = 'right'; g.fillText(`pic ${peak.toFixed(0)} ms`, width - right, top + 9); }
+  if (!last) return;
+  const fps = last.frame ? 1000 / last.frame : 0, figure = n => n.toFixed(1).replace('.', ',');
+  $('perf-sum').textContent = `${Math.round(fps)} images/s · ${figure(last.frame)} ms entre deux · CPU ${figure(last.cpu)} ms par image`;
+  for (const [id] of PERF_KINDS) $(`perf-${id}`).textContent = `${figure(last.costs[id])} ms`;
+  $('perf-other').textContent = `${figure(Math.max(0, last.cpu - Object.values(last.costs).reduce((a, b) => a + b, 0)))} ms`;
+}
+function showPerf(on) {
+  PERF.on = on;
+  perfReset();
+  $('perf').hidden = !on;
+  $('perf-toggle').setAttribute('aria-pressed', on);
+  $('perf-toggle').textContent = on ? 'Masquer' : 'Afficher';
+}
+$('perf-legend').innerHTML = [...PERF_KINDS, ['other', 'Autre code de l’image', '#84909C']].map(([id, name, color]) =>
+  `<p><i style="background:${color}"></i><span>${name}</span><b id="perf-${id}">–</b></p>`).join('');
+$('perf-toggle').onclick = () => { showPerf(!PERF.on); keep(PERF_KEY, PERF.on ? 'on' : 'off'); };
+// Time spent in the background is not a stall of the game.
+document.addEventListener('visibilitychange', () => { if (PERF.on && !document.hidden) perfReset(); });
+showPerf(stored(PERF_KEY) === 'on');
+
 growDock();
 resize();
 setMotion(stored(MOTION_KEY) === 'less');
@@ -5310,9 +5445,19 @@ openPlanet(true);
 new ResizeObserver(resize).observe($('board'));
 
 let before = performance.now(), owed = 0, shownAt = 0, savedAt = 0;
+// Untouched, a still screen is drawn less often: 15 images a second in pause, 30 on the planet.
+let stirred = performance.now(), drawnAt = 0, planetOwed = 0;
+for (const kind of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'resize']) addEventListener(kind, () => { stirred = performance.now(); }, {capture:true, passive:true});
+const resting = (now, after, every) => now - stirred > after && now - drawnAt < every;
 function frame(now) {
+  const started = performance.now();
   const elapsed = Math.min(.15,(now-before)/1000); before = now;
-  if (orbit.on) { drawPlanet(elapsed); requestAnimationFrame(frame); return; }
+  if (orbit.on) {
+    planetOwed += elapsed;
+    if (!resting(now, 3000, 1000 / 30 - 2)) { drawPlanet(Math.min(.15, planetOwed)); planetOwed = 0; drawnAt = now; }
+    requestAnimationFrame(frame);
+    return;
+  }
   if (!paused && !document.hidden) {
     if (!G.over) G.played = (G.played ?? G.time) + elapsed;
     owed += elapsed*speed;
@@ -5326,7 +5471,8 @@ function frame(now) {
   followEdge(elapsed);
   setCursor();
   animateHud(elapsed);
-  draw();
+  if (!(paused && resting(now, 1500, 1000 / 15 - 2))) { draw(); drawnAt = now; }
+  perfFrame(now, performance.now() - started);
   requestAnimationFrame(frame);
 }
 refresh();

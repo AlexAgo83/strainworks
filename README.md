@@ -15,6 +15,12 @@ The browser opens `/prototype/`. The transport mockup is at `/prototype/transpor
 
 The **3D** button beside the zoom draws the same game in Babylon.js. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
 
+## Performance
+
+Settings > **Graphe de performance** shows 30 s of what each frame costs on the main thread, by kind
+(simulation, fog, 2D drawing, 3D view, interface, save), with the real time between frames and the
+60 and 30 images a second lines. Hidden, nothing is measured. GPU time is not measured.
+
 ## Build the site
 
 ```sh

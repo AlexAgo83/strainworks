@@ -17,3 +17,4 @@ The first playable version.
 - An organic planet with one hexagon a game, export and import.
 - A grafted interface over a full-screen scene, in 2D and 3D, on desktop and phone.
 - Installable, playable offline once loaded.
+- A live performance graph in the settings. A still screen is drawn less often, and the simulation reads one list of the factory a step instead of copying it.
