@@ -1,8 +1,8 @@
-// The arrows move the camera: each way, diagonals, faster with Shift, and they stop when let go.
+// The keyboard: arrows move the camera, Space pauses and resumes.
 import { expect, it } from "vitest";
 import { launch, pageHTML } from "./harness.mjs";
 
-it("moves the camera with the arrows", async () => {
+it("moves the camera with the arrows and pauses with Space", async () => {
   const html = pageHTML();
   const browser = await launch();
   try {
@@ -47,6 +47,38 @@ it("moves the camera with the arrows", async () => {
       return arrows.size;
     })).toBe(0);
     await page.keyboard.up("ArrowRight");
+
+    // Space pauses and resumes, even just after clicking a tool, and never clicks that tool again.
+    await page.click('#tools [data-type="belt"]');
+    await page.evaluate(() => {
+      window.toolClicks = 0;
+      document.querySelector("#tools").addEventListener("click", () => window.toolClicks++);
+    });
+    const state = () => page.evaluate(() => [paused, window.toolClicks, document.querySelector("#pause").textContent]);
+    await page.keyboard.press("Space");
+    expect(await state()).toEqual([false, 0, "II"]);
+    await page.keyboard.press("Space");
+    expect(await state()).toEqual([true, 0, "▶"]);
+
+    // Held, it flips once.
+    await page.keyboard.down("Space");
+    await page.keyboard.down("Space");
+    await page.keyboard.up("Space");
+    expect((await state())[0]).toBe(false);
+
+    // Just after a click on the pause button it flips once too, and on the board as well.
+    await page.click("#pause");
+    await page.keyboard.press("Space");
+    expect((await state())[0]).toBe(false);
+    await page.mouse.click(200, 300);
+    await page.keyboard.press("Space");
+    expect((await state())[0]).toBe(true);
+
+    // Who walks the buttons with Tab still presses them with Space.
+    await page.focus('#tools [data-type="hand"]');
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Space");
+    expect(await state()).toEqual([true, 1, "▶"]);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

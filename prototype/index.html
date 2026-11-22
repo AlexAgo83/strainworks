@@ -94,7 +94,7 @@ button:disabled { opacity:.4; cursor:default; }
       <div class="meter">Menace<span><i id="threat"></i></span></div>
       <div class="meter">Cœur<span><i id="core" class="core"></i></span></div>
     </div>
-    <button id="pause" aria-label="Mettre en pause">II</button>
+    <button id="pause" aria-label="Mettre en pause" aria-keyshortcuts="Space" title="Espace">II</button>
     <button id="speed" aria-label="Changer la vitesse">×1</button>
     <button id="restart">Reset</button>
   </header>
@@ -2499,7 +2499,23 @@ for (const [type,info] of TOOLBAR.map(type => [type,TYPES[type]])) {
   $('tools').append(b);
 }
 
-$('pause').onclick = () => { paused = !paused; refresh(); };
+const togglePause = () => { paused = !paused; refresh(); };
+$('pause').onclick = togglePause;
+// Space pauses. It only presses a button for who reached that button with Tab: after a click the focus just lingers.
+let tabbed = false;
+document.addEventListener('pointerdown', () => { tabbed = false; }, true);
+function spacePauses(event) {
+  if (event.code !== 'Space' || event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (tabbed && event.target.closest?.('button')) return false;
+  // Both ways, or a focused button clicks itself on the way up.
+  event.preventDefault();
+  return true;
+}
+document.addEventListener('keydown', event => {
+  if (event.key === 'Tab') tabbed = true;
+  if (spacePauses(event) && !event.repeat && !G.over) togglePause();
+});
+document.addEventListener('keyup', spacePauses);
 $('speed').onclick = () => { speed = speed === 1 ? 3 : 1; $('speed').textContent = '×' + speed; };
 let armed = 0;
 $('restart').onclick = () => {
