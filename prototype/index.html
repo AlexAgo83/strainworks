@@ -327,6 +327,46 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #menu { border-radius:18px; }
 /* Time under the view switch, apart from the camera by a little gap. */
 #zoom #view-toggle { margin-bottom:10px; }
+
+/* The guided start (boards 15 and 16). */
+#guide { position:absolute; left:calc(22px + var(--l)); top:calc(240px + var(--t)); z-index:4; width:330px; padding:14px 16px 12px;
+  background:var(--glass); -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--glass-edge); border-radius:18px; box-shadow:var(--glass-shadow); }
+#guide .kicker { margin:0; color:var(--cyan); font:700 11px var(--display); letter-spacing:.12em; text-transform:uppercase; }
+#guide .head { display:flex; align-items:center; gap:10px; margin-top:8px; }
+#guide .head .porthole { width:46px; height:46px; border-color:rgba(240,160,60,.7); }
+#guide h2 { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0; font:700 18px/1.15 var(--display); }
+#guide h2 svg { width:20px; height:20px; }
+#guide-why { margin:8px 0 0!important; color:var(--muted); font-size:13px; }
+#guide-why svg { width:14px; height:14px; vertical-align:-2px; }
+#guide ol { display:flex; flex-direction:column; gap:4px; margin:10px 0 0; padding:0; list-style:none; }
+#guide li { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
+#guide li i { flex:none; display:grid; place-items:center; width:19px; height:19px; border:1.5px solid #52707A; border-radius:50%; font:700 11px var(--display); font-style:normal; }
+#guide li.done { color:var(--ink); } #guide li.done i { border-color:var(--acid); background:var(--acid); color:var(--night); }
+#guide li.now { color:var(--amber); } #guide li.now i { border-color:var(--amber); color:var(--amber); animation:beat 1.3s ease-in-out infinite; }
+#guide li svg { width:13px; height:13px; }
+#guide .foot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:12px; }
+#guide .chip { padding:3px 10px; border:1px solid var(--acid); border-radius:10px; color:var(--acid); font-size:12px; font-weight:600; }
+#guide-open { position:absolute; left:calc(22px + var(--l)); top:calc(240px + var(--t)); z-index:4; }
+#app.guiding #events { top:calc(var(--guide-h, 0px) + 252px + var(--t)); }
+#guide-spot { position:absolute; left:0; top:0; z-index:2; width:0; height:0; pointer-events:none; }
+#guide-spot i { position:absolute; left:-26px; top:-26px; width:52px; height:52px; border:2.5px dashed var(--amber); border-radius:50%; animation:spin 6s linear infinite, beat 1.3s ease-in-out infinite; }
+#guide-spot i::after { content:""; position:absolute; left:50%; top:-14px; margin-left:-7px; border:7px solid transparent; border-top-color:var(--amber); }
+#tools .family.call .porthole { border-color:var(--amber); box-shadow:0 0 0 3px rgba(240,160,60,.25); animation:beat 1.3s ease-in-out infinite; }
+@keyframes beat { 50% { opacity:.55; } }
+@media (max-width:759px), (max-height:520px) {
+  #guide { left:calc(8px + var(--l)); right:calc(128px + var(--r)); top:calc(154px + var(--t)); width:auto; padding:10px 12px; }
+  #guide ol, #guide-why { display:none; }
+  #guide .head .porthole { width:36px; height:36px; }
+  #guide h2 { font-size:15px; }
+  #guide .foot { margin-top:8px; }
+  #guide-open { left:calc(8px + var(--l)); top:calc(154px + var(--t)); }
+  #app.guiding #events { top:calc(var(--guide-h, 0px) + 162px + var(--t)); }
+}
+/* Calm, the threat panel steps back: smaller, fainter, the count of sleeping nests only. */
+#brief.calm { opacity:.62; transform:scale(.82); transform-origin:top right; transition:opacity .25s, transform .25s; }
+#brief.calm:hover, #brief.calm:focus-within { opacity:1; transform:none; }
+#brief.calm .detail { display:none; }
 #app .event { padding:4px 4px 4px 12px; gap:4px; }
 #app .event .what { display:flex; align-items:center; gap:8px; min-width:0; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
 #app .event p.what { cursor:default; }
@@ -680,6 +720,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div class="row at-planet"><span>Importer une partie</span><button id="import" class="tip">Choisir</button></div>
     <div class="row at-planet"><span>Sauvegarder la planète</span><button id="export-all" class="tip">Tout exporter</button></div>
     <div class="row in-game"><span>Cette partie</span><button id="export-game" class="tip">Exporter</button></div>
+    <div class="row in-game"><span>Guide de départ</span><button id="guide-again" class="tip">Revoir</button></div>
     <div class="row in-game" id="open-row"><span>Tout débloquer (test)</span><button id="open-all" class="tip">Activer</button></div>
     <div class="last in-game">
       <button id="to-planet" class="tip">Retour à la planète</button>
@@ -696,6 +737,15 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <button id="view-toggle" class="node display" aria-label="Passer en 2D" title="Changer de vue">2D</button>
   </nav>
 
+  <section id="guide" hidden aria-label="Premier atelier">
+    <p class="kicker">Premier atelier · <span id="guide-no"></span></p>
+    <div class="head"><span id="guide-model" class="porthole model" aria-hidden="true"></span><h2 id="guide-title"></h2></div>
+    <p id="guide-why"></p>
+    <ol id="guide-steps"></ol>
+    <div class="foot"><span class="chip">+5 ADN par étape</span><button id="guide-hide" class="tip">Masquer</button></div>
+  </section>
+  <button id="guide-open" class="tip" hidden>Premier atelier</button>
+  <div id="guide-spot" hidden aria-hidden="true"><i></i></div>
   <div id="events" role="log" aria-live="polite"></div>
 
   <section id="crew" aria-label="Drones">
@@ -4411,6 +4461,88 @@ function paintSheet(c) {
   for (const el of sheet.querySelectorAll('[data-model]')) showModel(el, el.dataset.model);
 }
 
+// ---- The guided start: five steps to a first line feeding the core, each checked on what is built.
+const GUIDE = [
+  {family:'rec', model:'mine', base:'S', list:'Un récolteur sur', title:'Pose un récolteur sur', why:'Le cœur veut ce gène : il faut deux fois cette base pour une de l’autre.'},
+  {family:'rec', model:'mine', base:'F', list:'Un récolteur sur', title:'Puis un récolteur sur', why:'Elle ira au milieu du gène, par l’arrière de la Ligase.'},
+  {family:'rec', model:'mine', base:'S', list:'Un second récolteur sur', title:'Un second récolteur sur', why:'Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.'},
+  {family:'fab', model:'ligase', list:'La Ligase', title:'Pose la Ligase', why:'Entrées 1, 2, 3 dans l’ordre du gène : SFS. Sa sortie regarde le cœur, R pour tourner.'},
+  {family:'tra', model:'belt', list:'Des tapis jusqu’au cœur', title:'Relie tout jusqu’au cœur', why:'De chaque récolteur à son entrée, puis de la Ligase au cœur. Le premier gène valide l’étape.'}
+];
+function builtNow() {
+  const n = {S:0, F:0, ligase:0};
+  for (const c of allCells()) {
+    if (c.type === 'mine' && (matterUnder(c) === 'S' || matterUnder(c) === 'F')) n[matterUnder(c)]++;
+    if (c.type === 'ligase') n.ligase++;
+  }
+  return n;
+}
+function startGuide() {
+  G.guide = {step:0, base:builtNow(), hidden:false};
+  ui.guideSpot = null;
+}
+function guideDone(step, now) {
+  const base = G.guide.base;
+  if (step === 0) return now.S >= base.S + 1;
+  if (step === 1) return now.F >= base.F + 1;
+  if (step === 2) return now.S >= base.S + 2;
+  if (step === 3) return now.ligase >= base.ligase + 1;
+  return G.fed >= 1 || G.stage > 0;
+}
+// The free deposit cell of that base nearest the core, kept until something stands on it.
+function guideSpot(step) {
+  const want = GUIDE[step];
+  if (want.model === 'belt') return {x:CORE.x + .5, y:CORE.y + .5};
+  if (!want.base) return null;
+  const old = ui.guideSpot;
+  if (old?.step === step && !cellAt(old.x, old.y)) return old;
+  let best = null;
+  for (let r = 2; r <= 26 && !best; r++) for (let x = CORE.x - r; x <= CORE.x + r; x++) for (let y = CORE.y - r; y <= CORE.y + r; y++) {
+    if (Math.max(Math.abs(x - CORE.x), Math.abs(y - CORE.y)) !== r || depositAt(x, y) !== want.base || cellAt(x, y) || !placeable(x, y)) continue;
+    const d = Math.hypot(x - CORE.x, y - CORE.y);
+    if (!best || d < best.d) best = {x, y, d};
+  }
+  ui.guideSpot = best && {step, x:best.x, y:best.y};
+  return ui.guideSpot && {...ui.guideSpot, x:best.x + .5, y:best.y + .5};
+}
+function paintGuide() {
+  const g = G.guide, live = Boolean(g) && g.step < GUIDE.length && !G.over && !orbit.on;
+  if (live) {
+    const now = builtNow();
+    while (g.step < GUIDE.length && guideDone(g.step, now)) {
+      g.step++;
+      G.dna += 5;
+      tell(g.step < GUIDE.length ? `Étape ${g.step} faite : +5 ADN.` : 'Premier atelier en marche : +5 ADN. Le guide se range dans le menu.');
+    }
+  }
+  const on = live && g.step < GUIDE.length && !g.hidden;
+  $('guide').hidden = !on;
+  $('guide-open').hidden = !(live && g.step < GUIDE.length && g.hidden);
+  $('app').classList.toggle('guiding', on);
+  for (const b of $('tools').querySelectorAll('.family')) b.classList.toggle('call', on && b.dataset.family === GUIDE[g.step]?.family);
+  if (!on) { $('guide-spot').hidden = true; return; }
+  const step = GUIDE[g.step], base = step.base ? markOf(step.base) : '';
+  $('guide-no').textContent = `étape ${g.step + 1} sur ${GUIDE.length}`;
+  const title = `${step.title}${base}`;
+  if ($('guide-title').innerHTML !== title) $('guide-title').innerHTML = title;
+  write($('guide-why'), step.why);
+  showModel($('guide-model'), step.model);
+  const list = GUIDE.map((s, i) => `<li class="${i < g.step ? 'done' : i === g.step ? 'now' : ''}"><i>${i < g.step ? '✓' : i + 1}</i><span>${s.list}</span>${s.base ? markOf(s.base) : ''}</li>`).join('');
+  if ($('guide-steps').innerHTML !== list) $('guide-steps').innerHTML = list;
+  $('app').style.setProperty('--guide-h', `${$('guide').offsetHeight}px`);
+  ui.guidePoint = guideSpot(g.step);
+}
+function placeGuideSpot() {
+  const spot = $('guide-spot'), at = !$('guide').hidden && ui.guidePoint;
+  spot.hidden = !at;
+  if (!at) return;
+  const p = screenAt(at);
+  spot.style.transform = `translate(${p.x}px,${p.y}px)`;
+}
+$('guide-hide').onclick = () => { if (G.guide) G.guide.hidden = true; paintGuide(); };
+$('guide-open').onclick = () => { if (G.guide) G.guide.hidden = false; paintGuide(); };
+$('guide-again').onclick = () => { startGuide(); showMenu(false); paintGuide(); };
+
 function paintInfo() {
   const c = selected && G.cells[selected], worm = !c && pickedWorm(), any = Boolean(c || worm);
   const busy = tool !== 'hand' || linking || wiring, offers = $('actions').childElementCount > 0;
@@ -4436,6 +4568,7 @@ function paintInfo() {
   }
   paint('cells', cellsOf(c, worm));
   paintSheet(c);
+  paintGuide();
   const row = $('actions');
   row.classList.toggle('more', row.scrollWidth - row.clientWidth - row.scrollLeft > 8);
   $('card').classList.toggle('alert', Boolean(c && ((!isGun(c) && chain.length) || /bloqué|manque|pas branchée|rien à tirer|déborde|rompue|fermée|percée|Branche/.test($('message').textContent))));
@@ -4547,6 +4680,7 @@ function animateHud(elapsed) {
     const el = $('dry').children[i], p = screenAt(centreOf(c));
     if (el) el.style.transform = `translate(${p.x}px,${p.y}px)`;
   });
+  placeGuideSpot();
   const now = performance.now();
   if (!$('refusal').hidden && now - ui.refusedAt > 3200) $('refusal').hidden = true;
   if (ui.grown && now > ui.grown) { ui.grown = 0; $('growth').hidden = true; }
@@ -4826,7 +4960,7 @@ function foundGame(wanted) {
     if (stored(key) !== null) key += `:${Date.now()}`;
   }
   openSlot(id, key, newName(list));
-  settleIn(); begin();
+  settleIn(); begin(); startGuide(); paintGuide();
   return true;
 }
 function openGame(id) {
@@ -4913,6 +5047,7 @@ function checkGame(game) {
   if (!count(game.time) || !count(game.dna) || !count(game.kills)) return false;
   if (game.stage != null && !(Number.isInteger(game.stage) && game.stage <= STAGES.length)) return false;
   if (game.upgrades > 20 || game.threat > 10) return false;
+  if (game.guide != null && !(plain(game.guide) && Number.isInteger(game.guide.step) && game.guide.step >= 0 && game.guide.step <= 9 && plain(game.guide.base) && Object.values(game.guide.base).every(count))) return false;
   if (!list(game.families, code) || !game.families.length || game.families.length > MAX_FAMILIES) return false;
   if (!plain(game.cells) || Object.keys(game.cells).length > FILE.cells || game.cells[key(CORE.x, CORE.y)]?.type !== 'core') return false;
 
