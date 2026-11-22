@@ -49,7 +49,7 @@ const inline = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 if (inline.length !== 1) throw new Error(`expected one inline script, found ${inline.length}`);
 let app = inline[0][1];
 
-for (const name of ["models3d", "terrain3d", "view3d"]) {
+for (const name of ["models3d", "terrain3d", "view3d", "station3d"]) {
   const path = asset(`${name}.js`, readFileSync(at(`prototype/${name}.js`)));
   app = replaceOnce(app, `script('${name}.js')`, `script('./${path}')`);
 }

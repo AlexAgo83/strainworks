@@ -427,13 +427,16 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #games { left:0; top:0; }
 #games button { position:absolute; width:56px; height:56px; padding:0; translate:-50% -50%; border:0; border-radius:50%; background:none; pointer-events:none; }
 #station { pointer-events:none; max-width:none; animation:float 7s ease-in-out infinite; }
+#station-live { pointer-events:none; }
 #brand { left:calc(44px + var(--l)); top:calc(34px + var(--t)); pointer-events:none; }
 #brand h1 { color:var(--acid); font:700 46px/1 var(--display); }
 #brand p { margin-top:4px!important; color:var(--muted); }
 #app #planet-menu { position:absolute; right:calc(24px + var(--r)); top:calc(26px + var(--t)); width:52px; height:52px; }
 #projection { display:flex; flex-direction:column; gap:12px; padding:26px; }
 #projection.open { transform-origin:top; animation:projected .55s cubic-bezier(.2,1.2,.4,1) both; }
-#projection > .skin path:first-child { fill:rgba(6,22,27,.9); stroke:var(--cyan); }
+#projection > .skin path:first-child { fill:rgba(5,14,17,.92); stroke:rgba(102,217,234,.45); stroke-width:1; }
+#projection > .skin .trim { fill:none; stroke:var(--cyan); stroke-width:2.5; }
+#hexes .hover { fill:rgba(102,217,234,.12); stroke:#9FE6F0; stroke-width:2; stroke-linejoin:round; pointer-events:none; }
 #projection > .scan { position:absolute; inset:14px; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(102,217,234,.07) 0 1px,transparent 1px 5px); animation:scan 2.4s linear infinite; }
 #slot-head { position:relative; display:flex; gap:20px; min-width:0; }
 #slot-head > svg { flex:none; width:124px; height:124px; overflow:visible; }
@@ -449,7 +452,9 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #slot-facts b { display:block; color:var(--ink); font:700 21px var(--display); white-space:nowrap; }
 #slot-note { position:relative; min-height:1.3em; color:var(--muted); font-size:13px; }
 #slot-note.bad { color:var(--alarm); }
-#slot-actions { position:relative; display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; }
+#slot-actions { position:relative; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:auto; }
+#slot-actions .act { justify-content:center; text-align:center; width:100%; min-width:0; border-radius:10px 4px; }
+#slot-actions .act.go { grid-column:1 / -1; }
 #app .act { position:relative; overflow:hidden; min-height:48px; padding:6px 16px; border:1.5px solid var(--edge); border-radius:20px 7px; background:var(--membrane); white-space:nowrap; }
 #app .act:hover { border-color:var(--cyan); }
 #app .act.go { border-color:var(--acid); background:var(--acid); color:var(--night); font-weight:600; }
@@ -486,7 +491,6 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   #slot-facts { gap:6px; margin-top:8px; }
   #slot-facts b { font-size:15px; }
   #slot-facts p { font-size:11px; }
-  #app #slot-actions .act { flex:1 1 40%; min-width:max-content; }
 }
 @media (max-height:520px) {
   #slot-head > svg { display:none; }
@@ -647,10 +651,11 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <svg id="hexes" aria-hidden="true"></svg>
     <div id="games"></div>
     <img id="station" alt="" aria-hidden="true">
-    <header id="brand"><h1>STRAINWORKS</h1><p>Chaque hexagone est une partie</p></header>
+    <canvas id="station-live" aria-hidden="true" hidden></canvas>
+    <header id="brand"><h1>STRAINWORKS</h1></header>
     <button id="planet-menu" class="node" aria-label="Réglages" aria-expanded="false" aria-controls="menu"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"/><circle cx="4" cy="15" r="2.4" fill="currentColor"/><circle cx="16" cy="15" r="2.4" fill="currentColor"/><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"/></svg></button>
     <section id="projection" aria-label="Projection de la station">
-      <svg class="skin" viewBox="0 0 590 330" preserveAspectRatio="none" aria-hidden="true"><path d="M30 10 C180 2 410 4 560 12 C586 30 586 90 576 140 C590 220 584 290 556 320 C410 332 170 326 40 322 C8 312 0 250 10 180 C0 100 4 30 30 10 Z"/></svg>
+      <svg class="skin" viewBox="0 0 590 330" preserveAspectRatio="none" aria-hidden="true"><path d="M18 1 H572 L589 18 V312 L572 329 H18 L1 312 V18 Z" vector-effect="non-scaling-stroke"/><path class="trim" d="M1 60 V18 L18 1 H90 M500 329 H572 L589 312 V270" vector-effect="non-scaling-stroke"/></svg>
       <i class="scan" aria-hidden="true"></i>
       <div id="slot-head"><svg id="slot-icon" viewBox="0 0 132 132" aria-hidden="true"></svg><div aria-live="polite"><p id="slot-kicker"></p><h2 id="slot-name"></h2><p id="slot-sub"></p><div id="slot-facts"></div></div></div>
       <p id="slot-note" role="status"></p>
@@ -4900,7 +4905,8 @@ function layoutPlanet() {
     box = {cx:w * .236, cy:Math.max(r * .95, h * .42), r, sx:w * .57, sy:40, ss};
     Object.assign(panel, {left:`${(w - pw) / 2}px`, width:`${pw}px`, bottom:'calc(6px + var(--b))', minHeight:'0'});
   }
-  Object.assign($('station').style, {left:`${box.sx}px`, top:`${box.sy}px`, width:`${box.ss}px`, height:`${box.ss}px`});
+  for (const id of ['station', 'station-live']) Object.assign($(id).style, {left:`${box.sx}px`, top:`${box.sy}px`, width:`${box.ss}px`, height:`${box.ss}px`});
+  station3d.st?.resize();
   const side = box.r / 556 * 1180;
   Object.assign($('globe-still').style, {left:`${box.cx - side / 2}px`, top:`${box.cy - side / 2}px`, width:`${side}px`, height:`${side}px`});
   box.lens = [box.sx + box.ss * LENS.x, box.sy + box.ss * LENS.y];
@@ -4974,7 +4980,9 @@ function settlementSVG(to, game, seed, k) {
 }
 function drawGrid() {
   const {r, lens} = orbit.box, games = orbit.list.games;
-  let grid = '', taken = '', picked = '', defs = '';
+  let grid = '', taken = '', picked = '', hovered = '';
+  // The beam has soft edges: a blur, not a cut-out triangle.
+  let defs = '<defs><filter id="beam-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter></defs>';
   const buttons = new Map([...$('games').children].map(b => [b.dataset.hex, b]));
   CELLS_OF_GLOBE.forEach(({c, ring, size}, id) => {
     const v = turn(c), b = buttons.get(String(id));
@@ -4991,19 +4999,20 @@ function drawGrid() {
       const to = (u, w) => onScreen(turn(unit3([0, 1, 2].map(k => c[k] + e1[k] * u * size + e2[k] * w * size))));
       taken += `<polygon class="taken${game.over ? ' fallen' : ''}" points="${shape}"/>${settlementSVG(to, game, id, r / 527.7)}`;
     }
+    if (id === orbit.hover && id !== orbit.pick) hovered = `<polygon class="hover" points="${shape}"/>`;
     if (id !== orbit.pick) return;
     const [x, y] = onScreen(v);
     // The cone is the two edges the lens sees widest apart.
     const aim = Math.atan2(y - lens[1], x - lens[0]);
     const off = ([px, py]) => Math.sin(Math.atan2(py - lens[1], px - lens[0]) - aim);
     const left = turned.reduce((a, q) => off(q) < off(a) ? q : a), right = turned.reduce((a, q) => off(q) > off(a) ? q : a);
-    defs = `<defs><linearGradient id="beam-light" gradientUnits="userSpaceOnUse" x1="${lens[0]}" y1="${lens[1]}" x2="${x}" y2="${y}"><stop offset="0" stop-color="#66D9EA" stop-opacity=".42"/><stop offset="1" stop-color="#66D9EA" stop-opacity=".06"/></linearGradient></defs>`;
-    picked = `<polygon class="beam" points="${dotsOf([lens, left, right])}" fill="url(#beam-light)"/><line class="flow" x1="${lens[0]}" y1="${lens[1]}" x2="${x}" y2="${y}"/><polygon class="lit" points="${shape}"/>`;
+    defs = `<defs><filter id="beam-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter><linearGradient id="beam-light" gradientUnits="userSpaceOnUse" x1="${lens[0]}" y1="${lens[1]}" x2="${x}" y2="${y}"><stop offset="0" stop-color="#9FE6F0" stop-opacity=".5"/><stop offset=".35" stop-color="#66D9EA" stop-opacity=".18"/><stop offset="1" stop-color="#66D9EA" stop-opacity=".05"/></linearGradient></defs>`;
+    picked = `<polygon class="beam" points="${dotsOf([lens, left, right])}" fill="url(#beam-light)" filter="url(#beam-soft)"/><line class="flow" x1="${lens[0]}" y1="${lens[1]}" x2="${x}" y2="${y}"/><polygon class="lit" points="${shape}"/>`;
   });
   const panel = $('projection').getBoundingClientRect();
   const down = dotsOf([lens, [panel.left + panel.width * .14, panel.top + 8], [panel.left + panel.width * .86, panel.top + 8]]);
   $('hexes').setAttribute('viewBox', `0 0 ${view.w} ${view.h}`);
-  $('hexes').innerHTML = `${defs}${grid}${taken}<polygon class="beam" points="${down}" fill="#66D9EA17"/>${picked}`;
+  $('hexes').innerHTML = `${defs}${grid}${taken}${hovered}<polygon class="beam" points="${down}" fill="#66D9EA14" filter="url(#beam-soft)"/>${picked}`;
 }
 
 // ---- The globe: one quad, the sphere worked out for each point of it.
@@ -5098,7 +5107,40 @@ function drawGlobe() {
   gl.uniformMatrix3fv(at.back, false, new Float32Array([x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]]));
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
+// The live station: the picture stands in until it is ready, and for good if the engine cannot load.
+const station3d = {st:null, loading:false};
+async function wakeStation() {
+  if (station3d.st || station3d.loading) return;
+  station3d.loading = true;
+  try {
+    if (!window.BABYLON) await script(BABYLON_SRC, BABYLON_HASH);
+    if (!window.createStation3D) await script('station3d.js');
+    if (!orbit.on || station3d.st) return;
+    $('station-live').hidden = false;
+    station3d.st = window.createStation3D($('station-live'), {still:STILL.matches});
+    station3d.st.resize();
+    $('station').hidden = true;
+    orbit.dirty = true;
+  } catch (error) {
+    $('station-live').hidden = true;
+    console.warn('the station stays a picture:', error.message);
+  } finally {
+    station3d.loading = false;
+  }
+}
+// Leaving the planet frees the station's graphics for the game.
+function sleepStation() {
+  station3d.st?.dispose();
+  station3d.st = null;
+  $('station-live').hidden = true;
+  $('station').hidden = false;
+}
 function drawPlanet(elapsed) {
+  if (station3d.st && orbit.box) {
+    station3d.st.draw(elapsed);
+    const [x, y] = station3d.st.lens(), b = orbit.box, lens = [b.sx + b.ss * x, b.sy + b.ss * y];
+    if (Math.hypot(lens[0] - b.lens[0], lens[1] - b.lens[1]) > .5) { b.lens = lens; orbit.dirty = true; }
+  }
   if (orbit.to) {
     const by = Math.min(1, elapsed * 4.5), {yaw, pitch} = orbit.to;
     orbit.yaw += (yaw - orbit.yaw) * by; orbit.pitch += (pitch - orbit.pitch) * by;
@@ -5263,9 +5305,11 @@ function openPlanet(intro) {
     const to = orbit.to || {yaw:0, pitch:0};
     orbit.yaw = to.yaw - 1.1; orbit.pitch = to.pitch + .25; orbit.to = to;
   }
+  wakeStation();
 }
 // enter readies the game and says whether it could.
 function leavePlanet(enter, at) {
+  sleepStation();
   if (!orbit.on) return false;
   orbit.on = false;
   if (!enter()) {
@@ -5308,6 +5352,10 @@ $('hexes').addEventListener('pointerdown', event => {
 });
 $('hexes').addEventListener('pointermove', event => {
   const d = orbit.drag;
+  if (!d && event.pointerType === 'mouse') {
+    const id = hexAt(event.clientX, event.clientY);
+    if (id !== orbit.hover) { orbit.hover = id; orbit.dirty = true; $('hexes').style.cursor = id == null ? '' : 'pointer'; }
+  }
   if (!d || d.id !== event.pointerId) return;
   const dx = event.clientX - d.x, dy = event.clientY - d.y;
   d.far += Math.hypot(dx, dy);
@@ -5327,6 +5375,7 @@ $('hexes').addEventListener('pointerup', event => {
   const id = hexAt(event.clientX, event.clientY);
   if (id != null) pickHex(id);
 });
+$('hexes').addEventListener('pointerleave', () => { if (orbit.hover != null) { orbit.hover = null; orbit.dirty = true; } });
 $('hexes').addEventListener('pointercancel', () => { orbit.drag = null; $('hexes').classList.remove('dragged'); });
 $('planet').addEventListener('dragover', event => event.preventDefault());
 $('planet').addEventListener('drop', event => { event.preventDefault(); takeFile(event.dataTransfer.files[0]); });

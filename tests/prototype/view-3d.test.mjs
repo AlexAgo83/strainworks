@@ -7,7 +7,7 @@ import { fromMenu, launch, pageHTML, pickTool } from "./harness.mjs";
 
 const file = (path) => fileURLToPath(new URL(path, import.meta.url));
 const ENGINE = file("../../node_modules/babylonjs/babylon.js");
-const PARTS = ["view3d.js", "models3d.js", "terrain3d.js"];
+const PARTS = ["view3d.js", "models3d.js", "terrain3d.js", "station3d.js"];
 
 async function open(browser, { network = true, view3d = false } = {}) {
   const page = await browser.newPage({ viewport: { width: 375, height: 700 }, hasTouch: true, view3d });
