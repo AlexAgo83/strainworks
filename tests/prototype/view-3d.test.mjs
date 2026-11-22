@@ -37,7 +37,7 @@ it("stays in 2D when the engine cannot load", async () => {
   const browser = await launch();
   try {
     const { page, errors } = await open(browser, { network: false });
-    await fromMenu(page, "dimension");
+    await page.click("#view-toggle");
     await page.waitForFunction(() => document.querySelector("#message").textContent.startsWith("Vue 3D indisponible"));
     expect(await page.evaluate(() => [view3d, document.querySelector("#gl").hidden])).toEqual([null, true]);
     expect(errors).toEqual([]);
@@ -57,7 +57,7 @@ it("draws the same game and lands a finger on the same cell", async () => {
       G.dna = 500;
       for (let i = 0; i < 300; i++) step(STEP);
     });
-    await fromMenu(page, "dimension");
+    await page.click("#view-toggle");
     await page.waitForFunction(() => view3d !== null);
 
     // Every kind of thing is drawn, and drawing never changes the game.
@@ -125,7 +125,7 @@ it("draws the same game and lands a finger on the same cell", async () => {
     await page.mouse.up();
     expect(await page.evaluate(() => [16, 17, 18, 19, 20, 21, 22].map((x) => G.cells[`${x},83`]?.type))).toEqual(Array(7).fill("belt"));
 
-    await fromMenu(page, "flat");
+    await page.click("#view-toggle");
     expect(await page.evaluate(() => [view3d, document.querySelector("#gl").hidden, flat()])).toEqual([null, true, 1]);
     expect(errors).toEqual([]);
   } finally {
@@ -137,7 +137,7 @@ it("remakes the 3D view at the quality picked, and says when the GPU cannot be t
   const browser = await launch();
   try {
     const { page, errors } = await open(browser);
-    await fromMenu(page, "dimension");
+    await page.click("#view-toggle");
     await page.waitForFunction(() => view3d !== null);
     await page.evaluate(() => { window.firstView = view3d; });
     await fromMenu(page, "quality-fast");
@@ -158,8 +158,8 @@ it("opens a game in 3D unless the player picked 2D", async () => {
   try {
     const { page, errors } = await open(browser, { view3d: true });
     await page.waitForFunction(() => view3d !== null);
-    expect(await page.evaluate(() => [document.querySelector("#dimension").getAttribute("aria-pressed"), localStorage.getItem("strainworks-view")])).toEqual(["true", "3d"]);
-    await fromMenu(page, "flat");
+    expect(await page.evaluate(() => [document.querySelector("#view-toggle").textContent, document.querySelector("#dimension").getAttribute("aria-pressed"), localStorage.getItem("strainworks-view")])).toEqual(["2D", "true", "3d"]);
+    await page.click("#view-toggle");
     await page.reload();
     await page.waitForFunction(() => typeof G === "object" && !orbit.on);
     expect(await page.evaluate(() => [view3d, localStorage.getItem("strainworks-view")])).toEqual([null, "2d"]);

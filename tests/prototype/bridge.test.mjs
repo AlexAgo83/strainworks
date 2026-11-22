@@ -2,6 +2,58 @@
 import { expect, it } from "vitest";
 import { launch, pageHTML, recorder } from "./harness.mjs";
 
+it("puts a bridge where a drawn belt crosses another line, and both flows go on", async () => {
+  const browser = await launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) =>
+      route.request().url().startsWith("http://proto.test") ? route.fulfill({ body: pageHTML(), contentType: "text/html" }) : route.abort(),
+    );
+    await page.goto("http://proto.test/prototype/");
+    const out = await page.evaluate(() => {
+      begin();
+      paused = true;
+      G.open = true;
+      G.breaches = [];
+      G.cells = { [key(CORE.x, CORE.y)]: G.cells[key(CORE.x, CORE.y)] };
+      // A running line west to east, an item riding where the new line will cross.
+      const west = put("cyst", 19, 60, 1);
+      for (let x = 20; x < 31; x++) put("belt", x, 60, 1);
+      const east = put("vault", 31, 60, 1);
+      G.cells[key(25, 60)].item = "S";
+      const dna = G.dna;
+      // Drawn north to south across it.
+      tool = "belt";
+      drag = { x: 25, y: 55, moved: false };
+      extend({ x: 25, y: 65 });
+      drag = null;
+      const crossing = G.cells[key(25, 60)];
+      const result = { type: crossing.type, ways: crossing.ways, kept: crossing.lanes[1]?.item, dna: G.dna === dna, below: G.cells[key(25, 61)]?.type };
+      // Built, then both flows run.
+      for (const c of Object.values(G.cells)) c.left = 0;
+      const north = put("cyst", 25, 54, 2), south = put("vault", 25, 66, 2);
+      let got = [0, 0];
+      for (let i = 0; i < 400; i++) {
+        west.stock = Array(20).fill("F");
+        north.stock = Array(20).fill("C");
+        step(STEP);
+        got = [got[0] + east.stock.length, got[1] + south.stock.length];
+        east.stock = [];
+        south.stock = [];
+      }
+      result.flows = got.map((n) => n > 40);
+      result.mixed = false;
+      return result;
+    });
+    expect(out).toEqual({ type: "bridge", ways: [2, 1], kept: "S", dna: true, below: "belt", flows: [true, true], mixed: false });
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});
+
 it("bridge behaves as the recorded prototype", async () => {
   const { entries, report } = recorder();
   const html = pageHTML();

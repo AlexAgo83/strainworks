@@ -320,6 +320,9 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   #app { --rail:max(104px,min(50% - 88px,100% - 459px)); }
   #zoom { right:calc(8px + var(--r)); top:var(--rail); }
   #zoom .step { display:none; }
+  /* The view switch sits left of Centrer, on its row: the rail below it holds the tools. */
+  #zoom { flex-direction:row; }
+  #zoom #view-toggle { order:-1; }
   #events { left:calc(8px + var(--l)); top:calc(154px + var(--t)); }
   #app .event { max-width:min(250px,calc(100vw - 80px)); font-size:12px; }
   .event .text { -webkit-line-clamp:2; }
@@ -573,7 +576,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   </nav>
   <div id="menu" hidden>
     <h2>Réglages</h2>
-    <div class="row" id="view-row"><span>Vue</span><span class="choice"><button id="flat" class="tip" aria-pressed="true">2D</button><button id="dimension" class="tip" aria-pressed="false">3D</button></span></div>
+    <div class="row at-planet" id="view-row"><span>Vue</span><span class="choice"><button id="flat" class="tip" aria-pressed="true">2D</button><button id="dimension" class="tip" aria-pressed="false">3D</button></span></div>
     <div class="row"><span>Animations</span><span class="choice"><button id="motion-auto" class="tip">Auto</button><button id="motion-less" class="tip">Réduites</button></span></div>
     <div class="row"><span>Qualité 3D</span><span class="choice"><button id="quality-high" class="tip">Haute</button><button id="quality-fast" class="tip">Rapide</button></span></div>
     <div class="row in-game"><span>Graphe de performance</span><button id="perf-toggle" class="tip" aria-pressed="false" aria-controls="perf">Afficher</button></div>
@@ -594,6 +597,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <button id="zoom-in" class="node step" aria-label="Zoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v14M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button>
     <button id="zoom-out" class="node step" aria-label="Dézoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button>
     <button id="home" class="node" aria-label="Revenir au cœur"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="4" fill="#B7F34A"/><path d="M11 1v4M11 17v4M1 11h4M17 11h4" stroke="currentColor" stroke-width="2"/></svg></button>
+    <button id="view-toggle" class="node display" aria-label="Passer en 2D" title="Changer de vue">2D</button>
   </nav>
 
   <div id="events" role="log" aria-live="polite"></div>
@@ -3333,6 +3337,19 @@ function position(p) {
   const w = worldAt(p.x, p.y);
   return {x:Math.floor(w.x), y:Math.floor(w.y)};
 }
+// Drawn across a belt going the other way, the line crosses it on a bridge: both flows keep their way,
+// what rode the belt goes on in its lane, and a rank paid on it comes back.
+function bridgeOver(c, dir) {
+  const axis = c.dir % 2, item = c.item ? {item:c.item, dir:c.dir, t:c.t} : null;
+  dropRise(c);
+  G.dna += refund(c);
+  const b = build('bridge', c.x, c.y, c.dir);
+  b.ways = [null, null];
+  b.ways[axis] = c.dir;
+  b.ways[dir % 2] = dir;
+  if (item) b.lanes[axis] = item;
+  return b;
+}
 function extend(to) {
   if (drag?.vein || drag?.nerve) { drag.aim = to; return; }
   while (drag && (drag.x !== to.x || drag.y !== to.y)) {
@@ -3374,7 +3391,8 @@ function extend(to) {
       if (short(1)) return;
       buildRanked('belt',drag.x,drag.y,dir);
     } else if (isBelt(from) || (!drag.moved && ['mine','cyst'].includes(from.type))) from.dir = dir;
-    const next = cellAt(x,y);
+    let next = cellAt(x,y);
+    if (next?.type === 'belt' && next.dir % 2 !== dir % 2) next = bridgeOver(next, dir);
     // A belt drawn through a bridge takes that lane with it.
     for (const c of [from, next]) if (c?.type === 'bridge' && c.ways?.[dir % 2] != null) c.ways[dir % 2] = dir;
     if (!next) { if (!placeable(x,y)) { refuse(`${whyNot(x,y)}.`); drag = null; return; } if (short(1)) return; buildRanked('belt',x,y,dir); }
@@ -3784,7 +3802,7 @@ async function show3D(on) {
     console.warn('3D view unavailable:', error.message);
   }
   toggle.setAttribute('aria-pressed', Boolean(view3d));
-  $('flat').setAttribute('aria-pressed', !view3d);
+  markView(Boolean(view3d));
   $('loading').hidden = true;
   showMenu(false);
   replay($('board'), 'switched');
@@ -3796,9 +3814,15 @@ function chooseView(three) {
   if (!three) view3d = null;
   $('gl').hidden = !view3d;
   try { localStorage.setItem(VIEW_KEY, three ? '3d' : '2d'); } catch (_) {}
-  $('dimension').setAttribute('aria-pressed', three);
-  $('flat').setAttribute('aria-pressed', !three);
+  markView(three);
 }
+// The switch beside the zoom names the view it leads to.
+function markView(three) {
+  for (const [id, on] of [['dimension', three], ['flat', !three]]) $(id).setAttribute('aria-pressed', on);
+  $('view-toggle').textContent = three ? '2D' : '3D';
+  $('view-toggle').setAttribute('aria-label', three ? 'Passer en 2D' : 'Passer en 3D');
+}
+$('view-toggle').onclick = () => chooseView(!view3d);
 $('dimension').onclick = () => chooseView(true);
 $('flat').onclick = () => chooseView(false);
 $('rebuild').onclick = () => {
@@ -5542,8 +5566,7 @@ showPerf(stored(PERF_KEY) === 'on');
 growDock();
 resize();
 setMotion(stored(MOTION_KEY) === 'less');
-$('dimension').setAttribute('aria-pressed', stored(VIEW_KEY) !== '2d');
-$('flat').setAttribute('aria-pressed', stored(VIEW_KEY) === '2d');
+markView(stored(VIEW_KEY) !== '2d');
 // A world to stand on, kept nowhere, until a hexagon is picked.
 begin();
 forgetEvents();
