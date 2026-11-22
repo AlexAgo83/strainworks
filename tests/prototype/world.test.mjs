@@ -136,6 +136,15 @@ it("goes on past the landing square", async () => {
       out.sleepingOneIsGone = breachesIn(kept.breach.x, kept.breach.y, kept.breach.x, kept.breach.y).filter((o) => o.id === kept.breach.id).length === 1;
       out.smallSave = bytes < 100000;
 
+      // A save with the crowded base loses its nests still asleep, not a fight under way.
+      const crowded = JSON.parse(oldSave);
+      const fighting = crowded.breaches[4];
+      fighting.state = "wake";
+      crowded.enemies = [{ x: 34, y: 32, gene: "SFN", hp: 9, max: 24, home: 4 }];
+      localStorage.setItem(SAVE, JSON.stringify(crowded));
+      load();
+      out.thinned = [G.breaches.length, G.breaches[G.enemies[0].home].x === fighting.x, G.breaches[G.enemies[0].home].state];
+
       // An older save keeps its game and wakes nothing new.
       localStorage.setItem(SAVE, oldSave);
       load();
@@ -172,6 +181,7 @@ it("goes on past the landing square", async () => {
       sleepingOneIsGone: true,
       smallSave: true,
       oldSave: true,
+      thinned: [14, true, "wake"],
       camera: true,
     });
     for (const [away, took, back] of out.flights) {

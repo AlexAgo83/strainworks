@@ -7,7 +7,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
     {
       "badPlace": 0,
       "blockedDeposit": 0,
-      "breaches": 19,
+      "breaches": 13,
       "coreWhenCloser": true,
       "damage": [
         12,
@@ -32,6 +32,8 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
           36,
         ],
       },
+      "freeDeposits": 4,
+      "freeOnesSleepOn": 0,
       "idle": {
         "awake": 0,
         "enemies": 0,
@@ -46,6 +48,12 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
       "mutationAdds": [
         4,
         2,
+      ],
+      "nearTheBase": [
+        [
+          48,
+          27,
+        ],
       ],
       "north fed": {
         "buildable": true,

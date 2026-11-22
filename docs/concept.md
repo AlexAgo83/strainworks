@@ -234,6 +234,7 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 ## 10. Threat and defense
 
 - **Breaches sleep** while nothing is built or drawn inside their circle. Each guards a rich deposit and shows its weak gene and creature count.
+- **Few nests near the base**: a single one, to the north, within 30 cells of the core. The four nearest ×2 deposits are free, the guarded ones start farther out.
 - Once awake, a breach sends prowlers and assaults. **Emptied, it fades**, returns the ground and pays in ADN.
 - Defense is prepared at the edge of the circle, then the player expands: each advance needs its outpost and its supply.
 - The threat rises with woken or emptied breaches and with production.

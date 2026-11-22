@@ -159,6 +159,15 @@ const OUTER = [
 ];
 let FIELDS = [], DEPOSIT = {}, RICH = {};
 function richness(x, y) { const d = Math.hypot(x - CORE.x - .5, y - CORE.y - .5); return d < 18 ? 1 : d < 34 ? 2 : 4; }
+// Round the base one nest is enough: the one the first turret faces. The others start this far from the core.
+const CALM = 30;
+const keepsNest = b => b.id || (b.x === NORTH[0].x && b.y === NORTH[0].y) || Math.hypot(b.x - CORE.x, b.y - CORE.y) >= CALM;
+// A game saved with more loses those still asleep. One that woke finishes its fight.
+function thinNests() {
+  const all = G.breaches;
+  G.breaches = all.filter(b => b.state !== 'sleep' || keepsNest(b));
+  for (const e of G.enemies || []) if (e.home != null) e.home = G.breaches.indexOf(all[e.home]);
+}
 function nest() {
   const all = NORTH.map(p => ({...p, r:6, left:24}));
   for (const [base, x, y, w, h] of OUTER) {
@@ -169,7 +178,8 @@ function nest() {
     const reach = Math.max(...[[x,y],[x+w-1,y],[x,y+h-1],[x+w-1,y+h-1]].map(([a,b]) => Math.hypot(a - at.x, b - at.y)));
     all.push({...at, r:Math.ceil(reach) + 1, left:rich === 2 ? 40 : 70});
   }
-  G.breaches = all.map((b, i) => ({...b, total:b.left, genes:[G.families[i % 3]], state:'sleep', wave:0, pending:0, ended:0}));
+  // Thinned last, so each nest keeps the family it always had.
+  G.breaches = all.map((b, i) => ({...b, total:b.left, genes:[G.families[i % 3]], state:'sleep', wave:0, pending:0, ended:0})).filter(keepsNest);
 }
 function survey() {
   FIELDS = G.far ? OUTER : [...INNER, ...OUTER]; DEPOSIT = {}; RICH = {};
@@ -2362,7 +2372,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } return true; }
+    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); return true; }
   } catch (_) {}
   return false;
 }
