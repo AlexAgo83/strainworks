@@ -1,6 +1,6 @@
 // Worms: loop, alignment, measured rates, departure rules, collisions, damage, gestures, old saves.
 import { expect, it } from "vitest";
-import { launch, pageHTML, recorder, savedGame } from "./harness.mjs";
+import { launch, pageHTML, pickTool, recorder, savedGame } from "./harness.mjs";
 
 it("worms behaves as the recorded prototype", async () => {
   const { entries, report } = recorder();
@@ -67,14 +67,14 @@ it("worms behaves as the recorded prototype", async () => {
       return out;
     })));
     await page.evaluate(() => { begin(); G.open=true; paused=true; G.breaches=[]; G.dna=200; cam.x=20; cam.y=82; cam.zoom=21; });
-    await page.locator('#tools button',{hasText:'Piste'}).click();
+    await pickTool(page,'track');
     const box=await page.locator('#game').boundingBox(), cdp=await context.newCDPSession(page);
     const at=(x,y)=>({x:box.x+box.width/2+(x+.5-20)*21,y:box.y+box.height/2+(y+.5-82)*21,id:0});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[at(14,78)]});
     for(const [x,y] of [[16,78],[24,78],[24,80],[24,86],[20,86],[14,86],[14,82],[14,78]]) await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[at(x,y)]});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     report('drawn loop', await page.evaluate(()=>{ let id='14,78',n=0; do{ const c=G.tracks[id]; if(!c)return 'open'; id=key(c.x+DX[c.dir],c.y+DY[c.dir]); n++; }while(id!=='14,78'&&n<99); return n; }));
-    const tap=async(name,x,y)=>{ await page.locator('#tools button',{hasText:name}).click(); const p=at(x,y); await page.touchscreen.tap(p.x,p.y); };
+    const tap=async(name,x,y)=>{ await pickTool(page,await page.evaluate(label=>TOOLBAR.find(type=>TYPES[type].name===label),name)); const p=at(x,y); await page.touchscreen.tap(p.x,p.y); };
     for(const x of [18,19,20]) await tap('Poche',x,77);
     for(const x of [18,19,20]) await tap('Poche',x,87);
     await page.locator('#actions button',{hasText:'Poche : charge'}).click();
@@ -86,7 +86,7 @@ it("worms behaves as the recorded prototype", async () => {
       refresh();
     });
     await page.waitForTimeout(300);
-    report('phone', await page.evaluate(()=>JSON.stringify({scroll:document.documentElement.scrollWidth,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),tools:document.querySelectorAll('#tools button').length,clipped:[...document.querySelectorAll('#tools button')].filter(b=>b.scrollWidth>b.clientWidth+1).map(b=>b.textContent)})));
+    report('phone', await page.evaluate(()=>JSON.stringify({scroll:document.documentElement.scrollWidth,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),tools:document.querySelectorAll('#tools [data-type]').length,clipped:clippedTools()})));
     await page.setViewportSize({width:1280,height:800}); await page.waitForTimeout(300);
     report('errors', JSON.stringify(errors));
   } finally { await browser.close(); }

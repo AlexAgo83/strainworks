@@ -154,12 +154,11 @@ window.createModels3D = (B, scene) => {
   function arrow(paint, x, y, h, dir, size = 0.2) {
     add('arrow', paint, x, y, h, size, 0.035, size, facing(dir));
   }
-  function nozzle(x, y, dir, h, light) {
+  function nozzle(x, y, dir, h) {
     const a = facing(dir);
     const [bx, by] = from(x, y, a, 0.39);
     add('hull', 'steel2', bx, by, h, 0.2, 0.2, 0.3, a);
     add('box', 'black', bx, by, h + 0.02, 0.22, 0.1, 0.16, a);
-    arrow(light, ...from(x, y, a, 0.4), h + 0.12, dir, 0.16);
   }
   function intake(x, y, dir, filled) {
     const a = facing(dir);
@@ -335,7 +334,6 @@ window.createModels3D = (B, scene) => {
       } else {
         for (let i = 0; i < 4; i++) add('box', i % 2 ? 'alarm' : 'hazard', ...from(x, y, a, 0, 0.3 - i * 0.18), 0.4, 0.08, 0.08, 0.18, a);
       }
-      arrow(on ? 'lime' : 'alarm', ...from(x, y, a, 0.4), 0.24, c.dir, 0.17);
       if (smart) readingOf(c, x, y, 1.02);
     },
 
@@ -357,7 +355,6 @@ window.createModels3D = (B, scene) => {
         const way = wayOf(c, axis);
         if (way == null) continue;
         chevron(c, way, way, axis ? 0.47 : 0.165);
-        arrow(c.ways?.[axis] != null ? 'acid' : 'chrome', x + DX[way] * 0.42, y + DY[way] * 0.42, axis ? 0.42 : 0.2, way, 0.17);
       }
     },
 
@@ -369,7 +366,7 @@ window.createModels3D = (B, scene) => {
       footing(x, y, 0.84);
       add('hull', 'steel', x, y, 0.26, 0.42, 0.26, 0.8, out);
       add('hull', 'dark', ...from(x, y, out, 0.3), 0.3, 0.12, 0.34, 0.4, out);
-      for (const d of exits) nozzle(x, y, d, 0.24, 'chrome');
+      for (const d of exits) nozzle(x, y, d, 0.24);
       intake(x, y, (c.dir + 2) % 4, c.item);
       const next = c.turn % 2;
       const tip = next ? 1 : -1;
@@ -382,7 +379,7 @@ window.createModels3D = (B, scene) => {
       footing(x, y, 0.84);
       add('hull', 'steel', x, y, 0.28, 0.66, 0.3, 0.66);
       const exits = [3, 0, 1].map((t) => (c.dir + t) % 4);
-      for (const d of exits) nozzle(x, y, d, 0.24, 'chrome');
+      for (const d of exits) nozzle(x, y, d, 0.24);
       intake(x, y, (c.dir + 2) % 4, c.item);
       const next = facing(exits[c.turn % 3]);
       add('gear', 'steel2', x, y, 0.48, 0.5, 0.1, 0.5, next);
@@ -396,8 +393,8 @@ window.createModels3D = (B, scene) => {
       add('hull', 'steel', x, y, 0.26, 0.68, 0.26, 0.68);
       const a = facing(c.dir);
       const side = sideExit(c);
-      nozzle(x, y, c.dir, 0.22, 'chrome');
-      nozzle(x, y, side, 0.22, 'acid');
+      nozzle(x, y, c.dir, 0.22);
+      nozzle(x, y, side, 0.22);
       intake(x, y, (c.dir + 2) % 4, c.item);
       const [ax, ay] = from(x, y, a, -0.2);
       add('arch', 'steel2', ax, ay, 0.38, 0.66, 0.6, 0.8, a + Math.PI / 2);
@@ -439,7 +436,7 @@ window.createModels3D = (B, scene) => {
       base(kind, x, y, 0.94, 0.11, spin * 0.2);
       const [tx, ty] = from(x, y, out, 0.4);
       limb('copper', ...from(x, y, out, 0.14), 0.72, tx, ty, 0.3, 0.1);
-      nozzle(x, y, c.dir, 0.24, 'pink');
+      nozzle(x, y, c.dir, 0.24);
       status(...from(x, y, out + 2.5, 0.2), 0.86, 'lime', working);
     },
 
@@ -474,7 +471,7 @@ window.createModels3D = (B, scene) => {
         intake(x, y, side, c.ports[port].length);
         if (kind) base(kind, x + DX[side] * 0.33, y + DY[side] * 0.33, 0.52, 0.075);
       }
-      nozzle(x, y, c.dir, 0.27, 'acid');
+      nozzle(x, y, c.dir, 0.27);
       if (c.item) cargo(c.item, ...from(x, y, out, 0.3), 0.5, out, 0.34);
     },
 
@@ -510,7 +507,7 @@ window.createModels3D = (B, scene) => {
       add('taper', 'copper', cx, cy, 0.76 - press, 0.17, 0.24, 0.17, out, Math.PI);
       const inside = c.item || (goods.length ? `${c.box}:${goods[0]}` : c.last);
       if (inside) cargo(inside, ...from(x, y, out, 0.22), 0.5, out, 0.4);
-      nozzle(x, y, c.dir, 0.25, trim);
+      nozzle(x, y, c.dir, 0.25);
     },
 
     // Two gene chambers spliced under an arch.
@@ -533,7 +530,7 @@ window.createModels3D = (B, scene) => {
       add('arch', 'copper', ...from(x, y, out, -0.16), 0.46, 0.5, 0.6, 0.8, out + Math.PI / 2);
       add('bead', working ? 'acid' : 'off', ...from(x, y, out, -0.16), 0.78, 0.14 + (working ? Math.sin(clock * 14) * 0.03 : 0));
       if (working && fine) limb('acid', ...from(x, y, out, -0.16), 0.76, ...from(x, y, out, 0.1), 0.6, 0.03);
-      nozzle(x, y, c.dir, 0.25, 'acid');
+      nozzle(x, y, c.dir, 0.25);
     },
 
     // A sac in a bone cradle, swelling and lighting its nodes as it fills.
@@ -555,7 +552,7 @@ window.createModels3D = (B, scene) => {
       }
       add('lip', 'pink', x, y, 0.2 + r * 0.83, 0.2);
       if (c.stock.length && fine) cargo(c.stock[0], x, y, 0.3 + r * 0.85, Math.PI, 0.36);
-      nozzle(x, y, c.dir, 0.22, 'pink');
+      nozzle(x, y, c.dir, 0.22);
     },
 
     // A derrick over four cells: two counter-turning cutters, a mast, and a mouth on each of eight faces.
@@ -581,7 +578,7 @@ window.createModels3D = (B, scene) => {
       add('ring', working ? 'cyan' : 'amber', x, y, 1.39, 0.7);
       add('dome', 'glass', x, y, 1.36, 0.6, 0.7, 0.6);
       base(kind, x, y, 1.5, 0.19, spin * 0.2);
-      for (const door of edgesOf(c)) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.22, 'pink');
+      for (const door of edgesOf(c)) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.22);
     },
 
     // Four sacs in one cradle, filling one after the other, two mouths side by side.
@@ -605,7 +602,7 @@ window.createModels3D = (B, scene) => {
       add('ring', full > 0.95 ? 'alarm' : 'cyan', x, y, 0.84, 0.36);
       if (c.stock.length) cargo(c.stock[0], x, y, 0.98, Math.PI, 0.5);
       for (const door of edgesOf(c)) {
-        if (door.dir === c.dir) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.26, 'pink');
+        if (door.dir === c.dir) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.26);
         else if (fine) add('bead', 'black', door.x + 0.5 + DX[door.dir] * 0.42, door.y + 0.5 + DY[door.dir] * 0.42, 0.24, 0.18, 0.18, 0.18);
       }
     },
@@ -649,9 +646,7 @@ window.createModels3D = (B, scene) => {
       }
       for (let d = 0; d < 4; d++) {
         if (!G.tracks[key(c.x + DX[d], c.y + DY[d])]) continue;
-        const out = c.unload ? (d + 2) % 4 : d;
         limb('skin2', x + DX[d] * 0.2, y + DY[d] * 0.2, 0.3, x + DX[d] * 0.56, y + DY[d] * 0.56, 0.12, 0.2, 'taper');
-        arrow('acid', x + DX[out] * 0.43, y + DY[out] * 0.43, 0.36, out, 0.17);
       }
     },
 

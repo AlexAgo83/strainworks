@@ -1,6 +1,6 @@
 // Gate: passes, holds, resumes in all directions and turns; one tap; diagnosis; rebuild.
 import { expect, it } from "vitest";
-import { launch, pageHTML, recorder } from "./harness.mjs";
+import { launch, pageHTML, pickTool, recorder } from "./harness.mjs";
 
 it("gate behaves as the recorded prototype", async () => {
   const { entries, report } = recorder();
@@ -36,16 +36,16 @@ it("gate behaves as the recorded prototype", async () => {
     await page.evaluate(() => { begin(); paused=true; for(let i=0;i<500;i++)step(STEP); cam.x=48.5; cam.y=42; cam.zoom=48; draw(); });
     const box=await page.locator('#game').boundingBox();
     const at=[box.x+box.width/2, box.y+box.height/2+.5*48];
-    await page.locator('#tools button',{hasText:'Feu'}).click();
+    await pickTool(page,'gate');
     await page.touchscreen.tap(...at);
     const placed=await page.evaluate(()=>[G.cells['48,42'].type,G.cells['48,42'].open,G.cells['48,42'].dir]);
-    await page.locator('#tools button',{hasText:'Inspecter'}).click();
+    await pickTool(page,'hand');
     await page.touchscreen.tap(...at);
     const red=await page.evaluate(()=>{for(let i=0;i<100;i++)step(STEP);refresh();return G.cells['48,42'].open;});
     await page.waitForTimeout(250);
     await page.touchscreen.tap(...at);
     report('taps', JSON.stringify({placed,red,green:await page.evaluate(()=>G.cells['48,42'].open)}));
-    report('tools', await page.evaluate(()=>JSON.stringify({n:document.querySelectorAll('#tools button').length,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),scroll:document.documentElement.scrollWidth})));
+    report('tools', await page.evaluate(()=>JSON.stringify({n:document.querySelectorAll('#tools [data-type]').length,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),scroll:document.documentElement.scrollWidth})));
     report('errors',JSON.stringify(errors));
   } finally { await browser.close(); }
   expect(entries.find(([label]) => label === "errors")?.[1]).toEqual([]);

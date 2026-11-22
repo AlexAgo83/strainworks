@@ -1,6 +1,6 @@
 // The goal: a real wired line through each stage, locks, assembler order, old saves, phone.
 import { expect, it } from "vitest";
-import { launch, pageHTML, recorder, savedGame } from "./harness.mjs";
+import { fromMenu, launch, pageHTML, recorder, savedGame } from "./harness.mjs";
 
 it("progression behaves as the recorded prototype", async () => {
   const { entries, report } = recorder();
@@ -56,12 +56,12 @@ it("progression behaves as the recorded prototype", async () => {
     })));
     await page.evaluate(() => { begin(); paused=true; G.fed=37; select('48,52'); refresh(); });
     await page.waitForTimeout(250);
-    await page.locator('#actions button',{hasText:'Tout débloquer'}).click();
+    await fromMenu(page,'open-all');
     report('unlock', await page.evaluate(() => JSON.stringify([unlocked(3),document.querySelectorAll('#tools .locked').length,G.stage])));
     await page.evaluate(() => { begin(); paused=true; G.stage=2; G.fed=25; cam.x=48.5; cam.y=52.5; cam.zoom=22;
       put('join',48,56,0); put('belt',48,55,0).item='SFSFFF'; put('belt',48,54,0).item='SFSFFF'; put('belt',47,56,1); put('belt',49,56,3); refresh(); });
     await page.waitForTimeout(250);
-    report('phone', await page.evaluate(() => JSON.stringify({scroll:document.documentElement.scrollWidth,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),clipped:[...document.querySelectorAll('#tools button')].filter(b=>b.scrollWidth>b.clientWidth+1).map(b=>b.textContent)})));
+    report('phone', await page.evaluate(() => JSON.stringify({scroll:document.documentElement.scrollWidth,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),clipped:clippedTools()})));
     report('errors', JSON.stringify(errors));
   } finally { await browser.close(); }
   expect(entries.find(([label]) => label === "errors")?.[1]).toEqual([]);

@@ -43,7 +43,7 @@ it("sorter behaves as the recorded prototype", async () => {
     await page.locator('#actions .slot').nth(1).click();
     await page.evaluate(() => { for(let i=0;i<200;i++)step(STEP); refresh(); });
     await page.waitForTimeout(300);
-    report('phone', await page.evaluate(() => JSON.stringify({scroll:document.documentElement.scrollWidth, board:Math.round(view.h), bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom), clipped:[...document.querySelectorAll('#tools button')].filter(b=>b.scrollWidth>b.clientWidth+1).map(b=>b.textContent)})));
+    report('phone', await page.evaluate(() => JSON.stringify({scroll:document.documentElement.scrollWidth, board:Math.round(view.h), bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom), clipped:clippedTools()})));
     report('rebuild', await page.evaluate(() => {
       const before = [G.cells['48,41'].want,G.cells['48,41'].side].join();
       G.ruins['48,41'] = {...G.cells['48,41']}; delete G.cells['48,41']; document.querySelector('#rebuild').onclick();

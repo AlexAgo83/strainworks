@@ -121,7 +121,6 @@ window.createView3D = (glCanvas) => {
     }
   }
 
-  const hull = (c) => TYPES[c.type]?.hp ?? 100;
   const heartbeat = () => {
     heart.position.copyFromFloats(CORE.x + 0.5, 2.2, -(CORE.y + 0.5));
     heart.intensity = 0.22 + G.stage * 0.06 + Math.sin(G.time * 2.5) * 0.05;
@@ -192,7 +191,7 @@ window.createView3D = (glCanvas) => {
       const asleep = b.state === 'sleep';
       if (asleep) {
         g.setLineDash([0.6, 0.6]);
-        circle(g, x, y, b.r, null, '#8A747C', Math.max(0.06, px));
+        circle(g, x, y, b.r + Math.sin(motionTime() * 1.1) * 0.08, null, '#8A747C', Math.max(0.06, px));
         g.setLineDash([]);
       }
       if (cam.zoom < 8) continue;
@@ -209,17 +208,6 @@ window.createView3D = (glCanvas) => {
       g.strokeStyle = '#B7F34A';
       g.lineWidth = 0.14;
       g.stroke();
-    }
-    for (const c of Object.values(G.cells)) {
-      const { x, y } = centreOf(c);
-      if (!built(c)) bar(x, y + sizeOf(c) / 2 - 0.14, woven(c), c.cut ? '#FF6B6B' : '#55D6E8');
-      if (c.hp < hull(c) - 0.5) bar(x, up(c.y, 0.8), c.hp / hull(c), healing(c) ? '#62E06A' : '#FF6B6B');
-      if (c.type === 'ligase' && cam.zoom >= 20) {
-        for (let port = 0; port < 3; port++) {
-          const side = portSide(c, port);
-          label(port + 1, x + DX[side] * 0.5, up(y + DY[side] * 0.5, 0.52), 10, '#E6F0EC');
-        }
-      }
     }
     for (const w of G.worms) {
       const [x, y] = w.path[0].split(',').map(Number);
@@ -254,7 +242,9 @@ window.createView3D = (glCanvas) => {
       g.strokeStyle = '#55D6E8AA';
       g.lineWidth = px;
       g.setLineDash([0.3, 0.3]);
+      g.lineDashOffset = -motionTime() % 0.6;
       g.stroke();
+      g.lineDashOffset = 0;
       g.setLineDash([]);
     }
     // Waiting for a drone to take it down.
@@ -277,12 +267,7 @@ window.createView3D = (glCanvas) => {
       const [wx, wy] = w.path[0].split(',').map(Number);
       circle(g, wx + 0.5, wy + 0.5, 0.62, null, '#FF6B6B', 0.06);
     }
-    for (const c of chain) rect(g, c.x + 0.04, c.y + 0.04, sizeOf(c) - 0.08, sizeOf(c) - 0.08, null, '#FF6B6B');
-    const picked = selected && G.cells[selected];
-    if (picked) {
-      rect(g, picked.x, picked.y, sizeOf(picked), sizeOf(picked), null, '#B7F34A');
-      if (isGun(picked)) circle(g, picked.x + 0.5, picked.y + 0.5, GUNS[picked.type].range, null, '#55D6E8', 2 * px);
-    }
+    sceneSigns(g);
     const from = (linking && G.cells[linking]) || (wiring && G.cells[wiring]);
     if (from) circle(g, from.x + 0.5, from.y + 0.5, linking ? VEIN.reach : NERVE.reach, null, linking ? '#FF8FA2' : '#55D6E8', 2 * px);
     const start = gesture?.mode === 'draw' && (drag?.vein || drag?.nerve);

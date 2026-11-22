@@ -108,7 +108,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
     1,
     [
       "wake",
-      "1. Cellule0 sur 100Dans 30 s, nord→",
+      "Assaut dans 30 s Nord →aucun antidote",
     ],
   ],
   [

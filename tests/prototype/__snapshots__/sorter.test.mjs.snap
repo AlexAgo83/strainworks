@@ -25,7 +25,7 @@ exports[`sorter behaves as the recorded prototype 1`] = `
   [
     "phone",
     {
-      "board": 349,
+      "board": 700,
       "bottom": 694,
       "clipped": [],
       "scroll": 375,

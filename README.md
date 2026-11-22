@@ -31,6 +31,7 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 | Path | Content |
 |---|---|
 | `prototype/` | The playable prototype, its 3D view (`view3d.js`, models in `models3d.js`, ground in `terrain3d.js`) and the transport mockup, French interface |
+| `docs/design/interface/` | Approved mockup of the interface |
 | `docs/concept.md` | Game concept and decisions |
 | `tests/prototype/` | Behavior tests of the prototype |
 | `tests/fixtures/saves/` | Saved games from earlier prototype versions |

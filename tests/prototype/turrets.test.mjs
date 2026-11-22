@@ -154,7 +154,7 @@ it("has a far slow turret and a close double one", async () => {
       put("maw", 52, 40, 0);
       draw();
       out.fits = document.documentElement.scrollWidth <= 375;
-      out.clipped = [...document.querySelectorAll("#tools button")].filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent);
+      out.clipped = clippedTools();
       return out;
     });
 

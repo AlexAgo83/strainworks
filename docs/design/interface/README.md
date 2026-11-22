@@ -19,3 +19,8 @@ additions and were approved with the rest.
 The `.dc.html` files, `hud.css` and `canvas.json` are the sources of the boards.
 Their `/_blob/` images live with the canvas, the picture here holds the render.
 Figures on the boards are examples, the rules live in `docs/concept.md`.
+
+Changed after approval, on request: ways in and out and position numbers are
+hidden at rest. The ghost, the hovered and the selected object show them big,
+at one size on screen whatever the zoom. This replaces the inventory row
+"Ports et sorties".

@@ -1,6 +1,6 @@
 // Nerves: emission, positions, repeated base, focus, no jam, cut, rebuild, gestures, old save.
 import { expect, it } from "vitest";
-import { launch, pageHTML, recorder, savedGame } from "./harness.mjs";
+import { launch, pageHTML, pickTool, recorder, savedGame } from "./harness.mjs";
 
 it("nerves behaves as the recorded prototype", async () => {
   const { entries, report } = recorder();
@@ -75,7 +75,7 @@ it("nerves behaves as the recorded prototype", async () => {
     });
     const box=await page.locator('#game').boundingBox(), cdp=await context.newCDPSession(page);
     const at=(x,y)=>({x:box.x+box.width/2+(x+.5-48.5)*24,y:box.y+box.height/2+(y+.5-37.5)*24,id:0});
-    await page.locator('#tools button',{hasText:'Nerf'}).click();
+    await pickTool(page,'wire');
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[at(48,34)]});
     for(const [x,y] of [[49,35],[51,37],[53,39]]) await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[at(x,y)]});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});

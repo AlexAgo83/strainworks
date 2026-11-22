@@ -17,7 +17,7 @@ it("keeps and cycles the direction in hand", async () => {
     });
     await page.goto("http://proto.test/");
     const game = () => page.frames().find((frame) => frame.url().endsWith("/game"));
-    await game().waitForSelector("#tools button");
+    await game().waitForSelector('#tools [data-type="hand"]');
     await game().evaluate(() => {
       begin();
       paused = true;
@@ -83,7 +83,7 @@ it("keeps and cycles the direction in hand", async () => {
     })).toEqual([1, 2]);
 
     await page.reload();
-    await game().waitForSelector("#tools button");
+    await game().waitForSelector('#tools [data-type="hand"]');
     expect(await inHand()).toBe(2);
     expect(errors).toEqual([]);
   } finally {

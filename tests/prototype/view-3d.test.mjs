@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launch, pageHTML } from "./harness.mjs";
+import { fromMenu, launch, pageHTML, pickTool } from "./harness.mjs";
 
 const file = (path) => fileURLToPath(new URL(path, import.meta.url));
 const ENGINE = file("../../node_modules/babylonjs/babylon.js");
@@ -37,7 +37,7 @@ it("stays in 2D when the engine cannot load", async () => {
   const browser = await launch();
   try {
     const { page, errors } = await open(browser, { network: false });
-    await page.click("#dimension");
+    await fromMenu(page, "dimension");
     await page.waitForFunction(() => document.querySelector("#message").textContent.startsWith("Vue 3D indisponible"));
     expect(await page.evaluate(() => [view3d, document.querySelector("#gl").hidden])).toEqual([null, true]);
     expect(errors).toEqual([]);
@@ -57,7 +57,7 @@ it("draws the same game and lands a finger on the same cell", async () => {
       G.dna = 500;
       for (let i = 0; i < 300; i++) step(STEP);
     });
-    await page.click("#dimension");
+    await fromMenu(page, "dimension");
     await page.waitForFunction(() => view3d !== null);
 
     // Every kind of thing is drawn, and drawing never changes the game.
@@ -108,24 +108,24 @@ it("draws the same game and lands a finger on the same cell", async () => {
     const box = await page.locator("#game").boundingBox();
     const tilt = await page.evaluate(() => view3d.tilt);
     const at = (x, y, up = 0) => [box.x + box.width / 2 + (x + 0.5 - 20) * 24, box.y + box.height / 2 + (y + 0.5 - 80) * 24 * tilt - up];
-    await page.locator('#tools [data-type="cyst"]').click();
+    await pickTool(page, "cyst");
     const cells = [[15, 74], [20, 80], [24, 87]];
     for (const [x, y] of cells) await page.touchscreen.tap(...at(x, y));
     expect(await page.evaluate((list) => list.map(([x, y]) => G.cells[`${x},${y}`]?.type), cells)).toEqual(["cyst", "cyst", "cyst"]);
 
     // The top of a tall object selects the object.
-    await page.locator("#tools button", { hasText: "Inspecter" }).click();
+    await pickTool(page, "hand");
     await page.touchscreen.tap(...at(20, 80, 14));
     expect(await page.evaluate(() => selected)).toBe("20,80");
 
-    await page.locator("#tools button", { hasText: "Tapis" }).click();
+    await pickTool(page, "belt");
     await page.mouse.move(...at(16, 83));
     await page.mouse.down();
     await page.mouse.move(...at(22, 83), { steps: 8 });
     await page.mouse.up();
     expect(await page.evaluate(() => [16, 17, 18, 19, 20, 21, 22].map((x) => G.cells[`${x},83`]?.type))).toEqual(Array(7).fill("belt"));
 
-    await page.click("#dimension");
+    await fromMenu(page, "dimension");
     expect(await page.evaluate(() => [view3d, document.querySelector("#gl").hidden, flat()])).toEqual([null, true, 1]);
     expect(errors).toEqual([]);
   } finally {

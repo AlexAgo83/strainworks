@@ -70,6 +70,12 @@ Rejected are the operator's decisions, rows marked Proposed are open.
   A 2 x 2 building lives on its north-west cell: look cells up with cellAt and ruinAt,
   place things with centreOf and footprint, never assume one cell. They only read the game state,
   and a new kind of object needs a model there as well as its 2D drawing.
+- The interface is grafted over a full-screen scene and follows `docs/design/interface/`.
+  It reads the game and calls the same actions as a finger. Report with tell() what
+  happened, with refuse() what a gesture cannot do, with say() a tip. A new tool needs
+  a family in FAMILIES and its model in the `--models` sprite (MODELS gives the order).
+  Ways in and out are drawn by portsOf/drawPorts on demand, never baked into a model:
+  when connects() or an exit rule changes, portsOf follows and a test holds them together.
 - `tests/prototype/` records its behavior. An intended rule change updates the
   snapshot in the same commit and the concept with it. Never update a snapshot to
   silence a failure you cannot explain.

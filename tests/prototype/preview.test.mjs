@@ -85,7 +85,8 @@ it("announces what a tap does", async () => {
     expect(turret[0]).toBe("turret");
     await page.evaluate(() => choose("erase"));
     await page.waitForFunction((was) => document.querySelector("#game").style.cursor !== was, turret[1]);
-    await page.mouse.move(1, 1);
+    // The scene runs to the corners: the pointer leaves it onto the interface.
+    await page.hover("#pause");
     expect(await page.evaluate(() => preview())).toBe(null);
     expect(errors).toEqual([]);
   } finally {

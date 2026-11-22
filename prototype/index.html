@@ -5,110 +5,531 @@
 <style>:root{color-scheme:light;padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}html{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
 <title>Strainworks Prototype</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Chakra+Petch:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&family=Chakra+Petch:wght@600;700&display=swap">
 <style>
-/* Layout: one-screen app. Status, assault brief, board, selection, tools. From 900px the board takes the left. */
+/* The scene takes the whole screen and the interface is grafted on its edges: docs/design/interface. */
 :root {
-  color-scheme: dark;
-  --night:#091013; --steel:#142126; --edge:#2C434A; --ink:#E6F0EC; --muted:#A3B8B3;
-  --acid:#B7F34A; --cyan:#55D6E8; --alarm:#FF6B6B;
+  color-scheme:dark; padding:0;
+  --night:#070C0E; --membrane:rgba(8,16,18,.9); --edge:#52707A; --ink:#E9F3EF; --muted:#A9BDB8;
+  --acid:#B7F34A; --cyan:#66D9EA; --alarm:#FF6B74; --amber:#F0A03C; --bone:#D8CDB6;
+  --t:env(safe-area-inset-top,0px); --b:env(safe-area-inset-bottom,0px); --l:env(safe-area-inset-left,0px); --r:env(safe-area-inset-right,0px);
   --display:'Chakra Petch',Verdana,sans-serif; --body:'Barlow',Arial,sans-serif;
 }
-html, body { height:100%; }
-body { background:var(--night); color:var(--ink); font:14px/1.3 var(--body); overflow:hidden; }
-#app {
-  box-sizing:border-box; height:100%; display:grid; gap:6px; padding-block:6px;
-  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px));
-  grid-template:"hud" auto "brief" auto "board" minmax(0,1fr) "info" auto "tools" auto / minmax(0,1fr);
-}
-button {
-  font:inherit; color:var(--ink); background:var(--steel); border:1px solid var(--edge); border-radius:8px;
-  min-height:40px; padding:4px 10px; cursor:pointer; touch-action:manipulation;
-}
-button:focus-visible { outline:2px solid var(--cyan); outline-offset:1px; }
-button:disabled { opacity:.4; cursor:default; }
-#hud { grid-area:hud; display:flex; align-items:center; gap:6px; min-width:0; }
-#hud h1 { margin:0; font:700 12px var(--display); letter-spacing:0; color:var(--acid); }
-#dna { display:block; color:var(--ink); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.meters { flex:1; min-width:0; display:grid; gap:3px; }
-.meter { display:grid; grid-template-columns:48px minmax(0,1fr); align-items:center; gap:6px; font-size:12px; color:var(--muted); }
-.meter span { height:7px; border-radius:4px; background:var(--steel); overflow:hidden; }
-.meter i { display:block; height:100%; width:0; background:var(--alarm); }
-.meter i.core { background:var(--cyan); }
-#hud button { min-width:42px; padding:4px 6px; }
-#brief { grid-area:brief; display:flex; align-items:center; gap:4px 12px; flex-wrap:wrap; min-height:32px; padding:5px 9px; border:1px solid var(--edge); border-radius:8px; }
-#brief.hot { border-color:var(--alarm); }
-#brief .threat { display:flex; align-items:center; gap:2px 7px; flex-wrap:wrap; width:100%; }
-#brief .none { color:var(--alarm); }
-.gene { display:inline-flex; align-items:center; gap:2px; vertical-align:middle; }
-.gene svg { width:18px; height:18px; }
-.need { color:var(--acid); }
-.gene .cut { width:1px; height:18px; margin-inline:3px; background:var(--acid); }
-#brief .order { display:flex; align-items:center; gap:2px 7px; flex-wrap:wrap; width:100%; }
-#brief .boxed { padding:1px 6px; border:1px solid var(--cyan); border-radius:4px; color:var(--cyan); font-size:11px; white-space:nowrap; }
-#brief .order output { margin-left:auto; color:var(--acid); font-variant-numeric:tabular-nums; }
-#tools button.locked { color:var(--muted); }
-#tools button.locked canvas { opacity:.3; }
-#tools .price.lock { color:var(--cyan); }
-#board { grid-area:board; position:relative; min-height:0; overflow:hidden; border:1px solid var(--edge); border-radius:8px; }
-#zoom { position:absolute; right:6px; top:6px; display:grid; gap:4px; }
-#zoom button { width:40px; padding:0; font-size:18px; }
-#works { position:absolute; left:6px; top:6px; padding:4px 8px; border-radius:6px; background:var(--night); color:var(--cyan); font-size:12px; pointer-events:none; }
-#rebuild { position:absolute; left:6px; bottom:6px; border-color:var(--alarm); color:var(--alarm); }
+[hidden] { display:none!important; }
+html, body { height:100%; margin:0; padding:0; overflow:hidden; overscroll-behavior:none; }
+body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body); font-variant-numeric:tabular-nums; -webkit-tap-highlight-color:transparent; }
+#app { position:fixed; inset:0; overflow:hidden; pointer-events:none; }
+#app *, #app *::before, #app *::after { box-sizing:border-box; }
+#app p, #app h1, #app h2 { margin:0; }
+#app button { font:inherit; color:inherit; cursor:pointer; touch-action:manipulation; pointer-events:auto; }
+#app button:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+#app button:disabled { opacity:.45; cursor:default; }
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+
+/* Scene */
+#board { position:absolute; inset:0; overflow:hidden; pointer-events:auto; }
 #gl { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-#game { outline:none; position:absolute; inset:0; width:100%; height:100%; touch-action:none; user-select:none; -webkit-user-select:none; }
-#over { position:absolute; inset:0; display:grid; place-content:center; justify-items:center; gap:12px; text-align:center; background:var(--night); }
-#over h2 { margin:0; font:600 26px var(--display); color:var(--alarm); text-wrap:balance; }
-#over p { margin:0; }
-#info { grid-area:info; display:flex; align-items:center; gap:6px; min-height:50px; }
-#message { flex:1; min-width:0; margin:0; color:var(--muted); }
-#actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; max-width:60%; }
-#actions:empty { display:none; }
-#actions button { font-size:12px; padding:4px 7px; }
-#message { font-size:13px; }
-#info.filter { flex-direction:column; align-items:stretch; }
-#info.filter #message { flex:none; }
-#info.filter #actions { max-width:100%; justify-content:flex-start; }
-#actions .slot { min-width:40px; border-color:var(--acid); }
-#tools { grid-area:tools; display:grid; grid-template-rows:repeat(2,auto); grid-auto-flow:column; grid-auto-columns:minmax(max-content,1fr); gap:3px; overflow-x:auto; }
-/* A long name widens its own column only. */
-#tools button { display:grid; justify-items:center; gap:1px; padding:3px 1px; font-size:10px; min-width:56px; }
-#tools button { position:relative; }
-#tools .price { position:absolute; top:1px; right:2px; padding:0 3px; border-radius:4px; background:var(--night); color:var(--acid); font-size:10px; font-variant-numeric:tabular-nums; }
-#tools .price.short { color:var(--alarm); }
-#tools canvas { width:26px; height:26px; }
-#tools button[aria-pressed="true"] { border-color:var(--acid); color:var(--acid); }
-@media (min-width:900px) {
-  #app { grid-template:"board hud" auto "board brief" auto "board info" auto "board tools" auto "board ." minmax(0,1fr) / minmax(0,1fr) 420px; gap:14px 28px; padding-block:18px; }
-  #tools { grid-auto-flow:row; grid-template-rows:none; grid-auto-columns:auto; grid-template-columns:repeat(2,minmax(0,1fr)); min-height:0; overflow:auto; }
-  #tools button { display:flex; align-items:center; gap:10px; padding:6px 12px; font-size:14px; }
-  #info { align-items:flex-start; flex-direction:column; min-height:120px; }
-  #actions { justify-content:flex-start; max-width:100%; }
+#game { position:absolute; inset:0; width:100%; height:100%; outline:none; touch-action:none; user-select:none; -webkit-user-select:none; }
+#board.switched { animation:appear .6s ease; }
+.edges, .edges i { position:absolute; inset:0; }
+.edges { box-shadow:inset 0 0 90px 18px rgba(3,7,8,.6); }
+.edges i { opacity:0; box-shadow:inset 0 0 70px 10px rgba(255,70,85,.5); transition:opacity .6s; }
+.hot .edges i { opacity:1; animation:alert 1.1s ease-in-out infinite; }
+.veins { position:absolute; overflow:visible; }
+.veins.nw { left:0; top:0; }
+.veins.ne { right:0; top:0; }
+.veins.sw { left:calc(50% - 420px); bottom:0; }
+.veins.se { right:calc(50% - 420px); bottom:0; }
+.vein { fill:none; stroke:#4A1B25; stroke-linecap:round; }
+.vein.live { stroke:var(--acid); stroke-dasharray:18 240; animation:sap var(--sap,3.6s) linear infinite; }
+.vein.late { animation-delay:-1.7s; }
+.paused .live, .paused .organ, .paused .lobe, .paused .helix i, .paused .ecg, .paused .drone, .paused .rotor { animation-play-state:paused; }
+.fast { --sap:1.2s; }
+.skin { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.skin path:first-child { fill:var(--membrane); stroke:#46636B; stroke-width:1.5; vector-effect:non-scaling-stroke; pointer-events:auto; }
+.skin .seam { fill:none; stroke:rgba(216,205,182,.35); vector-effect:non-scaling-stroke; }
+.b { display:inline-block; flex:none; width:16px; height:16px; }
+.gene { display:inline-flex; align-items:center; gap:2px; vertical-align:middle; }
+.gene svg { width:17px; height:17px; }
+.gene .cut { width:1px; height:17px; margin-inline:2px; background:var(--acid); }
+.need { color:var(--acid); }
+.none { color:var(--alarm); }
+
+/* The organism */
+#organism { position:absolute; left:calc(18px + var(--l)); top:calc(16px + var(--t)); width:446px; height:214px; z-index:4; }
+#organism .small { display:none; }
+.orb { position:absolute; left:14px; top:20px; width:128px; height:128px; overflow:visible; }
+.organ { transform-box:fill-box; transform-origin:center; animation:beat 1.15s ease-in-out infinite; }
+.lobe { transform-box:fill-box; transform-origin:center; animation:breathe 3.2s ease-in-out infinite; }
+.lobe.two { animation-delay:-1.2s; }
+.lobe.three { animation-delay:-2.1s; }
+.arc { fill:none; stroke-linecap:round; transform:rotate(-90deg); transition:stroke-dasharray .7s cubic-bezier(.2,.8,.2,1),stroke .4s; }
+#life { stroke:var(--acid); }
+#pupil { fill:var(--acid); transition:fill .4s; }
+.ailing #life { stroke:var(--alarm); }
+.ailing #pupil { fill:var(--alarm); }
+.ailing #life-text { color:var(--alarm); }
+.orbit { animation:spin 14s linear infinite; }
+#organism.surge .orb { animation:surge .9s ease-out; }
+#order { position:absolute; left:158px; top:30px; width:280px; }
+#order b { display:block; font:700 13px var(--display); color:var(--acid); text-transform:uppercase; white-space:nowrap; }
+#order .wanted { display:flex; align-items:center; gap:10px; margin-top:5px; white-space:nowrap; }
+#order output { font:700 18px/1 var(--display); }
+#order .unit { display:block; margin-top:3px; color:var(--muted); font:500 11px var(--body); }
+.crate { display:inline-flex; align-items:center; padding:4px 9px; background:#172024; border:2px solid var(--cyan); border-radius:8px 3px; }
+#life-text { position:absolute; left:28px; top:154px; width:100px; text-align:center; color:var(--muted); font-size:13px; }
+.helix { position:absolute; left:170px; top:133px; width:26px; height:40px; }
+.helix i { position:absolute; left:0; width:7px; height:7px; border-radius:50%; background:var(--acid); animation:twist 1.8s ease-in-out infinite; }
+.helix i.o { background:var(--cyan); }
+#dna { position:absolute; left:208px; top:137px; font:700 23px var(--display); white-space:nowrap; }
+#gain { position:absolute; left:300px; top:128px; opacity:0; color:var(--acid); font:700 15px var(--display); }
+#gain.up { animation:gain 2s ease-out; }
+
+/* Threat */
+#brief { position:absolute; right:calc(202px + var(--r)); top:calc(14px + var(--t)); width:354px; z-index:4; }
+#threat-toggle { position:relative; display:flex; flex-direction:column; justify-content:flex-start; align-items:flex-start; width:100%; min-height:118px; padding:20px 18px 18px 120px; border:0; background:none; text-align:left; }
+#threat-toggle .title { display:block; color:var(--alarm); font:700 16px var(--display); text-transform:uppercase; }
+#threat-toggle .detail { display:block; color:var(--muted); font-size:13px; }
+#threat-toggle .short { display:none; }
+#brief.calm .title { color:var(--muted); }
+#brief.calm .skin { transform-origin:center; animation:calm 5s ease-in-out infinite; }
+#brief.calm .ecg { stroke:var(--muted); }
+#versus { position:absolute; left:26px; top:72px; right:18px; display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.pulse { position:absolute; left:22px; top:14px; width:88px; height:40px; }
+.ecg { fill:none; stroke:var(--alarm); stroke-width:2; stroke-dasharray:46 18; animation:ecg var(--pulse,1.6s) linear infinite; }
+#families { position:relative; display:grid; gap:6px; margin:4px 10px 0; padding:10px 14px; background:var(--membrane); border:1px solid #46636B; border-radius:18px 6px; pointer-events:auto; animation:sprout .35s ease both; }
+.threat { display:flex; align-items:center; gap:6px; font-size:13px; white-space:nowrap; }
+
+/* Round organs */
+#app .node {
+  position:relative; display:grid; place-items:center; flex:none; width:48px; height:48px; padding:0;
+  border:1.5px solid var(--edge); border-radius:50% 44% 52% 46%; background:var(--membrane);
+  transition:transform .22s cubic-bezier(.2,1.6,.4,1),border-color .2s,border-radius .4s;
 }
+#app .node:hover { transform:scale(1.12); border-color:var(--acid); border-radius:44% 52% 46% 50%; }
+#app .node:active { transform:scale(.9); }
+#app .node.on { border-color:var(--acid); color:var(--acid); }
+#time { position:absolute; right:calc(16px + var(--r)); top:calc(22px + var(--t)); display:flex; gap:8px; z-index:6; }
+#pause, #speed { font:700 16px var(--display); }
+#zoom { position:absolute; right:calc(16px + var(--r)); top:calc(226px + var(--t)); display:flex; flex-direction:column; gap:9px; z-index:4; }
+#menu { position:absolute; right:calc(16px + var(--r)); top:calc(80px + var(--t)); z-index:8; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+#menu > * { animation:sprout .35s cubic-bezier(.2,1.5,.4,1) both; }
+#menu h1 { padding:2px 10px; color:var(--acid); background:var(--membrane); font:700 13px var(--display); }
+#app .tip { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:5px 12px; border:1px solid var(--edge); border-radius:12px 5px; background:var(--membrane); }
+#restart { position:relative; overflow:hidden; color:var(--alarm); border-color:var(--alarm); }
+#restart i { position:absolute; left:0; bottom:0; height:4px; width:100%; background:var(--alarm); transform:scaleX(0); transform-origin:left; }
+#restart.holding i { transform:scaleX(1); transition:transform 1s linear; }
+
+/* Events, refusals, drones */
+#events { position:absolute; left:calc(22px + var(--l)); top:calc(240px + var(--t)); z-index:3; display:flex; flex-direction:column; align-items:flex-start; gap:7px; }
+#app .event { display:flex; align-items:center; gap:8px; max-width:300px; min-height:40px; padding:6px 12px; border:1px solid #46636B; border-radius:14px 5px; background:var(--membrane); text-align:left; font-size:13px; animation:arrive .6s cubic-bezier(.2,1.3,.4,1) both; transition:opacity .5s,transform .5s; }
+#app .event.bad { border-color:var(--alarm); }
+#events { transition:opacity .3s; }
+#events.under { opacity:.08; pointer-events:none; }
+#app .event.gone { opacity:0; transform:translateX(-30px); }
+.event .dot { flex:none; width:9px; height:9px; border-radius:50%; background:var(--acid); }
+.event.bad .dot { background:var(--alarm); }
+.event .text { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.event .gene svg { animation:rewrite .9s ease-out both; }
+#refusal { position:absolute; left:0; top:0; z-index:9; max-width:min(280px,calc(100% - 16px)); padding:6px 10px; border:1px solid var(--alarm); border-radius:10px 4px; background:var(--membrane); color:var(--alarm); font-size:13px; }
+#refusal.shake { animation:shake .38s ease,fadeout 3.2s ease both; }
+#crew { position:absolute; left:calc(22px + var(--l)); bottom:calc(18px + var(--b)); z-index:3; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+#rebuild { border-color:var(--amber)!important; color:var(--amber); animation:amber 1.8s ease-in-out infinite; }
+#works { padding:2px 8px; border-radius:8px; background:var(--membrane); color:var(--cyan); font-size:12px; }
+#drones { display:flex; gap:8px; }
+#app .pip { display:flex; flex-direction:column; align-items:center; gap:2px; width:76px; min-height:56px; padding:0; border:0; background:none; }
+.pip span { max-width:100%; padding:1px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-radius:8px; background:var(--membrane); font-size:12px; }
+.drone { width:48px; height:36px; animation:hover 2.2s ease-in-out infinite; }
+.pip:nth-child(2) .drone { animation-delay:-.7s; }
+.pip:nth-child(3) .drone { animation-delay:-1.4s; }
+.rotor { transform-box:fill-box; transform-origin:center; animation:spin .5s linear infinite; }
+.eye { fill:var(--acid); }
+.busy .eye { fill:var(--amber); }
+.pip:not(.busy) .rotor { animation-duration:3s; }
+
+/* Dock: families, and the fan of their tools */
+#tools { position:absolute; left:0; right:0; bottom:calc(10px + var(--b)); z-index:5; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.tray { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; max-width:100%; }
+.dock { display:flex; justify-content:center; gap:2px; max-width:100%; }
+#app .pod { position:relative; display:flex; flex-direction:column; align-items:center; gap:5px; width:84px; min-width:0; padding:0; border:0; background:none; }
+.porthole {
+  position:relative; display:grid; place-items:center; flex:none; overflow:hidden; width:64px; height:64px;
+  border:2px solid var(--edge); border-radius:48% 52% 45% 55%; background-color:#0B1417;
+  transition:transform .28s cubic-bezier(.2,1.7,.4,1),border-color .2s,border-radius .5s;
+}
+.model { background-image:var(--models); background-size:600% 400%; }
+.pod:hover .porthole { transform:translateY(-6px) scale(1.07); border-radius:55% 45% 52% 48%; border-color:var(--cyan); }
+.pod[aria-pressed="true"] .porthole { transform:translateY(-7px) scale(1.09); border-color:var(--acid); animation:morph 3s ease-in-out infinite; }
+.pod .name { max-width:100%; padding:1px 6px; border-radius:8px; background:rgba(7,12,14,.85); font-size:13px; line-height:1.15; text-align:center; }
+.pod[aria-pressed="true"] .name { color:var(--acid); }
+.pod canvas { display:none; }
+.pod .key { position:absolute; top:-4px; right:6px; min-width:19px; height:19px; padding:0 4px; border:1px solid var(--edge); border-radius:5px; background:var(--night); color:var(--muted); font-size:12px; line-height:17px; }
+#app .pod:active .key { color:var(--night); background:var(--acid); }
+.pod.pressed .porthole { animation:press .3s ease; }
+.pod .price, .pod .size { position:absolute; top:49px; padding:0 7px; border-radius:9px; background:var(--acid); color:var(--night); font-size:12px; font-weight:600; white-space:nowrap; }
+.pod .price.short { background:var(--alarm); }
+.pod .price.lock, .pod .size { background:var(--bone); }
+.pod .size { top:-5px; left:2px; }
+.pod.locked .porthole { filter:grayscale(1) brightness(.5); }
+.pod.locked .name { color:var(--muted); }
+.pod.unlocked .porthole { animation:hatch .8s cubic-bezier(.2,1.5,.4,1); }
+.tray .pod { animation:sprout .46s cubic-bezier(.2,1.5,.4,1) both; }
+.tray .pod:nth-child(2) { animation-delay:.04s; }
+.tray .pod:nth-child(3) { animation-delay:.08s; }
+.tray .pod:nth-child(4) { animation-delay:.12s; }
+.tray .pod:nth-child(5) { animation-delay:.16s; }
+.tray .pod:nth-child(6) { animation-delay:.2s; }
+.tray .pod:nth-child(7) { animation-delay:.24s; }
+.tray .pod:nth-child(8) { animation-delay:.28s; }
+#hint { position:absolute; left:50%; bottom:100%; translate:-50% -6px; width:max-content; max-width:min(380px,90%); padding:5px 10px; border-radius:10px 4px; background:var(--membrane); font-size:13px; text-align:center; animation:appear .2s ease both; }
+
+/* What is selected: petals round it and a card tied to it, or a docked membrane */
+#tether { position:absolute; inset:0; width:100%; height:100%; z-index:2; overflow:visible; }
+#filament { fill:none; stroke:var(--cyan); stroke-width:1.5; stroke-dasharray:1; }
+#filament.draw { animation:draw .7s ease-out both; }
+.reticle { animation:spin 9s linear infinite; }
+#info { position:absolute; z-index:3; }
+#info.bloom { inset:0; }
+#card { position:relative; pointer-events:auto; }
+#info.bloom #card { position:absolute; left:0; top:0; width:280px; }
+.card-body { position:relative; padding:14px 18px 16px; }
+.card-head { display:flex; align-items:center; gap:11px; min-width:0; }
+.card-head .porthole { width:56px; height:56px; }
+#card h2 { font:700 17px var(--display); }
+#card-sub { color:var(--cyan); font-size:13px; }
+#cells:empty { display:none; }
+#cells { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(216,205,182,.3); font-size:13px; }
+.cellule { display:grid; place-items:center; width:25px; height:27px; border:1.5px solid var(--edge); border-radius:50% 45% 55% 48%; transition:border-color .3s,background-color .3s; }
+.cellule svg { width:16px; height:16px; }
+.cellule.full { border-color:var(--cyan); background:rgba(102,217,234,.12); }
+.cellule.next { animation:cellule 1.2s ease-in-out infinite; }
+.cellule.lit { border-color:var(--acid); color:var(--acid); }
+.sac { position:relative; flex:1; min-width:54px; height:24px; overflow:hidden; border:1px solid var(--edge); border-radius:12px 8px; }
+.sac i { position:absolute; inset:0 auto 0 0; background:rgba(102,217,234,.28); }
+.sac span { position:relative; padding:2px 7px; white-space:nowrap; font-size:12px; line-height:22px; }
+#message { margin-top:9px!important; color:var(--muted); font-size:13px; overflow-wrap:anywhere; }
+#card.alert #message { color:var(--amber); }
+#actions { display:flex; flex-wrap:wrap; gap:6px; }
+#actions:empty { display:none; }
+#app #actions button { display:flex; align-items:center; gap:6px; min-height:44px; padding:2px 10px 2px 3px; border:1px solid var(--edge); border-radius:22px 17px; background:var(--membrane); font-size:13px; white-space:nowrap; transition:border-color .2s,transform .2s; }
+#app #actions button:hover { border-color:var(--acid); transform:scale(1.04); }
+#app #actions button.danger { color:var(--alarm); }
+#app #actions button.danger:hover { border-color:var(--alarm); }
+#actions .icon { display:grid; place-items:center; flex:none; width:36px; height:36px; border:1.5px solid var(--edge); border-radius:50% 44% 52% 46%; }
+#actions .icon svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; }
+#actions .flip .icon svg { animation:flip .35s ease; }
+#actions .slots { display:flex; gap:3px; }
+#app #actions button.slot { justify-content:center; width:44px; padding:0; border-color:var(--acid); border-radius:50% 45% 55% 48%; }
+#actions button.slot svg { animation:rewrite .35s ease both; }
+#info.bloom #actions { position:absolute; inset:0; display:block; pointer-events:none; }
+#info.bloom #actions > * { position:absolute; translate:0 -50%; }
+#info.bloom #actions > .left { translate:-100% -50%; flex-direction:row-reverse; }
+#info.bloom #actions > button.left { padding:2px 3px 2px 10px; }
+#info.fresh #card, #info.fresh #actions > * { animation:sprout .46s cubic-bezier(.2,1.5,.4,1) both; }
+#info.fresh #actions > :nth-child(2) { animation-delay:.05s; }
+#info.fresh #actions > :nth-child(3) { animation-delay:.1s; }
+#info.fresh #actions > :nth-child(4) { animation-delay:.15s; }
+#info.fresh #actions > :nth-child(n+5) { animation-delay:.2s; }
+#info.docked { right:calc(76px + var(--r)); top:calc(146px + var(--t)); width:300px; display:flex; flex-direction:column; gap:6px; }
+#info.docked #actions { justify-content:flex-end; }
+#info.slim #card { display:none; }
+#dry i { position:absolute; left:0; top:0; display:flex; align-items:center; font:500 12px var(--body); }
+#dry i b { position:absolute; left:-22px; top:-22px; width:44px; height:44px; border:2px solid var(--alarm); border-radius:50%; animation:ping 1.8s ease-out infinite; }
+#dry i span { position:absolute; right:30px; padding:3px 8px; border:1px solid var(--alarm); border-radius:8px 3px; background:var(--membrane); color:var(--alarm); white-space:nowrap; }
+
+/* Moments */
+#growth, #over { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px; text-align:center; animation:appear .7s ease both; }
+#growth { background:rgba(4,8,9,.55); }
+#growth svg { width:min(320px,42vh,80vw); height:min(320px,42vh,80vw); overflow:visible; }
+#growth .stage { color:var(--acid); font:700 14px var(--display); text-transform:uppercase; }
+#growth h1, #over h1 { font:700 clamp(28px,6vw,52px)/1 var(--display); text-wrap:balance; }
+#rewards { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
+#rewards .pod { display:flex; flex-direction:column; align-items:center; gap:4px; width:88px; animation:sprout .5s cubic-bezier(.2,1.5,.4,1) both; }
+#rewards .porthole { border-color:var(--acid); }
+#continue { border-color:var(--acid)!important; color:var(--acid); }
+.bloom-petals { transform-box:fill-box; transform-origin:center; animation:bloom 1.3s cubic-bezier(.2,1.3,.3,1) both; }
+.bloom-petals.late { animation-delay:.18s; }
+.ring { transform-box:fill-box; transform-origin:center; animation:ping 1.8s ease-out infinite; }
+#over { background:rgba(24,4,8,.85); pointer-events:auto; }
+#over h1 { color:var(--alarm); }
+#over svg { width:min(560px,92vw); height:min(260px,34vh); }
+.dying { transform-box:fill-box; transform-origin:center; animation:dying 2.6s ease-in-out infinite; }
+#score { display:flex; flex-wrap:wrap; justify-content:center; gap:12px 40px; }
+#score span { color:var(--muted); }
+#score b { display:block; color:var(--ink); font:700 30px var(--display); }
+#loading { position:absolute; left:50%; top:50%; z-index:7; translate:-50% -50%; display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px; border-radius:30px 10px; background:var(--membrane); }
+#loading svg { width:110px; height:110px; overflow:visible; }
+#loading circle { transform-box:fill-box; transform-origin:center; animation:join 1.4s ease-in-out infinite alternate; }
+#commands { max-width:min(480px,92vw); max-height:86vh; overflow:auto; padding:20px 24px; color:var(--ink); background:#0A1315; border:1.5px solid #46636B; border-radius:28px 10px; pointer-events:auto; }
+#commands::backdrop { background:rgba(4,8,9,.6); }
+#commands h2 { margin-bottom:10px; font:700 18px var(--display); }
+#commands dl { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; margin:0 0 16px; }
+#commands dt { color:var(--cyan); }
+#commands dd { margin:0; }
+
+@media (max-width:1179px) {
+  #organism { transform:scale(.8); transform-origin:left top; }
+  #brief { right:calc(8px + var(--r)); top:calc(78px + var(--t)); transform:scale(.88); transform-origin:right top; }
+  #info.docked { top:calc(196px + var(--t)); }
+  #zoom { top:calc(330px + var(--t)); }
+  #crew { bottom:calc(126px + var(--b)); }
+  #drones { flex-direction:column; }
+  .veins.sw, .veins.se { display:none; }
+}
+/* Phone, or a screen too short for petals: thumb bar and low sheet. */
+@media (max-width:759px), (max-height:520px) {
+  .veins.sw, .veins.se { display:none; }
+  #organism { left:calc(6px + var(--l)); top:calc(8px + var(--t)); width:min(250px,calc(100% - 122px)); height:92px; transform:none; }
+  #organism .large { display:none; }
+  #organism .small { display:block; }
+  .orb { left:6px; top:10px; width:68px; height:68px; }
+  #order { left:78px; top:9px; right:8px; width:auto; }
+  #order b { overflow:hidden; text-overflow:ellipsis; font-size:11px; }
+  #order .wanted { gap:5px; margin-top:2px; }
+  #order .crate { padding:2px 4px; }
+  #order .gene { gap:1px; }
+  #order .gene svg { width:10px; height:10px; }
+  #order .gene .cut { height:10px; margin:0; }
+  #order output { font-size:12px; white-space:nowrap; }
+  #order .unit, .helix, #life-text { display:none; }
+  #dna { left:78px; top:57px; font-size:17px; }
+  #gain { left:160px; top:52px; }
+  #brief { left:calc(8px + var(--l)); right:auto; top:calc(104px + var(--t)); width:auto; max-width:calc(100% - 76px); transform:none; }
+  #brief > .skin { display:none; }
+  #threat-toggle { flex-direction:row; align-items:center; justify-content:flex-start; gap:7px; width:auto; min-height:44px; padding:4px 10px; border:1px solid var(--alarm); border-radius:14px 5px; background:var(--membrane); white-space:nowrap; }
+  #brief.calm #threat-toggle { border-color:var(--edge); }
+  #threat-toggle .title, #threat-toggle .detail { display:none; }
+  #threat-toggle .short { display:inline; color:var(--alarm); font:700 14px var(--display); }
+  #brief.calm .short { color:var(--muted); }
+  .pulse { position:static; flex:none; width:34px; height:20px; }
+  #versus { position:static; gap:5px; }
+  #versus .foe, #versus .to { display:none; }
+  #families { margin:4px 0 0; }
+  .threat { flex-wrap:wrap; }
+  #time { right:calc(6px + var(--r)); top:calc(12px + var(--t)); gap:6px; }
+  #menu { right:calc(6px + var(--r)); top:calc(66px + var(--t)); }
+  #app { --rail:max(104px,min(50% - 88px,100% - 459px)); }
+  #zoom { right:calc(8px + var(--r)); top:var(--rail); }
+  #zoom .step { display:none; }
+  #events { left:calc(8px + var(--l)); top:calc(154px + var(--t)); }
+  #app .event { max-width:min(250px,calc(100vw - 80px)); font-size:12px; }
+  .event .text { -webkit-line-clamp:2; }
+  #events > :not(:last-child) { display:none; }
+  #crew { left:calc(4px + var(--l)); bottom:auto; top:calc(max(210px,50% - 88px) + var(--t)); }
+  #drones { flex-direction:column; gap:0; }
+  #app .pip { width:44px; min-height:44px; justify-content:center; }
+  .pip .drone { width:32px; height:24px; }
+  .pip span { display:none; }
+  #rebuild { max-width:170px; font-size:12px; }
+  #tools { bottom:calc(6px + var(--b)); padding-inline:4px; }
+  .tray { gap:8px 4px; }
+  #app .tray .pod { width:80px; }
+  .dock { width:100%; max-width:420px; }
+  #app .dock .family { flex:1; }
+  .dock .porthole { width:56px; height:56px; }
+  .dock .name { max-width:100%; padding-inline:1px; font-size:11px; letter-spacing:-.01em; }
+  .pod .key { display:none; }
+  #app .dock .side { position:fixed; right:calc(8px + var(--r)); width:48px; height:48px; }
+  #app .dock [data-type="hand"] { top:calc(var(--rail) + 56px); }
+  #app .dock [data-type="erase"] { top:calc(var(--rail) + 112px); }
+  .side .porthole { width:48px; height:48px; }
+  .side .name { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  #info.docked { left:calc(6px + var(--l)); right:calc(6px + var(--r)); top:auto; bottom:calc(94px + var(--b)); width:auto; max-width:440px; gap:4px; }
+  #info.fresh.docked #card { animation:rise .5s cubic-bezier(.2,1.2,.4,1) both; }
+  .card-body { padding:9px 14px 11px; }
+  .card-head .porthole { width:40px; height:40px; }
+  #cells { margin-top:6px; padding-top:6px; flex-wrap:nowrap; overflow:hidden; }
+  .cellule { flex:none; width:24px; height:24px; }
+  #message { margin-top:5px!important; max-height:4.1em; overflow-y:auto; }
+  #info.holding .card-head, #info.holding #cells { display:none; }
+  #info.holding #message { margin-top:0!important; max-height:2.7em; }
+  #info.docked #actions.more { -webkit-mask-image:linear-gradient(90deg,#000 86%,transparent); mask-image:linear-gradient(90deg,#000 86%,transparent); }
+  #info.docked #actions { flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; scrollbar-width:none; pointer-events:auto; }
+  #info.docked #actions > * { flex:none; }
+  .traying #info { display:none; }
+  #hint { display:none; }
+}
+
+@media (max-height:520px) and (min-width:600px) {
+  #app { --rail:66px; }
+  #brief { left:calc(262px + var(--l)); top:calc(12px + var(--t)); max-width:calc(100% - 390px); }
+  #events { left:calc(262px + var(--l)); top:calc(62px + var(--t)); }
+  #app .event { max-width:min(320px,calc(100vw - 340px)); min-height:36px; }
+  .event .text { -webkit-line-clamp:1; }
+  #crew { top:calc(106px + var(--t)); }
+  #drones { flex-direction:row; }
+  .tray { flex-wrap:nowrap; }
+  #app .tray .pod { width:64px; gap:2px; }
+  .tray .porthole { width:50px; height:50px; }
+  .tray .name { padding-inline:1px; font-size:11px; }
+  .tray .price { top:36px; }
+  #info.docked { left:calc(144px + var(--l)); right:calc(66px + var(--r)); bottom:calc(90px + var(--b)); }
+  #growth svg, #over svg { max-height:26vh; }
+}
+
+@keyframes appear { from { opacity:0; } }
+@keyframes alert { 50% { opacity:.55; } }
+@keyframes amber { 50% { box-shadow:0 0 0 4px rgba(240,160,60,.22); } }
+@keyframes sap { to { stroke-dashoffset:-258; } }
+@keyframes beat { 0%,40%,100% { transform:scale(1); } 12% { transform:scale(1.1); } 26% { transform:scale(1.03); } }
+@keyframes breathe { 50% { transform:scale(1.16) rotate(6deg); } }
+@keyframes calm { 50% { opacity:.8; transform:scale(1.015); } }
+@keyframes surge { 30% { filter:brightness(1.8); transform:scale(1.14); } }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes twist { 0%,100% { left:0; transform:scale(.6); } 50% { left:17px; transform:scale(1.1); } }
+@keyframes gain { 0% { opacity:0; transform:translateY(6px); } 20% { opacity:1; } 80%,100% { opacity:0; transform:translateY(-16px); } }
+@keyframes morph { 50% { border-radius:55% 45% 53% 47%; } }
+@keyframes press { 50% { transform:scale(.86); } }
+@keyframes hatch { 0% { transform:scale(.4) rotate(-20deg); } 70% { transform:scale(1.15); } }
+@keyframes sprout { from { opacity:0; transform:translateY(16px) scale(.45); } }
+@keyframes draw { from { stroke-dashoffset:1; } }
+@keyframes cellule { 50% { border-color:var(--cyan); transform:scale(1.1); } }
+@keyframes ecg { to { stroke-dashoffset:-64; } }
+@keyframes ping { from { opacity:.9; transform:scale(.35); } to { opacity:0; transform:scale(1.5); } }
+@keyframes arrive { from { opacity:0; transform:translateX(-30px); } }
+@keyframes rewrite { from { opacity:0; transform:rotateY(90deg); } }
+@keyframes shake { 20%,60% { margin-left:-6px; } 40%,80% { margin-left:6px; } }
+@keyframes fadeout { 85% { opacity:1; } 100% { opacity:0; } }
+@keyframes flip { from { transform:rotate(-90deg); } }
+@keyframes hover { 50% { transform:translateY(-5px); } }
+@keyframes bloom { from { opacity:0; transform:scale(.2) rotate(-25deg); } }
+@keyframes dying { 50% { transform:scale(.92); opacity:.65; } }
+@keyframes rise { from { opacity:0; transform:translateY(40px); } }
+@keyframes join { from { transform:translate(var(--dx),var(--dy)) scale(.4); opacity:.2; } }
+@media (prefers-reduced-motion:reduce) { #app *, #app *::before, #app *::after { animation:none!important; transition:none!important; } }
 </style>
 
+<style>/* The real 3D models, rendered once. */
+:root{--models:url(data:image/webp;base64,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)}</style>
+
 <main id="app">
-  <header id="hud">
-    <div><h1>STRAINWORKS</h1><output id="dna" aria-label="ADN disponible"></output></div>
-    <div class="meters">
-      <div class="meter">Menace<span><i id="threat"></i></span></div>
-      <div class="meter">Cœur<span><i id="core" class="core"></i></span></div>
-    </div>
-    <button id="pause" aria-label="Mettre en pause" aria-keyshortcuts="Space" title="Espace">II</button>
-    <button id="speed" aria-label="Changer la vitesse">×1</button>
-    <button id="restart">Reset</button>
-  </header>
-  <section id="brief" aria-live="polite"></section>
   <div id="board">
     <canvas id="gl" hidden aria-hidden="true"></canvas>
     <canvas id="game" tabindex="-1" aria-label="Plateau : gisements, machines, tapis et créatures"></canvas>
-    <div id="zoom"><button id="zoom-in" aria-label="Zoomer">+</button><button id="zoom-out" aria-label="Dézoomer">−</button><button id="home" aria-label="Revenir au cœur">⌂</button><button id="dimension" aria-label="Passer en vue 3D">3D</button></div>
-    <output id="works" hidden></output>
-    <button id="rebuild" hidden>Reconstruire</button>
-    <div id="over" hidden><h2>Le cœur est tombé</h2><p id="score"></p><button id="again">Fonder une autre station</button></div>
   </div>
-  <section id="info"><p id="message"></p><div id="actions"></div></section>
-  <nav id="tools" aria-label="Construction"></nav>
+
+  <div class="edges" aria-hidden="true"><i></i></div>
+  <svg class="veins nw" width="80" height="320" aria-hidden="true"><path class="vein" stroke-width="7" d="M0 258 C24 214 18 172 40 140"/><path class="vein" stroke-width="4" d="M0 300 C34 268 22 232 62 206"/><path class="vein live" stroke-width="2" d="M0 258 C24 214 18 172 40 140"/></svg>
+  <svg class="veins ne" width="160" height="250" aria-hidden="true"><path class="vein" stroke-width="7" d="M50 0 C42 22 20 22 6 40"/><path class="vein" stroke-width="5" d="M160 172 C130 180 126 214 110 240"/><path class="vein live late" stroke-width="2" d="M160 172 C130 180 126 214 110 240"/></svg>
+  <svg class="veins sw" width="340" height="80" aria-hidden="true"><path class="vein" stroke-width="10" d="M0 80 C40 42 110 66 152 32 C200 0 260 38 312 20"/><path class="vein live" stroke-width="2.5" d="M0 80 C40 42 110 66 152 32 C200 0 260 38 312 20"/></svg>
+  <svg class="veins se" width="340" height="80" aria-hidden="true"><path class="vein" stroke-width="10" d="M340 80 C300 42 230 66 188 32 C140 0 80 38 28 20"/><path class="vein live late" stroke-width="2.5" d="M340 80 C300 42 230 66 188 32 C140 0 80 38 28 20"/></svg>
+
+  <svg id="tether" hidden aria-hidden="true">
+    <path id="filament" pathLength="1"/>
+    <g id="aim"><g class="reticle"><circle id="aim-ring" r="38" fill="none" stroke="#B7F34A" stroke-width="2" stroke-dasharray="22 17.8"/></g></g>
+  </svg>
+  <div id="dry" aria-hidden="true"></div>
+
+  <header id="organism" aria-label="Organisme">
+    <svg class="skin large" viewBox="0 0 446 214" aria-hidden="true"><path d="M80 14 C118 4 140 24 176 22 L408 18 C434 22 444 42 438 64 C434 86 418 100 390 100 L190 104 C166 106 168 122 188 126 L292 126 C320 130 326 170 296 178 L170 182 C138 182 134 152 100 154 C44 156 8 126 10 80 C12 46 42 22 80 14 Z"/></svg>
+    <svg class="skin small" viewBox="0 0 250 92" preserveAspectRatio="none" aria-hidden="true"><path d="M42 6 C100 4 170 6 226 10 C248 20 250 50 240 70 C220 88 140 82 92 84 C40 92 4 78 4 44 C4 22 18 8 42 6 Z"/></svg>
+    <svg class="orb" viewBox="-64 -64 128 128" aria-hidden="true">
+      <circle r="62" fill="#091013" stroke="#1D3036" stroke-width="2"/>
+      <circle r="56" fill="none" stroke="#1B2C31" stroke-width="6"/>
+      <circle id="stage-arc" class="arc" r="56" stroke="#B7F34A" stroke-width="6" stroke-dasharray="0 352"/>
+      <circle r="47" fill="none" stroke="#1B2C31" stroke-width="3"/>
+      <circle id="life" class="arc" r="47" stroke-width="3" stroke-dasharray="296 296"/>
+      <g class="organ"><circle r="30" fill="#22401D"/><g class="lobe"><circle cx="-18" cy="-9" r="14" fill="#366426"/></g><g class="lobe two"><circle cx="18" cy="-5" r="12" fill="#5E9E2B"/></g><g class="lobe three"><circle cx="-2" cy="19" r="13" fill="#366426"/></g><circle id="pupil" r="14"/><ellipse rx="4" ry="7" fill="#091013"/></g>
+      <g class="orbit"><circle cx="0" cy="-56" r="3" fill="#E9F3EF"/></g>
+    </svg>
+    <div id="order"></div>
+    <p id="life-text"></p>
+    <div class="helix" aria-hidden="true"><i style="top:0"></i><i class="o" style="top:0;animation-delay:-.9s"></i><i style="top:11px;animation-delay:-.3s"></i><i class="o" style="top:11px;animation-delay:-1.2s"></i><i style="top:22px;animation-delay:-.6s"></i><i class="o" style="top:22px;animation-delay:-1.5s"></i><i style="top:33px;animation-delay:-.9s"></i><i class="o" style="top:33px"></i></div>
+    <output id="dna" aria-label="ADN disponible"></output>
+    <span id="gain" aria-hidden="true"></span>
+  </header>
+
+  <section id="brief" aria-label="Menace">
+    <svg class="skin" viewBox="0 0 354 122" preserveAspectRatio="none" aria-hidden="true"><path d="M26 10 C120 2 240 6 326 10 C350 18 352 48 342 66 C352 96 330 114 298 112 L60 114 C20 116 4 96 12 70 C2 44 4 22 26 10 Z"/></svg>
+    <button id="threat-toggle" aria-expanded="false" aria-controls="families">
+      <svg class="pulse" viewBox="18 6 94 52" aria-hidden="true"><polyline class="ecg" points="22,34 46,34 54,20 64,48 72,28 80,34 108,34"/></svg>
+      <span class="title"></span><span class="detail"></span><span class="short"></span><span id="versus"></span>
+    </button>
+    <div id="families" hidden></div>
+  </section>
+
+  <nav id="time" aria-label="Temps et menu">
+    <button id="pause" class="node" aria-label="Mettre en pause" aria-keyshortcuts="Space" title="Espace">II</button>
+    <button id="speed" class="node" aria-label="Changer la vitesse">×1</button>
+    <button id="menu-toggle" class="node" aria-label="Menu" aria-expanded="false" aria-controls="menu"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"/><circle cx="4" cy="15" r="2.4" fill="currentColor"/><circle cx="16" cy="15" r="2.4" fill="currentColor"/><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"/></svg></button>
+  </nav>
+  <div id="menu" hidden>
+    <h1>STRAINWORKS</h1>
+    <button id="dimension" class="tip">Passer en 3D</button>
+    <button id="help" class="tip">Commandes clavier et tactile</button>
+    <button id="open-all" class="tip">Tout débloquer (test)</button>
+    <button id="restart" class="tip"><span>Recommencer : maintenir</span><i></i></button>
+  </div>
+
+  <nav id="zoom" aria-label="Caméra">
+    <button id="zoom-in" class="node step" aria-label="Zoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v14M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button>
+    <button id="zoom-out" class="node step" aria-label="Dézoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button>
+    <button id="home" class="node" aria-label="Revenir au cœur"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="4" fill="#B7F34A"/><path d="M11 1v4M11 17v4M1 11h4M17 11h4" stroke="currentColor" stroke-width="2"/></svg></button>
+  </nav>
+
+  <div id="events" role="log" aria-live="polite"></div>
+
+  <section id="crew" aria-label="Drones">
+    <button id="rebuild" class="tip" hidden>Reconstruire</button>
+    <output id="works" hidden></output>
+    <div id="drones"></div>
+  </section>
+
+  <section id="info" class="docked" hidden aria-label="Sélection">
+    <div id="card">
+      <svg class="skin" viewBox="0 0 262 222" preserveAspectRatio="none" aria-hidden="true"><path d="M22 8 C90 2 180 4 236 10 C260 24 258 60 250 88 C262 130 260 176 242 200 C200 218 96 214 42 216 C12 210 2 184 8 150 C0 106 0 40 22 8 Z"/></svg>
+      <div class="card-body">
+        <div class="card-head" hidden><span id="card-model" class="porthole model" aria-hidden="true"></span><div><h2 id="card-title"></h2><p id="card-sub"></p></div></div>
+        <div id="cells"></div>
+        <p id="message"></p>
+      </div>
+    </div>
+    <div id="actions"></div>
+  </section>
+
+  <nav id="tools" aria-label="Construction"><p id="hint" hidden></p></nav>
+
+  <p id="refusal" role="alert" hidden></p>
+  <div id="loading" role="status" hidden>
+    <svg viewBox="-55 -55 110 110" aria-hidden="true"><circle r="22" fill="#366426"/><circle cx="-26" cy="-12" r="18" fill="#5E9E2B" style="--dx:-30px;--dy:-20px"/><circle cx="26" cy="-8" r="16" fill="#366426" style="--dx:34px;--dy:-16px"/><circle cx="-4" cy="28" r="17" fill="#4A1B25" style="--dx:0px;--dy:32px"/><circle r="11" fill="#B7F34A"/></svg>
+    <span>La 3D s’assemble</span>
+  </div>
+
+  <section id="growth" hidden aria-label="Stade atteint">
+    <svg viewBox="-175 -175 350 350" aria-hidden="true">
+      <g class="bloom-petals"><path d="M0 -150 C42 -110 40 -70 0 -44 C-40 -70 -42 -110 0 -150Z M150 0 C110 42 70 40 44 0 C70 -40 110 -42 150 0Z M0 150 C-42 110 -40 70 0 44 C40 70 42 110 0 150Z M-150 0 C-110 -42 -70 -40 -44 0 C-70 40 -110 42 -150 0Z" fill="#22401D" stroke="#B7F34A" stroke-width="2"/></g>
+      <g class="bloom-petals late"><path d="M0 -150 C42 -110 40 -70 0 -44 C-40 -70 -42 -110 0 -150Z M150 0 C110 42 70 40 44 0 C70 -40 110 -42 150 0Z M0 150 C-42 110 -40 70 0 44 C40 70 42 110 0 150Z M-150 0 C-110 -42 -70 -40 -44 0 C-70 40 -110 42 -150 0Z" transform="rotate(45) scale(.8)" fill="#4A1B25" stroke="#E8738A" stroke-width="2"/></g>
+      <g class="organ"><circle r="48" fill="#366426"/><circle r="22" fill="#B7F34A"/><ellipse rx="6" ry="11" fill="#091013"/></g>
+      <circle class="ring" r="170" fill="none" stroke="#B7F34A" stroke-width="2"/>
+    </svg>
+    <p class="stage"></p>
+    <h1>Le cœur grandit</h1>
+    <div id="rewards"></div>
+    <button id="continue" class="tip">Continuer</button>
+  </section>
+
+  <section id="over" hidden aria-label="Fin de partie">
+    <svg viewBox="-310 -150 620 260" aria-hidden="true"><path class="vein" stroke-width="9" d="M-300 60 C-200 20 -130 80 -60 20"/><path class="vein" stroke-width="9" d="M300 40 C210 90 140 -10 64 20"/><path class="vein" stroke-width="7" d="M-40 -150 C-70 -110 0 -90 -10 -50"/><g class="dying"><circle r="76" fill="#4A1B25"/><circle cx="-36" cy="-22" r="30" fill="#32151C"/><circle cx="38" cy="18" r="26" fill="#32151C"/><circle r="24" fill="#FF6B74"/><path d="M-4 -70l14 34-16 24 18 30-10 46" fill="none" stroke="#070C0E" stroke-width="5"/></g></svg>
+    <h1>Le cœur est tombé</h1>
+    <div id="score"></div>
+    <button id="again" class="tip">Fonder une autre station</button>
+  </section>
+
+  <dialog id="commands" aria-labelledby="commands-title">
+    <h2 id="commands-title">Commandes</h2>
+    <dl>
+      <dt>Glisser</dt><dd>se déplacer, ou tracer avec Tapis, Piste, Veine, Nerf et Démonter</dd>
+      <dt>Deux doigts</dt><dd>se déplacer et zoomer</dd>
+      <dt>Molette</dt><dd>zoomer</dd>
+      <dt>Clic droit</dt><dd>se déplacer, outil en main</dd>
+      <dt>Flèches</dt><dd>déplacer la vue, plus vite avec Maj</dd>
+      <dt>1 à 7</dt><dd>choisir une famille</dd>
+      <dt>R, Maj+R</dt><dd>tourner dans un sens ou dans l’autre</dd>
+      <dt>Espace</dt><dd>pause et reprise</dd>
+      <dt>Échap</dt><dd>tout lâcher et revenir sur Inspecter</dd>
+    </dl>
+    <button id="help-close" class="tip">Fermer</button>
+  </dialog>
 </main>
 
 <script>
@@ -590,7 +1011,7 @@ function grow() {
   G.dna += GROWTH_BONUS;
   G.cells[key(CORE.x, CORE.y)].hp = 100;
   select(null);
-  say(`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
+  tell(`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
 }
 function recipe(item) {
   const box = boxOf(item), genes = contentOf(item).match(/.{3}/g).map(geneName).join(' + ');
@@ -667,11 +1088,11 @@ function veinKind(c) {
   return '';
 }
 function link(a, b) {
-  if (!a || !b || a === b || b.type !== 'pump') return say('Une veine va d’une pompe à une autre.');
-  if (span(a, b) > VEIN.reach) return say(`Trop loin : ${Math.ceil(span(a, b))} cases. Pose une pompe relais, 24 au plus entre deux.`);
-  for (let p = b, i = 0; p && i < 999; p = G.cells[p.to], i++) if (p === a) return say('Une veine ne peut pas boucler.');
+  if (!a || !b || a === b || b.type !== 'pump') return refuse('Une veine va d’une pompe à une autre.');
+  if (span(a, b) > VEIN.reach) return refuse(`Trop loin : ${Math.ceil(span(a, b))} cases. Pose une pompe relais, 24 au plus entre deux.`);
+  for (let p = b, i = 0; p && i < 999; p = G.cells[p.to], i++) if (p === a) return refuse('Une veine ne peut pas boucler.');
   const one = veinKind(a), other = veinKind(b);
-  if (one && other && one !== other) return say('Ces deux veines portent des matières différentes : vide l’une des deux.');
+  if (one && other && one !== other) return refuse('Ces deux veines portent des matières différentes : vide l’une des deux.');
   for (const p of a.packets) for (let i = 0; i < p.n; i++) a.stock.push(p.item);
   a.packets = []; a.to = key(b.x, b.y); a.veinHp = VEIN.hp;
   delete a.veinOut; delete a.veinCut;
@@ -727,9 +1148,9 @@ function stationHead(id) {
 }
 function incubate(x, y) {
   const cost = price('worm'), id = key(x, y);
-  if (!G.tracks[id]) return say('Un ver s’incube sur une piste : trace-la d’abord avec l’outil Piste.');
-  if (G.worms.some(w => w.path.includes(id))) return say('Un ver occupe déjà cette case.');
-  if (cost > G.dna) return say(`Il manque ${cost - G.dna} ADN pour ce ver.`);
+  if (!G.tracks[id]) return refuse('Un ver s’incube sur une piste : trace-la d’abord avec l’outil Piste.');
+  if (G.worms.some(w => w.path.includes(id))) return refuse('Un ver occupe déjà cette case.');
+  if (cost > G.dna) return refuse(`Il manque ${cost - G.dna} ADN pour ce ver.`);
   G.dna -= cost;
   const w = {id:G.seq = (G.seq || 0) + 1, path:[id], t:0, hp:WORM.hp, left:BUILD.worm, docked:false, rule:'auto',
     holds:[0,1,2].map(() => ({kind:'', n:0, part:0}))};
@@ -870,10 +1291,10 @@ function asked(c, item) {
 }
 function wireUp(a, b) {
   const ok = c => c && NERVE.ends.includes(c.type);
-  if (!ok(a) || !ok(b) || a === b) return say('Un nerf relie deux éléments parmi tourelles, feux et trieurs.');
-  if (span(a, b) > NERVE.reach) return say(`Trop loin : ${Math.ceil(span(a, b))} cases, 24 au plus. Un nerf peut passer par un autre feu ou trieur.`);
+  if (!ok(a) || !ok(b) || a === b) return refuse('Un nerf relie deux éléments parmi tourelles, feux et trieurs.');
+  if (span(a, b) > NERVE.reach) return refuse(`Trop loin : ${Math.ceil(span(a, b))} cases, 24 au plus. Un nerf peut passer par un autre feu ou trieur.`);
   const ka = key(a.x, a.y), kb = key(b.x, b.y);
-  if (G.wires.some(w => (w.a === ka && w.b === kb) || (w.a === kb && w.b === ka))) return say('Ils sont déjà reliés.');
+  if (G.wires.some(w => (w.a === ka && w.b === kb) || (w.a === kb && w.b === ka))) return refuse('Ils sont déjà reliés.');
   G.wires.push({a:ka, b:kb, hp:NERVE.hp, left:.4 + span(a, b) / 16, order:G.seq = (G.seq || 0) + 1});
   say('Nerf en chantier. Touche le feu ou le trieur pour choisir ce qu’il lit : gène entier, position 1, 2 ou 3.');
   return true;
@@ -1063,7 +1484,7 @@ function wake(found, cause) {
     do { born = mutate(G.families[Math.floor(Math.random() * G.families.length)]); } while (G.families.includes(born) || born[0] === born[2]);
     G.families.push(born); b.genes.push(born); b.born = born;
   }
-  say(`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? ', avec une nouvelle famille' : ''}.${b.id ? ' Elle vise l’avant-poste qui l’a réveillée.' : ''}`);
+  tell(`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? ', avec une nouvelle famille' : ''}.${b.id ? ' Elle vise l’avant-poste qui l’a réveillée.' : ''}`, {at:b, gene:b.born, bad:true});
 }
 function disturb() {
   const cells = Object.values(G.cells).filter(c => c.type !== 'core');
@@ -1104,7 +1525,7 @@ function menace(dt) {
       b.pending = 0;
       if (G.enemies.some(e => e.home === G.breaches.indexOf(b))) continue;
       b.state = 'spent'; b.ended = G.time; G.dna += b.total;
-      say(`Brèche au ${bearing(b)} vidée : +${b.total} ADN, elle s’estompe et le terrain est à toi.`);
+      tell(`Brèche au ${bearing(b)} vidée : +${b.total} ADN, elle s’estompe et le terrain est à toi.`, {at:b});
       continue;
     }
     if (G.time >= b.wander) { spawn(b, b.genes[0]); b.wander = G.time + Math.max(3, 11 - G.threat * .7); }
@@ -1138,7 +1559,7 @@ function menace(dt) {
       if (from.veinHp <= 0) continue;
       const at = nearest(from, to, e.x, e.y), d = Math.hypot(at.x - e.x, at.y - e.y);
       const leak = leaking(from);
-      if (d < .6) { from.veinHp -= dt * 2; from.veinHitAt = G.time; if (from.veinHp <= 0) { from.veinHp = 0; say('Veine rompue : le bouton Reconstruire la répare.'); } }
+      if (d < .6) { from.veinHp -= dt * 2; from.veinHitAt = G.time; if (from.veinHp <= 0) { from.veinHp = 0; tell('Veine rompue : le bouton Reconstruire la répare.', {at:from, bad:true}); } }
       // A leak draws them in until the vein breaks, then they resume.
       if (leak && d < lure) { goal = at; lure = d; gnawing = d < .6; }
     }
@@ -1151,7 +1572,7 @@ function menace(dt) {
     for (const w of [...G.worms]) {
       if (!w.path.some(id => { const [x,y] = id.split(',').map(Number); return Math.abs(x + .5 - e.x) < .6 && Math.abs(y + .5 - e.y) < .6; })) continue;
       w.hp -= dt * 2; w.hitAt = G.time;
-      if (w.hp <= 0) { dropWorm(w, false); say('Ver dévoré : sa cargaison est perdue.'); }
+      if (w.hp <= 0) { dropWorm(w, false); tell('Ver dévoré : sa cargaison est perdue.', {at:{x:e.x - .5, y:e.y - .5}, bad:true}); }
     }
     for (const w of G.wires) {
       const a = G.cells[w.a], b = G.cells[w.b];
@@ -1159,7 +1580,7 @@ function menace(dt) {
       const at = nearest(a, b, e.x, e.y);
       if (Math.hypot(at.x - e.x, at.y - e.y) >= .5) continue;
       w.hp -= dt * 2; w.hitAt = G.time;
-      if (w.hp <= 0) { w.hp = 0; say('Nerf coupé : feux et trieurs reprennent leur réglage manuel. Reconstruire le répare.'); }
+      if (w.hp <= 0) { w.hp = 0; tell('Nerf coupé : feux et trieurs reprennent leur réglage manuel. Reconstruire le répare.', {at:a, bad:true}); }
     }
     if (gnawing) continue;
     const dx = goal.x - e.x, dy = goal.y - e.y, distance = Math.hypot(dx, dy) || 1;
@@ -1172,7 +1593,7 @@ function menace(dt) {
       pace = passable ? .22 : 0;
       if (c.hp <= 0) {
         if (c.type === 'core') { G.over = true; c.hp = 0; }
-        else { delete G.cells[key(c.x, c.y)]; G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read}; say('Ligne coupée : le bouton Reconstruire remet tout en place.'); }
+        else { delete G.cells[key(c.x, c.y)]; G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read}; tell('Ligne coupée : le bouton Reconstruire remet tout en place.', {at:c, bad:true}); }
       }
     }
     e.x += dx / distance * pace * dt; e.y += dy / distance * pace * dt;
@@ -1419,6 +1840,7 @@ function resize() {
   const box = $('board').getBoundingClientRect();
   view = {w:Math.max(1, box.width), h:Math.max(1, box.height), dpr:Math.min(2, window.devicePixelRatio || 1)};
   canvas.width = view.w * view.dpr; canvas.height = view.h * view.dpr;
+  layoutHud();
 }
 // The 3D camera is tilted, which only flattens y: everything else is shared with the 2D view.
 let view3d = null;
@@ -1580,19 +2002,14 @@ function drawCell(g, c, inputs = []) {
   rect(g,-.42,-.44,.84,.82, type === 'wall' ? '#565247' : '#203C42', type === 'wall' ? '#8C8068' : '#55D6E8');
   if (type === 'mine') {
     circle(g,0,0,.27,'#0B1417','#4A6A73');
-    glyph(g,depositAt(c.x,c.y) || 'S',0,0,.16); arrow(g,c.dir,.5,'#FF8FA2');
+    glyph(g,depositAt(c.x,c.y) || 'S',0,0,.16);
   } else if (type === 'ligase') {
     for (let port = 0; port < 3; port++) {
       const side = portSide(c,port), x = DX[side]*.35, y = DY[side]*.35, has = c.ports[port].length;
       circle(g,x,y,.13, has > 1 ? '#8E3048' : '#0B1417', has ? '#FF8FA2' : '#8B989C');
       const base = c.ports[port][0] || c.last[port];
       if (base) { g.globalAlpha = has ? 1 : .35; glyph(g,base,x,y,.1); g.globalAlpha = 1; }
-      g.save();
-      g.translate(DX[side]*.13,DY[side]*.13); g.scale(1/60,1/60);
-      g.fillStyle = '#E6F0EC'; g.font = '700 11px Verdana'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(port + 1,0,0); g.restore();
     }
-    arrow(g,c.dir,.54,'#B7F34A');
   } else if (type === 'turret') {
     const angle = c.aim ?? -Math.PI / 2, full = Object.values(c.ammo).some(n => n);
     g.strokeStyle = '#A9C2C8'; g.lineWidth = .16; g.lineCap = 'round';
@@ -1616,23 +2033,17 @@ function drawCell(g, c, inputs = []) {
   } else if (type === 'cyst') {
     const fill = c.stock.length / 60;
     circle(g,0,0,.18 + fill*.22,fill > .95 ? '#FF4D5E' : '#7A2638','#FF8FA2');
-    arrow(g,c.dir,.54,'#FF8FA2');
   } else if (type === 'borer') {
     // Drawn at half scale and stretched over its four cells.
     for (const [a,b] of [[-.2,-.2],[.2,-.2],[-.2,.2],[.2,.2]]) circle(g,a,b,.12,'#0B1417','#4A6A73',.03);
     circle(g,0,0,.17,'#142126','#55D6E8',.035);
     glyph(g,depositAt(c.x,c.y) || 'S',0,0,.11);
-    for (let dir = 0; dir < 4; dir++) for (const s of [-.25,.25]) {
-      g.save(); g.translate(DY[dir] * s,-DX[dir] * s); g.scale(.5,.5); arrow(g,dir,1.1,'#FF8FA2'); g.restore();
-    }
   } else if (type === 'vault') {
     const fill = c.stock.length / VAULT.cap;
     [[-.19,-.19],[.19,-.19],[-.19,.19],[.19,.19]].forEach(([a,b],i) => {
       circle(g,a,b,.11 + Math.max(0,Math.min(1,fill * 4 - i)) * .09,fill > .95 ? '#FF4D5E' : '#7A2638','#FF8FA2',.03);
     });
-    for (const s of [-.25,.25]) { g.save(); g.translate(DY[c.dir] * s,-DX[c.dir] * s); g.scale(.6,.6); arrow(g,c.dir,.92,'#FF8FA2'); g.restore(); }
   } else if (type === 'split' || type === 'split2') {
-    for (const dir of splitExits(c)) arrow(g,dir,.43);
     if (type === 'split') circle(g,0,0,.12,'#6A8D94');
     else {
       // A T, closed straight ahead.
@@ -1641,7 +2052,6 @@ function drawCell(g, c, inputs = []) {
       g.beginPath(); g.moveTo(fy*.2,-fx*.2); g.lineTo(-fy*.2,fx*.2); g.moveTo(0,0); g.lineTo(-fx*.22,-fy*.22); g.stroke();
     }
   } else if (type === 'sort') {
-    arrow(g,c.dir,.46,'#A3B8B3'); arrow(g,sideExit(c),.52,'#B7F34A');
     if (c.x != null && listens(c)) { reading(g,c,netOf(c)); return; }
     [...c.want].forEach((b,i) => {
       const n = c.want.length, x = n === 1 ? 0 : (i-(n-1)/2)*.66/n, size = n === 1 ? .17 : n === 3 ? .11 : .065;
@@ -1657,8 +2067,6 @@ function drawCell(g, c, inputs = []) {
     circle(g,0,0,.08 + Math.min(1,c.stock.length / WORM.pocket) * .2,'#4E7F2D');
     const kind = c.stock[0];
     if (kind) sequence(g,kind,0,0,.64,.16);
-    // Towards the trail when it loads, away when it empties.
-    for (let d = 0; d < 4; d++) if (c.x != null && G?.tracks?.[key(c.x + DX[d],c.y + DY[d])]) arrow(g,c.unload ? (d + 2) % 4 : d,.5,'#B7F34A');
   } else if (type === 'pack') {
     const side = carbonSide(c), color = c.box === 'A' ? '#F0A03C' : '#55D6E8', [goods, carbon] = c.ports;
     crate(g, c.box, 0, -.02, .56, .4);
@@ -1668,20 +2076,13 @@ function drawCell(g, c, inputs = []) {
     g.globalAlpha *= carbon.length ? 1 : .5;
     glyph(g, 'K', DX[side] * .4, DY[side] * .4, .12);
     g.globalAlpha = built(c) ? 1 : .4;
-    arrow(g,c.dir,.54,color);
   } else if (type === 'join') {
     for (const port of [0,1]) {
       const side = joinSide(c,port), x = DX[side]*.28, y = DY[side]*.28, has = c.ports[port].length;
       circle(g,x,y,.17,'#0B1417',has ? '#FF8FA2' : '#8B989C');
       const gene = c.ports[port][0] || (c.last ? c.last.slice(port * 3,port * 3 + 3) : '');
       if (gene) { g.globalAlpha *= has ? 1 : .35; sequence(g,gene,x,y,.28,.06); g.globalAlpha = built(c) ? 1 : .4; }
-      // One tick for gene 1, two for gene 2.
-      for (let i = 0; i <= port; i++) {
-        const nx = DY[side], ny = -DX[side], shift = (i - port / 2) * .1;
-        circle(g,DX[side]*.06 + nx*shift,DY[side]*.06 + ny*shift,.035,'#E6F0EC');
-      }
     }
-    arrow(g,c.dir,.54,'#B7F34A');
   } else if (type === 'core') circle(g,0,0,.31,'#B7F34A','#E2FFB0');
 }
 function draw() {
@@ -1738,18 +2139,6 @@ function draw() {
     const base = depositAt(c.x,c.y);
     if (base && c.type !== 'mine' && c.type !== 'borer') { rect(ctx,c.x,c.y + .7,.32,.3,'#05090B'); glyph(ctx,base,c.x + .16,c.y + .85,.12); }
     if (isGun(c) && !Object.values(c.ammo).some(n => n)) circle(ctx,x,y,.48,null,'#FF6B6B',.07);
-    const max = TYPES[c.type]?.hp ?? 100;
-    if (c.hp < max - .5) { const span2 = sizeOf(c) - .2; rect(ctx,c.x+.1,c.y+.03,span2,.09,'#05090B'); rect(ctx,c.x+.1,c.y+.03,span2*Math.max(0,c.hp/max),.09,healing(c) ? '#62E06A' : '#FF6B6B'); }
-  }
-  // Over the items, so a blocked one cannot hide the way it is refused. Grey is guessed, green is set.
-  for (const c of cells) {
-    if (c.type !== 'bridge') continue;
-    ctx.save(); ctx.translate(c.x + .5,c.y + .5);
-    for (const axis of [0,1]) {
-      const way = wayOf(c,axis);
-      if (way != null) arrow(ctx,way,.49,c.ways?.[axis] != null ? '#B7F34A' : '#A3B8B3');
-    }
-    ctx.restore();
   }
   for (const c of cells) {
     if (c.type !== 'gate') continue;
@@ -1757,16 +2146,9 @@ function draw() {
   }
   for (const c of [...cells, ...Object.values(G.ruins).filter(w => w.out != null)]) {
     if (built(c) && c.out == null) continue;
-    const done = woven(c), color = c.out != null ? '#FF6B6B' : '#55D6E8';
+    const color = c.out != null ? '#FF6B6B' : '#55D6E8';
     const size = sizeOf(c);
     ctx.setLineDash([.14,.1]); rect(ctx,c.x + .06,c.y + .06,size - .12,size - .12,null,color); ctx.setLineDash([]);
-    if (!built(c) && done > 0) rect(ctx,c.x + .1,c.y + size - .18,(size - .2) * done,.1,color);
-  }
-  for (const c of chain) rect(ctx,c.x+.04,c.y+.04,sizeOf(c) - .08,sizeOf(c) - .08,null,'#FF6B6B');
-  if (selected && G.cells[selected]) {
-    const c = G.cells[selected];
-    rect(ctx,c.x,c.y,sizeOf(c),sizeOf(c),null,'#B7F34A');
-    if (isGun(c)) circle(ctx,c.x+.5,c.y+.5,GUNS[c.type].range,null,'#55D6E8');
   }
   drawNerves();
   drawWorms();
@@ -1795,6 +2177,7 @@ function draw() {
     rect(ctx,e.x-.3,e.y-.38,.6*Math.max(0,e.hp/e.max),.07,'#FF6B6B');
   }
   drawDrones();
+  sceneSigns(ctx);
   drawPreview(ctx);
   // What is off screen keeps an arrow on the edge.
   ctx.setTransform(view.dpr,0,0,view.dpr,0,0);
@@ -1808,7 +2191,7 @@ function drawDrones() {
     const {x, y, w, a, goal, undo} = dronePose(d);
     if (goal && w < .5) {
       ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(goal.x,goal.y);
-      ctx.strokeStyle = '#55D6E8AA'; ctx.lineWidth = 1 / cam.zoom; ctx.setLineDash([.3,.3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = '#55D6E8AA'; ctx.lineWidth = 1 / cam.zoom; ctx.setLineDash([.3,.3]); ctx.lineDashOffset = -motionTime() % .6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
     }
     if (goal && w >= .5) for (let i = 0; i < 3; i++) {
       const tx = goal.x + Math.sin(t * 7 + i * 2.1) * .36, ty = goal.y + Math.cos(t * 5 + i * 2.1) * .36;
@@ -1864,7 +2247,7 @@ function drawBreach(b) {
   ctx.globalAlpha = fade;
   circle(ctx,x,y,3.5,asleep ? '#171A1B' : '#241016');
   // The circle is the limit to build up to without waking it.
-  if (asleep) { ctx.setLineDash([.6,.6]); circle(ctx,x,y,b.r,null,'#6B5960',Math.max(.06,1 / cam.zoom)); ctx.setLineDash([]); }
+  if (asleep) { ctx.setLineDash([.6,.6]); circle(ctx,x,y,b.r + Math.sin(motionTime() * 1.1) * .08,null,'#6B5960',Math.max(.06,1 / cam.zoom)); ctx.setLineDash([]); }
   const full = b.left / b.total, beat = asleep ? 0 : Math.sin(G.time * 5) * .1;
   circle(ctx,x,y,.7 + full * .6 + beat,asleep ? '#2A2527' : '#3A1820',asleep ? '#8B989C' : '#FF6B6B',.12);
   if (cam.zoom >= 8) {
@@ -1956,8 +2339,10 @@ function drawNerves() {
 function marker(x,y,color) {
   const cx = view.w / 2, cy = view.h / 2, dx = (x - cam.x) * cam.zoom, dy = (y - cam.y) * cam.zoom * flat();
   if (Math.abs(dx) <= cx && Math.abs(dy) <= cy) return;
-  const k = Math.min((cx - 12) / Math.abs(dx || 1e-6),(cy - 12) / Math.abs(dy || 1e-6));
+  const s = ui.safe, roomX = dx < 0 ? cx - 20 : cx - s.right, roomY = dy < 0 ? cy - s.top : cy - s.bottom;
+  const k = Math.min(Math.max(20,roomX) / Math.abs(dx || 1e-6),Math.max(20,roomY) / Math.abs(dy || 1e-6));
   const px = cx + dx * k, py = cy + dy * k, a = Math.atan2(dy,dx);
+  if (!STILL.matches) { const wave = motionTime() * .8 % 1; circle(ctx,px,py,8 + wave * 12,null,color + Math.round((1 - wave) * 160).toString(16).padStart(2,'0'),1.5); }
   polygon(ctx,[0,2.4,-2.4].map((turn,i) => [px + Math.cos(a + turn) * (i ? 8 : 10),py + Math.sin(a + turn) * (i ? 8 : 10)]),color);
 }
 
@@ -1973,10 +2358,38 @@ function geneMark(gene) {
   if (!/^([SFCN]{3}){1,2}$/.test(gene)) return '';
   return `<span class="gene" role="img" aria-label="${[...gene].map(b => BASE[b]).join(', ')}">${[...gene].map((b, i) => `${i === 3 ? '<i class="cut"></i>' : ''}<svg viewBox="0 0 18 18">${SHAPE[b]}</svg>`).join('')}</span>`;
 }
-function say(text) { note = text; $('message').textContent = text; }
+function say(text) { note = text; ui.saidAt = performance.now(); $('message').textContent = text; }
+// One sign per kind of action, the words stay beside it.
+const ICONS = [
+  [/^(Démonter|Retirer|Couper)/, '<path d="M4 4l10 10M14 4L4 14"/>'],
+  [/^(Annuler|Garder)/, '<path d="M7 3L3 7l4 4M3 7h8a4 4 0 0 1 0 8H7"/>'],
+  [/^(Tourner|Sens|Voie|Sort )/, '<path d="M15 9a6 6 0 1 1-2-4.5M13 1v4H9"/>'],
+  [/^Vider/, '<path d="M9 2v9M5 7l4 4 4-4M3 16h12"/>'],
+  [/^Recette/, '<path d="M3 2h12l2 5v6l-2 3H3l-2-3V7z"/>'],
+  [/^Carbone/, '<path d="M5 2h8l4 7-4 7H5L1 9z"/>'],
+  [/^Inverser/, '<path d="M2 6h13l-3-3M16 12H3l3 3"/>'],
+  [/^Tir /, '<circle cx="9" cy="9" r="6"/><path d="M9 1v5M9 12v5M1 9h5M12 9h5"/>'],
+  [/^Tirer/, '<path d="M2 14C7 14 5 4 10 4h6M13 1l3 3-3 3"/>'],
+  [/^(Lit|Si coupé)/, '<path d="M1 9q8-10 16 0-8 10-16 0z"/><circle cx="9" cy="9" r="2"/>'],
+  [/^Débits/, '<path d="M9 16V3M4 8l5-5 5 5"/>'],
+  [/^(Partir|Départ|Poche)/, '<path d="M4 3l11 6-11 6z"/>'],
+  [/^Réveiller/, '<path d="M1 10h4l2-6 4 11 2-5h4"/>'],
+  [/./, '<circle cx="9" cy="9" r="5"/>']
+];
 function button(text, action) {
-  const b = document.createElement('button');
-  b.textContent = text; b.onclick = () => { action(); refresh(); };
+  const b = document.createElement('button'), icon = document.createElement('span');
+  icon.className = 'icon'; icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = `<svg viewBox="0 0 18 18">${ICONS.find(([sign]) => sign.test(text))[1]}</svg>`;
+  b.append(icon, document.createTextNode(text));
+  if (/^(Démonter|Retirer)/.test(text)) b.classList.add('danger');
+  b.onclick = () => {
+    action(); refresh();
+    const again = [...$('actions').querySelectorAll('button')].find(o => !o.classList.contains('slot') && o.textContent.split(' :')[0] === text.split(' :')[0]);
+    if (!again) return;
+    if (again.textContent !== text) again.classList.add('flip');
+    // Rebuilt petals would drop who walks them with Tab.
+    if (tabbed) again.focus();
+  };
   $('actions').append(b);
   return b;
 }
@@ -1989,6 +2402,7 @@ function turnWay(c, axis) {
   if (c.ways[axis] != null && c.lanes[axis]) c.lanes[axis].dir = c.ways[axis];
 }
 function showActions() {
+  ui.at = '';
   $('actions').replaceChildren();
   const c = selected && G.cells[selected];
   const w = pickedWorm();
@@ -1998,10 +2412,8 @@ function showActions() {
     button('Vider', () => { for (const h of w.holds) { h.n = 0; h.kind = ''; } });
     if (w.out != null) button('Annuler le retrait', () => { keepIt(w); showActions(); });
     else button('Retirer', () => { scrap(w, () => { dropWorm(w, true); wormId = null; }); showActions(); });
-    $('info').classList.remove('filter');
     return;
   }
-  $('info').classList.toggle('filter', c?.type === 'sort');
   if (!c) {
     if (!['hand','erase','belt','wall','bridge','turret','sting','maw','track','worm','pocket','pump','wire'].includes(tool))
       button(`Sens : ${WAYS[heading]}`, () => { setHeading((heading + 1) % 4); showActions(); });
@@ -2010,10 +2422,9 @@ function showActions() {
   if (c.type === 'core') {
     button(`Débits +20 % : ${30 * 2 ** G.upgrades} ADN`, () => {
       const cost = 30 * 2 ** G.upgrades;
-      if (G.dna < cost) return say('Pas assez d’ADN. Livre des gènes au cœur.');
-      G.dna -= cost; G.upgrades++; showActions();
+      if (G.dna < cost) return refuse('Pas assez d’ADN. Livre des gènes au cœur.');
+      G.dna -= cost; G.upgrades++; showActions(); replay($('organism'), 'surge');
     });
-    if (!G.open) button('Tout débloquer (test)', () => { G.open = true; showActions(); say('Tout est débloqué pour tester. Les stades continuent de compter.'); });
     return;
   }
   if (TURNS.includes(c.type)) button('Tourner', () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
@@ -2045,6 +2456,8 @@ function showActions() {
     const onNerve = G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y));
     if (!onNerve) {
     button({1:'Base', 3:'Gène', 6:'Brin'}[c.want.length], change(() => { c.want = c.want.length === 1 ? (c.want === 'K' ? '?' : c.want) + '??' : c.want.length === 3 && unlocked(2) ? c.want + '???' : c.want[0]; }));
+    const row = document.createElement('span');
+    row.className = 'slots';
     [...c.want].forEach((base, i) => {
       const b = button('?', change(() => {
         const order = c.want.length === 1 ? 'SFCNK?' : 'SFCN?';
@@ -2052,9 +2465,11 @@ function showActions() {
       }));
       b.classList.add('slot');
       b.setAttribute('aria-label', `Filtre, position ${i + 1} : ${MATTER[base] || 'joker'}. Toucher pour changer.`);
-      if (SHAPE[base]) b.innerHTML = `<svg viewBox="0 0 18 18" width="20" height="20">${SHAPE[base]}</svg>`;
+      b.innerHTML = SHAPE[base] ? `<svg viewBox="0 0 18 18" width="20" height="20">${SHAPE[base]}</svg>` : '?';
+      row.append(b);
     });
-      button('= dernier passé', change(() => { if (c.seen) c.want = c.seen; else say('Rien n’est encore passé dans ce trieur.'); })).disabled = !c.seen;
+    $('actions').append(row);
+      button('= dernier passé', change(() => { if (c.seen) c.want = c.seen; else refuse('Rien n’est encore passé dans ce trieur.'); })).disabled = !c.seen;
     }
   }
   if (NERVE.ends.includes(c.type) && G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y))) {
@@ -2098,18 +2513,21 @@ function select(id) {
 function choose(type) {
   if (!unlocked(NEEDS[type] || 0)) {
     const want = STAGES[NEEDS[type] - 1];
-    return say(`${TYPES[type].name} s’ouvre quand le stade ${NEEDS[type]}, ${want.name}, est achevé. Touche le cœur pour voir ce qu’il réclame.`);
+    return refuse(`${TYPES[type].name} s’ouvre quand le stade ${NEEDS[type]}, ${want.name}, est achevé. Touche le cœur pour voir ce qu’il réclame.`);
   }
   tool = type; linking = null; wiring = null; select(null); say(TYPES[type].help);
-  for (const b of $('tools').children) b.setAttribute('aria-pressed', b.dataset.type === type);
+  for (const b of $('tools').querySelectorAll('[data-type]')) b.setAttribute('aria-pressed', b.dataset.type === type);
+  // On a phone the fan folds once picked: the ground is needed.
+  openFamily(NARROW.matches || !FAMILY_OF[type] ? null : FAMILY_OF[type]);
+  paintInfo();
 }
-let briefText = '';
 function orderHTML() {
   const want = STAGES[G.stage];
-  if (!want) return '<div class="order"><b>Organisme né</b><span>les stades suivants restent à écrire</span></div>';
-  const done = want.rate ? `${mealRate().toFixed(1).replace('.', ',')} sur ${want.rate}/s · ${Math.floor(G.held)} sur ${want.hold} s` : `${G.fed} sur ${want.count}`;
-  const boxed = boxOf(want.item) ? `<span class="boxed">capsule de ${PACK.size}</span>` : '';
-  return `<div class="order"><b>${G.stage + 1}. ${want.name}</b>${boxed}${geneMark(contentOf(want.item))}<output>${done}</output></div>`;
+  if (!want) return '<b>Organisme né</b><span class="unit">les stades suivants restent à écrire</span>';
+  const done = want.rate ? `${mealRate().toFixed(1).replace('.', ',')} / ${want.rate}` : `${G.fed} / ${want.count}`;
+  const unit = [boxOf(want.item) ? `capsule de ${PACK.size}` : '', want.rate ? `gènes/s, tenus ${Math.floor(G.held)} sur ${want.hold} s` : ''].filter(Boolean).join(' · ');
+  const gene = geneMark(contentOf(want.item)), asked = boxOf(want.item) ? `<span class="crate">${gene}</span>` : gene;
+  return `<b>Stade ${G.stage + 1} · ${want.name}</b><div class="wanted">${asked}<output>${done}</output></div>${unit ? `<span class="unit">${unit}</span>` : ''}`;
 }
 function stockOf(gene) {
   let n = 0;
@@ -2129,6 +2547,8 @@ function refresh() {
     if (!b) continue;
     const shut = !unlocked(stage);
     b.classList.toggle('locked', shut);
+    if (ui.locked.get(type) && !shut) replay(b, 'unlocked');
+    ui.locked.set(type, shut);
     b.querySelector('.lock').hidden = !shut;
     const tag = b.querySelector('.price:not(.lock)');
     if (tag) tag.hidden = shut;
@@ -2137,23 +2557,7 @@ function refresh() {
     const tag = $('tools').querySelector(`[data-type="${type}"] .price:not(.lock)`), cost = price(type);
     if (tag) { tag.textContent = cost; tag.classList.toggle('short', cost > G.dna); }
   }
-  $('threat').style.width = G.threat * 10 + '%';
-  $('core').style.width = G.cells[key(CORE.x,CORE.y)].hp + '%';
-  const awake = G.breaches.filter(b => b.state === 'wake' && b.left);
-  const first = awake.find(b => b.pending) || awake.reduce((a, b) => !a || b.next < a.next ? b : a, null);
-  const active = Boolean(first?.pending), left = first ? Math.max(0, Math.ceil(first.next - G.time)) : 0;
-  const shown = first ? (active ? first.gene : waveGene(first)) : '';
-  const here = Object.entries(G.enemies.reduce((n, e) => (n[e.gene] = (n[e.gene] || 0) + 1, n), {})).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([g, n]) => {
-    const stock = stockOf(opposite(g));
-    return `<div class="threat"><b>${n} sur la carte</b>${geneMark(g)}<span>→</span>${geneMark(opposite(g))}<span class="${stock ? 'need' : 'none'}">${stock ? stock + ' en stock' : 'aucun antidote'}</span></div>`;
-  }).join('');
-  const asleep = G.breaches.filter(b => b.state === 'sleep').length;
-  const text = orderHTML() + here + (first
-    ? `<b>${active ? 'Assaut' : `Dans ${left} s`}, ${bearing(first)}${first.id ? ` à ${Math.round(span(first, CORE))} cases` : ''}</b>${geneMark(shown)}<span>→</span><span class="need">${geneMark(opposite(shown))}</span>${awake.length > 1 ? `<span class="none">+${awake.length - 1} brèche${awake.length > 2 ? 's' : ''}</span>` : ''}`
-    : asleep ? `<span>${asleep} brèches dormantes autour de la base</span>` : '<span>Alentours vidés : la carte continue plus loin</span>');
-  if (text !== briefText) { briefText = text; $('brief').innerHTML = text; }
-  $('brief').classList.toggle('hot', Boolean(first) && (active || left <= 25));
-  const copy = selected && G.cells[selected]?.seen && [...$('actions').children].find(b => b.disabled);
+  const copy = selected && G.cells[selected]?.seen && [...$('actions').querySelectorAll('button')].find(b => b.disabled);
   if (copy) copy.disabled = false;
   if (selected && G.cells[selected]) {
     const c = G.cells[selected], hurt = c.hp < fullHp(c) - .5;
@@ -2179,7 +2583,7 @@ function refresh() {
     $('rebuild').textContent = `Reconstruire (${lost + torn})${bill.total ? ` · ${bill.total} ADN` : ''}`;
   }
   $('over').hidden = !G.over;
-  if (G.over) $('score').textContent = `${G.breaches.filter(b => b.state === 'spent').length} brèches vidées, ${G.kills} créatures tuées, ${G.made} gènes produits.`;
+  paintHud();
 }
 
 function remove(x,y) {
@@ -2211,7 +2615,7 @@ function place(x,y) {
     if (from && old === from) { wiring = null; return say(TYPES.wire.help); }
     if (from) {
       wiring = null;
-      if (!old) return say('Un nerf finit sur une tourelle, un feu ou un trieur.');
+      if (!old) return refuse('Un nerf finit sur une tourelle, un feu ou un trieur.');
       if (wireUp(from, old)) { const message = note; select(id); say(message); }
       return;
     }
@@ -2227,7 +2631,7 @@ function place(x,y) {
   if (worm && (tool === 'hand' || tool === 'worm')) return selectWorm(worm);
   if (tool === 'worm') return incubate(x,y);
   if (tool === 'track') {
-    if (!buildable(x,y)) return say('La zone des ruches n’est pas constructible.');
+    if (!buildable(x,y)) return refuse('La zone des ruches n’est pas constructible.');
     const t = G.tracks[id];
     if (t) { t.dir = (t.dir + 1) % 4; setHeading(t.dir); } else layTrack(x,y,heading);
     return say(TYPES.track.help);
@@ -2252,13 +2656,13 @@ function place(x,y) {
   }
   if (BIG[tool]) {
     const site = siteFor(tool,x,y);
-    if (site.why) return say(`${site.why}.`);
+    if (site.why) return refuse(`${site.why}.`);
     build(tool,site.x,site.y,heading); select(key(site.x,site.y)); return say(TYPES[tool].help);
   }
-  if (!buildable(x,y)) return say('La zone des ruches n’est pas constructible.');
+  if (!buildable(x,y)) return refuse('La zone des ruches n’est pas constructible.');
   const cost = price(tool);
-  if (cost > G.dna) return say(`Il manque ${cost - G.dna} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.`);
-  if (tool === 'mine' && !depositAt(x,y)) return say('Un récolteur se pose sur un gisement coloré.');
+  if (cost > G.dna) return refuse(`Il manque ${cost - G.dna} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.`);
+  if (tool === 'mine' && !depositAt(x,y)) return refuse('Un récolteur se pose sur un gisement coloré.');
   G.dna -= cost;
   build(tool,x,y,heading); select(id); say(TYPES[tool].help + (cost ? ` Payé ${cost} ADN.` : ''));
 }
@@ -2272,7 +2676,7 @@ function joinVein(from,x,y) {
   if (from?.type !== 'pump') return;
   let to = cellAt(x,y);
   if (!to) {
-    if (!buildable(x,y)) return say('La zone des ruches n’est pas constructible.');
+    if (!buildable(x,y)) return refuse('La zone des ruches n’est pas constructible.');
     if (Math.hypot(x - from.x,y - from.y) > VEIN.reach) return link(from,{x,y,type:'pump'});
     to = build('pump',x,y,0);
   }
@@ -2294,7 +2698,7 @@ function extend(to) {
     if (tool === 'track') {
       if (!buildable(drag.x,drag.y) || !buildable(x,y)) { drag = null; return; }
       const here = G.tracks[key(drag.x,drag.y)], joins = G.tracks[key(x,y)];
-      if (drag.moved && drag.onTrack && here && here.dir !== dir) { say('La piste rejoint la ligne existante. Une case n’a qu’une sortie.'); drag = null; return; }
+      if (drag.moved && drag.onTrack && here && here.dir !== dir) { refuse('La piste rejoint la ligne existante. Une case n’a qu’une sortie.'); drag = null; return; }
       layTrack(drag.x,drag.y,dir);
       if (drag.start && x === drag.start.x && y === drag.start.y) { say('Boucle fermée. Pose des poches contre elle, puis un ver dessus.'); drag = null; return; }
       if (!joins) layTrack(x,y,dir);
@@ -2309,7 +2713,7 @@ function extend(to) {
     for (const c of [from, cellAt(x,y)]) if (isBelt(c)) keepIt(c);
     if (from && !isBelt(from) && from.type !== 'bridge' && drag.moved) { drag = null; return; }
     if (from && drag.existing && drag.moved && isBelt(from) && from.dir !== dir) {
-      say('Ce tapis existe déjà : la ligne s’y raccorde. Pour le traverser, pose un pont.');
+      refuse('Ce tapis existe déjà : la ligne s’y raccorde. Pour le traverser, pose un pont.');
       drag = null; return;
     }
     if (!from) {
@@ -2407,8 +2811,16 @@ const PREVIEW = {no:'#FF6B6B', scrap:'#FF6B6B', build:'#55D6E8', link:'#55D6E8',
 // Both views use it: their canvas is in map units, squashed or not. It stays on the plane where things get built.
 function drawPreview(g, models) {
   const p = preview();
-  if (!p) return;
+  if (!p) { drawPorts(g, null); return; }
   const {x, y, act} = p, color = PREVIEW[act], size = p.size || (p.type && BIG[p.type] ? 2 : 1), mx = x + size / 2, my = y + size / 2;
+  const at = `${x},${y},${act},${p.type},${size}`, now = performance.now();
+  if (at !== drawPreview.at) {
+    drawPreview.at = at; drawPreview.since = now;
+    if (p.type !== drawPreview.type) { drawPreview.type = p.type; drawPreview.held = now; }
+  }
+  const age = STILL.matches ? 9 : (now - drawPreview.since) / 1000, held = STILL.matches ? 9 : (now - drawPreview.held) / 1000;
+  if (age < .3) { g.globalAlpha = 1 - age / .3; rect(g, x - age, y - age, size + age * 2, size + age * 2, null, color); g.globalAlpha = 1; }
+  if (p.type && act === 'build' && age < 9) { g.globalAlpha = .4; rect(g, x + .04, y + (age * .9 % 1) * (size - .06), size - .08, .06, color); g.globalAlpha = 1; }
   if (p.type && !models) {
     g.save(); g.globalAlpha = .55; g.translate(mx, my); g.scale(size, size);
     if (p.type === 'worm') circle(g, 0, 0, .42, '#2A4A22', '#C9F77A', .07);
@@ -2430,37 +2842,99 @@ function drawPreview(g, models) {
   // The way out, where it matters.
   // How far it would reach, before paying for it.
   if (GUNS[p.type]) {
-    g.setLineDash([.4, .3]); circle(g, x + .5, y + .5, GUNS[p.type].range, null, color + '99', 1.5 / cam.zoom); g.setLineDash([]);
+    g.setLineDash([.4, .3]); circle(g, x + .5, y + .5, GUNS[p.type].range * Math.max(.08, 1 - (1 - Math.min(1, held / .42)) ** 3), null, color + '99', 1.5 / cam.zoom); g.setLineDash([]);
   }
-  if (p.dir != null && !['wall','turret','sting','maw','pump','pocket','bridge'].includes(p.type)) {
-    if (BIG[p.type]) {
-      // Every mouth it would have.
-      for (const door of edgesOf(p).filter(d => p.type === 'borer' || d.dir === p.dir)) {
-        g.save(); g.translate(door.x + .5, door.y + .5); arrow(g, door.dir, .72, color); g.restore();
-      }
-    } else {
-      g.save(); g.translate(x + .5, y + .5);
-      for (const dir of p.type === 'split2' ? splitExits(p) : [p.dir]) arrow(g, dir, .72, color);
-      g.restore();
-    }
-  }
+  const reach = drawPorts(g, p);
   if (act === 'no' || act === 'scrap') {
     const r = size * .2; g.beginPath(); g.moveTo(mx - r, my - r); g.lineTo(mx + r, my + r); g.moveTo(mx + r, my - r); g.lineTo(mx - r, my + r);
     g.strokeStyle = color; g.lineWidth = 2 / cam.zoom; g.stroke();
   }
-  const text = p.why || p.label || (p.cost ? `${p.cost} ADN` : '');
+  const touched = gesture && !hovered, keys = act === 'build' && !touched && !NARROW.matches;
+  const piece = keys && p.type ? [TYPES[p.type]?.name, p.cost ? `${p.cost} ADN` : '', p.dir != null && TURNS.includes(p.type) ? 'R tourner' : '', 'Échap lâcher'].filter(Boolean).join(' · ') : '';
+  const text = p.why || p.label || piece || (p.cost ? `${p.cost} ADN` : '');
   if (!text) return;
   // The words keep one size at every zoom, and stay on the board.
   g.save(); g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-  g.font = '600 12px Verdana';
+  g.font = '600 13px Barlow, Verdana';
   const wide = g.measureText(text).width + 12, squash = cam.zoom * flat();
   const left = Math.max(4, Math.min(view.w - wide - 4, view.w / 2 + (mx - cam.x) * cam.zoom - wide / 2));
-  let top = view.h / 2 + (y + size - cam.y) * squash + 14;
-  if (top > view.h - 24) top -= squash * size + 48;
+  let top = view.h / 2 + (y + size - cam.y) * squash + 14 + reach;
+  // Under a finger nobody reads: the words go above it.
+  if (touched) top = view.h / 2 + (y - cam.y) * squash - 64;
+  else if (top > view.h - ui.safe.bottom - 24) top -= squash * size + 48;
+  if (act === 'no' && age < .35) g.translate(Math.sin(age * 55) * 5 * (1 - age / .35), 0);
   g.fillStyle = '#05090BE6'; g.fillRect(left, top, wide, 20);
   g.fillStyle = act === 'none' ? '#E6F0EC' : color; g.textAlign = 'left'; g.textBaseline = 'middle';
   g.fillText(text, left + 6, top + 10);
   g.restore();
+}
+// The ways in and out of one object, as the transport reads them. dir is the side of the cell, label what it wants there.
+function portsOf(c) {
+  const out = (dir, more) => ({x:c.x, y:c.y, dir, out:true, ...more}), into = (dir, more) => ({x:c.x, y:c.y, dir, out:false, ...more});
+  const round = [0, 1, 2, 3], back = (c.dir + 2) % 4;
+  switch (c.type) {
+    case 'belt': case 'gate': case 'mine': return [out(c.dir)];
+    case 'cyst': return [out(c.dir), ...round.filter(d => d !== c.dir).map(d => into(d))];
+    case 'vault': return edgesOf(c).map(d => ({...d, out:d.dir === c.dir}));
+    case 'borer': return edgesOf(c).map(d => ({...d, out:true}));
+    case 'ligase': return [out(c.dir), ...[0, 1, 2].map(port => into(portSide(c, port), {label:String(port + 1)}))];
+    case 'join': return [out(c.dir), ...[0, 1].map(port => into(joinSide(c, port), {label:String(port + 1)}))];
+    case 'pack': return [out(c.dir), into(back, {label:'gènes'}), into(carbonSide(c), {label:'carbone'})];
+    case 'split2': case 'split': return [into(back), ...splitExits(c).map(d => out(d))];
+    case 'sort': return [into(back), out(c.dir, {label:'reste'}), out(sideExit(c), {label:'filtre'})];
+    case 'bridge': return [0, 1].flatMap(axis => {
+      const way = wayOf(c, axis);
+      // Grey while guessed from the neighbours, green once set.
+      return way == null ? [] : [into((way + 2) % 4), out(way, {guessed:c.ways?.[axis] == null})];
+    });
+    case 'pump': return round.filter(d => !c.to || ahead(c, d)?.type !== 'pump').map(d => c.to ? into(d) : out(d));
+    case 'pocket': return round.filter(d => !G.tracks[key(c.x + DX[d], c.y + DY[d])]).map(d => c.unload ? out(d) : into(d));
+    case 'track': return [out(c.dir)];
+    case 'turret': case 'sting': case 'maw': case 'core': return round.map(d => into(d));
+  }
+  return [];
+}
+// One size on screen at any zoom: nobody should zoom in to know where it comes out.
+function drawPorts(g, p) {
+  const shown = [], picked = tool === 'hand' && selected ? G.cells[selected] : null;
+  if (p?.type && p.act !== 'link') shown.push(cell(p.type, p.x, p.y, p.dir ?? 0));
+  else if (p && p.act !== 'scrap') {
+    const under = cellAt(p.x, p.y) || (p.worm ? null : G.tracks[key(p.x, p.y)] && {...G.tracks[key(p.x, p.y)], type:'track', x:p.x, y:p.y});
+    if (under) shown.push(under);
+  }
+  if (picked && !shown.some(c => c.x === picked.x && c.y === picked.y)) shown.push(picked);
+  const ports = shown.flatMap(portsOf);
+  if (!ports.length) return 0;
+  const tilt = flat(), tags = [];
+  g.save();
+  g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  g.lineJoin = 'round';
+  for (const port of ports) {
+    const dx = DX[port.dir], dy = DY[port.dir], wide = Math.min(9, Math.max(6, cam.zoom * .45));
+    const ex = view.w / 2 + (port.x + .5 + dx * .5 - cam.x) * cam.zoom, ey = view.h / 2 + (port.y + .5 + dy * .5 - cam.y) * cam.zoom * tilt;
+    // Out: a solid arrow leaving the edge. In: a cyan head resting on it.
+    const tip = port.out ? 24 : 1, tail = port.out ? 2 : 15, head = port.out ? 12 : 14;
+    const point = (along, side) => [ex + dx * along - dy * side, ey + dy * along + dx * side];
+    const shape = port.out
+      ? [point(tip, 0), point(tip - head, wide), point(tip - head, wide * .45), point(tail, wide * .45), point(tail, -wide * .45), point(tip - head, -wide * .45), point(tip - head, -wide)]
+      : [point(tip, 0), point(tail, wide), point(tail - 3, 0), point(tail, -wide)];
+    g.beginPath(); shape.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath();
+    g.strokeStyle = '#05090B'; g.lineWidth = 4; g.stroke();
+    g.fillStyle = !port.out ? '#66D9EA' : port.guessed ? '#C5D0CD' : '#B7F34A'; g.fill();
+    if (port.label) tags.push({...port, at:point(port.out ? 35 : 27, 0), dx, dy});
+  }
+  g.font = '700 14px Barlow, Verdana'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const tag of tags) {
+    const wide = Math.max(22, g.measureText(tag.label).width + 12);
+    const x = tag.at[0] + tag.dx * (wide / 2 - 11), y = tag.at[1];
+    g.beginPath(); g.roundRect(x - wide / 2, y - 11, wide, 22, 11);
+    g.fillStyle = '#05090B'; g.fill();
+    g.strokeStyle = tag.out ? '#B7F34A' : '#66D9EA'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#FFFFFF'; g.fillText(tag.label, x, y + .5);
+  }
+  g.restore();
+  // How far down they reach, for the words that go under the object.
+  return Math.max(0, ...ports.filter(port => port.dir === 2).map(port => (port.label ? 46 : 22)));
 }
 // The pointer carries the tool in hand, struck out where it cannot act.
 const CURSORS = new Map();
@@ -2530,7 +3004,7 @@ canvas.addEventListener('pointermove', event => {
       drag.nerve = {...from}; drag.aim = {...from};
     }
     if (tool === 'pump') {
-      if (drag.existing && cellAt(from.x,from.y).type !== 'pump') { drag = null; say('Tire depuis une pompe ou un sol libre.'); return; }
+      if (drag.existing && cellAt(from.x,from.y).type !== 'pump') { drag = null; refuse('Tire depuis une pompe ou un sol libre.'); return; }
       if (!drag.existing && !buildable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
@@ -2554,7 +3028,7 @@ function release(event) {
     if (vein.x !== aim.x || vein.y !== aim.y) {
       // The first pump is only created when the vein can be made.
       if (Math.hypot(aim.x - vein.x,aim.y - vein.y) > VEIN.reach) link({...vein,type:'pump'},{...aim,type:'pump'});
-      else if (cellAt(aim.x,aim.y) && cellAt(aim.x,aim.y).type !== 'pump') say('Termine la veine sur une pompe ou un sol libre, juste à côté du bâtiment.');
+      else if (cellAt(aim.x,aim.y) && cellAt(aim.x,aim.y).type !== 'pump') refuse('Termine la veine sur une pompe ou un sol libre, juste à côté du bâtiment.');
       else joinVein(G.cells[key(vein.x,vein.y)] || build('pump',vein.x,vein.y,0),aim.x,aim.y);
     }
   }
@@ -2574,7 +3048,7 @@ const arrows = new Set();
 let hurried = false;
 document.addEventListener('keydown', event => {
   hurried = event.shiftKey;
-  if (!GLIDE[event.key] || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (!GLIDE[event.key] || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return;
   event.preventDefault();
   arrows.add(event.key);
 });
@@ -2603,9 +3077,17 @@ function followEdge(elapsed) {
   const to = position({x:Math.max(1,Math.min(view.w - 1,p.x)), y:Math.max(1,Math.min(view.h - 1,p.y))});
   if (inside(to.x,to.y)) extend(to);
 }
-$('zoom-in').onclick = () => zoomAt(1.35);
-$('zoom-out').onclick = () => zoomAt(1 / 1.35);
-$('home').onclick = () => home();
+// The buttons glide to the same place a jump would reach.
+const glideBy = jump => {
+  const was = {...cam};
+  jump();
+  const to = {...cam};
+  Object.assign(cam, was);
+  travelTo(to);
+};
+$('zoom-in').onclick = () => glideBy(() => zoomAt(1.35));
+$('zoom-out').onclick = () => glideBy(() => zoomAt(1 / 1.35));
+$('home').onclick = () => glideBy(() => home());
 
 // ---- 2D or 3D. Babylon is only fetched when the 3D view is first asked for.
 const BABYLON_SRC = 'https://cdn.jsdelivr.net/npm/babylonjs@9.31.0/babylon.js';
@@ -2629,6 +3111,7 @@ async function show3D(on) {
   try {
     if (on && !made3d) {
       toggle.textContent = '…';
+      showMenu(false); $('loading').hidden = false;
       if (!window.BABYLON) await script(BABYLON_SRC, BABYLON_HASH);
       if (!window.createModels3D) await script('models3d.js');
       if (!window.createTerrain3D) await script('terrain3d.js');
@@ -2642,11 +3125,13 @@ async function show3D(on) {
     try { localStorage.setItem(VIEW_KEY, on ? '3d' : '2d'); } catch (_) {}
   } catch (error) {
     view3d = null; $('gl').hidden = true;
-    say('Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.');
+    tell('Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.');
     console.warn('3D view unavailable:', error.message);
   }
-  toggle.textContent = view3d ? '2D' : '3D';
-  toggle.setAttribute('aria-label', view3d ? 'Passer en vue 2D' : 'Passer en vue 3D');
+  toggle.textContent = view3d ? 'Passer en 2D' : 'Passer en 3D';
+  $('loading').hidden = true;
+  showMenu(false);
+  replay($('board'), 'switched');
   switching = false;
 }
 $('dimension').onclick = () => show3D(!view3d);
@@ -2665,13 +3150,32 @@ $('rebuild').onclick = () => {
     delete G.ruins[id];
     Object.assign(build(w.type, w.x, w.y, w.dir), {flip:w.flip, want:w.want || 'C', side:w.side || 3, ways:w.ways || null, open:w.open !== false, to:w.to || null, strict:Boolean(w.strict), unload:Boolean(w.unload), box:w.box || 'T', read:w.read || 0});
   }
-  say(unpaid ? `${unpaid} défense${unpaid > 1 ? 's' : ''} en attente d’ADN, le reste est en chantier.` : 'Reconstruction lancée à l’identique.'); refresh();
+  tell(unpaid ? `${unpaid} défense${unpaid > 1 ? 's' : ''} en attente d’ADN, le reste est en chantier.` : 'Reconstruction lancée à l’identique.'); refresh();
 };
 
-// What is usable from the start comes first, then each stage's tools in the order they open.
-const TOOLBAR = ['hand','erase','belt','mine','ligase','turret','sting','maw','wall','cyst','bridge','gate','split2','split','sort','pack','borer','vault','pump','join','wire','track','pocket','worm'];
-for (const [type,info] of TOOLBAR.map(type => [type,TYPES[type]])) {
-  const b = document.createElement('button'), icon = document.createElement('canvas'), g = icon.getContext('2d');
+// Every tool lives in one family. Within one, what is usable from the start comes first.
+const FAMILIES = [
+  ['rec', 'Récolter', 'mine', ['mine','cyst','borer','vault']],
+  ['tra', 'Acheminer', 'belt', ['belt','bridge','split2','split','pump','track','pocket','worm']],
+  ['fab', 'Transformer', 'ligase', ['ligase','pack','join']],
+  ['def', 'Défendre', 'turret', ['turret','sting','maw','wall']],
+  ['cmd', 'Commander', 'gate', ['gate','sort','wire']]
+];
+const FAMILY_OF = Object.fromEntries(FAMILIES.flatMap(([id,,,types]) => types.map(type => [type, id])));
+const TOOLBAR = ['hand', ...FAMILIES.flatMap(f => f[3]), 'erase'];
+// The order of the sprite behind --models.
+const MODELS = ['belt','mine','ligase','join','pack','turret','sting','maw','wall','cyst','bridge','gate','split2','split','sort','pump','pocket','borer','vault','track','worm','wire','core'];
+function podOf(name) {
+  const b = document.createElement('button'), hole = document.createElement('span'), words = document.createElement('span');
+  b.className = 'pod'; hole.className = 'porthole'; hole.setAttribute('aria-hidden', 'true');
+  words.className = 'name'; words.textContent = name;
+  b.append(hole, words);
+  return b;
+}
+function toolPod(type) {
+  const info = TYPES[type], b = podOf(info.name), hole = b.querySelector('.porthole');
+  const icon = document.createElement('canvas'), g = icon.getContext('2d');
+  // The drawn icon is the one the pointer carries.
   icon.width = icon.height = 52; b.dataset.type = type;
   g.setTransform(46,0,0,46,26,26);
   if (type === 'hand') { circle(g,-.08,-.08,.25,null,'#A3B8B3',.09); polygon(g,[[.08,.14],[.15,.08],[.42,.34],[.34,.42]],'#A3B8B3'); }
@@ -2681,11 +3185,42 @@ for (const [type,info] of TOOLBAR.map(type => [type,TYPES[type]])) {
   else if (type === 'track') { for (const x of [-.35,-.12,.11]) circle(g,x,0,.07,'#B7F34A'); arrow(g,1,.46,'#B7F34A'); }
   else if (type === 'worm') { for (const x of [-.3,-.06,.18]) circle(g,x,0,.2,'#2A4A22','#C9F77A',.05); circle(g,.34,0,.13,'#4E7F2D','#C9F77A',.05); }
   else drawCell(g,{...cell(type,1,11,type === 'belt' ? 1 : 0)});
-  b.append(icon, document.createTextNode(info.name));
+  b.append(icon);
+  if (type === 'hand') hole.innerHTML = '<svg width="30" height="30" viewBox="0 0 30 30"><circle cx="12" cy="12" r="8" fill="none" stroke="#E9F3EF" stroke-width="2.5"/><path d="M18 18l8 8" stroke="#E9F3EF" stroke-width="3"/></svg>';
+  else if (type === 'erase') hole.innerHTML = '<svg width="28" height="28" viewBox="0 0 28 28"><path d="M5 5l18 18M23 5L5 23" stroke="#FF6B74" stroke-width="3.5" stroke-linecap="round"/></svg>';
+  else { hole.classList.add('model'); showModel(hole, type); }
+  if (BIG[type]) { const tag = document.createElement('span'); tag.className = 'size'; tag.textContent = '2×2'; b.append(tag); }
   if (NEEDS[type]) { const tag = document.createElement('span'); tag.className = 'price lock'; tag.textContent = `stade ${NEEDS[type]}`; b.append(tag); }
   if (PRICE[type]) { const tag = document.createElement('span'); tag.className = 'price'; b.append(tag); }
   b.onclick = () => choose(type);
-  $('tools').append(b);
+  b.addEventListener('pointerenter', event => {
+    if (event.pointerType !== 'mouse') return;
+    $('hint').textContent = TYPES[type].help.split(/(?<=[.!?])\s/)[0];
+    $('hint').hidden = false;
+  });
+  b.addEventListener('pointerleave', () => { $('hint').hidden = true; });
+  return b;
+}
+function growDock() {
+  const dock = document.createElement('div');
+  dock.className = 'dock';
+  const key = (b, n) => { const k = document.createElement('kbd'); k.className = 'key'; k.setAttribute('aria-hidden', 'true'); k.textContent = n; b.append(k); b.setAttribute('aria-keyshortcuts', n); };
+  const side = (type, n) => { const b = toolPod(type); b.classList.add('side'); key(b, n); dock.append(b); };
+  side('hand', 1);
+  FAMILIES.forEach(([id, name, model, types], i) => {
+    const tray = document.createElement('div'), b = podOf(name);
+    tray.className = 'tray'; tray.dataset.tray = id; tray.hidden = true;
+    for (const type of types) tray.append(toolPod(type));
+    $('tools').append(tray);
+    b.classList.add('family'); b.dataset.family = id; b.setAttribute('aria-expanded', 'false');
+    b.querySelector('.porthole').classList.add('model');
+    showModel(b.querySelector('.porthole'), model);
+    key(b, i + 2);
+    b.onclick = () => toggleFamily(id);
+    dock.append(b);
+  });
+  side('erase', 7);
+  $('tools').append(dock);
 }
 
 const togglePause = () => { paused = !paused; refresh(); };
@@ -2694,7 +3229,7 @@ $('pause').onclick = togglePause;
 let tabbed = false;
 document.addEventListener('pointerdown', () => { tabbed = false; }, true);
 function spacePauses(event) {
-  if (event.code !== 'Space' || event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (event.code !== 'Space' || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return false;
   if (tabbed && event.target.closest?.('button')) return false;
   // Both ways, or a focused button clicks itself on the way up.
   event.preventDefault();
@@ -2707,17 +3242,35 @@ document.addEventListener('keydown', event => {
 document.addEventListener('keyup', spacePauses);
 // Escape puts everything down: the tool, the line being drawn, the link being made, the selection.
 document.addEventListener('keydown', event => {
-  if (event.key !== 'Escape') return;
+  if (event.key !== 'Escape' || modalOpen()) return;
   event.preventDefault();
+  showMenu(false);
   // Without a gesture, letting the button go builds nothing.
   gesture = null; drag = null;
   choose('hand');
 });
-$('speed').onclick = () => { speed = speed === 1 ? 3 : 1; $('speed').textContent = '×' + speed; };
+$('speed').onclick = () => { speed = speed === 1 ? 3 : 1; $('speed').textContent = '×' + speed; refresh(); };
 let armed = 0;
-$('restart').onclick = () => {
-  if (Date.now() > armed) { armed = Date.now() + 3000; $('restart').textContent = 'Sûr ?'; return; }
-  armed = 0; $('restart').textContent = 'Reset'; begin();
+const restartText = text => { $('restart').querySelector('span').textContent = text; };
+let held = 0;
+function hold() {
+  clearTimeout(held);
+  $('restart').classList.add('holding');
+  held = setTimeout(() => { letGo(); armed = 0; restartText('Recommencer : maintenir'); showMenu(false); begin(); }, 1000);
+}
+function letGo() {
+  clearTimeout(held);
+  $('restart').classList.remove('holding');
+}
+$('restart').onpointerdown = hold;
+for (const name of ['pointerup','pointercancel','pointerleave','blur']) $('restart').addEventListener(name, letGo);
+$('restart').onkeydown = event => { if (event.key !== 'Enter') return; event.preventDefault(); if (!event.repeat) hold(); };
+$('restart').onkeyup = event => { if (event.key === 'Enter') letGo(); };
+// A screen reader cannot hold: it presses twice.
+$('restart').onclick = event => {
+  if (event.detail) return;
+  if (Date.now() > armed) { armed = Date.now() + 3000; restartText('Sûr ? Encore une fois'); return; }
+  armed = 0; restartText('Recommencer : maintenir'); showMenu(false); begin();
 };
 $('again').onclick = () => begin();
 // R turns what is under the pointer, or the piece in hand. Shift turns the other way.
@@ -2740,7 +3293,7 @@ function rotate(back) {
   showActions();
 }
 document.addEventListener('keydown', event => {
-  if (event.key.toLowerCase() !== 'r' || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key.toLowerCase() !== 'r' || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return;
   event.preventDefault();
   rotate(event.shiftKey);
 });
@@ -2765,13 +3318,452 @@ function load() {
   return false;
 }
 function begin() {
-  fresh(); choose('hand'); home();
-  say('Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.');
+  fresh();
+  ui.dna = ui.stage = null; ui.grown = 0; ui.travel = null;
+  $('growth').hidden = true;
+  forgetEvents(); choose('hand'); home();
+  tell('Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.');
   save(); refresh();
 }
 
+// ---- The grafted interface. It reads the game and calls the same actions as a finger: no rule lives here.
+const STILL = matchMedia('(prefers-reduced-motion: reduce)'), NARROW = matchMedia('(max-width:759px), (max-height:520px)');
+const ui = {family:null, menu:false, html:{}, dna:null, stage:null, locked:new Map(), events:[], point:null, saidAt:0, refusedAt:-1e9, grown:0, travel:null, picked:'', pickedAt:0, safe:{left:8, top:8, right:8, bottom:8}, at:'', dry:[]};
+const motionTime = () => STILL.matches ? 0 : performance.now() / 1000;
+const modalOpen = () => $('commands').open;
+function paint(id, html, el = $(id)) {
+  if (ui.html[id] === html) return false;
+  ui.html[id] = html; el.innerHTML = html;
+  return true;
+}
+function replay(el, name) {
+  el.classList.remove(name);
+  void el.getBoundingClientRect();
+  el.classList.add(name);
+}
+function showModel(el, type) {
+  const i = Math.max(0, MODELS.indexOf(type));
+  el.style.backgroundPosition = `${(i % 6) * 20}% ${Math.floor(i / 6) * 100 / 3}%`;
+}
+function markOf(base) { return SHAPE[base] ? `<svg viewBox="0 0 18 18">${SHAPE[base]}</svg>` : ''; }
+
+// What happened, kept on the left edge. Touched, it takes the camera there.
+function tell(text, {at, gene, bad} = {}) {
+  say(text);
+  ui.saidAt = 0;
+  const now = performance.now(), same = ui.events.find(e => e.text === text);
+  if (same) { same.until = now + 8000; return; }
+  const el = document.createElement(at ? 'button' : 'p'), dot = document.createElement('i'), words = document.createElement('span');
+  el.className = `event${bad ? ' bad' : ''}`; dot.className = 'dot'; words.className = 'text'; words.textContent = text;
+  el.append(dot, words);
+  if (gene) el.insertAdjacentHTML('beforeend', geneMark(gene));
+  if (at) { const there = {x:at.x + .5, y:at.y + .5}; el.onclick = () => travelTo(there); }
+  $('events').append(el);
+  ui.events.push({el, text, until:now + 8000});
+  while (ui.events.length > 3) ui.events.shift().el.remove();
+}
+function forgetEvents() {
+  for (const e of ui.events) e.el.remove();
+  ui.events = [];
+}
+// A refusal answers where the hand is, never at the other end of the screen.
+function refuse(text) {
+  say(text);
+  ui.saidAt = 0; ui.refusedAt = performance.now();
+  const el = $('refusal'), p = ui.point || {x:view.w / 2, y:view.h / 2};
+  el.textContent = text; el.hidden = false;
+  const wide = el.offsetWidth, tall = el.offsetHeight;
+  el.style.left = `${Math.max(8, Math.min(view.w - wide - 8, p.x - wide / 2))}px`;
+  el.style.top = `${p.y - tall - 46 > 8 ? p.y - tall - 46 : Math.min(view.h - tall - 8, p.y + 30)}px`;
+  replay(el, 'shake');
+}
+function travelTo(to) {
+  if (STILL.matches) { Object.assign(cam, to); return; }
+  ui.travel = {...to};
+}
+function moveCamera(elapsed) {
+  if (!ui.travel) return;
+  const by = Math.min(1, elapsed * 8);
+  let far = 0;
+  for (const [name, value] of Object.entries(ui.travel)) {
+    cam[name] += (value - cam[name]) * by;
+    far += Math.abs(value - cam[name]) * (name === 'zoom' ? 1 : cam.zoom);
+  }
+  if (far < 1) ui.travel = null;
+}
+
+function openFamily(id) {
+  ui.family = id;
+  for (const tray of $('tools').querySelectorAll('.tray')) tray.hidden = tray.dataset.tray !== id;
+  $('app').classList.toggle('traying', Boolean(id));
+  for (const b of $('tools').querySelectorAll('.family')) {
+    const [own, , model] = FAMILIES.find(f => f[0] === b.dataset.family), mine = FAMILY_OF[tool] === own;
+    b.setAttribute('aria-expanded', own === id);
+    b.setAttribute('aria-pressed', own === id || mine);
+    // Folded, the family carries what is in hand.
+    showModel(b.querySelector('.model'), mine ? tool : model);
+  }
+  $('tools').querySelector('[data-type="hand"]').setAttribute('aria-pressed', tool === 'hand' && !id);
+  $('hint').hidden = true;
+  layoutHud();
+}
+function toggleFamily(id) {
+  if (ui.family === id) return choose('hand');
+  if (FAMILY_OF[tool] !== id) choose('hand');
+  openFamily(id);
+}
+function showMenu(open) {
+  ui.menu = open;
+  $('menu').hidden = !open;
+  $('menu-toggle').setAttribute('aria-expanded', open);
+  $('menu-toggle').classList.toggle('on', open);
+}
+// Where floating things may go without landing under the interface.
+function layoutHud() {
+  const narrow = NARROW.matches, speedButton = $('speed'), home = narrow ? $('menu') : $('time');
+  if (speedButton.parentElement !== home) home.insertBefore(speedButton, $(narrow ? 'dimension' : 'menu-toggle'));
+  ui.safe = {
+    left:8,
+    top:narrow ? (view.h <= 520 ? 108 : 154) : view.w < 1180 ? 180 : 146,
+    right:narrow ? 60 : 72,
+    bottom:Math.max(8, view.h - $('tools').getBoundingClientRect().top + 6)
+  };
+  ui.at = '';
+}
+
+function jobName({c, field}) {
+  if (field === 'out' || field === 'veinOut') return 'Retrait';
+  if (field === 'veinLeft') return 'Veine';
+  return TYPES[c.type]?.name || (c.path ? 'Ver' : c.a ? 'Nerf' : 'Piste');
+}
+function paintOrganism() {
+  const want = STAGES[G.stage], part = !want ? 1 : want.rate ? G.held / want.hold : G.fed / want.count;
+  $('stage-arc').setAttribute('stroke-dasharray', `${Math.round(Math.min(1, part) * 352)} 352`);
+  const life = Math.max(0, Math.ceil(G.cells[key(CORE.x, CORE.y)].hp));
+  $('life').setAttribute('stroke-dasharray', `${Math.round(life * 2.96)} 296`);
+  $('life-text').textContent = `Cœur ${life}`;
+  $('organism').classList.toggle('ailing', life < 40);
+  paint('order', orderHTML());
+  if (ui.dna != null && G.dna > ui.dna) { $('gain').textContent = `+${Math.round(G.dna - ui.dna)}`; replay($('gain'), 'up'); }
+  ui.dna = G.dna;
+}
+function paintThreat() {
+  const awake = G.breaches.filter(b => b.state === 'wake' && b.left);
+  const first = awake.find(b => b.pending) || awake.reduce((a, b) => !a || b.next < a.next ? b : a, null);
+  const active = Boolean(first?.pending), left = first ? Math.max(0, Math.ceil(first.next - G.time)) : 0;
+  const here = Object.entries(G.enemies.reduce((n, e) => (n[e.gene] = (n[e.gene] || 0) + 1, n), {})).sort((a, b) => b[1] - a[1]);
+  const gene = first ? (active ? first.gene : waveGene(first)) : here[0]?.[0] || '';
+  const detail = [];
+  let title, short;
+  if (first) {
+    const where = bearing(first);
+    title = active ? `Assaut : ${where}` : `Assaut dans ${left} s`;
+    short = active ? 'Assaut' : `${left} s`;
+    if (!active) detail.push(where[0].toUpperCase() + where.slice(1));
+    if (first.id) detail.push(`${Math.round(span(first, CORE))} cases`);
+    if (G.enemies.length) detail.push(`${G.enemies.length} sur la carte`);
+    if (awake.length > 1) detail.push(`+${awake.length - 1} brèche${awake.length > 2 ? 's' : ''}`);
+  } else if (here.length) {
+    title = `${G.enemies.length} sur la carte`; short = `${G.enemies.length}`;
+    detail.push('Leur brèche est vide');
+  } else {
+    const asleep = G.breaches.filter(b => b.state === 'sleep').length;
+    title = asleep ? `${asleep} brèches dormantes` : 'Alentours vidés';
+    short = asleep ? `${asleep} dorment` : 'Calme';
+    detail.push(asleep ? 'autour de la base' : 'la carte continue plus loin');
+  }
+  const box = $('brief'), stock = gene ? stockOf(opposite(gene)) : 0;
+  paint('title', title, box.querySelector('.title'));
+  paint('detail', detail.join(' · '), box.querySelector('.detail'));
+  paint('short', short, box.querySelector('.short'));
+  paint('versus', gene ? `<span class="foe">${geneMark(gene)}</span><span class="to">→</span>${geneMark(opposite(gene))}<span class="${stock ? 'need' : 'none'}">${stock ? `${stock} en stock` : 'aucun antidote'}</span>` : '');
+  paint('families', here.map(([kind, n]) => {
+    const ready = stockOf(opposite(kind));
+    return `<div class="threat"><b>${n} sur la carte</b>${geneMark(kind)}<span>→</span>${geneMark(opposite(kind))}<span class="${ready ? 'need' : 'none'}">${ready ? `${ready} en stock` : 'aucun antidote'}</span></div>`;
+  }).join('') || '<span class="threat">Personne sur la carte</span>');
+  box.classList.toggle('calm', !first && !here.length);
+  box.style.setProperty('--pulse', `${(1.7 - Math.min(10, G.threat) * .11).toFixed(2)}s`);
+  $('app').classList.toggle('hot', !G.over && (active || G.enemies.length > 0));
+}
+function paintDrones() {
+  const jobs = new Map(sites().map(job => [jobId(job), job]));
+  G.drones.forEach((d, i) => {
+    const b = $('drones').children[i];
+    if (!b) return;
+    const job = d.job ? jobs.get(d.job) : null;
+    let label = 'Au nid';
+    if (job) {
+      const pose = dronePose(d), working = pose.goal && pose.w >= .5;
+      label = `${jobName(job)}${working ? ` ${Math.ceil(job.c[job.field])} s` : ''}`;
+    }
+    b.classList.toggle('busy', Boolean(job));
+    const words = b.querySelector('span');
+    if (words.textContent !== label) { words.textContent = label; b.setAttribute('aria-label', `Drone ${i + 1} : ${label}. Aller le voir.`); }
+  });
+}
+function cellsOf(c, worm) {
+  const sac = (n, max, what = '') => `<span class="sac"><i style="width:${Math.min(100, n / max * 100)}%"></i><span>${Math.floor(n)} / ${max}${what}</span></span>`;
+  const alveole = (inner, more = '') => `<span class="cellule ${inner ? 'full' : ''} ${more}">${inner}</span>`;
+  if (worm) return worm.holds.map(h => sac(h.n, WORM.hold)).join('');
+  if (!c) return '';
+  if (c.type === 'ligase') return c.ports.map(p => alveole(p.length ? markOf(p[0]) : '', p.length ? '' : 'next')).join('');
+  if (c.type === 'join') return c.ports.slice(0, 2).map(p => p.length ? geneMark(p[0]) : alveole('', 'next')).join('<span>+</span>');
+  if (c.type === 'pack') {
+    const [goods, carbon] = c.ports, box = BOX[c.box];
+    const genes = Array.from({length:PACK.size}, (_, i) => i < goods.length ? alveole(markOf(goods[0][0])) : alveole('', i === goods.length ? 'next' : '')).join('');
+    return genes + Array.from({length:box.carbon}, (_, i) => i < carbon.length ? alveole(markOf('K') || 'C') : alveole('')).join('');
+  }
+  if (isGun(c)) return Object.entries(c.ammo).filter(([, n]) => n).slice(0, 4).map(([gene, n]) => `${geneMark(gene)}<b>${n}</b>`).join('');
+  if (c.type === 'cyst') return sac(c.stock.length, 60);
+  if (c.type === 'vault') return sac(c.stock.length, VAULT.cap);
+  if (c.type === 'borer') return sac(c.stock.length, BORER.hold);
+  if (c.type === 'pump') return sac(c.stock.length, VEIN.cap);
+  if (c.type === 'pocket') return sac(c.stock.length, WORM.pocket);
+  if (c.type === 'sort' || c.type === 'gate') {
+    const id = key(c.x, c.y);
+    if (G.wires.some(w => w.a === id || w.b === id)) return [1, 2, 3].map(at => `<span class="cellule ${!c.read || c.read === at ? 'lit' : ''}">${at}</span>`).join('');
+  }
+  return '';
+}
+function paintInfo() {
+  const c = selected && G.cells[selected], worm = !c && pickedWorm(), any = Boolean(c || worm);
+  const busy = tool !== 'hand' || linking || wiring, offers = $('actions').childElementCount > 0;
+  const recent = ui.saidAt > 0 && performance.now() - ui.saidAt < 5000 && note !== TYPES.hand.help;
+  const info = $('info');
+  info.hidden = G.over || !(any || offers || recent || linking || wiring);
+  info.classList.toggle('slim', !any && !recent && !linking && !wiring && tool !== 'hand');
+  info.classList.toggle('holding', Boolean(busy));
+  info.querySelector('.card-head').hidden = !any;
+  if (any) {
+    const type = worm ? 'worm' : c.type;
+    $('card-title').textContent = type === 'core' ? 'Cœur' : TYPES[type].name;
+    const parts = [];
+    if (c?.type === 'pack') parts.push(BOX[c.box].name);
+    if (c && isGun(c)) parts.push(`${String(GUNS[c.type].range).replace('.', ',')} cases`);
+    if (c && TURNS.includes(c.type)) parts.push(`vers ${WAYS[c.dir]}`.replace('vers haut', 'vers le haut').replace('vers bas', 'vers le bas').replace('vers droite', 'vers la droite').replace('vers gauche', 'vers la gauche'));
+    const life = worm ? [worm.hp, WORM.hp] : [c.hp, fullHp(c)];
+    parts.push(life[0] < life[1] - .5 ? `${Math.ceil(life[0])} / ${life[1]} PV` : `${life[1]} PV`);
+    $('card-sub').textContent = parts.join(' · ');
+    showModel($('card-model'), type);
+  }
+  paint('cells', cellsOf(c, worm));
+  const row = $('actions');
+  row.classList.toggle('more', row.scrollWidth - row.clientWidth - row.scrollLeft > 8);
+  $('card').classList.toggle('alert', Boolean(c && ((!isGun(c) && chain.length) || /bloqué|manque|pas branchée|rien à tirer|déborde|rompue|fermée|percée|Branche/.test($('message').textContent))));
+  const picked = c ? `c${selected}` : worm ? `w${worm.id}` : '';
+  if (picked !== ui.picked) {
+    ui.picked = picked; ui.pickedAt = performance.now();
+    if (picked && !busy) { replay(info, 'fresh'); replay($('filament'), 'draw'); }
+    else info.classList.remove('fresh');
+  } else if (performance.now() - ui.pickedAt > 800) info.classList.remove('fresh'); // Else each rebuilt petal would sprout again.
+  ui.at = '';
+}
+function paintMoments() {
+  if (ui.stage != null && G.stage === ui.stage + 1 && G.time - (G.grownAt ?? -1e9) < 3) {
+    $('growth').querySelector('.stage').textContent = `Stade ${G.stage} achevé · +${GROWTH_BONUS} ADN`;
+    const got = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage).map(type => [type, TYPES[type].name]);
+    if (G.stage > 1) got.push(['mine', `Gisements ×${G.stage === 2 ? 2 : 4}`]);
+    $('rewards').replaceChildren(...got.map(([type, name]) => {
+      const item = document.createElement('div'), hole = document.createElement('span'), words = document.createElement('span');
+      item.className = 'pod'; hole.className = 'porthole model'; words.className = 'name'; words.textContent = name;
+      showModel(hole, type); item.append(hole, words);
+      return item;
+    }));
+    $('growth').hidden = false;
+    ui.grown = performance.now() + 7000;
+  }
+  ui.stage = G.stage;
+  if (G.over) {
+    $('growth').hidden = true;
+    const made = Math.floor(G.made).toLocaleString('fr-FR');
+    paint('score', [[G.breaches.filter(b => b.state === 'spent').length, 'brèches vidées'], [G.kills, 'créatures tuées'], [made, 'gènes produits']].map(([n, what]) => `<span><b>${n}</b>${what}</span>`).join(''));
+  }
+}
+function paintDry() {
+  ui.dry = G.over || !G.enemies.length ? [] : Object.values(G.cells).filter(c => isGun(c) && built(c) && !Object.values(c.ammo).some(n => n) && G.enemies.some(e => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range * 2)).slice(0, 4);
+  const box = $('dry');
+  while (box.children.length > ui.dry.length) box.lastChild.remove();
+  while (box.children.length < ui.dry.length) box.insertAdjacentHTML('beforeend', '<i><b></b><span>Tourelle à sec</span></i>');
+}
+function paintHud() {
+  paintOrganism(); paintThreat(); paintDrones(); paintInfo(); paintMoments(); paintDry();
+  $('app').classList.toggle('paused', paused);
+  $('app').classList.toggle('fast', speed > 1);
+  $('speed').classList.toggle('on', speed > 1);
+  $('pause').classList.toggle('on', paused);
+  $('open-all').hidden = Boolean(G.open);
+}
+
+const screenAt = p => ({x:view.w / 2 + (p.x - cam.x) * cam.zoom, y:view.h / 2 + (p.y - cam.y) * cam.zoom * flat()});
+const within = (v, low, high) => Math.max(low, Math.min(high, v));
+// Petals bloom round the object and its card hangs from it. Without room, or with a piece in hand, both dock.
+function followSelection() {
+  const c = selected && G.cells[selected], worm = !c && pickedWorm(), info = $('info');
+  let p = null, sized = 1;
+  if (!info.hidden && !ui.family && !NARROW.matches && tool === 'hand' && !linking && !wiring && (c || worm)) {
+    if (c) { p = screenAt(centreOf(c)); sized = sizeOf(c); }
+    else { const [x, y] = worm.path[0].split(',').map(Number); p = screenAt({x:x + .5, y:y + .5}); }
+    const s = ui.safe;
+    if (p.x < s.left || p.x > view.w - s.right || p.y < s.top - 40 || p.y > view.h - s.bottom + 40) p = null;
+  }
+  const at = p ? `${Math.round(p.x)},${Math.round(p.y)},${Math.round(cam.zoom)},${sized}` : 'docked';
+  if (at === ui.at) return;
+  ui.at = at;
+  const petals = [...$('actions').children], card = $('card'), s = ui.safe;
+  let side = 0, reach = 0, wide = 0;
+  if (p) {
+    info.classList.add('bloom'); info.classList.remove('docked');
+    wide = Math.max(0, ...petals.map(el => el.offsetWidth));
+    reach = Math.max(38, cam.zoom * sized * .62);
+    const toRight = view.w - s.right - p.x, toLeft = p.x - s.left, forCard = reach + 60 + card.offsetWidth, forPetals = reach + 30 + wide;
+    if (toRight >= forCard && toLeft >= forPetals) side = 1;
+    else if (toLeft >= forCard && toRight >= forPetals) side = -1;
+    else p = null;
+  }
+  info.classList.toggle('bloom', Boolean(p));
+  info.classList.toggle('docked', !p);
+  $('tether').toggleAttribute('hidden', !p);
+  $('events').classList.remove('under');
+  if (!p) {
+    card.style.left = card.style.top = '';
+    for (const el of petals) { el.style.left = el.style.top = ''; el.classList.remove('left'); }
+    return;
+  }
+  const bottom = view.h - s.bottom, gap = 52, n = petals.length, far = reach + 24;
+  const first = within(p.y - (n - 1) * gap / 2, s.top + 22, Math.max(s.top + 22, bottom - 22 - (n - 1) * gap));
+  const bend = Math.max(far, (n - 1) * gap / 2 + 18);
+  petals.forEach((el, i) => {
+    const y = first + i * gap, off = Math.abs(y - p.y);
+    const out = Math.max(Math.min(far, 34), Math.sqrt(Math.max(0, bend * bend - off * off)) - (bend - far));
+    el.classList.toggle('left', side > 0);
+    el.style.left = `${p.x - side * out}px`; el.style.top = `${y}px`;
+  });
+  const cw = card.offsetWidth, ch = card.offsetHeight, log = $('events').getBoundingClientRect();
+  const left = side > 0 ? p.x + reach + 56 : p.x - reach - 56 - cw;
+  const top = within(p.y - ch - 24, s.top, Math.max(s.top, bottom - ch));
+  card.style.left = `${left}px`; card.style.top = `${top}px`;
+  const bloomLeft = side > 0 ? p.x - reach - 24 - wide : left, bloomTop = Math.min(first - 22, top);
+  $('events').classList.toggle('under', bloomLeft < log.right && bloomTop < log.bottom);
+  const endX = side > 0 ? left + 8 : left + cw - 8, endY = within(p.y, top + 24, top + ch - 24);
+  const angle = Math.atan2(endY - p.y, endX - p.x), fromX = p.x + Math.cos(angle) * reach, fromY = p.y + Math.sin(angle) * reach;
+  $('filament').setAttribute('d', `M${fromX} ${fromY} C${(fromX + endX) / 2} ${fromY} ${(fromX + endX) / 2} ${endY} ${endX} ${endY}`);
+  $('aim').setAttribute('transform', `translate(${p.x} ${p.y})`);
+  $('aim-ring').setAttribute('r', reach);
+}
+function animateHud(elapsed) {
+  moveCamera(elapsed);
+  followSelection();
+  ui.dry.forEach((c, i) => {
+    const el = $('dry').children[i], p = screenAt(centreOf(c));
+    if (el) el.style.transform = `translate(${p.x}px,${p.y}px)`;
+  });
+  const now = performance.now();
+  for (const e of [...ui.events]) {
+    if (now > e.until + 500) { e.el.remove(); ui.events.splice(ui.events.indexOf(e), 1); }
+    else e.el.classList.toggle('gone', now > e.until);
+  }
+  if (!$('refusal').hidden && now - ui.refusedAt > 3200) $('refusal').hidden = true;
+  if (ui.grown && now > ui.grown) { ui.grown = 0; $('growth').hidden = true; }
+}
+
+// The signs both views draw over the scene, in map units.
+function sceneSigns(g) {
+  const t = motionTime(), still = STILL.matches, px = 1 / cam.zoom, a = worldAt(0, 0), b = worldAt(view.w, view.h);
+  const seen = c => c.x >= a.x - 2 && c.x <= b.x + 1 && c.y >= a.y - 2 && c.y <= b.y + 1;
+  const cells = Object.values(G.cells).filter(seen);
+  g.save();
+  g.lineCap = 'round';
+  for (const c of [...cells, ...Object.values(G.ruins).filter(w => w.out != null && seen(w))]) {
+    if (built(c) && c.out == null) continue;
+    const done = woven(c);
+    if (!(done > 0)) continue;
+    // Woven round the object, unpicked the same way.
+    const size = sizeOf(c) - .08;
+    g.beginPath(); g.rect(c.x + .04, c.y + .04, size, size);
+    g.setLineDash([Math.min(1, done) * size * 4, size * 4]);
+    g.strokeStyle = c.out != null ? '#FF6B74' : '#66D9EA'; g.lineWidth = Math.max(.07, 2 * px); g.stroke(); g.setLineDash([]);
+  }
+  for (const c of cells) {
+    const full = fullHp(c);
+    if (c.hp >= full - .5) continue;
+    const {x, y} = centreOf(c), r = sizeOf(c) * .5, mends = healing(c), from = Math.PI * .88, sweep = -Math.PI * .76;
+    const arc = (part, color) => { g.beginPath(); g.arc(x, y, r, from, from + sweep * part, true); g.strokeStyle = color; g.lineWidth = Math.max(.09, 3 * px); g.stroke(); };
+    arc(1, '#05090B');
+    g.globalAlpha = mends && !still ? .75 + Math.sin(t * 7) * .25 : 1;
+    arc(Math.max(.02, c.hp / full), mends ? '#62E06A' : '#FF6B74');
+    g.globalAlpha = 1;
+  }
+  chain.forEach((c, i) => {
+    // The wave climbs from the symptom to the cause.
+    g.globalAlpha = still ? 1 : .55 + .45 * Math.max(0, Math.sin(t * 5 - i * .7));
+    rect(g, c.x + .04, c.y + .04, sizeOf(c) - .08, sizeOf(c) - .08, null, '#FF6B6B');
+  });
+  g.globalAlpha = 1;
+  const linkFrom = (linking && G.cells[linking]) || (wiring && G.cells[wiring]) || (gesture?.mode === 'draw' && (drag?.vein || drag?.nerve));
+  const nerve = wiring || tool === 'wire', vein = linking || (gesture?.mode === 'draw' && drag?.vein);
+  if (nerve || vein) for (const c of cells) {
+    if (!(vein ? c.type === 'pump' : NERVE.ends.includes(c.type))) continue;
+    if (linkFrom && ((c.x === linkFrom.x && c.y === linkFrom.y) || span(linkFrom, c) > (vein ? VEIN.reach : NERVE.reach))) continue;
+    circle(g, c.x + .5, c.y + .5, .62 + (still ? 0 : Math.sin(t * 5) * .06), null, vein ? '#FF8FA2' : '#66D9EA', 2 * px);
+  }
+  const picked = selected && G.cells[selected];
+  if (picked) {
+    rect(g, picked.x, picked.y, sizeOf(picked), sizeOf(picked), null, '#B7F34A');
+    if (isGun(picked)) {
+      const grown = still ? 1 : 1 - (1 - Math.min(1, (performance.now() - ui.pickedAt) / 420)) ** 3, range = Math.max(.1, GUNS[picked.type].range * grown);
+      circle(g, picked.x + .5, picked.y + .5, range, null, '#55D6E8', 2 * px);
+      if (picked.strict) { g.setLineDash([.25, .25]); circle(g, picked.x + .5, picked.y + .5, range - .3, null, '#B7F34A', px); g.setLineDash([]); }
+    }
+  }
+  for (const s of G.shots) if (s.hurt === 12) circle(g, s.tx, s.ty, .3 + (still ? 0 : (t * 4 % 1) * .3), null, '#B7F34A', 2 * px);
+  g.restore();
+}
+
+$('threat-toggle').onclick = () => {
+  const open = $('families').hidden;
+  $('families').hidden = !open;
+  $('threat-toggle').setAttribute('aria-expanded', open);
+};
+$('menu-toggle').onclick = () => showMenu(!ui.menu);
+$('help').onclick = () => { showMenu(false); $('commands').showModal(); };
+// Not a form: the frame the game is served in may refuse to submit one.
+$('help-close').onclick = () => $('commands').close();
+$('open-all').onclick = () => {
+  G.open = true; showMenu(false); showActions();
+  tell('Tout est débloqué pour tester. Les stades continuent de compter.');
+  refresh();
+};
+$('continue').onclick = () => { ui.grown = 0; $('growth').hidden = true; };
+for (let i = 0; i < BUILDERS; i++) {
+  const b = document.createElement('button');
+  b.className = 'pip';
+  b.innerHTML = '<svg class="drone" viewBox="0 0 48 36" aria-hidden="true"><path d="M12 9l24 18M36 9L12 27" stroke="#93AAB0" stroke-width="2.5"/>' + [[11, 8], [37, 8], [11, 28], [37, 28]].map(([x, y]) => `<g class="rotor"><ellipse cx="${x}" cy="${y}" rx="8" ry="3" fill="none" stroke="#66D9EA"/></g>`).join('') + '<ellipse cx="24" cy="18" rx="9" ry="7" fill="#D8CDB6"/><circle class="eye" cx="24" cy="18" r="3"/></svg><span></span>';
+  b.onclick = () => { const d = G.drones[i]; if (d) travelTo({x:d.x, y:d.y}); };
+  $('drones').append(b);
+}
+document.addEventListener('pointerdown', event => {
+  ui.point = {x:event.clientX, y:event.clientY};
+  if (ui.menu && !event.target.closest?.('#menu, #menu-toggle')) showMenu(false);
+  if (event.target === canvas) ui.travel = null;
+}, true);
+canvas.addEventListener('wheel', () => { ui.travel = null; }, {passive:true});
+// The physical key, so 1 to 7 also answer on a French keyboard.
+document.addEventListener('keydown', event => {
+  if (GLIDE[event.key]) ui.travel = null;
+  if (modalOpen() || G.over || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+  const n = /^(?:Digit|Numpad)([1-7])$/.exec(event.code)?.[1];
+  if (!n) return;
+  event.preventDefault();
+  const b = n === '1' || n === '7' ? $('tools').querySelector(`[data-type="${n === '1' ? 'hand' : 'erase'}"]`) : $('tools').querySelectorAll('.family')[n - 2];
+  const box = b.getBoundingClientRect();
+  ui.point = {x:box.x + box.width / 2, y:box.y};
+  replay(b, 'pressed'); b.click();
+});
+NARROW.addEventListener('change', layoutHud);
+
+growDock();
 resize();
-if (load()) { choose('hand'); home(); say('Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.'); }
+if (load()) { choose('hand'); home(); tell('Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.'); }
 else begin();
 new ResizeObserver(resize).observe($('board'));
 
@@ -2782,12 +3774,13 @@ function frame(now) {
     owed += elapsed*speed;
     while (owed >= STEP) { step(STEP); owed -= STEP; }
   }
-  if (armed && Date.now() > armed) { armed = 0; $('restart').textContent = 'Reset'; }
+  if (armed && Date.now() > armed) { armed = 0; restartText('Recommencer : maintenir'); }
   if (now-shownAt > 250) { refresh(); shownAt = now; }
   if (now-savedAt > 3000) { save(); savedAt = now; }
   glide(elapsed);
   followEdge(elapsed);
   setCursor();
+  animateHud(elapsed);
   draw();
   requestAnimationFrame(frame);
 }

@@ -186,7 +186,7 @@ it("stores and harvests on four cells", async () => {
       draw();
       refresh();
       out.kind = depositAt(fx, fy) === kind;
-      out.clipped = [...document.querySelectorAll("#tools button")].filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent);
+      out.clipped = clippedTools();
       out.fits = document.documentElement.scrollWidth <= 375;
       return out;
     });

@@ -1,6 +1,6 @@
 // The keyboard: arrows move the camera, Space pauses and resumes, Escape puts the tool down.
 import { expect, it } from "vitest";
-import { launch, pageHTML } from "./harness.mjs";
+import { launch, pageHTML, pickTool } from "./harness.mjs";
 
 it("moves the camera with the arrows and pauses with Space", async () => {
   const html = pageHTML();
@@ -49,7 +49,7 @@ it("moves the camera with the arrows and pauses with Space", async () => {
     await page.keyboard.up("ArrowRight");
 
     // Space pauses and resumes, even just after clicking a tool, and never clicks that tool again.
-    await page.click('#tools [data-type="belt"]');
+    await pickTool(page, "belt");
     await page.evaluate(() => {
       window.toolClicks = 0;
       document.querySelector("#tools").addEventListener("click", () => window.toolClicks++);
@@ -91,11 +91,11 @@ it("moves the camera with the arrows and pauses with Space", async () => {
     expect(await page.evaluate(() => [tool, wiring, linking, selected])).toEqual(["hand", null, null, null]);
 
     // In the middle of a press, letting go afterwards builds nothing.
-    await page.click('#tools [data-type="cyst"]');
+    await pickTool(page, "cyst");
     const board = await page.locator("#game").boundingBox();
     const built = () => page.evaluate(() => Object.keys(G.cells).length);
     const count = await built();
-    await page.mouse.move(board.x + 120, board.y + 150);
+    await page.mouse.move(board.x + 420, board.y + 300);
     await page.mouse.down();
     await page.keyboard.press("Escape");
     await page.mouse.up();

@@ -85,7 +85,7 @@ it("breaches-and-damage behaves as the recorded prototype", async () => {
     const offered = await page.locator('#actions button',{hasText:'Réveiller'}).count();
     await page.waitForTimeout(250);
     await page.locator('#actions button',{hasText:'Réveiller'}).click();
-    report('tap', offered, await page.evaluate(() => JSON.stringify([G.breaches[0].state,document.querySelector('#brief').textContent])));
+    report('tap', offered, await page.evaluate(() => JSON.stringify([G.breaches[0].state,['.title','.detail','#versus'].map(part=>document.querySelector('#brief '+part).textContent).join(' ')])));
     await page.evaluate(() => { for(let i=0;i<700;i++)step(STEP); refresh(); });
     await page.waitForTimeout(250);
     report('errors', JSON.stringify(errors));

@@ -85,7 +85,7 @@ it("splits in two, then in three", async () => {
       out.saved = [G.cells["20,80"].type, TYPES[G.cells["20,80"].type].name, splitExits(G.cells["20,80"]).length];
 
       draw();
-      out.clipped = [...document.querySelectorAll("#tools button")].filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent);
+      out.clipped = clippedTools();
       out.fits = document.documentElement.scrollWidth <= 375;
       return out;
     });

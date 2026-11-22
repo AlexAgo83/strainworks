@@ -18,6 +18,41 @@ function seedRandom() {
   };
 }
 
+// The tools live in folded families: each is opened before its names are measured.
+function layoutProbe() {
+  window.clippedTools = () => {
+    const was = ui.family;
+    const bad = new Set();
+    for (const [id] of FAMILIES) {
+      openFamily(id);
+      for (const b of document.querySelectorAll("#tools .pod")) {
+        const box = b.getBoundingClientRect();
+        if (!box.width) continue;
+        const name = b.querySelector(".name");
+        const side = b.classList.contains("side") && getComputedStyle(name).position === "absolute";
+        if (b.scrollWidth > b.clientWidth + 12 || (!side && name.scrollWidth > name.clientWidth + 1) || box.left < -1 || box.right > innerWidth + 1 || box.top < -1 || box.bottom > innerHeight + 1) bad.add(name.textContent);
+      }
+    }
+    openFamily(was);
+    return [...bad];
+  };
+}
+
+// The way a finger picks a tool: its family, then the tool.
+export async function pickTool(page, type) {
+  const pod = page.locator(`#tools [data-type="${type}"]`);
+  if (!(await pod.isVisible())) {
+    const family = await page.evaluate((id) => FAMILY_OF[id], type);
+    await page.locator(`#tools [data-family="${family}"]`).click();
+  }
+  await pod.click();
+}
+
+export async function fromMenu(page, id) {
+  if (!(await page.locator("#menu").isVisible())) await page.click("#menu-toggle");
+  await page.click(`#${id}`);
+}
+
 export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
@@ -25,11 +60,13 @@ export async function launch() {
     async newContext(options) {
       const context = await browser.newContext(options);
       await context.addInitScript(seedRandom);
+      await context.addInitScript(layoutProbe);
       return context;
     },
     async newPage(options) {
       const page = await browser.newPage(options);
       await page.addInitScript(seedRandom);
+      await page.addInitScript(layoutProbe);
       return page;
     },
   };

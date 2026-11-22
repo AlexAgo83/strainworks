@@ -209,7 +209,7 @@ it("packs genes in carbon", async () => {
       put("belt", 50, 55, 0).item = "T:CCF";
       refresh();
       draw();
-      out.brief = document.querySelector("#brief").textContent;
+      out.brief = document.querySelector("#order").textContent + document.querySelector("#brief").textContent;
       out.fits = document.documentElement.scrollWidth <= 375;
       return out;
     });

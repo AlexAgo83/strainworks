@@ -1,6 +1,6 @@
 // Step 1 of transports: measured rates, veins, damage, gestures, old saves.
 import { expect, it } from "vitest";
-import { launch, pageHTML, recorder, savedGame } from "./harness.mjs";
+import { launch, pageHTML, pickTool, recorder, savedGame } from "./harness.mjs";
 
 it("deposits-and-veins behaves as the recorded prototype", async () => {
   const { entries, report } = recorder();
@@ -61,7 +61,7 @@ it("deposits-and-veins behaves as the recorded prototype", async () => {
       return out;
     }), null, 1));
     await page.evaluate(() => { begin(); G.open=true; paused=true; G.breaches=[]; cam.x=20; cam.y=88; cam.zoom=18; });
-    await page.locator('#tools button',{hasText:'Veine'}).click();
+    await pickTool(page,'pump');
     const box = await page.locator('#game').boundingBox(), cdp = await context.newCDPSession(page);
     const at = (x,y) => ({x:box.x+box.width/2+(x+.5-20)*18, y:box.y+box.height/2+(y+.5-88)*18, id:0});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[at(13,88)]});
@@ -78,7 +78,7 @@ it("deposits-and-veins behaves as the recorded prototype", async () => {
     await page.waitForTimeout(250);
     await page.evaluate(() => { begin(); G.open=true; paused=true; cam.x=48; cam.y=48; cam.zoom=5; });
     await page.waitForTimeout(200);
-    report('tools', await page.evaluate(() => JSON.stringify({scroll:document.documentElement.scrollWidth,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),clipped:[...document.querySelectorAll('#tools button')].filter(b=>b.scrollWidth>b.clientWidth+1).map(b=>b.textContent)})));
+    report('tools', await page.evaluate(() => JSON.stringify({scroll:document.documentElement.scrollWidth,bottom:Math.round(document.querySelector('#tools').getBoundingClientRect().bottom),clipped:clippedTools()})));
     report('errors', JSON.stringify(errors));
   } finally { await browser.close(); }
   expect(entries.find(([label]) => label === "errors")?.[1]).toEqual([]);
