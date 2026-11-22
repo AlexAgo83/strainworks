@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.tmp/
+test-results/
+*.png
+logics/.cache/
+.DS_Store
+.claude/
+.env
+.env.*
+!.env.example
+.jarvis-artifacts/

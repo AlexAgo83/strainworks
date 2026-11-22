@@ -1,0 +1,65 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`construction-and-repair behaves as the recorded prototype 1`] = `
+[
+  [
+    "paused",
+    [
+      11,
+      10,
+      "10 chantiers en pause",
+    ],
+  ],
+  [
+    "rules",
+    {
+      "active": [
+        true,
+        true,
+      ],
+      "cancel": 0,
+      "inert": [
+        false,
+        99,
+        true,
+      ],
+      "longBelt": [
+        60,
+        32,
+        1,
+      ],
+      "rebuild": false,
+      "repair": {
+        "after10": 152,
+        "core": 60,
+        "full": 260,
+        "quiet": 100,
+        "severed": 0,
+        "stillFalls": true,
+        "underAttack": 30,
+        "vein": 40,
+      },
+      "replace": [
+        "gate",
+        false,
+      ],
+      "saved": 4,
+      "startBuilt": true,
+      "turrets": [
+        0,
+        3,
+        4,
+        6,
+        10,
+      ],
+      "veinFlows": true,
+      "veinWaits": 0,
+      "wallSite": 0.27,
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

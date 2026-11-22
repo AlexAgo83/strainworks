@@ -1,0 +1,82 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`progression behaves as the recorded prototype 1`] = `
+[
+  [
+    "old save",
+    [
+      0,
+      true,
+      true,
+    ],
+  ],
+  [
+    "play",
+    {
+      "cell": {
+        "gene": "SFS",
+        "seconds": 109,
+        "stage": 1,
+        "stillShut": true,
+        "unlocked": true,
+      },
+      "inversion": "FFFSFS",
+      "locked0": 8,
+      "oneLigaseNotEnough": [
+        1,
+        0,
+        1,
+      ],
+      "organ": {
+        "rich": 4,
+        "seconds": 55,
+        "stage": 3,
+        "worm": true,
+      },
+      "reset": [
+        0,
+        false,
+        true,
+      ],
+      "richLocked": 1,
+      "sortStrand": [
+        true,
+        false,
+      ],
+      "strand": [
+        "SFSFFF",
+        true,
+      ],
+      "tissue": {
+        "join": true,
+        "rich": 2,
+        "seconds": 65,
+        "stage": 2,
+        "vein": true,
+        "worm": true,
+      },
+      "turretRefuses": true,
+    },
+  ],
+  [
+    "unlock",
+    [
+      true,
+      0,
+      0,
+    ],
+  ],
+  [
+    "phone",
+    {
+      "bottom": 694,
+      "clipped": [],
+      "scroll": 375,
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

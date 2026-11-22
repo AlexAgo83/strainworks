@@ -1,0 +1,29 @@
+{
+  "name": "strainworks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A browser and mobile incremental factory and tower defense game where you write living strands of DNA.",
+  "author": "Alexandre Agostini",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite --open /prototype/",
+    "test": "vitest run",
+    "typecheck": "tsc",
+    "lint": "biome lint src tests",
+    "format": "biome format --write src",
+    "logics:validate": "logics-manager lint --require-status && logics-manager audit --group-by-doc && logics-manager i18n validate",
+    "check": "npm run lint && npm run typecheck && npm test && npm run logics:validate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@grifhinz/logics-manager": "^2.23.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^4.1.11",
+    "playwright": "1.64.1"
+  }
+}

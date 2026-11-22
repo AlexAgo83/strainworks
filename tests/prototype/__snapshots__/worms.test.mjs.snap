@@ -1,0 +1,73 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`worms behaves as the recorded prototype 1`] = `
+[
+  [
+    "old save",
+    [
+      0,
+      0,
+      true,
+    ],
+  ],
+  [
+    "rules",
+    {
+      "autoNeverSticks": true,
+      "brokenTrail": "la piste s’arrête ici",
+      "fullLeaves": true,
+      "fullWaits": true,
+      "healed": true,
+      "hurt": 148,
+      "loop": 96,
+      "mirror": [
+        "C",
+        "N",
+        "F",
+      ],
+      "money": [
+        80,
+        100,
+      ],
+      "noMoveBeforeHatch": 1,
+      "overlap": 0,
+      "rates": {
+        "1": 9.4,
+        "2": 18.4,
+        "3": 27.4,
+      },
+      "resumes": true,
+      "trailGone": true,
+      "trailStays": true,
+      "trailWakes": "wake",
+      "underBelt": "belt",
+    },
+  ],
+  [
+    "drawn loop",
+    36,
+  ],
+  [
+    "tapped",
+    [
+      1,
+      6,
+      true,
+      180,
+    ],
+  ],
+  [
+    "phone",
+    {
+      "bottom": 694,
+      "clipped": [],
+      "scroll": 375,
+      "tools": 18,
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

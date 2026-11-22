@@ -1,0 +1,84 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`deposits-and-veins behaves as the recorded prototype 1`] = `
+[
+  [
+    "old save",
+    [
+      true,
+      "CNC",
+      10,
+    ],
+  ],
+  [
+    "measures",
+    {
+      "belt up0": 4,
+      "belt up1": 4.8,
+      "broke": [
+        0,
+        false,
+      ],
+      "far": true,
+      "kept": [
+        1,
+        1,
+      ],
+      "loop": true,
+      "lured": [
+        32.2,
+        false,
+      ],
+      "mine x1 up0": 1,
+      "mine x1 up1": 1.2,
+      "mine x2 up0": 2,
+      "mine x2 up1": 2.4,
+      "mine x4 up0": 4,
+      "mine x4 up1": 4.8,
+      "oneMatter": [
+        true,
+        false,
+      ],
+      "pumpBack": "pump",
+      "realLine": [
+        "CNF",
+        10,
+      ],
+      "repairOffered": true,
+      "repaired": 50,
+      "underBelt": true,
+      "unlinked": true,
+      "vein leak": 7,
+      "vein ok": 16,
+      "vein relay": 16,
+    },
+  ],
+  [
+    "drag",
+    [
+      "25,88",
+      "pump",
+      "25,88",
+    ],
+  ],
+  [
+    "tap link",
+    [
+      "25,92",
+      "pump",
+    ],
+  ],
+  [
+    "tools",
+    {
+      "bottom": 694,
+      "clipped": [],
+      "scroll": 375,
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

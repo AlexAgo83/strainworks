@@ -1,0 +1,85 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`nerves behaves as the recorded prototype 1`] = `
+[
+  [
+    "old save",
+    [
+      0,
+      true,
+    ],
+  ],
+  [
+    "rules",
+    {
+      "cut": [
+        0,
+        true,
+      ],
+      "focus": [
+        "CNF",
+        [
+          "CCS",
+          "CNF",
+        ],
+        "CNF",
+        "CNF",
+        "CCS",
+      ],
+      "lockedAtStart": true,
+      "mixedLine": {
+        "FNN": {
+          "NFF": 24,
+        },
+        "SFN": {
+          "CNF": 54,
+        },
+        "SSC": {
+          "CCS": 24,
+        },
+      },
+      "neverTraps": null,
+      "noTurretIsManual": true,
+      "outOfRange": [
+        "",
+        false,
+      ],
+      "positions": {
+        "bad": [],
+        "n": 96,
+      },
+      "relay": true,
+      "removed": 0,
+      "repaired": [
+        true,
+        30,
+        true,
+        false,
+      ],
+      "tooFar": true,
+    },
+  ],
+  [
+    "touch",
+    [
+      [
+        "48,34>53,39",
+        "48,34>44,39",
+      ],
+      3,
+      "Trieur, lit la position 3 : fibre, position 3 de CNF. Le reste, et le trop-plein, continue tout droit.",
+    ],
+  ],
+  [
+    "phone",
+    {
+      "bottom": 694,
+      "scroll": 375,
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

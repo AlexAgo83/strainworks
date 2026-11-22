@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bridge behaves as the recorded prototype 1`] = `
+[
+  [
+    "logic",
+    {
+      "bad": [],
+      "cycle": [
+        3,
+        1,
+        null,
+      ],
+      "dragged": 1,
+      "guessed": [
+        0,
+        1,
+      ],
+      "n": 12,
+      "rebuilt": [
+        null,
+        1,
+      ],
+      "strayJoint": 0,
+    },
+  ],
+  [
+    "button",
+    [
+      2,
+      null,
+    ],
+    "Voie ↕ : ↓ | Voie ↔ : auto | Démonter",
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

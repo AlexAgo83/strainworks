@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`gate behaves as the recorded prototype 1`] = `
+[
+  [
+    "logic",
+    {
+      "bad": [],
+      "blocked": "Ligase CNF : 0,0 sur 1,0/s. Entrées : 1 chitine, 2 nerf, 3 fibre. Arrêt au feu rouge : touche-le pour rouvrir.",
+      "n": 24,
+      "rebuiltRed": true,
+      "starved": "Ligase : 0,0 sur 1,0/s. Entrées : 1 chitine, 2 vide, 3 fibre. L’entrée 2 manque de matière : un feu rouge coupe sa ligne.",
+    },
+  ],
+  [
+    "taps",
+    {
+      "green": true,
+      "placed": [
+        "gate",
+        true,
+        0,
+      ],
+      "red": false,
+    },
+  ],
+  [
+    "tools",
+    {
+      "bottom": 694,
+      "n": 18,
+      "scroll": 375,
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

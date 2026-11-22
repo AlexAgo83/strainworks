@@ -1,0 +1,111 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
+[
+  [
+    "rules",
+    {
+      "badPlace": 0,
+      "blockedDeposit": 0,
+      "breaches": 19,
+      "coreWhenCloser": true,
+      "damage": [
+        12,
+        5,
+        2,
+        1,
+      ],
+      "far fed outpost": {
+        "buildable": true,
+        "cleared": 164,
+        "over": false,
+        "reward": true,
+        "turretsLeft": 3,
+      },
+      "fire": {
+        "all": [
+          6,
+          0,
+        ],
+        "economical": [
+          0,
+          36,
+        ],
+      },
+      "idle": {
+        "awake": 0,
+        "enemies": 0,
+        "over": false,
+      },
+      "line": [
+        "CNF",
+        10,
+        12,
+        2,
+      ],
+      "mutationAdds": [
+        4,
+        2,
+      ],
+      "north fed": {
+        "buildable": true,
+        "cleared": 123,
+        "over": false,
+        "reward": true,
+        "turretsLeft": 2,
+      },
+      "north starved": {
+        "buildable": false,
+        "cleared": null,
+        "over": 136,
+        "reward": false,
+        "turretsLeft": 0,
+      },
+      "onlyOne": 1,
+      "palindromes": 0,
+      "segmentWakes": [
+        "sleep",
+        "wake",
+      ],
+      "startInversion": [
+        [
+          12,
+          2,
+        ],
+        [
+          12,
+          2,
+        ],
+        [
+          12,
+          2,
+        ],
+      ],
+      "startingLineAlone": {
+        "left": 0,
+        "middle": "SFN",
+        "over": false,
+        "state": "spent",
+      },
+      "strictKept": true,
+      "turretFirst": true,
+      "turretHit": true,
+      "unguardedRich": 0,
+      "veinWakes": true,
+      "wakeEach": 0,
+    },
+  ],
+  [
+    "tap",
+    1,
+    [
+      "wake",
+      "1. Cellule0 sur 100Dans 30 s, nord→",
+    ],
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

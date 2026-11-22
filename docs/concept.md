@@ -1,0 +1,306 @@
+# Strainworks: game concept
+
+English translation of version 8 of the private concept document (22 November 2026), which lives in Jarvis HQ, Perso > Documents. French names shown by the prototype are given in brackets on first use. The working name was SOUCHE. The availability of the name Strainworks has not been checked.
+
+**Write the living. Make it a factory. Survive its mutations.**
+
+This document wins over the illustrated deck when they differ: the corrections listed in "What we corrected" are not in the deck yet.
+
+- Illustrated deck (private): https://claude.ai/artifact/WMThjhMPBNZfUQu1GmXzzb
+- Transport mockup (private): https://claude.ai/artifact/1zH31wticcAc6bWmpchPZf, copy in `prototype/transports/`
+- Playable prototype (private): https://claude.ai/artifact/31DTPUFBgMiqVaFUuH5AgH, copy in `prototype/`
+
+## 1. The game in short
+
+Strainworks is an incremental automation game crossed with tower defense, for browser and mobile. In a cyberpunk world with a touch of space horror, seen from above in 3D, you run a station that industrializes living matter.
+
+You harvest four organic bases, assemble them into genes and then into strands of DNA, and hatch them into machines, weapons and convoys. The more you produce and expand, the more the threat grows. Its creatures resemble what you manufacture, and your best weapon is their exact opposite.
+
+Seen from afar, factories become organs and convoys flow like blood. **It was never a factory. It was a creature.**
+
+The loop: harvest, write, hatch, expand, defend, recycle.
+
+## 2. State of the decisions
+
+| Subject | State | Choice |
+|---|---|---|
+| Platforms | Decided | Browser and mobile |
+| Rendering | Decided | 3D, fixed top-down view, cyberpunk and space horror |
+| Genre | Decided | Shape-recipe factory, technology that depends on it, incremental, tower defense |
+| Matter | Decided | Primary organic zones, transformed by cutting and assembling |
+| Language of items | Decided | Chains, like strands of DNA that you build |
+| Map | Decided | More or less unlimited |
+| Long distance | Decided | Carrier worms as trains |
+| Threat | Decided | Carried by breaches: asleep, woken by expansion, then a rising pressure and assaults until they are emptied |
+| Breaches | Decided | They do not last: once emptied they fade. They push the player to explore and to defend in many places |
+| Limited defenses | Decided | Walls and turrets are not unlimited: rising ADN cost, proposed scale in section 10 |
+| Build time | Decided | Nothing appears at once: sites do not advance while paused |
+| Repair | Decided | Damaged buildings repair over time |
+| Goal besides defense | Decided | The core demands shapes: delivering them grows it and unlocks what follows. Three stages in the prototype |
+| Nervous system | Decided | Nerves link smart objects that emit or read what is needed, including in position 1, 2 or 3 |
+| Adaptive ligase | Rejected | Sending the right compositions is the player's job |
+| Creature target | Decided | A turret closer than the core takes priority |
+| Name | Decided | Strainworks |
+| Transports | Decided | Richer distant deposits, veins and worms, all in the prototype |
+| Mutation | Decided | It adds an enemy family, it does not replace the old ones |
+| Room at the start | Decided | Large grid, deposits away from the core, spaced elements |
+| Maturation on belts | Rejected | Too complex: a strand only changes inside a machine |
+| Four bases, genes of three | Proposed | See sections 3 and 4 |
+| Built-in ports (membranes) | Proposed | No transfer arm to place |
+| Antidote by opposite strand | Proposed | To validate in the prototype |
+| Playability corrections | Proposed | See section 13 |
+| Offline | Proposed | The threat is capped and destroys nothing |
+| Prestige | Proposed | A few genes are bequeathed to the next station |
+
+## 3. The bases
+
+| Base | Letter | Silhouette | Meaning | Opposite |
+|---|---|---|---|---|
+| Spore | S | green circle | energy, growth | Chitin |
+| Fiber (Fibre) | F | amber capsule | structure, movement | Nerve |
+| Chitin (Chitine) | C | ivory point | hardness, damage | Spore |
+| Nerve (Nerf) | N | cyan star | signal, targeting | Fiber |
+
+All four deposits are present near the core from the start, otherwise the first antidotes are impossible. Farther away they are richer, or already assembled into genes to cut.
+
+## 4. Genes
+
+Three bases in a precise order make a gene. 64 are possible, 16 are named to begin with. A strand chains 1 to 4 genes, and research lengthens it, notably for worms.
+
+| Age | Gene | Sequence | Effect | Opposite |
+|---|---|---|---|---|
+| 1 | Motor (Moteur) | SFS | moves | CNC |
+| 1 | Hold (Soute) | FFF | contains | NNN |
+| 1 | Mouth (Bouche) | FSF | takes, gives back | NCN |
+| 1 | Root (Racine) | SSS | grows, draws | CCC |
+| 2 | Shell (Carapace) | CCF | absorbs hits | SSN |
+| 2 | Sting (Dard) | CFC | pierces | SNS |
+| 2 | Blade (Lame) | CCC | slices | SSS |
+| 2 | Acid (Acide) | CSC | corrodes | SCS |
+| 3 | Eye (Œil) | NFN | sees, aims | FNF |
+| 3 | Care (Soin) | SSN | repairs | CCF |
+| 3 | Scent (Flair) | NSN | follows a trail | FCF |
+| 3 | Pulse (Pulsation) | FNF | sets a rhythm | NFN |
+| 4 | Memory (Mémoire) | NNN | retains | FFF |
+| 4 | Command (Commande) | NCN | decides | FSF |
+| 4 | Mutation | CNS | alters | SFC |
+| 4 | Instinct | SNS | reacts | CFC |
+
+Ages unlock technologies, not matters. A gene is unlocked by delivering it in quantity to the core. An opposite can be produced as ammunition before its technology is known.
+
+## 5. The grid and the machines
+
+- The ligase has three numbered inputs: **the position of the belts writes the gene**. Swapping two inputs changes the recipe, turning the machine over reverses it.
+- The assembler has four ordered inputs, one per gene, and produces the strand.
+- Belts are drawn cell by cell. A crossing costs a bridge.
+- Sorting is a building, not a setting present on every port.
+- Two machines side by side transfer without a belt.
+- Compact is shorter to defend, but harder to route and to extend.
+
+### Building takes time
+
+- Planning while paused is allowed, but sites only advance while the game runs.
+- Prototype: **3 sites at a time**, in placement order. Belt 0.15 s, gate and bridge 0.5 s, splitter and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, turret 6 s, vein by length.
+- A site does not carry, shoot, block or attract creatures.
+
+### Damaged buildings repair
+
+- After 5 seconds without a hit, 2% of hit points per second, 0.5% for the core. Never while paused.
+- A wounded vein closes the same way. A severed vein or a destroyed building is rebuilt, with its build time.
+
+## 6. Filling and quantities
+
+Starting values, to balance:
+
+| Element | Value |
+|---|---|
+| Harvester (Récolteur) | 1 base per second |
+| Ligase | 1 gene per second, so 3 bases |
+| Belt (Tapis) | 4 items per second |
+| Turret (Tourelle) | up to 3 genes fired per second |
+| Cyst (Kyste) | 60 items |
+
+- A machine pushes as soon as a place is free and stops when its output is full. The stop travels back up the line.
+- A junction alternates. A priority is set with an arrow.
+- An item takes one place whatever its length: a belt carries 4 bases per second, or 12 once bound into genes. Assembling near the deposit or near the front becomes a real choice.
+- Example: the CNC antidote needs 2 chitin harvesters and 1 nerve harvester for 1 gene per second. A turret firing 3 empties a cyst of 60 in 30 seconds, even when fed.
+
+Continuous sinks: ammunition, research delivered to the core, and the upkeep of worms.
+
+## 7. Readability and player impact
+
+- A known gene folds into a pictogram.
+- Each input shows the expected base in outline.
+- A pale port lacks matter, a swollen port has too much.
+- Touching a machine gives its real rate over its maximum (for example 0.6 of 1 per second) and lights up the upstream link responsible.
+- The intended satisfaction: see the bottleneck, fix it, see the flow restart.
+
+### The nervous system
+
+Nerves carry one kind of information only: what is needed. Routing stays with the player, machines do not change recipe.
+
+- The turret emits the antidotes of the creatures in range, the most numerous first.
+- The gate (Feu) and the sorter (Trieur) listen. Each reads either the whole gene, or the base in position 1, 2 or 3 of that gene.
+- Readings by position all follow the same gene until its family has been out of range for 4 seconds. This is what avoids hybrid genes.
+- Gate: what is asked passes, the rest waits. For dedicated lines.
+- Sorter: what is asked is diverted. Reading by position, the overflow continues to the next sorter, because a base can be asked twice.
+- A nerve is 24 cells long at most, relays through a gate or a sorter, and can be cut by creatures. Cut, each returns to its manual setting.
+- Unlocked at stage 2. The Eye, placed forward to warn earlier, remains to be built.
+
+## 8. Transfer and transports
+
+| Means | Distance | Rule |
+|---|---|---|
+| Membrane | contact | port built into the edge of each building |
+| Belt | inside the factory | item by item |
+| Vein and pump | between neighboring factories | high rate of a single matter, in pulses |
+| Worm and nest station | long distance | one gene per wagon, one station pocket per hold |
+
+Worms follow pheromone trails with branches and priorities. They leave full, empty or on a timer.
+
+Example worms:
+
+- Carrier: Motor + Hold + Hold
+- Armored: Motor + Hold + Shell + Sting
+- Nurse: Motor + Care + Scent
+
+Prototype rules:
+
+- Deposit: 1 base per second near the core, 2 at mid distance, 4 at the edge.
+- Vein: 16 items per second of a single matter, under everything, 24 cells at most between two pumps. The last pump empties on its four sides.
+- Wounded, a vein drops to 7 per second and attracts nearby creatures until it breaks.
+- Trail (Piste): one exit per cell, under everything, as a loop. Branches and priorities remain to be built.
+- Pocket (Poche): against the trail, loads or empties, 120 items of a single matter, 16 per second.
+- Worm (Ver): 3 holds of 40, 12 cells per second, 5 seconds of incubation, 20 ADN plus 10 per existing worm. It stops when its first hold faces the last pocket of a row. Departure automatic, full or empty, or after 5 seconds. Creatures bite it and it repairs out of combat.
+- Measured rate for two stations 48 cells apart: 9.4 per second with one worm, 18.4 with two, 27.4 with three.
+- Sorter, bridge with settable direction and red or green gate complete the belts.
+
+## 9. Buildings and recipes
+
+Each building is an incubated strand, in a number of copies to balance. Starting kit: the core, harvesters, belts, a ligase, an assembler and an incubator.
+
+### Age 1: prime
+
+| Building | Role | Genes |
+|---|---|---|
+| Harvester | draws from a deposit | Mouth + Root |
+| Belt | moves items | Motor |
+| Bridge | passes one belt over another | Motor + Hold |
+| Sorter | separates by pattern | Mouth + Hold + Motor |
+| Cyst | stores, buffers | Hold + Root |
+| Ligase | binds three bases into a gene | Mouth + Motor |
+| Assembler | binds up to four genes into a strand | Mouth + Mouth + Motor |
+| Inverter | reverses a strand | Motor + Motor |
+| Incubator | gives life to a strand | Root + Hold + Mouth |
+
+### Age 2: defend
+
+| Building | Role | Genes |
+|---|---|---|
+| Enzyme | cuts between two bases | Blade + Mouth |
+| Template | writes the opposite strand, consuming bases | Shell + Mouth + Motor |
+| Polymerase | copies, consuming bases | Root + Root + Motor + Mouth |
+| Wall | blocks, absorbs hits | Shell + Shell |
+| Turret | fires the genes delivered | Sting + Motor + Mouth |
+| Grinder | turns bodies back into bases | Blade + Blade + Motor |
+
+### Age 3: expand
+
+| Building | Role | Genes |
+|---|---|---|
+| Pump | pushes in pulses | Pulse + Mouth |
+| Vein | links two factories | Pulse + Hold |
+| Trail | guides worms | Scent + Root |
+| Nest station | loads and empties worms | Scent + Hold + Mouth + Root |
+| Sentinel | announces distant assaults earlier | Eye + Scent |
+| Care nest | repairs around itself | Care + Pulse |
+
+### Age 4: master
+
+| Building | Role | Genes |
+|---|---|---|
+| Sequencer | reveals unknown genes | Memory + Eye + Mouth |
+| Mutagen | changes a base at random | Mutation + Acid + Mouth |
+| Spitter | area antidote | Acid + Instinct + Mouth |
+| Huntress | guided-fire turret | Eye + Command + Sting + Motor |
+| Brain | copies a factory blueprint | Memory + Command + Instinct |
+| Gene bank | engraves prestige genes | Memory + Hold + Shell |
+
+## 10. Threat and defense
+
+- **Breaches sleep** while nothing is built or drawn inside their circle. Each guards a rich deposit and shows its weak gene and creature count.
+- Once awake, a breach sends prowlers and assaults. **Emptied, it fades**, returns the ground and pays in ADN.
+- Defense is prepared at the edge of the circle, then the player expands: each advance needs its outpost and its supply.
+- The threat rises with woken or emptied breaches and with production.
+- **A creature targets the nearest turret when that is closer than the core.**
+- **Walls and turrets cost ADN**, so an empty turret is no longer a free decoy. Prototype scale: 80 ADN at the start, turret 20 plus 10 per existing turret (the first is given), wall 5 plus 1 every five. Dismantling refunds in proportion to hit points, rebuilding costs half. A gene delivered to the core or a creature killed earns 1 ADN, an emptied breach pays its creatures. Logistics stay free in the prototype until strand costs exist.
+- Three kinds of assault are considered: hive awakening hits an outpost, migration cuts lines, mutation creates a new family one base away from an old one.
+- An assault shows its weak gene before it arrives.
+- Each creature has **a single weak gene**, so three bases to counter. The gene fired is compared with its exact opposite, position by position: 3, 2, 1 or 0 correct bases deal **12, 5, 2 or 1 damage**. The player is never blocked.
+- **No family reads the same backwards**, at the start or after mutation: the order of ligase inputs always matters.
+- A turret fires at everything by default. In economy mode it only fires with 2 or more correct bases and moves on to a target it can counter.
+- A mutation **adds** a family. The old ones stay: a line built still serves, and the factory grows.
+- The number of families per region is capped, to allow durable lines prioritized during assaults. The prototype starts with 3 and caps at 6, to tune.
+- Creatures inherit the genes you produce most. The dead are recycled into bases and genes.
+- Open question: once every woken breach is emptied, the player is at peace until the next expansion. To confirm by playing.
+
+## 11. Map and zoom
+
+Near the core, simple deposits and little danger. Farther, raw genes to cut. Very far, mutant biomes, rare genes and hives that eat the map.
+
+The camera keeps its angle and pans and zooms freely:
+
+1. close up, bases and machines;
+2. in the middle, each factory becomes a block with its inputs and outputs;
+3. from afar, the network is an organism, with its failures in red.
+
+What is off screen is computed as rates and convoy schedules. This is also what makes offline play possible.
+
+## 12. Progression
+
+### The core is hungry
+
+Producing has a purpose: feeding the core to grow the organism. Breaches guard what comes next.
+
+| Prototype stage | The core demands | Unlocks |
+|---|---|---|
+| 1. Cell (Cellule) | 100 Motor (SFS) | splitter, sorter |
+| 2. Tissue (Tissu) | 2 Shell (CCF) per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
+| 3. Organ (Organe) | 60 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
+
+- A stage gives 40 ADN and restores the core's hit points. What is not demanded becomes ADN.
+- A dip in rate at stage 2 loses the time it lasted, never the whole minute.
+- The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.
+- Proposed next: the System and Organism stages, organs to place and feed, and creatures invented by writing their genes.
+
+### Rhythms
+
+- Minutes: tune rates, multiply lines, copy with the polymerase.
+- Days: take regions, discover genes, copy whole factories.
+- Prestige: the station dies, and a few engraved genes are born with the next one, in a new world.
+
+## 13. What we corrected
+
+| Problem found | Proposed correction |
+|---|---|
+| 5 of the first 8 opposites needed nerve, absent from the ground | All four bases from the start |
+| A strand of 12 bases needed 11 two-input ligases | Three-input ligase, four-input assembler |
+| A factory was useless once built | Ammunition, research and worm upkeep |
+| Automatic routing and filters everywhere killed the puzzle | Cell-by-cell drawing, bridges, sorters |
+| A 12-base antidote was unreadable | A single three-base weak gene per creature |
+
+## 14. Risks and prototypes
+
+1. **Grid, flow and antidote**: four deposits, belts, ligases, a turret and a rising threat. To learn: is it readable by finger, and is changing recipe a pleasure or a chore?
+2. **Distant logistics**: two factories, a worm and off-screen rate computation. This is the biggest technical risk.
+3. **3D dressing**: only once the first two are fun in simple shapes. To measure: readability and frame rate on a phone.
+
+### What the first play test taught
+
+- An 11 × 14 grid is far too small: the prototype moved to 96 × 96, with pan and zoom.
+- Deposits against the core and packed machines make wiring unreadable: first deposits at least 10 cells away, machines spaced at the start.
+- The player must see the antidote and stock for the creatures present, not only for the next assault.
+- A covered deposit must stay visible.
+- Redrawing a destroyed line is a chore: a button rebuilds it identically.
+
+Open questions: building costs in strands, research pace, the penalty when the core falls, the balance of gene inheritance by creatures, and the business model.

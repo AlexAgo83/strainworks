@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`belt-motion behaves as the recorded prototype 1`] = `
+[
+  [
+    "x1",
+    {
+      "cells": 10,
+      "expectedPerFrame": "0.067",
+      "worstPerFrame": "0.067",
+      "worstTurnDeg": "8",
+    },
+  ],
+  [
+    "x3",
+    {
+      "cells": 10,
+      "expectedPerFrame": "0.200",
+      "worstPerFrame": "0.200",
+      "worstTurnDeg": "23",
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;

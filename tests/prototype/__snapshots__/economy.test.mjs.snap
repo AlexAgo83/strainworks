@@ -1,0 +1,68 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`economy behaves as the recorded prototype 1`] = `
+[
+  [
+    "rules",
+    {
+      "beltsFree": 80,
+      "hurtRefund": 15,
+      "incomeFromZero": 1,
+      "oldSave": [
+        83,
+        true,
+      ],
+      "onlyOnce": 83,
+      "rebuild": {
+        "after": [
+          55,
+          4,
+          0,
+        ],
+        "label": "Reconstruire (4) · 60 ADN",
+        "partial": [
+          5,
+          2,
+          "belt",
+          2,
+        ],
+      },
+      "roundTrip": 1000,
+      "turrets": [
+        3,
+        10,
+        50,
+      ],
+      "wallRoundTrip": 1000,
+      "walls": [
+        13,
+        4,
+      ],
+    },
+  ],
+  [
+    "phone",
+    {
+      "bottom": 694,
+      "prices": [
+        "30",
+        "5",
+        "stade 1",
+        "stade 1",
+        "stade 2",
+        "stade 2",
+        "stade 2",
+        "stade 3",
+        "stade 3",
+        "stade 3",
+        "20",
+      ],
+      "scroll": 375,
+    },
+  ],
+  [
+    "errors",
+    [],
+  ],
+]
+`;
