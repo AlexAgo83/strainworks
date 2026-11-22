@@ -1154,7 +1154,7 @@ const BUILD = {belt:.15, gate:.5, bridge:.5, split2:1, split:1, sort:1, pump:1.5
 const built = c => !(c?.left > 0) && !c?.cut;
 // Healing starts after some quiet, so a wall under attack still falls. The core heals more slowly.
 const REPAIR = {quiet:5, share:.02, core:.005};
-const fullHp = c => TYPES[c.type]?.hp ?? 100;
+const fullHp = c => (TYPES[c.type]?.hp ?? 100) * (GUNS[c.type] ? GUN_RANK : c.type === 'wall' ? WALL_RANK : [1, 1, 1])[(c.mk || 1) - 1];
 const healing = c => !c.cut && c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt ?? -99) >= REPAIR.quiet;
 const unlocked = stage => G.open || G.stage >= stage;
 const richCap = () => unlocked(3) ? 8 : unlocked(2) ? 2 : 1;
@@ -1164,8 +1164,25 @@ const RANKS = {
   mine:{cost:[0, 15, 40], time:2},
   borer:{cost:[0, 60, 160], time:4},
   cyst:{cost:[0, 10, 25], time:2},
-  vault:{cost:[0, 30, 80], time:5}
+  vault:{cost:[0, 30, 80], time:5},
+  // Splitters and sorters pass at most the pace of their rank, as a belt of that rank.
+  split2:{cost:[0, 2, 6], time:.5},
+  split:{cost:[0, 2, 6], time:.5},
+  sort:{cost:[0, 3, 8], time:.5},
+  // Transformers make 1, 2 or 3 objects a second.
+  ligase:{cost:[0, 15, 40], time:2.5},
+  join:{cost:[0, 15, 40], time:2.5},
+  pack:{cost:[0, 30, 80], time:2.5},
+  // Defences: turrets fire faster and hold more, walls hold more.
+  turret:{cost:[0, 20, 50], time:3},
+  sting:{cost:[0, 40, 100], time:4},
+  maw:{cost:[0, 30, 75], time:3},
+  wall:{cost:[0, 5, 15], time:2}
 };
+const CAPPED = new Set(['split2', 'split', 'sort']);
+// The ones whose drawing does not show their rank itself: one ring a rank above the first.
+const RINGED = new Set([...CAPPED, 'ligase', 'join', 'pack', 'turret', 'sting', 'maw', 'wall']);
+const GUN_RANK = [1, 1.5, 2], WALL_RANK = [1, 2, 3];
 const HOLD = {cyst:[60, 120, 240], vault:[360, 720, 1440]};
 const capOf = c => HOLD[c.type][rankOf(c) - 1];
 const BELT_SPEED = 4;
@@ -1174,6 +1191,7 @@ const rankCost = (type, mk = 1) => RANKS[type]?.cost[mk - 1] || 0;
 const upCost = (c, mk) => rankCost(c.type, mk) - rankCost(c.type, rankOf(c));
 const canRise = (c, mk) => Boolean(RANKS[c.type]) && c.up == null && c.out == null && rankOf(c) < mk;
 function perSecond(c) {
+  if (c.type === 'ligase' || c.type === 'join' || c.type === 'pack') return rankOf(c);
   if (c.type !== 'mine' && c.type !== 'borer') return 1;
   return rankOf(c) * (c.type === 'borer' ? BORER.harvesters : 1) * Math.min(richCap(), richUnder(c) || 1);
 }
@@ -1204,20 +1222,34 @@ function exitsOf(c) {
 // A bridge, gate, splitter or sorter runs as slow as the slowest rail it joins. Those side by side share one pace.
 let paces = new Map();
 const follows = c => Boolean(c) && (c.type === 'gate' || c.type === 'bridge' || c.type === 'sort' || isSplit(c));
+// Splitters and sorters of a game from before their ranks take the rank of their rails, free, so nothing slows down.
+let uncapped = false;
+function rankFollowers() {
+  if (G.ranked) return;
+  G.ranked = true;
+  const list = allCells().filter(c => CAPPED.has(c.type) && c.mk == null);
+  uncapped = true; paces.clear();
+  const ranks = list.map(c => paceOf(c) / BELT_SPEED);
+  uncapped = false; paces.clear();
+  list.forEach((c, i) => { if (ranks[i] > 1) c.mk = ranks[i]; });
+}
 function paceOf(c) {
   if (c.type === 'belt') return BELT_SPEED * rankOf(c);
   if (!follows(c)) return BELT_SPEED;
   if (paces.has(c)) return paces.get(c);
   const group = new Set([c]);
-  let slow = Infinity;
-  for (const one of group) for (let d = 0; d < 4; d++) {
+  let slow = Infinity, cap = Infinity;
+  for (const one of group) {
+    if (CAPPED.has(one.type) && !uncapped) cap = Math.min(cap, rankOf(one));
+    for (let d = 0; d < 4; d++) {
     const n = ahead(one, d);
     if (!n || (n.type !== 'belt' && !follows(n))) continue;
     const back = (d + 2) % 4;
     if (!(exitsOf(one).includes(d) && connects(n, d)) && !(exitsOf(n).includes(back) && connects(one, back))) continue;
     if (n.type === 'belt') slow = Math.min(slow, rankOf(n)); else group.add(n);
+    }
   }
-  const pace = BELT_SPEED * (slow === Infinity ? 1 : slow);
+  const pace = BELT_SPEED * Math.min(slow === Infinity ? 1 : slow, cap);
   for (const one of group) paces.set(one, pace);
   return pace;
 }
@@ -1479,7 +1511,7 @@ function recipe(item) {
   return box ? `${BOX[box].name.toLowerCase()} de ${PACK.size} ${genes}` : genes;
 }
 function fresh() {
-  G = {time:0, capsules:true, world:2, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0,
+  G = {time:0, ranked:true, capsules:true, world:2, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0,
     woken:0, breaches:[], families:['SFN','SSC','FNN'], over:false};
   put('core', CORE.x, CORE.y, 0);
   survey();
@@ -2109,6 +2141,8 @@ function fire(dt) {
     c.clock -= dt;
     if (c.clock > 0) continue;
     const gun = GUNS[c.type];
+    // What the step overshot counts toward the next shot, so a gun keeps its pace. A long wait gives no burst.
+    const due = Math.max(c.clock, -dt) + 1 / (gun.pace * GUN_RANK[rankOf(c) - 1]);
     // Each shot of a volley chooses again: what the first one killed, the second does not waste a gene on.
     for (let shot = 0; shot < gun.volley; shot++) {
       const loaded = Object.keys(c.ammo).filter(g => c.ammo[g] > 0);
@@ -2122,7 +2156,7 @@ function fire(dt) {
       if (!target) break;
       const ammo = loaded.reduce((a, b) => damage(b, target.gene) > damage(a, target.gene) ? b : a);
       const hurt = damage(ammo, target.gene);
-      c.ammo[ammo]--; c.clock = 1 / gun.pace;
+      c.ammo[ammo]--; c.clock = due;
       if (!shot) c.aim = Math.atan2(target.y - c.y - .5, target.x - c.x - .5);
       target.hp -= hurt * gun.power;
       // hurt stays how right the gene was, it gives the colour. The gun gives the shape.
@@ -2652,7 +2686,9 @@ function draw() {
   for (const w of Object.values(G.ruins)) if (!buried(w)) rect(ctx,w.x + .15,w.y + .15,sizeOf(w) - .3,sizeOf(w) - .3,'#321820','#FF6B6B');
   for (const c of cells) {
     const size = sizeOf(c);
-    ctx.save(); ctx.translate(c.x + size / 2,c.y + size / 2); ctx.scale(size,size); if (!built(c)) ctx.globalAlpha = .4; drawCell(ctx,c,isBelt(c) ? feeders(c).map(f => (f.dir + 2) % 4) : []); ctx.restore();
+    ctx.save(); ctx.translate(c.x + size / 2,c.y + size / 2); ctx.scale(size,size); if (!built(c)) ctx.globalAlpha = .4; drawCell(ctx,c,isBelt(c) ? feeders(c).map(f => (f.dir + 2) % 4) : []);
+    if (RINGED.has(c.type)) for (let i = 1; i < rankOf(c); i++) circle(ctx,0,0,.36 + i * .06,null,i > 1 ? '#C77DFF' : '#F0A03C',.04);
+    ctx.restore();
   }
   for (const c of cells) {
     const x = c.x+.5, y = c.y+.5;
@@ -3969,7 +4005,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
+    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
   } catch (_) {}
   return false;
 }

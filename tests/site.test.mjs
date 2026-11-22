@@ -52,7 +52,7 @@ it("builds a site that plays in 3D and offline under its own policy", async () =
     expect(await page.evaluate(() => G.dna)).toBe(222);
     await page.click("#menu-toggle");
     expect(await page.locator("#build").textContent()).toContain("aaaaaaa");
-    await page.click("#dimension");
+    // A game opens in 3D by default: offline, the engine comes from the site's own cache.
     await page.waitForFunction(() => view3d !== null, null, { timeout: 60000 });
     expect(errors).toEqual([]);
   } finally {

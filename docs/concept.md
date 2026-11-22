@@ -358,3 +358,18 @@ The Encapsulator takes six identical loose items from behind and carbon on one s
 - Redrawing a destroyed line is a chore: a button rebuilds it identically.
 
 Open questions: building costs in strands, research pace, the penalty when the core falls, the balance of gene inheritance by creatures, and the business model.
+
+### Ranks of splitters, sorters, transformers and defences (2026-11-22)
+
+| Piece | MK2 / MK3 cost (ADN) | What a rank gives |
+|---|---|---|
+| Splitter 2 and 3 | 2 / 6 | Passes at most 4, 8 or 12 a second, whatever the rails |
+| Sorter | 3 / 8 | Same cap as a splitter |
+| Ligase, Assembler | 15 / 40 | Makes 1, 2 or 3 objects a second |
+| Packer | 30 / 80 | Makes 1, 2 or 3 containers a second |
+| Turret, Sting, Maw | 20/50, 40/100, 30/75 | Fires 1, 1.5 or 2 times as often, holds 1, 1.5 or 2 times the health |
+| Wall | 5 / 15 | Holds 1, 2 or 3 times the health |
+
+Bridges and gates keep the pace of their rails. Splitters and sorters of a game saved before these ranks take the
+rank of their rails, free, so no line slows down. A turret's shots now keep their pace exactly: the time a step
+overshoots counts toward the next shot.

@@ -1209,6 +1209,7 @@ window.createModels3D = (B, scene) => {
       // Solid from the bottom up, as far as it stands: taken down, it goes from the top.
       if (waiting) add.solid = woven(c) * (size > 1 ? 1.6 : 0.9);
       BUILDINGS[c.type]?.(c, x, y);
+      if (RINGED.has(c.type)) for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.1 + i * 0.12, 0.6 + i * 0.1);
       add.ghost = false;
       add.solid = 0;
       if (waiting) {
