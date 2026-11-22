@@ -29,13 +29,15 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Genre | Decided | Shape-recipe factory, technology that depends on it, incremental, tower defense |
 | Matter | Decided | Primary organic zones, transformed by cutting and assembling |
 | Language of items | Decided | Chains, like strands of DNA that you build |
-| Map | Decided | More or less unlimited |
+| Map | Decided | More or less unlimited, generated on demand from a seed |
+| Outpost attacks | Decided | A breach out in the open world attacks the outpost that woke it |
 | Long distance | Decided | Carrier worms as trains |
 | Threat | Decided | Carried by breaches: asleep, woken by expansion, then a rising pressure and assaults until they are emptied |
 | Breaches | Decided | They do not last: once emptied they fade. They push the player to explore and to defend in many places |
 | Limited defenses | Decided | Walls and turrets are not unlimited: rising ADN cost, proposed scale in section 10 |
 | Build time | Decided | Nothing appears at once: sites do not advance while paused |
 | Builder drones | Decided | As many drones as simultaneous sites: a site only advances while its drone is beside it |
+| Dismantling | Decided | It takes time and a drone, like building |
 | Repair | Decided | Damaged buildings repair over time |
 | Goal besides defense | Decided | The core demands shapes: delivering them grows it and unlocks what follows. Three stages in the prototype |
 | Nervous system | Decided | Nerves link smart objects that emit or read what is needed, including in position 1, 2 or 3 |
@@ -104,6 +106,7 @@ Ages unlock technologies, not matters. A gene is unlocked by delivering it in qu
 - **3 drones live on the core, one per site**, and take sites in placement order. A site only advances while its drone is within 2 cells. A drone flies 20 cells per second and goes from one site to the next without returning to its nest.
 - Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitter and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, turret 6 s, vein by length.
 - A site does not carry, shoot, block or attract creatures.
+- **Dismantling shares the same drones and queue, and lasts as long as building did.** A building works until its drone starts, the refund comes at the end, and it can be cancelled. A site nobody started is cancelled at once.
 
 ### Damaged buildings repair
 
@@ -247,6 +250,10 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 - Open question: once every woken breach is emptied, the player is at peace until the next expansion. To confirm by playing.
 
 ## 11. Map and zoom
+
+The landing square, 96 cells wide, is the same in every game. Around it the world is generated on demand from the save's seed, by sectors of 32 cells: only the seed and the breaches that woke are saved. Deposits grow with the distance, and so do their breaches, in numbers and in strength.
+
+A breach out there attacks the outpost that woke it, then the nearest thing still standing once that outpost is razed. Drones cruise faster over long distances, so a flight takes 4 seconds at most.
 
 Near the core, simple deposits and little danger. Farther, raw genes to cut. Very far, mutant biomes, rare genes and hives that eat the map.
 

@@ -127,7 +127,7 @@ window.createModels3D = (B, scene) => {
     skin: ['#22401D', 0.03, 1, 0.7], skin2: ['#366426', 0.07, 1, 0.8], sprout: ['#5E9E2B', 0.22, 1, 0.8],
     sleep: ['#302B29', 0.02, 1, 0.3], sleep2: ['#4C3D3C', 0.03, 1, 0.3], wreck: ['#231E1D', 0, 1, 0.15], ember: ['#FF6A3C', 0.8, 1, 0.2],
     infected: ['#4A1420', 0.08, 0.45, 0.2], husk: ['#15191A', 0, 0.45, 0.05], smoke: ['#59605F', 0, 0.22, 0],
-    site: ['#55D6E8', 0.25, 0.26, 0.1], holo: ['#55D6E8', 0.6, 0.7, 0.1], scent: ['#9FDC3C', 0.45, 0.75, 0.1],
+    site: ['#55D6E8', 0.25, 0.26, 0.1], scrap: ['#FF5A5A', 0.25, 0.28, 0.1], holo: ['#55D6E8', 0.6, 0.7, 0.1], scent: ['#9FDC3C', 0.45, 0.75, 0.1],
   };
   // Instances share their material, so a fade is a set of opacities to step through.
   const FADE = 16;
@@ -383,7 +383,7 @@ window.createModels3D = (B, scene) => {
     // ---- Production
     // A tripod derrick: the cutter spins and the piston dives while it works.
     mine(c, x, y) {
-      const kind = DEPOSIT[key(c.x, c.y)] || 'S';
+      const kind = depositAt(c.x, c.y) || 'S';
       const working = built(c) && !c.item;
       const dive = working ? (Math.sin(clock * 7 + c.x) + 1) * 0.06 : 0.06;
       const spin = working ? clock * 6 : c.x;
@@ -681,7 +681,7 @@ window.createModels3D = (B, scene) => {
       const down = (i * 3 + j * 5) % 4 === 0;
       const ni = i + (down ? 0 : 1);
       const nj = j + (down ? 1 : 0);
-      if (DEPOSIT[key(ni, nj)] !== 'N' || G.cells[key(ni, nj)]) return;
+      if (depositAt(ni, nj) !== 'N' || G.cells[key(ni, nj)]) return;
       const n2 = noise(ni, nj);
       const tx = ni + 0.5 + (n2 - 0.5) * 0.4;
       const ty = nj + 0.5 + (noise(nj + 4, ni + 9) - 0.5) * 0.4;
@@ -814,7 +814,7 @@ window.createModels3D = (B, scene) => {
       const length = span(c, to);
       const a = Math.atan2(by - ay, bx - ax);
       const broken = c.veinHp <= 0;
-      add.ghost = c.veinLeft > 0;
+      add.ghost = c.veinCut ? 'scrap' : c.veinLeft > 0;
       if (broken) {
         // Torn: two limp halves.
         limb('gore', ax, ay, 0.1, ...from(ax, ay, a + 0.07, length * 0.4), 0.04, 0.24, 'taper');
@@ -855,7 +855,7 @@ window.createModels3D = (B, scene) => {
       for (const k of fine ? [0, 0.33, 0.66] : [0]) {
         const [px, py] = from(x, y, a, k);
         const wave = ready ? Math.max(0, Math.sin(clock * 5 - ((t.x + DX[t.dir] * k) * DX[t.dir] + (t.y + DY[t.dir] * k) * DY[t.dir]) * 1.6)) : 0;
-        for (const s of [-1, 1]) add('bead', ready ? (wave > 0.8 ? 'acid' : 'scent') : 'site', ...from(px, py, a, 0, s * 0.13), 0.05, 0.1 + wave * 0.04, 0.05, 0.08, a);
+        for (const s of [-1, 1]) add('bead', t.out != null ? 'alarm' : ready ? (wave > 0.8 ? 'acid' : 'scent') : 'site', ...from(px, py, a, 0, s * 0.13), 0.05, 0.1 + wave * 0.04, 0.05, 0.08, a);
       }
       if (fine && (t.x + t.y) % 3 === 0) arrow(ready ? 'scent' : 'site', x, y, 0.05, t.dir, 0.15);
     }
@@ -869,7 +869,7 @@ window.createModels3D = (B, scene) => {
       const length = span(a, b);
       const at = (k) => [a.x + 0.5 + (b.x - a.x) * k, a.y + 0.5 + (b.y - a.y) * k, 0.9 - Math.sin(k * Math.PI) * Math.min(0.5, length * 0.05)];
       const n = fine ? Math.max(4, Math.ceil(length)) : 2;
-      for (let i = 0; i < n; i++) limb(!w.hp ? 'alarm' : live ? 'N' : 'site', ...at(i / n), ...at((i + 1) / n), 0.055);
+      for (let i = 0; i < n; i++) limb(!w.hp || w.out != null ? 'alarm' : live ? 'N' : 'site', ...at(i / n), ...at((i + 1) / n), 0.055);
       const gene = live && netOf(a)?.focus;
       if (!gene) continue;
       const count = Math.max(1, Math.ceil(length / 4));
@@ -886,24 +886,25 @@ window.createModels3D = (B, scene) => {
       const x = c.x + 0.5;
       const y = c.y + 0.5;
       const waiting = !built(c);
-      add.ghost = waiting;
-      // Solid from the bottom up, as far as it has been woven.
-      if (waiting) add.solid = (1 - c.left / (BUILD[c.type] || 1)) * 0.9;
+      add.ghost = c.cut ? 'scrap' : waiting;
+      // Solid from the bottom up, as far as it stands: taken down, it goes from the top.
+      if (waiting) add.solid = woven(c) * 0.9;
       BUILDINGS[c.type]?.(c, x, y);
       add.ghost = false;
       add.solid = 0;
       if (waiting) {
         // A hologram inside a scaffold, scanned from the bottom up.
+        const frame = c.cut ? 'alarm' : 'holo';
         for (const a of [-1, 1]) {
           for (const b of [-1, 1]) {
-            add('tube', 'holo', x + a * 0.44, y + b * 0.44, 0.35, 0.035, 0.7, 0.035);
-            add('bead', 'holo', x + a * 0.44, y + b * 0.44, 0.72, 0.08);
+            add('tube', frame, x + a * 0.44, y + b * 0.44, 0.35, 0.035, 0.7, 0.035);
+            add('bead', frame, x + a * 0.44, y + b * 0.44, 0.72, 0.08);
           }
         }
-        const h = 0.05 + Math.max(0, 1 - c.left / (BUILD[c.type] || 1)) * 0.7;
+        const h = 0.05 + woven(c) * 0.7;
         for (const s of [-1, 1]) {
-          add('box', 'holo', x + s * 0.44, y, h, 0.025, 0.025, 0.88);
-          add('box', 'holo', x, y + s * 0.44, h, 0.88, 0.025, 0.025);
+          add('box', frame, x + s * 0.44, y, h, 0.025, 0.025, 0.88);
+          add('box', frame, x, y + s * 0.44, h, 0.88, 0.025, 0.025);
         }
         continue;
       }
@@ -954,8 +955,8 @@ window.createModels3D = (B, scene) => {
         return [x + (tx - x) * k, y + (ty - y) * k];
       });
       const track = G.tracks[w.path[0]];
-      add.ghost = !built(w);
-      add.solid = add.ghost ? (1 - w.left / BUILD.worm) * 0.7 : 0;
+      add.ghost = w.cut ? 'scrap' : !built(w);
+      add.solid = add.ghost ? woven(w) * 0.7 : 0;
       for (let i = spots.length - 1; i >= 0; i--) {
         const [x, y] = spots[i];
         const before = spots[i - 1];
@@ -1058,7 +1059,7 @@ window.createModels3D = (B, scene) => {
   function drones(area) {
     const s = Math.max(1, Math.min(1.8, 17 / cam.zoom));
     G.drones.forEach((d, index) => {
-      const { x, y, h, w, a, goal } = dronePose(d);
+      const { x, y, h, w, a, goal, undo } = dronePose(d);
       if (x < area.x0 - 2 || x > area.x1 + 2 || y < area.y0 - 2 || y > area.y1 + 2) return;
       const flying = Math.max(0, Math.min(1, h - 0.6));
       const speed = Math.min(1, Math.hypot(d.x - d.was.x, d.y - d.was.y) * 2);
@@ -1097,11 +1098,11 @@ window.createModels3D = (B, scene) => {
       if (!goal || w < 0.5) return;
       // Three threads sweep the height the site has reached, and throw sparks.
       const c = G.cells[`${Math.floor(goal.x)},${Math.floor(goal.y)}`];
-      const level = c && !built(c) ? 0.05 + (1 - c.left / (BUILD[c.type] || 1)) * 0.75 : 0.15;
+      const level = c && !built(c) ? 0.05 + woven(c) * 0.75 : 0.15;
       for (let i = 0; i < 3; i++) {
         const tx = goal.x + Math.sin(clock * 7 + i * 2.1 + index) * 0.36;
         const ty = goal.y + Math.cos(clock * 5 + i * 2.1 + index) * 0.36;
-        limb(i ? 'cyan' : 'acid', ...part(0.24, (i - 1) * 0.06, -0.08), tx, ty, level, 0.025);
+        limb(undo ? 'alarm' : i ? 'cyan' : 'acid', ...part(0.24, (i - 1) * 0.06, -0.08), tx, ty, level, 0.025);
         add('bead', i ? 'pale' : 'amber', tx, ty, level, 0.1 + Math.sin(clock * 31 + i) * 0.03);
         for (let j = 0; j < (fine ? 4 : 1); j++) {
           const fall = (clock * 2.4 + j / 4 + i * 0.31) % 1;

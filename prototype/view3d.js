@@ -81,7 +81,7 @@ window.createView3D = (glCanvas) => {
   // angle is a game angle (0 east, clockwise). roll lays an upright shape along that angle.
   function add(shape, paint, x, y, h, sx, sy = sx, sz = sx, angle = 0, roll = 0) {
     // ghost: a construction site, a hologram above the height it has been woven to.
-    const name = add.ghost && !(add.solid > 0 && h <= add.solid) ? 'site' : paint;
+    const name = add.ghost && !(add.solid > 0 && h <= add.solid) ? (add.ghost === 'scrap' ? 'scrap' : 'site') : paint;
     let batch = batches.get(`${shape}|${name}`);
     if (!batch) {
       const mesh = SHAPES[shape]();
@@ -207,7 +207,7 @@ window.createView3D = (glCanvas) => {
     for (const c of Object.values(G.cells)) {
       const x = c.x + 0.5;
       const y = c.y + 0.5;
-      if (!built(c)) bar(x, y + 0.36, 1 - c.left / BUILD[c.type], '#55D6E8');
+      if (!built(c)) bar(x, y + 0.36, woven(c), c.cut ? '#FF6B6B' : '#55D6E8');
       if (c.hp < hull(c) - 0.5) bar(x, up(c.y, 0.8), c.hp / hull(c), healing(c) ? '#62E06A' : '#FF6B6B');
       if (c.type === 'ligase' && cam.zoom >= 20) {
         for (let port = 0; port < 3; port++) {
@@ -251,6 +251,26 @@ window.createView3D = (glCanvas) => {
       g.setLineDash([0.3, 0.3]);
       g.stroke();
       g.setLineDash([]);
+    }
+    // Waiting for a drone to take it down.
+    const marked = [...Object.values(G.cells), ...Object.values(G.ruins)].filter((c) => c.out != null);
+    g.setLineDash([0.14, 0.1]);
+    for (const c of marked) rect(g, c.x + 0.06, c.y + 0.06, 0.88, 0.88, null, '#FF6B6B');
+    for (const c of Object.values(G.cells)) {
+      const to = c.veinOut != null && c.to && G.cells[c.to];
+      if (!to) continue;
+      g.beginPath();
+      g.moveTo(c.x + 0.5, c.y + 0.5);
+      g.lineTo(to.x + 0.5, to.y + 0.5);
+      g.strokeStyle = '#FF6B6B';
+      g.lineWidth = 0.12;
+      g.stroke();
+    }
+    g.setLineDash([]);
+    for (const w of G.worms) {
+      if (w.out == null) continue;
+      const [wx, wy] = w.path[0].split(',').map(Number);
+      circle(g, wx + 0.5, wy + 0.5, 0.62, null, '#FF6B6B', 0.06);
     }
     for (const c of chain) rect(g, c.x + 0.04, c.y + 0.04, 0.92, 0.92, null, '#FF6B6B');
     const picked = selected && G.cells[selected];

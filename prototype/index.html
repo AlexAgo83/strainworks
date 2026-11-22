@@ -110,7 +110,8 @@ button:disabled { opacity:.4; cursor:default; }
 </main>
 
 <script>
-const W = 96, H = 96, STEP = .05;
+const W = 96, H = 96, STEP = .05; // W and H: the landing square, where every game starts the same
+const SECTOR = 32, LIMIT = 1e5, OUTPOST = 24;
 // The starting scenario is written around its own origin, in the middle of the map.
 const OX = 43, OY = 40;
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
@@ -135,7 +136,7 @@ const TYPES = {
   sort:{name:'Trieur', help:'Entrée derrière. Ce qui correspond au filtre sort du côté choisi, le reste va tout droit.', hp:40},
   wire:{name:'Nerf', help:'Tire entre une tourelle, un feu ou un trieur, 24 cases au plus. La tourelle dit ce qu’il lui faut, les autres écoutent.', hp:30},
   wall:{name:'Mur', help:'Bloque et encaisse. Les créatures doivent le casser pour passer.', hp:260},
-  erase:{name:'Démonter', help:'Touche ou balaie ce que tu veux retirer. Tourelles et murs rendent leur ADN, moins les dégâts.'}
+  erase:{name:'Démonter', help:'Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.'}
 };
 const VEIN = {reach:24, speed:16, pulse:.5, load:8, cap:48, hp:50};
 const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
@@ -175,6 +176,66 @@ function survey() {
   for (const [base, x, y, w, h] of FIELDS) for (let a = x; a < x + w; a++) for (let b = y; b < y + h; b++) { DEPOSIT[a + ',' + b] = base; RICH[a + ',' + b] = richness(x + w / 2, y + h / 2); }
 }
 
+// Past the landing square the world is never stored: a sector is a pure function of the seed and where it is.
+// Only a breach that woke enters G.breaches, which only ever grows.
+let sectors = new Map(), worldSeed = null;
+const newSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
+const atHome = (x, y) => x >= 0 && x < W && y >= 0 && y < H;
+function dice(x, y, n) {
+  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(n, 1442695041) + G.seed;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h = Math.imul(h ^ (h >>> 16), 1911520717);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+function sector(sx, sy) {
+  if (worldSeed !== G.seed || sectors.size > 6000) { sectors = new Map(); worldSeed = G.seed; }
+  const id = sx + ',' + sy;
+  if (!sectors.has(id)) sectors.set(id, generate(sx, sy, id));
+  return sectors.get(id);
+}
+function generate(sx, sy, id) {
+  const left = sx * SECTOR, top = sy * SECTOR;
+  if (atHome(left, top) || dice(sx, sy, 1) > .72) return null;
+  const roll = n => dice(sx, sy, n), away = Math.hypot(left + SECTOR / 2 - CORE.x, top + SECTOR / 2 - CORE.y);
+  // Farther: bigger deposits, fuller breaches, harder creatures.
+  const grown = Math.min(3, Math.floor(away / 120)), w = 5 + grown + Math.floor(roll(2) * 3), h = 4 + grown + Math.floor(roll(3) * 3);
+  // Field and body stay clear of the sector's edge, so they never land on a neighbour's.
+  const x = left + 8 + Math.floor(roll(4) * (17 - w)), y = top + 8 + Math.floor(roll(5) * (17 - h));
+  const cx = x + w / 2, cy = y + h / 2, dx = cx - CORE.x, dy = cy - CORE.y, wide = Math.abs(dx) > Math.abs(dy);
+  const bx = wide ? (dx > 0 ? x + w + 3 : x - 4) : Math.floor(cx), by = wide ? Math.floor(cy) : (dy > 0 ? y + h + 3 : y - 4);
+  const reach = Math.max(...[[x,y],[x+w-1,y],[x,y+h-1],[x+w-1,y+h-1]].map(([a,b]) => Math.hypot(a - bx, b - by))), r = Math.ceil(reach) + 1;
+  // Never into the landing square, or a game saved before the world grew would wake it on loading.
+  if (Math.hypot(Math.max(-bx, 0, bx - W + 1), Math.max(-by, 0, by - H + 1)) <= r) return null;
+  const total = Math.min(260, 70 + Math.floor(away / 80) * 15);
+  return {
+    field:['SFCN'[Math.floor(roll(6) * 4)], x, y, w, h],
+    breach:{id, x:bx, y:by, r, left:total, total, tough:1 + Math.min(2, away / 400), genes:[G.families[Math.floor(roll(7) * 3)]], state:'sleep', wave:0, pending:0, ended:0}
+  };
+}
+function eachSector(x0, y0, x1, y1, visit) {
+  for (let sx = Math.floor(x0 / SECTOR); sx <= Math.floor(x1 / SECTOR); sx++)
+    for (let sy = Math.floor(y0 / SECTOR); sy <= Math.floor(y1 / SECTOR); sy++) { const s = sector(sx, sy); if (s) visit(s); }
+}
+function fieldsIn(x0, y0, x1, y1) {
+  const meets = ([, x, y, w, h]) => x <= x1 && x + w >= x0 && y <= y1 && y + h >= y0;
+  const found = FIELDS.filter(meets);
+  eachSector(x0, y0, x1, y1, s => { if (meets(s.field)) found.push(s.field); });
+  return found;
+}
+// Every breach whose circle meets the box, woken or not.
+function breachesIn(x0, y0, x1, y1) {
+  const meets = b => b.x + b.r >= x0 && b.x - b.r <= x1 && b.y + b.r >= y0 && b.y - b.r <= y1;
+  const found = G.breaches.filter(meets), woken = new Set(G.breaches.map(b => b.id));
+  eachSector(x0 - 16, y0 - 16, x1 + 16, y1 + 16, s => { if (!woken.has(s.breach.id) && meets(s.breach)) found.push(s.breach); });
+  return found;
+}
+function depositAt(x, y) {
+  if (atHome(x, y)) return DEPOSIT[key(x, y)];
+  const f = sector(Math.floor(x / SECTOR), Math.floor(y / SECTOR))?.field;
+  return f && x >= f[1] && x < f[1] + f[3] && y >= f[2] && y < f[2] + f[4] ? f[0] : undefined;
+}
+const richAt = (x, y) => atHome(x, y) ? RICH[key(x, y)] : depositAt(x, y) && 4;
+
 let wormId = null;
 let G, tool = 'hand', heading = 0, selected = null, chain = [], paused = false, speed = 1, note = '';
 
@@ -182,8 +243,8 @@ const $ = id => document.getElementById(id);
 // A gate is a belt with a switch.
 const isBelt = c => c?.type === 'belt' || c?.type === 'gate';
 const key = (x, y) => x + ',' + y;
-const buildable = (x, y) => inside(x, y) && !G.breaches.some(h => h.state !== 'spent' && Math.hypot(x - h.x, y - h.y) < 3.5);
-const inside = (x, y) => x >= 0 && x < W && y >= 0 && y < H;
+const buildable = (x, y) => inside(x, y) && !breachesIn(x, y, x, y).some(h => h.state !== 'spent' && Math.hypot(x - h.x, y - h.y) < 3.5);
+const inside = (x, y) => Math.abs(x) < LIMIT && Math.abs(y) < LIMIT;
 const opposite = gene => [...gene].map(b => PAIR[b]).join('');
 const geneName = gene => GENES[gene] ? `${GENES[gene]} (${gene})` : gene;
 // Defences cost ADN, each one more than the last: the soft limit on turrets and walls.
@@ -195,16 +256,17 @@ const price = type => PRICE[type] ? PRICE[type](owned(type)) : 0;
 const refund = c => PRICE[c.type] ? Math.floor(PRICE[c.type](owned(c.type) - 1) * Math.max(0, c.hp) / TYPES[c.type].hp) : 0;
 // Work only advances with the simulation and only with a drone at the site: one drone a site, oldest site first.
 const BUILDERS = 3;
-const DRONE = {speed:20, reach:2};
+const DRONE = {speed:20, reach:2, longest:4}; // a flight never takes over 4 s, so far ones cruise faster
 const BUILD = {belt:.15, gate:.5, bridge:.5, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5};
-const built = c => !(c?.left > 0);
+// cut: a drone has started taking it down. Until then it goes on working.
+const built = c => !(c?.left > 0) && !c?.cut;
 // Healing starts after some quiet, so a wall under attack still falls. The core heals more slowly.
 const REPAIR = {quiet:5, share:.02, core:.005};
 const fullHp = c => TYPES[c.type]?.hp ?? 100;
-const healing = c => c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt ?? -99) >= REPAIR.quiet;
+const healing = c => !c.cut && c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt ?? -99) >= REPAIR.quiet;
 const unlocked = stage => G.open || G.stage >= stage;
 const richCap = () => unlocked(3) ? 4 : unlocked(2) ? 2 : 1;
-const perSecond = c => rate() * (c.type === 'mine' ? Math.min(richCap(), RICH[key(c.x, c.y)] || 1) : 1);
+const perSecond = c => rate() * (c.type === 'mine' ? Math.min(richCap(), richAt(c.x, c.y) || 1) : 1);
 const rate = () => Math.pow(1.2, G.upgrades);
 const ahead = (c, dir = c.dir) => G.cells[key(c.x + DX[dir], c.y + DY[dir])];
 
@@ -220,11 +282,17 @@ function build(type, x, y, dir) {
 }
 function sites() {
   const jobs = [];
+  const look = c => {
+    if (c.left > 0) jobs.push({c, field:'left', order:c.order});
+    if (c.out != null) jobs.push({c, field:'out', order:c.outOrder});
+  };
   for (const c of Object.values(G.cells)) {
-    if (!built(c)) jobs.push({c, field:'left', order:c.order});
+    look(c);
     if (c.to && c.veinLeft > 0) jobs.push({c, field:'veinLeft', order:c.veinOrder});
+    if (c.to && c.veinOut != null) jobs.push({c, field:'veinOut', order:c.veinOutOrder});
   }
-  for (const c of [...Object.values(G.tracks), ...G.worms, ...G.wires]) if (!built(c)) jobs.push({c, field:'left', order:c.order});
+  for (const c of [...Object.values(G.tracks), ...G.worms, ...G.wires]) look(c);
+  for (const [id, c] of Object.entries(G.ruins)) if (!G.cells[id] && c.out != null) jobs.push({c, field:'out', order:c.outOrder});
   return jobs.sort((a, b) => a.order - b.order);
 }
 function perch(i) {
@@ -235,26 +303,79 @@ function hatchDrones() {
   // h is the height and w how far into its working pose it is. was: one tick ago, for drawing in between.
   G.drones = Array.from({length:BUILDERS}, (_, i) => {
     const {x, y} = perch(i), a = Math.atan2(y - CORE.y - .5, x - CORE.x - .5);
-    return {x, y, a, h:.55, w:0, job:'', goal:null, was:{x, y, h:.55, w:0}};
+    return {x, y, a, h:.55, w:0, trip:'nest', speed:DRONE.speed, job:'', goal:null, was:{x, y, h:.55, w:0}};
   });
 }
 const jobId = job => job.field + job.order;
+const at = id => { const [x, y] = id.split(',').map(Number); return {x, y}; };
+// Taking down lasts what putting up did.
+function workTime(c, vein = false) {
+  if (vein) return .5 + span(c, at(c.to)) / 12;
+  if (c.a) return .4 + span(at(c.a), at(c.b)) / 16;
+  if (c.path) return BUILD.worm;
+  if (G.ruins[key(c.x, c.y)] === c) return 1;
+  return BUILD[c.type || 'track'] || 1;
+}
+// How much of it stands: grows while it is built, shrinks while it is taken down.
+const woven = c => Math.max(0, Math.min(1, c.cut ? c.out / workTime(c) : 1 - (c.left || 0) / workTime(c)));
+// Asks for a drone. A site nobody started has nothing to take down: it goes at once.
+function scrap(c, now) {
+  if (c.out != null || c.type === 'core') return;
+  const total = workTime(c);
+  if (c.left >= total - 1e-9) return now();
+  c.out = total;
+  if (c.left > 0) { c.out = total - c.left; c.left = 0; c.cut = true; }
+  c.outOrder = G.seq = (G.seq || 0) + 1;
+}
+function scrapVein(c) {
+  if (c.veinOut != null) return;
+  const total = workTime(c, true);
+  if (c.veinLeft >= total - 1e-9) return unlink(c);
+  c.veinOut = total;
+  if (c.veinLeft > 0) { c.veinOut = total - c.veinLeft; c.veinLeft = 0; c.veinCut = true; }
+  c.veinOutOrder = G.seq = (G.seq || 0) + 1;
+}
+// Changing one's mind: what was undone has to be built again.
+function keepIt(c) {
+  if (c.out == null) return;
+  if (c.cut) { c.left = Math.max(0, workTime(c) - c.out); c.order = G.seq = (G.seq || 0) + 1; }
+  delete c.out; delete c.cut; delete c.outOrder;
+}
+function keepVein(c) {
+  if (c.veinOut == null) return;
+  if (c.veinCut) { c.veinLeft = Math.max(0, workTime(c, true) - c.veinOut); c.veinOrder = G.seq = (G.seq || 0) + 1; }
+  delete c.veinOut; delete c.veinCut; delete c.veinOutOrder;
+}
+function unlink(c) {
+  for (const p of c.packets) for (let i = 0; i < p.n; i++) c.stock.push(p.item);
+  c.packets = []; c.to = null; c.veinLeft = 0;
+  delete c.veinOut; delete c.veinCut; delete c.veinOutOrder;
+}
+function finishJob({c, field}) {
+  if (field === 'veinOut') return unlink(c);
+  if (field !== 'out') { c[field] = 0; return; }
+  if (c.a) { G.wires = G.wires.filter(w => w !== c); sense(); }
+  else if (c.path) { dropWorm(c, true); if (wormId === c.id) { wormId = null; showActions(); } }
+  else if (G.tracks[key(c.x, c.y)] === c) delete G.tracks[key(c.x, c.y)];
+  else remove(c.x, c.y);
+}
 // Where a drone has to be. Along a vein or a nerve, that advances with the work.
 function workAt({c, field}) {
-  const at = id => { const [x, y] = id.split(',').map(Number); return {x, y}; };
   let a, b;
-  if (field === 'veinLeft') { a = c; b = at(c.to); }
+  const vein = field.startsWith('vein');
+  if (vein) { a = c; b = at(c.to); }
   else if (c.a) { a = at(c.a); b = at(c.b); }
   else {
     const p = c.path ? at(c.path[0]) : c;
     return {x:p.x + .5, y:p.y + .5};
   }
-  const total = field === 'veinLeft' ? .5 + span(a, b) / 12 : .4 + span(a, b) / 16;
+  const total = workTime(c, vein);
   const k = Math.max(0, Math.min(1, 1 - c[field] / total));
   return {x:a.x + .5 + (b.x - a.x) * k, y:a.y + .5 + (b.y - a.y) * k};
 }
 function construct(dt) {
-  const open = new Map(sites().map(job => [jobId(job), job])), held = new Set();
+  let open = new Map(sites().map(job => [jobId(job), job]));
+  const held = new Set();
   for (const d of G.drones) {
     d.was = {x:d.x, y:d.y, h:d.h, w:d.w};
     if (open.has(d.job)) held.add(d.job); else d.job = '';
@@ -276,25 +397,38 @@ function construct(dt) {
       d.x += dx * k; d.y += dy * k; d.a = Math.atan2(dy, dx);
     };
     let time = dt, working = false;
+    const cruise = to => Math.max(DRONE.speed, Math.hypot(to.x - d.x, to.y - d.y) / DRONE.longest);
     while (d.job && time > 1e-9) {
-      const job = open.get(d.job), to = workAt(job), gap = Math.hypot(to.x - d.x, to.y - d.y) - DRONE.reach;
+      const job = open.get(d.job);
+      if (!job) { d.job = ''; break; } // gone with what was just taken down
+      const to = workAt(job);
+      if (d.trip !== d.job) { d.trip = d.job; d.speed = cruise(to); }
+      const gap = Math.hypot(to.x - d.x, to.y - d.y) - DRONE.reach;
       d.goal = to;
       if (gap > 1e-6) {
-        const used = Math.min(time, gap / DRONE.speed);
-        fly(to, used * DRONE.speed); time -= used;
-        if (used * DRONE.speed < gap - 1e-6) break;
+        const used = Math.min(time, gap / d.speed);
+        fly(to, used * d.speed); time -= used;
+        if (used * d.speed < gap - 1e-6) break;
       }
       // In reach it works, closing in on the middle as it does.
       const used = Math.min(time, job.c[job.field]);
       job.c[job.field] -= used; time -= used; working = true;
+      d.undo = job.field === 'out' || job.field === 'veinOut';
+      if (job.field === 'out') job.c.cut = true;
+      if (job.field === 'veinOut') job.c.veinCut = true;
       fly(to, used * DRONE.speed);
       if (job.c[job.field] > 1e-9) break;
       // Straight on to the oldest site nobody has, without going home.
-      job.c[job.field] = 0; open.delete(d.job); d.job = '';
+      finishJob(job); open.delete(d.job); d.job = '';
+      // Taking something down can end other sites with it: its nerves, a vein that reached it.
+      if (d.undo) open = new Map(sites().map(other => [jobId(other), other]));
       for (const id of open.keys()) if (!held.has(id)) { d.job = id; held.add(id); break; }
     }
     const nest = perch(i);
-    if (!d.job) { d.goal = null; fly(nest, time * DRONE.speed); }
+    if (!d.job) {
+      if (d.trip !== 'nest') { d.trip = 'nest'; d.speed = cruise(nest); }
+      d.goal = null; fly(nest, time * d.speed);
+    }
     const landed = !d.job && Math.hypot(nest.x - d.x, nest.y - d.y) < .01;
     if (landed) d.a = Math.atan2(nest.y - CORE.y - .5, nest.x - CORE.x - .5);
     d.h += ((landed ? .55 : working ? 1.05 : 1.7) - d.h) * Math.min(1, dt * 7);
@@ -307,7 +441,7 @@ function dronePose(d) {
   const w = mix('w'), turn = (G.time + owed) * 2.6 + G.drones.indexOf(d) * 2.1;
   const x = mix('x') + Math.cos(turn) * .7 * w, y = mix('y') + Math.sin(turn) * .7 * w;
   const facing = d.goal && w > .5 ? Math.atan2(d.goal.y - y, d.goal.x - x) : d.a;
-  return {x, y, w, a:facing, h:mix('h'), goal:d.goal};
+  return {x, y, w, a:facing, h:mix('h'), goal:d.goal, undo:d.undo};
 }
 function repair(dt) {
   for (const w of G.wires) if (w.hp > 0 && w.hp < NERVE.hp && G.time - (w.hitAt ?? -99) >= REPAIR.quiet) w.hp = Math.min(NERVE.hp, w.hp + NERVE.hp * dt * REPAIR.share);
@@ -346,7 +480,7 @@ function recipe(item) {
   return item.match(/.{3}/g).map(geneName).join(' + ');
 }
 function fresh() {
-  G = {time:0, far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0, upgrades:0,
+  G = {time:0, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0, upgrades:0,
     woken:0, breaches:[], families:['SFN','SSC','FNN'], over:false};
   put('core', CORE.x, CORE.y, 0);
   survey();
@@ -418,6 +552,7 @@ function link(a, b) {
   if (one && other && one !== other) return say('Ces deux veines portent des matières différentes : vide l’une des deux.');
   for (const p of a.packets) for (let i = 0; i < p.n; i++) a.stock.push(p.item);
   a.packets = []; a.to = key(b.x, b.y); a.veinHp = VEIN.hp;
+  delete a.veinOut; delete a.veinCut;
   a.veinLeft = .5 + span(a, b) / 12; a.veinOrder = G.seq = (G.seq || 0) + 1;
   say('Veine reliée. Tire depuis la dernière pompe pour continuer.');
   return true;
@@ -427,7 +562,7 @@ function pulse(dt, boost) {
   for (const c of all) for (const p of c.packets) coming.set(c.to, (coming.get(c.to) || 0) + p.n);
   for (const c of all) {
     const to = c.to && G.cells[c.to];
-    if (to?.type !== 'pump' || c.veinHp <= 0 || !built(c) || !built(to) || c.veinLeft > 0) continue;
+    if (to?.type !== 'pump' || c.veinHp <= 0 || !built(c) || !built(to) || c.veinLeft > 0 || c.veinCut) continue;
     const time = span(c, to) / VEIN.speed;
     for (const p of c.packets) p.t += dt * boost / time;
     while (c.packets.length && c.packets[0].t >= 1) {
@@ -657,7 +792,7 @@ function flow(dt) {
     if (c.item) continue;
     c.clock = Math.min(1.999, c.clock + dt * perSecond(c));
     if (c.clock < .999) continue;
-    if (c.type === 'mine') c.item = DEPOSIT[key(c.x, c.y)];
+    if (c.type === 'mine') c.item = depositAt(c.x, c.y);
     else if (c.type === 'join') {
       if (!c.ports[0].length || !c.ports[1].length) continue;
       c.item = c.last = c.ports[0].shift() + c.ports[1].shift();
@@ -720,8 +855,24 @@ function bearing(b) {
   const a = Math.atan2(b.y - CORE.y, b.x - CORE.x);
   return ['est','sud-est','sud','sud-ouest','ouest','nord-ouest','nord','nord-est'][(Math.round(a / (Math.PI / 4)) + 8) % 8];
 }
-function wake(b) {
+function nearestBuilding(at) {
+  let best = null, close = Infinity;
+  for (const c of Object.values(G.cells)) {
+    const d = Math.hypot(c.x - at.x, c.y - at.y);
+    if (d < close) { best = c; close = d; }
+  }
+  return best;
+}
+// cause: what was built in its circle. A breach of the open world goes for that, not for the core.
+function wake(found, cause) {
+  let b = found;
+  if (b.id) {
+    const known = G.breaches.find(o => o.id === b.id);
+    if (known) b = known;
+    else { b = {...b, genes:[...b.genes]}; G.breaches.push(b); }
+  }
   if (b.state !== 'sleep') return;
+  if (b.id) { const at = cause || nearestBuilding(b); b.post = {x:at.x, y:at.y}; }
   Object.assign(b, {state:'wake', next:G.time + 30, wander:G.time + 10, spit:G.time});
   G.woken++;
   // A mutation adds a family: every line already built keeps an enemy to kill.
@@ -731,21 +882,32 @@ function wake(b) {
     do { born = mutate(G.families[Math.floor(Math.random() * G.families.length)]); } while (G.families.includes(born) || born[0] === born[2]);
     G.families.push(born); b.genes.push(born); b.born = born;
   }
-  say(`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? ', avec une nouvelle famille' : ''}.`);
+  say(`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? ', avec une nouvelle famille' : ''}.${b.id ? ' Elle vise l’avant-poste qui l’a réveillée.' : ''}`);
 }
 function disturb() {
   const cells = Object.values(G.cells).filter(c => c.type !== 'core');
   const veins = cells.filter(c => c.type === 'pump' && G.cells[c.to]).map(c => [c, G.cells[c.to]]);
-  for (const b of G.breaches) {
+  const tracks = Object.values(G.tracks), seen = new Map(G.breaches.map(b => [b.id || b, b])), around = new Set();
+  // The world is only looked at round what is built, so it costs what the factory measures.
+  const visit = new Map();
+  for (const list of [cells, tracks]) for (const c of list) {
+    const sx = Math.floor(c.x / SECTOR), sy = Math.floor(c.y / SECTOR);
+    visit.set(sx + ',' + sy, [sx, sy]);
+  }
+  for (const [sx, sy] of visit.values()) for (let i = -1; i < 2; i++) for (let j = -1; j < 2; j++) {
+    const b = sector(sx + i, sy + j)?.breach;
+    if (b && !seen.has(b.id)) around.add(b);
+  }
+  for (const b of [...G.breaches, ...around]) {
     if (b.state !== 'sleep') continue;
-    if (Object.values(G.tracks).some(c => Math.hypot(c.x - b.x, c.y - b.y) <= b.r)) { wake(b); continue; }
-    const x = b.x + .5, y = b.y + .5;
-    if (cells.some(c => Math.hypot(c.x - b.x, c.y - b.y) <= b.r)
-      || veins.some(([a, to]) => { const at = nearest(a, to, x, y); return Math.hypot(at.x - x, at.y - y) <= b.r; })) wake(b);
+    const x = b.x + .5, y = b.y + .5, near = c => Math.hypot(c.x - b.x, c.y - b.y) <= b.r;
+    const cause = cells.find(near) || tracks.find(near)
+      || veins.find(([a, to]) => { const at = nearest(a, to, x, y); return Math.hypot(at.x - x, at.y - y) <= b.r; })?.[0];
+    if (cause) wake(b, cause);
   }
 }
 function spawn(b, gene) {
-  const hp = 24 + Math.floor(G.threat) * 4;
+  const hp = Math.round((24 + Math.floor(G.threat) * 4) * (b.tough || 1));
   b.left--;
   G.enemies.push({x:b.x + Math.random(), y:b.y + Math.random(), gene, hp, max:hp, home:G.breaches.indexOf(b)});
 }
@@ -771,11 +933,26 @@ function menace(dt) {
     }
   }
 
-  // Creatures go for a turret whenever one is closer than the core.
+  // Creatures of the open world go for the outpost that woke their breach. Once it is razed, the nearest
+  // thing still standing is the next outpost.
+  const outposts = new Map();
+  for (const e of G.enemies) {
+    const b = G.breaches[e.home];
+    if (!b?.post || outposts.has(b)) continue;
+    const standing = () => Object.values(G.cells).filter(c => Math.hypot(c.x - b.post.x, c.y - b.post.y) <= OUTPOST);
+    let list = standing();
+    if (!list.length) { const next = nearestBuilding(b.post); b.post = {x:next.x, y:next.y}; list = standing(); }
+    outposts.set(b, list);
+  }
+  // The others go for a turret whenever one is closer than the core.
   const turrets = Object.values(G.cells).filter(c => c.type === 'turret' && built(c));
   const veins = pumps().filter(p => p.veinHp > 0 && G.cells[p.to]).map(p => [p, G.cells[p.to]]);
   for (const e of G.enemies) {
-    let goal = {x:CORE.x + .5, y:CORE.y + .5}, lure = 6, gnawing = false;
+    let goal = {x:CORE.x + .5, y:CORE.y + .5}, lure = 6, gnawing = false, prey = null, reach = Infinity;
+    for (const c of outposts.get(G.breaches[e.home]) || []) {
+      const d = Math.hypot(c.x + .5 - e.x, c.y + .5 - e.y);
+      if (d < reach) { prey = c; reach = d; goal = {x:c.x + .5, y:c.y + .5}; }
+    }
     for (const [from, to] of veins) {
       if (from.veinHp <= 0) continue;
       const at = nearest(from, to, e.x, e.y), d = Math.hypot(at.x - e.x, at.y - e.y);
@@ -808,7 +985,7 @@ function menace(dt) {
     const c = G.cells[key(Math.floor(e.x + dx / distance * .4), Math.floor(e.y + dy / distance * .4))];
     let pace = .4;
     if (c) {
-      const passable = !built(c) || isBelt(c) || c.type === 'bridge';
+      const passable = c !== prey && (!built(c) || isBelt(c) || c.type === 'bridge');
       c.hitAt = G.time;
       c.hp -= dt * (c.type === 'core' ? .6 : passable ? .4 : 3.5);
       pace = passable ? .22 : 0;
@@ -888,6 +1065,12 @@ function upstream(c, side) {
 }
 function diagnose(c) {
   chain = [];
+  if (c.out != null) {
+    const name = TYPES[c.type].name, waits = paused ? ', en attente de la reprise' : '';
+    if (c.cut) return `${name} en démontage : ${Math.max(0, c.out).toFixed(1).replace('.', ',')} s de jeu${waits}.${refund(c) ? ` +${refund(c)} ADN à la fin.` : ''}`;
+    const id = jobId({order:c.outOrder, field:'out'}), drone = G.drones.find(d => d.job === id);
+    return `${name} à démonter : ${drone ? 'un drone arrive' : `en file, ${sites().findIndex(job => jobId(job) === id) + 1}e${waits}`}. Il fonctionne jusqu’à ce que le drone commence.`;
+  }
   if (!built(c)) {
     const place = sites().findIndex(job => job.c === c && job.field === 'left');
     const drone = G.drones.find(d => d.job === jobId({order:c.order, field:'left'}));
@@ -985,7 +1168,7 @@ function diagnose(c) {
 
   const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', ',');
   const entries = c.type === 'ligase' ? ' Entrées : ' + c.ports.map((p, i) => `${i + 1} ${p.length ? BASE[p[0]].toLowerCase() : 'vide'}`).join(', ') + '.' : '';
-  const head = `${c.type === 'mine' ? 'Récolteur de ' + BASE[DEPOSIT[key(c.x, c.y)]].toLowerCase() : 'Ligase' + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', ',')}/s.${entries}${c.type === 'mine' && RICH[key(c.x, c.y)] > richCap() ? ` Ce gisement est ×${RICH[key(c.x, c.y)]}, exploitable ainsi au stade ${RICH[key(c.x, c.y)] === 2 ? 2 : 3}.` : ''}`;
+  const head = `${c.type === 'mine' ? 'Récolteur de ' + BASE[depositAt(c.x, c.y)].toLowerCase() : 'Ligase' + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', ',')}/s.${entries}${c.type === 'mine' && richAt(c.x, c.y) > richCap() ? ` Ce gisement est ×${richAt(c.x, c.y)}, exploitable ainsi au stade ${richAt(c.x, c.y) === 2 ? 2 : 3}.` : ''}`;
   if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
     let to = c, dir = c.dir;
     for (let i = 0; i < W * H; i++) {
@@ -1025,15 +1208,15 @@ let view3d = null;
 const flat = () => view3d ? view3d.tilt : 1;
 function worldAt(sx, sy) { return {x:cam.x + (sx - view.w / 2) / cam.zoom, y:cam.y + (sy - view.h / 2) / (cam.zoom * flat())}; }
 function pan(dx, dy) {
-  cam.x = Math.max(0, Math.min(W, cam.x - dx / cam.zoom));
-  cam.y = Math.max(0, Math.min(H, cam.y - dy / (cam.zoom * flat())));
+  cam.x = Math.max(-LIMIT, Math.min(LIMIT, cam.x - dx / cam.zoom));
+  cam.y = Math.max(-LIMIT, Math.min(LIMIT, cam.y - dy / (cam.zoom * flat())));
 }
 function zoomAt(factor, sx = view.w / 2, sy = view.h / 2) {
   const before = worldAt(sx, sy);
   cam.zoom = Math.max(4, Math.min(72, cam.zoom * factor));
   const after = worldAt(sx, sy);
-  cam.x = Math.max(0, Math.min(W, cam.x + before.x - after.x));
-  cam.y = Math.max(0, Math.min(H, cam.y + before.y - after.y));
+  cam.x = Math.max(-LIMIT, Math.min(LIMIT, cam.x + before.x - after.x));
+  cam.y = Math.max(-LIMIT, Math.min(LIMIT, cam.y + before.y - after.y));
 }
 function home() {
   cam.x = CORE.x + 2; cam.y = OY + 6;
@@ -1156,7 +1339,7 @@ function drawCell(g, c, inputs = []) {
   rect(g,-.42,-.44,.84,.82, type === 'wall' ? '#565247' : '#203C42', type === 'wall' ? '#8C8068' : '#55D6E8');
   if (type === 'mine') {
     circle(g,0,0,.27,'#0B1417','#4A6A73');
-    glyph(g,DEPOSIT[key(c.x,c.y)] || 'S',0,0,.16); arrow(g,c.dir,.5,'#FF8FA2');
+    glyph(g,depositAt(c.x,c.y) || 'S',0,0,.16); arrow(g,c.dir,.5,'#FF8FA2');
   } else if (type === 'ligase') {
     for (let port = 0; port < 3; port++) {
       const side = portSide(c,port), x = DX[side]*.35, y = DY[side]*.35, has = c.ports[port].length;
@@ -1222,10 +1405,9 @@ function draw() {
   const scale = cam.zoom * view.dpr;
   ctx.setTransform(scale,0,0,scale,canvas.width / 2 - cam.x * scale,canvas.height / 2 - cam.y * scale);
   const a = worldAt(0,0), b = worldAt(view.w,view.h);
-  const x0 = Math.max(0,Math.floor(a.x)), y0 = Math.max(0,Math.floor(a.y));
-  const x1 = Math.min(W,Math.ceil(b.x)), y1 = Math.min(H,Math.ceil(b.y));
-  rect(ctx,0,0,W,H,'#0D171A');
-  for (const [base,x,y,w,h] of FIELDS) {
+  const x0 = Math.floor(a.x), y0 = Math.floor(a.y), x1 = Math.ceil(b.x), y1 = Math.ceil(b.y);
+  rect(ctx,x0,y0,x1 - x0,y1 - y0,'#0D171A');
+  for (const [base,x,y,w,h] of fieldsIn(x0,y0,x1,y1)) {
     if (x + w < x0 || x > x1 || y + h < y0 || y > y1) continue;
     rect(ctx,x,y,w,h,{S:'#1E3A1D',F:'#35220F',C:'#2E2B25',N:'#102F37'}[base]);
     // From afar one big glyph names the field.
@@ -1246,7 +1428,7 @@ function draw() {
   for (let y = Math.ceil(y0 / every) * every; y <= y1; y += every) { ctx.moveTo(x0,y); ctx.lineTo(x1,y); }
   ctx.stroke();
   drawOrganism();
-  for (const b of G.breaches) drawBreach(b);
+  for (const b of breachesIn(x0,y0,x1,y1)) drawBreach(b);
 
   const cells = Object.values(G.cells).filter(c => c.x >= x0 - 1 && c.x <= x1 && c.y >= y0 - 1 && c.y <= y1);
   drawVeins();
@@ -1266,7 +1448,7 @@ function draw() {
       const at = along(c,l.dir,l.dir,l.t);
       token(ctx,l.item,at.x,at.y,at.angle);
     }
-    const base = DEPOSIT[key(c.x,c.y)];
+    const base = depositAt(c.x,c.y);
     if (base && c.type !== 'mine') { rect(ctx,c.x,c.y + .7,.32,.3,'#05090B'); glyph(ctx,base,c.x + .16,c.y + .85,.12); }
     if (c.type === 'turret' && !Object.values(c.ammo).some(n => n)) circle(ctx,x,y,.48,null,'#FF6B6B',.07);
     const max = TYPES[c.type]?.hp ?? 100;
@@ -1286,11 +1468,11 @@ function draw() {
     if (c.type !== 'gate') continue;
     ctx.save(); ctx.translate(c.x + .5,c.y + .5); lamp(ctx,c); ctx.restore();
   }
-  for (const c of cells) {
-    if (built(c)) continue;
-    const done = 1 - c.left / BUILD[c.type];
-    ctx.setLineDash([.14,.1]); rect(ctx,c.x + .06,c.y + .06,.88,.88,null,'#55D6E8'); ctx.setLineDash([]);
-    if (done > 0) rect(ctx,c.x + .1,c.y + .82,.8 * done,.1,'#55D6E8');
+  for (const c of [...cells, ...Object.values(G.ruins).filter(w => w.out != null)]) {
+    if (built(c) && c.out == null) continue;
+    const done = woven(c), color = c.out != null ? '#FF6B6B' : '#55D6E8';
+    ctx.setLineDash([.14,.1]); rect(ctx,c.x + .06,c.y + .06,.88,.88,null,color); ctx.setLineDash([]);
+    if (!built(c) && done > 0) rect(ctx,c.x + .1,c.y + .82,.8 * done,.1,color);
   }
   for (const c of chain) rect(ctx,c.x+.04,c.y+.04,.92,.92,null,'#FF6B6B');
   if (selected && G.cells[selected]) {
@@ -1332,15 +1514,15 @@ function draw() {
 function drawDrones() {
   const t = G.time + owed, s = Math.max(1, Math.min(1.8, 17 / cam.zoom));
   for (const d of G.drones) {
-    const {x, y, w, a, goal} = dronePose(d);
+    const {x, y, w, a, goal, undo} = dronePose(d);
     if (goal && w < .5) {
       ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(goal.x,goal.y);
       ctx.strokeStyle = '#55D6E8AA'; ctx.lineWidth = 1 / cam.zoom; ctx.setLineDash([.3,.3]); ctx.stroke(); ctx.setLineDash([]);
     }
     if (goal && w >= .5) for (let i = 0; i < 3; i++) {
       const tx = goal.x + Math.sin(t * 7 + i * 2.1) * .36, ty = goal.y + Math.cos(t * 5 + i * 2.1) * .36;
-      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(tx,ty); ctx.strokeStyle = '#D5FAFF99'; ctx.lineWidth = .035; ctx.stroke();
-      circle(ctx,tx,ty,.06,i ? '#B7F34A' : '#F0A03C');
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(tx,ty); ctx.strokeStyle = undo ? '#FF6B6BAA' : '#D5FAFF99'; ctx.lineWidth = .035; ctx.stroke();
+      circle(ctx,tx,ty,.06,!i ? '#F0A03C' : undo ? '#FF6B6B' : '#B7F34A');
     }
     ctx.save(); ctx.translate(x,y); ctx.rotate(a); ctx.scale(s,s);
     for (const [ax,ay] of [[.17,.21],[.17,-.21],[-.17,.21],[-.17,-.21]]) {
@@ -1363,6 +1545,8 @@ function drawVeins() {
     if (!to) continue;
     const broken = c.veinHp <= 0, leak = leaking(c);
     stroke(c,to,broken ? '#FF4D5E' : '#55202E',.7,broken ? [.5,.4] : []);
+    if (c.veinOut != null) stroke(c,to,'#FF6B6B',.12,[.3,.3]);
+    if (c.veinCut) continue;
     if (c.veinLeft > 0) { stroke(c,to,'#55D6E8',.12,[.3,.3]); continue; }
     if (!broken) stroke(c,to,leak ? '#FF4D5E' : '#A8485C',.16);
     for (const p of c.packets) {
@@ -1402,7 +1586,7 @@ function drawBreach(b) {
 }
 function drawTracks() {
   for (const c of Object.values(G.tracks)) {
-    const x = c.x + .5, y = c.y + .5, color = built(c) ? '#B7F34A' : '#55D6E8';
+    const x = c.x + .5, y = c.y + .5, color = c.out != null ? '#FF6B6B' : built(c) ? '#B7F34A' : '#55D6E8';
     ctx.globalAlpha = built(c) ? .8 : .4;
     for (const k of [0,.33,.66]) circle(ctx,x + DX[c.dir] * k,y + DY[c.dir] * k,k ? .07 : .11,color);
     if (cam.zoom >= 14 && (c.x + c.y) % 3 === 0) { ctx.save(); ctx.translate(x,y); arrow(ctx,c.dir,.36,color); ctx.restore(); }
@@ -1415,6 +1599,7 @@ function drawWorms() {
     const moving = built(w) && !w.docked && !w.stuck, k = moving ? Math.min(1,w.t + owed * WORM.speed * rate()) : 0;
     const next = moving && trackAfter(w.path[0]);
     if (!built(w)) ctx.globalAlpha = .45;
+    if (w.out != null) { const [x,y] = centre(w.path[0]); circle(ctx,x,y,.62,null,'#FF6B6B',.06); }
     for (let i = w.path.length - 1; i >= 0; i--) {
       let [x,y] = centre(w.path[i]);
       const to = i ? w.path[i - 1] : next && key(next.x,next.y);
@@ -1464,7 +1649,7 @@ function drawNerves() {
     if (!a || !b) continue;
     if (b.type === 'turret') [a,b] = [b,a];
     const live = carries(w), cut = !w.hp;
-    cable(a,b,cut ? '#FF4D5E' : live ? '#2E7F91' : '#55D6E8',live ? [] : [.25,.25]);
+    cable(a,b,cut || w.out != null ? '#FF4D5E' : live ? '#2E7F91' : '#55D6E8',live ? [] : [.25,.25]);
     const gene = live && netOf(a)?.focus;
     if (!gene) continue;
     const length = span(a,b), n = Math.max(1,Math.ceil(length / 4));
@@ -1519,7 +1704,8 @@ function showActions() {
     button(`Départ : ${{auto:'auto', full:'plein ou vide', timer:'5 s'}[w.rule]}`, () => { w.rule = {auto:'full', full:'timer', timer:'auto'}[w.rule]; showActions(); });
     if (w.docked) button('Partir', () => { w.docked = false; w.t = 0; });
     button('Vider', () => { for (const h of w.holds) { h.n = 0; h.kind = ''; } });
-    button('Retirer', () => { dropWorm(w, true); wormId = null; showActions(); });
+    if (w.out != null) button('Annuler le retrait', () => { keepIt(w); showActions(); });
+    else button('Retirer', () => { scrap(w, () => { dropWorm(w, true); wormId = null; }); showActions(); });
     $('info').classList.remove('filter');
     return;
   }
@@ -1546,7 +1732,7 @@ function showActions() {
   });
   if (c.type === 'pump') {
     button('Tirer une veine', () => { linking = key(c.x, c.y); say('Touche la pompe d’arrivée, ou un sol libre pour en poser une. 24 cases au plus.'); const hint = note; select(null); say(hint); });
-    if (c.to) button('Couper la veine', () => { for (const p of c.packets) for (let i = 0; i < p.n; i++) c.stock.push(p.item); c.packets = []; c.to = null; showActions(); });
+    if (c.to) button(c.veinOut != null ? 'Annuler la coupe' : 'Couper la veine', () => { if (c.veinOut != null) keepVein(c); else scrapVein(c); showActions(); });
     button('Vider', () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
   }
   if (c.type === 'pocket') button(c.unload ? 'Poche : vide' : 'Poche : charge', () => { c.unload = !c.unload; showActions(); });
@@ -1579,13 +1765,23 @@ function showActions() {
       button(c.read ? `Lit : position ${c.read}` : 'Lit : gène entier', () => { c.read = ((c.read || 0) + 1) % 4; showActions(); });
       if (c.type === 'gate') button(`Si coupé : ${c.open ? 'vert' : 'rouge'}`, () => { c.open = !c.open; showActions(); });
     }
-    button('Couper ses nerfs', () => { G.wires = G.wires.filter(w => w.a !== key(c.x,c.y) && w.b !== key(c.x,c.y)); sense(); showActions(); });
+    const mine = () => G.wires.filter(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y));
+    const cutting = mine().every(w => w.out != null);
+    button(cutting ? 'Garder ses nerfs' : 'Couper ses nerfs', () => {
+      for (const w of mine()) { if (cutting) keepIt(w); else scrap(w, () => { G.wires = G.wires.filter(o => o !== w); }); }
+      sense(); showActions();
+    });
   }
   if (c.type === 'ligase') button('Vider', () => { c.ports = [[],[],[]]; c.item = null; });
-  button(refund(c) ? `Démonter +${refund(c)}` : 'Démonter', () => { remove(c.x,c.y); selected = null; showActions(); });
+  if (c.out != null) button('Annuler le démontage', () => { keepIt(c); showActions(); });
+  else button(refund(c) ? `Démonter +${refund(c)}` : 'Démonter', () => {
+    scrap(c, () => { remove(c.x,c.y); selected = null; });
+    showActions();
+  });
 }
 function pickedWorm() { return G.worms.find(w => w.id === wormId); }
 function wormState(w) {
+  if (w.out != null) return w.cut ? `Ver en retrait : ${Math.max(0, w.out).toFixed(1).replace('.', ',')} s de jeu.` : 'Ver à retirer : un drone le rejoint, il roule en attendant.';
   if (!built(w)) return `Ver en incubation : ${w.left.toFixed(1).replace('.', ',')} s de jeu.`;
   const cargo = w.holds.map(h => h.n ? `${h.n} ${h.kind}` : 'vide').join(', ');
   const doing = w.docked ? 'à quai' : w.stuck ? `arrêté, ${w.stuck}` : 'en route';
@@ -1655,7 +1851,7 @@ function refresh() {
   const asleep = G.breaches.filter(b => b.state === 'sleep').length;
   const text = orderHTML() + here + (first
     ? `<b>${active ? 'Assaut' : `Dans ${left} s`}, ${bearing(first)}</b>${geneMark(shown)}<span>→</span><span class="need">${geneMark(opposite(shown))}</span>${awake.length > 1 ? `<span class="none">+${awake.length - 1} brèche${awake.length > 2 ? 's' : ''}</span>` : ''}`
-    : asleep ? `<span>${asleep} brèches dormantes</span>` : '<span>Toutes les brèches sont vidées</span>');
+    : asleep ? `<span>${asleep} brèches dormantes autour de la base</span>` : '<span>Alentours vidés : la carte continue plus loin</span>');
   if (text !== briefText) { briefText = text; $('brief').innerHTML = text; }
   $('brief').classList.toggle('hot', Boolean(first) && (active || left <= 25));
   const copy = selected && G.cells[selected]?.seen && [...$('actions').children].find(b => b.disabled);
@@ -1692,14 +1888,15 @@ function remove(x,y) {
   G.wires = G.wires.filter(w => w.a !== key(x,y) && w.b !== key(x,y));
   if (gone) G.dna += refund(gone);
   delete G.cells[key(x,y)]; delete G.ruins[key(x,y)];
-  for (const c of [...pumps(), ...Object.values(G.ruins)]) if (c.to === key(x,y)) { c.to = null; c.packets = []; }
+  for (const c of [...pumps(), ...Object.values(G.ruins)]) if (c.to === key(x,y)) { c.to = null; c.packets = []; delete c.veinOut; delete c.veinCut; }
 }
 // Démonter takes what is on top first: worm, building, then trail.
 function wipe(x,y) {
   const id = key(x,y), w = G.worms.find(o => o.path.includes(id));
-  if (w) return dropWorm(w, true);
-  if (G.cells[id] || G.ruins[id]) return remove(x,y);
-  delete G.tracks[id];
+  if (w) return scrap(w, () => dropWorm(w, true));
+  const top = G.cells[id] || G.ruins[id];
+  if (top) return scrap(top, () => remove(x,y));
+  if (G.tracks[id]) scrap(G.tracks[id], () => { delete G.tracks[id]; });
 }
 function place(x,y) {
   const id = key(x,y), old = G.cells[id];
@@ -1739,7 +1936,7 @@ function place(x,y) {
     if (old) return select(id);
     select(null); say(TYPES.hand.help);
     if (G.tracks[id]) return say(trackAfter(id) || !built(G.tracks[id]) ? 'Piste de phéromones. Pose une poche contre elle, ou un ver dessus.' : 'Fin de piste : les vers s’arrêtent ici. Referme la boucle.');
-    const b = G.breaches.find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
+    const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
     if (!b) return;
     say(`Brèche au ${bearing(b)} : ${b.left} créatures, gène faible ${b.genes.join(' et ')}, antidote ${b.genes.map(opposite).join(' et ')}. ${b.state === 'sleep' ? 'Elle dort tant que rien n’est bâti dans son cercle.' : 'Elle est réveillée. Vide-la pour qu’elle disparaisse.'}`);
     if (b.state === 'sleep') button('Réveiller', () => { wake(b); $('actions').replaceChildren(); });
@@ -1756,7 +1953,7 @@ function place(x,y) {
   if (!buildable(x,y)) return say('La zone des ruches n’est pas constructible.');
   const cost = price(tool);
   if (cost > G.dna) return say(`Il manque ${cost - G.dna} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.`);
-  if (tool === 'mine' && !DEPOSIT[id]) return say('Un récolteur se pose sur un gisement coloré.');
+  if (tool === 'mine' && !depositAt(x,y)) return say('Un récolteur se pose sur un gisement coloré.');
   G.dna -= cost;
   build(tool,x,y,heading); select(id); say(TYPES[tool].help + (cost ? ` Payé ${cost} ADN.` : ''));
 }
@@ -1801,6 +1998,8 @@ function extend(to) {
     }
     if (tool !== 'belt') { drag = null; return; }
     const from = G.cells[key(drag.x,drag.y)];
+    // Drawn over again, a belt on its way out stays.
+    for (const c of [from, G.cells[key(x,y)]]) if (isBelt(c)) keepIt(c);
     if (from && !isBelt(from) && from.type !== 'bridge' && drag.moved) { drag = null; return; }
     if (from && drag.existing && drag.moved && isBelt(from) && from.dir !== dir) {
       say('Ce tapis existe déjà : la ligne s’y raccorde. Pour le traverser, pose un pont.');
@@ -1954,9 +2153,9 @@ async function show3D(on) {
 }
 $('dimension').onclick = () => show3D(!view3d);
 $('rebuild').onclick = () => {
-  for (const w of G.wires) if (!w.hp) Object.assign(w, {hp:NERVE.hp, left:1, order:G.seq = (G.seq || 0) + 1});
+  for (const w of G.wires) if (!w.hp && w.out == null) Object.assign(w, {hp:NERVE.hp, left:1, order:G.seq = (G.seq || 0) + 1});
   for (const c of pumps()) {
-    if (!c.to || c.veinHp >= VEIN.hp / 2) continue;
+    if (!c.to || c.veinOut != null || c.veinHp >= VEIN.hp / 2) continue;
     c.veinHp = VEIN.hp; c.veinLeft = 1.5; c.veinOrder = G.seq = (G.seq || 0) + 1;
   }
   let unpaid = 0;
@@ -2021,7 +2220,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } return true; }
+    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } return true; }
   } catch (_) {}
   return false;
 }
