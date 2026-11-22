@@ -54,6 +54,7 @@ button:disabled { opacity:.4; cursor:default; }
 #zoom button { width:40px; padding:0; font-size:18px; }
 #works { position:absolute; left:6px; top:6px; padding:4px 8px; border-radius:6px; background:var(--night); color:var(--cyan); font-size:12px; pointer-events:none; }
 #rebuild { position:absolute; left:6px; bottom:6px; border-color:var(--alarm); color:var(--alarm); }
+#gl { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 #game { position:absolute; inset:0; width:100%; height:100%; touch-action:none; user-select:none; -webkit-user-select:none; }
 #over { position:absolute; inset:0; display:grid; place-content:center; justify-items:center; gap:12px; text-align:center; background:var(--night); }
 #over h2 { margin:0; font:600 26px var(--display); color:var(--alarm); text-wrap:balance; }
@@ -97,8 +98,9 @@ button:disabled { opacity:.4; cursor:default; }
   </header>
   <section id="brief" aria-live="polite"></section>
   <div id="board">
+    <canvas id="gl" hidden aria-hidden="true"></canvas>
     <canvas id="game" aria-label="Plateau : gisements, machines, tapis et créatures"></canvas>
-    <div id="zoom"><button id="zoom-in" aria-label="Zoomer">+</button><button id="zoom-out" aria-label="Dézoomer">−</button><button id="home" aria-label="Revenir au cœur">⌂</button></div>
+    <div id="zoom"><button id="zoom-in" aria-label="Zoomer">+</button><button id="zoom-out" aria-label="Dézoomer">−</button><button id="home" aria-label="Revenir au cœur">⌂</button><button id="dimension" aria-label="Passer en vue 3D">3D</button></div>
     <output id="works" hidden></output>
     <button id="rebuild" hidden>Reconstruire</button>
     <div id="over" hidden><h2>Le cœur est tombé</h2><p id="score"></p><button id="again">Fonder une autre station</button></div>
@@ -942,10 +944,13 @@ function resize() {
   view = {w:Math.max(1, box.width), h:Math.max(1, box.height), dpr:Math.min(2, window.devicePixelRatio || 1)};
   canvas.width = view.w * view.dpr; canvas.height = view.h * view.dpr;
 }
-function worldAt(sx, sy) { return {x:cam.x + (sx - view.w / 2) / cam.zoom, y:cam.y + (sy - view.h / 2) / cam.zoom}; }
+// The 3D camera is tilted, which only flattens y: everything else is shared with the 2D view.
+let view3d = null;
+const flat = () => view3d ? view3d.tilt : 1;
+function worldAt(sx, sy) { return {x:cam.x + (sx - view.w / 2) / cam.zoom, y:cam.y + (sy - view.h / 2) / (cam.zoom * flat())}; }
 function pan(dx, dy) {
   cam.x = Math.max(0, Math.min(W, cam.x - dx / cam.zoom));
-  cam.y = Math.max(0, Math.min(H, cam.y - dy / cam.zoom));
+  cam.y = Math.max(0, Math.min(H, cam.y - dy / (cam.zoom * flat())));
 }
 function zoomAt(factor, sx = view.w / 2, sy = view.h / 2) {
   const before = worldAt(sx, sy);
@@ -956,7 +961,7 @@ function zoomAt(factor, sx = view.w / 2, sy = view.h / 2) {
 }
 function home() {
   cam.x = CORE.x + 2; cam.y = OY + 6;
-  cam.zoom = Math.max(11, Math.min(44, Math.min(view.w / 28, view.h / 28)));
+  cam.zoom = Math.max(11, Math.min(44, Math.min(view.w / 28, view.h / (28 * flat()))));
 }
 function circle(g, x, y, r, fill, stroke, width = .04) {
   g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
@@ -1135,6 +1140,7 @@ function drawCell(g, c, inputs = []) {
   } else if (type === 'core') circle(g,0,0,.31,'#B7F34A','#E2FFB0');
 }
 function draw() {
+  if (view3d) return view3d.draw();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.fillStyle = '#05090B'; ctx.fillRect(0,0,canvas.width,canvas.height);
   const scale = cam.zoom * view.dpr;
@@ -1371,7 +1377,7 @@ function drawNerves() {
   if (from) circle(ctx,from.x + .5,from.y + .5,NERVE.reach,null,'#55D6E8',2 / cam.zoom);
 }
 function marker(x,y,color) {
-  const cx = view.w / 2, cy = view.h / 2, dx = (x - cam.x) * cam.zoom, dy = (y - cam.y) * cam.zoom;
+  const cx = view.w / 2, cy = view.h / 2, dx = (x - cam.x) * cam.zoom, dy = (y - cam.y) * cam.zoom * flat();
   if (Math.abs(dx) <= cx && Math.abs(dy) <= cy) return;
   const k = Math.min((cx - 12) / Math.abs(dx || 1e-6),(cy - 12) / Math.abs(dy || 1e-6));
   const px = cx + dx * k, py = cy + dy * k, a = Math.atan2(dy,dx);
@@ -1764,7 +1770,7 @@ canvas.addEventListener('pointermove', event => {
 function release(event) {
   if (!pointers.delete(event.pointerId) || pointers.size) return;
   if (event.type === 'pointerup' && gesture?.mode === 'tap') {
-    const p = position(gesture.start);
+    const p = view3d ? view3d.pick(gesture.start) : position(gesture.start);
     if (inside(p.x,p.y)) place(p.x,p.y);
   }
   if (event.type === 'pointerup' && drag?.nerve && gesture?.mode === 'draw') {
@@ -1802,6 +1808,48 @@ function followEdge(elapsed) {
 $('zoom-in').onclick = () => zoomAt(1.35);
 $('zoom-out').onclick = () => zoomAt(1 / 1.35);
 $('home').onclick = () => home();
+
+// ---- 2D or 3D. Babylon is only fetched when the 3D view is first asked for.
+const BABYLON_SRC = 'https://cdn.jsdelivr.net/npm/babylonjs@9.31.0/babylon.js';
+const BABYLON_HASH = 'sha384-GbwOam+gaf7GWvN708CvUiGqRFPFMS/lpYod2JfIip04KMa4TIJ8HXRjhwvT9DMC';
+const VIEW_KEY = 'strainworks-view';
+let made3d = null, switching = false;
+function script(src, integrity) {
+  return new Promise((resolve, reject) => {
+    const tag = document.createElement('script');
+    tag.src = src;
+    if (integrity) { tag.integrity = integrity; tag.crossOrigin = 'anonymous'; }
+    tag.onload = resolve;
+    tag.onerror = () => { tag.remove(); reject(new Error(src)); };
+    document.head.append(tag);
+  });
+}
+async function show3D(on) {
+  if (switching) return;
+  switching = true;
+  const toggle = $('dimension');
+  try {
+    if (on && !made3d) {
+      toggle.textContent = '…';
+      if (!window.BABYLON) await script(BABYLON_SRC, BABYLON_HASH);
+      if (!window.createView3D) await script('view3d.js');
+      // Built while visible, or the engine would start on an empty canvas.
+      $('gl').hidden = false;
+      made3d = window.createView3D($('gl'));
+    }
+    view3d = on ? made3d : null;
+    $('gl').hidden = !on;
+    try { localStorage.setItem(VIEW_KEY, on ? '3d' : '2d'); } catch (_) {}
+  } catch (error) {
+    view3d = null; $('gl').hidden = true;
+    say('Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.');
+    console.warn('3D view unavailable:', error.message);
+  }
+  toggle.textContent = view3d ? '2D' : '3D';
+  toggle.setAttribute('aria-label', view3d ? 'Passer en vue 2D' : 'Passer en vue 3D');
+  switching = false;
+}
+$('dimension').onclick = () => show3D(!view3d);
 $('rebuild').onclick = () => {
   for (const w of G.wires) if (!w.hp) Object.assign(w, {hp:NERVE.hp, left:1, order:G.seq = (G.seq || 0) + 1});
   for (const c of pumps()) {
@@ -1901,4 +1949,5 @@ function frame(now) {
 }
 refresh();
 requestAnimationFrame(frame);
+try { if (localStorage.getItem(VIEW_KEY) === '3d') show3D(true); } catch (_) {}
 </script>

@@ -61,8 +61,9 @@ Strainworks is a browser and mobile incremental factory game crossed with tower
 defense. Read `docs/concept.md` before changing a rule: rows marked Decided or
 Rejected are the operator's decisions, rows marked Proposed are open.
 
-- `prototype/index.html` is the playable reference and is still iterated on. It is
-  self-contained, with a French interface.
+- `prototype/index.html` is the playable reference and is still iterated on, with
+  a French interface. `prototype/view3d.js` is its 3D view: it only reads the game
+  state, and a new kind of object needs a shape there as well as in the 2D drawing.
 - `tests/prototype/` records its behavior. An intended rule change updates the
   snapshot in the same commit and the concept with it. Never update a snapshot to
   silence a failure you cannot explain.

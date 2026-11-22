@@ -11,7 +11,9 @@ npm install
 npm run dev
 ```
 
-The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. `prototype/index.html` is self-contained and also opens directly as a file.
+The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. `prototype/index.html` also opens directly as a file, with `view3d.js` beside it.
+
+The **3D** button beside the zoom draws the same game in Babylon.js. The engine is fetched from jsDelivr on first use, pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
 
 ## Check
 
@@ -20,7 +22,7 @@ npx playwright install chromium   # once
 npm run check
 ```
 
-`npm test` replays the prototype in headless Chromium: belt motion, sorters, bridges, gates, deposits and veins, breaches and damage, economy, construction and repair, worms, progression and nerves. Each run is seeded and compared with the recorded results in `tests/prototype/__snapshots__/`, and saves from earlier prototype versions must still load.
+`npm test` replays the prototype in headless Chromium: belt motion, sorters, bridges, gates, deposits and veins, breaches and damage, economy, construction and repair, worms, progression, nerves and the 3D view. Each run is seeded and compared with the recorded results in `tests/prototype/__snapshots__/`, and saves from earlier prototype versions must still load.
 
 When a rule changes on purpose, rerun with `npm test -- -u` and read the snapshot diff before committing it: that diff is the gameplay change.
 
@@ -28,7 +30,7 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 
 | Path | Content |
 |---|---|
-| `prototype/` | The playable prototype and the transport mockup, French interface |
+| `prototype/` | The playable prototype, its 3D view (`view3d.js`) and the transport mockup, French interface |
 | `docs/concept.md` | Game concept and decisions |
 | `tests/prototype/` | Behavior tests of the prototype |
 | `tests/fixtures/saves/` | Saved games from earlier prototype versions |
