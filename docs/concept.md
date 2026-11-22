@@ -38,6 +38,7 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Build time | Decided | Nothing appears at once: sites do not advance while paused |
 | Builder drones | Decided | As many drones as simultaneous sites: a site only advances while its drone is beside it |
 | Two splitters | Decided | Two ways (left and right) from the start, three ways unlocked by tech |
+| Buildings of 2 x 2 cells | Decided | A large storage and a large harvester |
 | Dismantling | Decided | It takes time and a drone, like building |
 | Repair | Decided | Damaged buildings repair over time |
 | Goal besides defense | Decided | The core demands shapes: delivering them grows it and unlocks what follows. Three stages in the prototype |
@@ -108,7 +109,7 @@ Ages unlock technologies, not matters. A gene is unlocked by delivering it in qu
 
 - Planning while paused is allowed, but sites only advance while the game runs.
 - **3 drones live on the core, one per site**, and take sites in placement order. A site only advances while its drone is within 2 cells. A drone flies 20 cells per second and goes from one site to the next without returning to its nest.
-- Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitters and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, Gueule 5 s, turret 6 s, Dard 7 s, vein by length.
+- Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitters and sorter 1 s, large cyst 5 s, large harvester 6 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, Gueule 5 s, turret 6 s, Dard 7 s, vein by length.
 - A site does not carry, shoot, block or attract creatures.
 - **Dismantling shares the same drones and queue, and lasts as long as building did.** A building works until its drone starts, the refund comes at the end, and it can be cancelled. A site nobody started is cancelled at once.
 
@@ -128,6 +129,8 @@ Starting values, to balance:
 | Belt (Tapis) | 4 items per second |
 | Turret (Tourelle) | up to 3 genes fired per second |
 | Cyst (Kyste) | 60 items |
+| Large cyst (Grand kyste), 2 x 2, stage 2 | 360 items, two mouths of a belt each |
+| Large harvester (Grand récolteur), 2 x 2, stage 2 | as 6 harvesters, out by its 8 faces |
 
 - A machine pushes as soon as a place is free and stops when its output is full. The stop travels back up the line.
 - A junction alternates. A priority is set with an arrow.

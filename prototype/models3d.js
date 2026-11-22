@@ -558,6 +558,58 @@ window.createModels3D = (B, scene) => {
       nozzle(x, y, c.dir, 0.22, 'pink');
     },
 
+    // A derrick over four cells: two counter-turning cutters, a mast, and a mouth on each of eight faces.
+    borer(c, x, y) {
+      const kind = depositAt(c.x, c.y) || 'S';
+      const working = built(c) && c.stock.length < BORER.hold;
+      const spin = working ? clock * 4 : c.x;
+      const dive = working ? (Math.sin(clock * 5 + c.x) + 1) * 0.05 : 0.04;
+      add('stain', 'black', x, y, 0.07, 1.9, 0.03, 1.9, c.x * 1.3);
+      for (let i = 0; i < 4; i++) {
+        const a = Math.PI / 4 + (i * Math.PI) / 2;
+        const [fx, fy] = from(x, y, a, 1.08);
+        add('hull', 'dark', fx, fy, 0.12, 0.34, 0.22, 0.34, a);
+        limb('steel', fx, fy, 0.2, ...from(x, y, a, 0.24), 1.2, 0.14);
+        limb('hazard', ...from(x, y, a, 0.86), 0.46, ...from(x, y, a, 0.72), 0.64, 0.16);
+        if (fine) limb('steel2', ...from(x, y, a, 0.66), 0.7, ...from(x, y, a + Math.PI / 2, 0.66), 0.7, 0.07);
+      }
+      add('gear', 'chrome', x, y, 0.2 + dive, 1.16, 0.12, 1.16, spin);
+      add('gear', 'steel2', x, y, 0.36 + dive, 0.76, 0.12, 0.76, -spin * 1.4);
+      add('taper', 'steel2', x, y, 0.78 + dive, 0.32, 0.74, 0.32);
+      if (fine) for (let i = 0; i < 3; i++) add('ring', 'copper', x, y, 0.62 + i * 0.16 + dive, 0.4 - i * 0.05);
+      add('hull', 'steel', x, y, 1.26, 0.74, 0.22, 0.74);
+      add('ring', working ? 'cyan' : 'amber', x, y, 1.39, 0.7);
+      add('dome', 'glass', x, y, 1.36, 0.6, 0.7, 0.6);
+      base(kind, x, y, 1.5, 0.19, spin * 0.2);
+      for (const door of edgesOf(c)) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.22, 'pink');
+    },
+
+    // Four sacs in one cradle, filling one after the other, two mouths side by side.
+    vault(c, x, y) {
+      const full = c.stock.length / VAULT.cap;
+      add('hull', 'dark', x, y, 0.09, 1.9, 0.18, 1.9);
+      add('hull', 'steel', x, y, 0.22, 1.62, 0.14, 1.62);
+      for (let i = 0; i < 4; i++) {
+        const a = Math.PI / 4 + (i * Math.PI) / 2;
+        const part = Math.max(0, Math.min(1, full * 4 - i));
+        const beat = 1 + Math.sin(clock * 2.2 + i * 1.4 + c.x) * 0.03;
+        const r = (0.5 + part * 0.3) * beat;
+        const [sx, sy] = from(x, y, a, 0.54);
+        add('sac', part > 0.95 ? 'flesh2' : 'flesh', sx, sy, 0.3 + r * 0.36, r, r, r, a);
+        add('lip', 'pink', sx, sy, 0.3 + r * 0.82, 0.18);
+        add('bead', part > 0.05 ? (part > 0.95 ? 'alarm' : 'pink') : 'gore', ...from(sx, sy, a, r * 0.34), 0.3 + r * 0.6, 0.14);
+        add('horn', 'bone', ...from(x, y, a, 1.12), 0.2, 0.5, 0.66 + part * 0.2, 0.5, a + Math.PI);
+        if (fine) limb('gore', sx, sy, 0.46, x, y, 0.74, 0.12, 'taper');
+      }
+      add('sac', 'skin', x, y, 0.62, 0.4, 0.46, 0.4);
+      add('ring', full > 0.95 ? 'alarm' : 'cyan', x, y, 0.84, 0.36);
+      if (c.stock.length) cargo(c.stock[0], x, y, 0.98, Math.PI, 0.5);
+      for (const door of edgesOf(c)) {
+        if (door.dir === c.dir) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.26, 'pink');
+        else if (fine) add('bead', 'black', door.x + 0.5 + DX[door.dir] * 0.42, door.y + 0.5 + DY[door.dir] * 0.42, 0.24, 0.18, 0.18, 0.18);
+      }
+    },
+
     // A two-lobed heart bolted to the deck, beating while it has matter.
     pump(c, x, y) {
       const kind = c.stock[0] || c.packets[0]?.item;
@@ -754,9 +806,9 @@ window.createModels3D = (B, scene) => {
           const m = noise(j + 4, i + 9);
           const cx = i + 0.5;
           const cy = j + 0.5;
-          const covered = G.cells[key(i, j)];
+          const covered = cellAt(i, j);
           if (covered) {
-            if (covered.type !== 'mine') base(kind, cx - 0.38, cy + 0.38, 0.12, 0.08);
+            if (covered.type !== 'mine' && covered.type !== 'borer') base(kind, cx - 0.38, cy + 0.38, 0.12, 0.08);
             continue;
           }
           if (cam.zoom < 9 && (i + j) % 2) continue;
@@ -824,7 +876,7 @@ window.createModels3D = (B, scene) => {
       const down = (i * 3 + j * 5) % 4 === 0;
       const ni = i + (down ? 0 : 1);
       const nj = j + (down ? 1 : 0);
-      if (depositAt(ni, nj) !== 'N' || G.cells[key(ni, nj)]) return;
+      if (depositAt(ni, nj) !== 'N' || cellAt(ni, nj)) return;
       const n2 = noise(ni, nj);
       const tx = ni + 0.5 + (n2 - 0.5) * 0.4;
       const ty = nj + 0.5 + (noise(nj + 4, ni + 9) - 0.5) * 0.4;
@@ -1034,8 +1086,7 @@ window.createModels3D = (B, scene) => {
   function ghost() {
     if (!aimed?.type) return;
     const { type, act, dir } = aimed;
-    const x = aimed.x + 0.5;
-    const y = aimed.y + 0.5;
+    const { x, y } = centreOf(aimed);
     add.plane = true;
     add.ghost = act === 'no' ? 'scrap' : 'site';
     add.solid = 0;
@@ -1047,31 +1098,33 @@ window.createModels3D = (B, scene) => {
   }
   function cells(area) {
     for (const c of Object.values(G.cells)) {
-      if (c.x < area.x0 - 1 || c.x > area.x1 || c.y < area.y0 - 1 || c.y > area.y1) continue;
-      const x = c.x + 0.5;
-      const y = c.y + 0.5;
+      if (c.x < area.x0 - 2 || c.x > area.x1 || c.y < area.y0 - 2 || c.y > area.y1) continue;
+      const { x, y } = centreOf(c);
+      const size = sizeOf(c);
       const waiting = !built(c);
       const doomed = aimed?.act === 'scrap' && !aimed.worm && aimed.x === c.x && aimed.y === c.y;
       add.ghost = c.cut || doomed ? 'scrap' : waiting;
       if (doomed) add.solid = 0.12;
       // Solid from the bottom up, as far as it stands: taken down, it goes from the top.
-      if (waiting) add.solid = woven(c) * 0.9;
+      if (waiting) add.solid = woven(c) * (size > 1 ? 1.6 : 0.9);
       BUILDINGS[c.type]?.(c, x, y);
       add.ghost = false;
       add.solid = 0;
       if (waiting) {
         // A hologram inside a scaffold, scanned from the bottom up.
         const frame = c.cut ? 'alarm' : 'holo';
+        const out = size / 2 - 0.06;
+        const tall = size > 1 ? 1.4 : 0.7;
         for (const a of [-1, 1]) {
           for (const b of [-1, 1]) {
-            add('tube', frame, x + a * 0.44, y + b * 0.44, 0.35, 0.035, 0.7, 0.035);
-            add('bead', frame, x + a * 0.44, y + b * 0.44, 0.72, 0.08);
+            add('tube', frame, x + a * out, y + b * out, tall / 2, 0.035, tall, 0.035);
+            add('bead', frame, x + a * out, y + b * out, tall + 0.02, 0.08);
           }
         }
-        const h = 0.05 + woven(c) * 0.7;
+        const h = 0.05 + woven(c) * tall;
         for (const s of [-1, 1]) {
-          add('box', frame, x + s * 0.44, y, h, 0.025, 0.025, 0.88);
-          add('box', frame, x, y + s * 0.44, h, 0.88, 0.025, 0.025);
+          add('box', frame, x + s * out, y, h, 0.025, 0.025, out * 2);
+          add('box', frame, x, y + s * out, h, out * 2, 0.025, 0.025);
         }
         continue;
       }
@@ -1095,14 +1148,14 @@ window.createModels3D = (B, scene) => {
         });
       }
     }
-    for (const [id, w] of Object.entries(G.ruins)) {
-      if (G.cells[id]) continue;
-      const x = w.x + 0.5;
-      const y = w.y + 0.5;
+    for (const w of Object.values(G.ruins)) {
+      if (buried(w)) continue;
+      const { x, y } = centreOf(w);
+      const wide = sizeOf(w);
       const seed = noise(w.x, w.y) * 6;
-      add('stain', 'black', x, y, 0.03, 1, 0.03, 1, seed);
-      add('hull', 'wreck', x, y, 0.12, 0.5, 0.24, 0.42, seed, 0.3);
-      for (let i = 0; i < 5; i++) add('rock', 'wreck', ...from(x, y, seed + i * 1.26, 0.34), 0.08, 0.2, 0.16, 0.2, i);
+      add('stain', 'black', x, y, 0.03, wide, 0.03, wide, seed);
+      add('hull', 'wreck', x, y, 0.12 * wide, 0.5 * wide, 0.24 * wide, 0.42 * wide, seed, 0.3);
+      for (let i = 0; i < 5; i++) add('rock', 'wreck', ...from(x, y, seed + i * 1.26, 0.34 * wide), 0.08, 0.2, 0.16, 0.2, i);
       limb('steel', ...from(x, y, seed, -0.2), 0.1, ...from(x, y, seed, 0.2), 0.48, 0.06);
       add('bead', 'ember', ...from(x, y, seed + 1, 0.16), 0.26, 0.1 + Math.max(0, Math.sin(clock * 9 + seed)) * 0.04);
     }
@@ -1264,7 +1317,7 @@ window.createModels3D = (B, scene) => {
       }
       if (!goal || w < 0.5) return;
       // Three threads sweep the height the site has reached, and throw sparks.
-      const c = G.cells[`${Math.floor(goal.x)},${Math.floor(goal.y)}`];
+      const c = cellAt(Math.floor(goal.x), Math.floor(goal.y));
       const level = c && !built(c) ? 0.05 + woven(c) * 0.75 : 0.15;
       for (let i = 0; i < 3; i++) {
         const tx = goal.x + Math.sin(clock * 7 + i * 2.1 + index) * 0.36;

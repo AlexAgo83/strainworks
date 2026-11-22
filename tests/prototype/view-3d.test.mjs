@@ -108,7 +108,7 @@ it("draws the same game and lands a finger on the same cell", async () => {
     const box = await page.locator("#game").boundingBox();
     const tilt = await page.evaluate(() => view3d.tilt);
     const at = (x, y, up = 0) => [box.x + box.width / 2 + (x + 0.5 - 20) * 24, box.y + box.height / 2 + (y + 0.5 - 80) * 24 * tilt - up];
-    await page.locator("#tools button", { hasText: "Kyste" }).click();
+    await page.locator('#tools [data-type="cyst"]').click();
     const cells = [[15, 74], [20, 80], [24, 87]];
     for (const [x, y] of cells) await page.touchscreen.tap(...at(x, y));
     expect(await page.evaluate((list) => list.map(([x, y]) => G.cells[`${x},${y}`]?.type), cells)).toEqual(["cyst", "cyst", "cyst"]);

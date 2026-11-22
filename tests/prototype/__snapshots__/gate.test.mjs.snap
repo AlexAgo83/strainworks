@@ -28,7 +28,7 @@ exports[`gate behaves as the recorded prototype 1`] = `
     "tools",
     {
       "bottom": 694,
-      "n": 22,
+      "n": 24,
       "scroll": 375,
     },
   ],

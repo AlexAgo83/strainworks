@@ -66,7 +66,9 @@ Rejected are the operator's decisions, rows marked Proposed are open.
   read-outs), `prototype/models3d.js` its models and `prototype/terrain3d.js` its endless
   ground, made by chunks round the camera and flat at height 0 under whatever is built.
   Code that draws the map asks fieldsIn, breachesIn and depositAt: FIELDS and G.breaches
-  alone only hold the landing square and what woke. preview() must follow place(). They only read the game state,
+  alone only hold the landing square and what woke. preview() must follow place().
+  A 2 x 2 building lives on its north-west cell: look cells up with cellAt and ruinAt,
+  place things with centreOf and footprint, never assume one cell. They only read the game state,
   and a new kind of object needs a model there as well as its 2D drawing.
 - `tests/prototype/` records its behavior. An intended rule change updates the
   snapshot in the same commit and the concept with it. Never update a snapshot to

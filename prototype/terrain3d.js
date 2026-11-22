@@ -634,7 +634,7 @@ window.createTerrain3D = (B, scene, glow) => {
   function occupy(box) {
     const now = new Map();
     const mark = (x, y) => now.set(code(x, y), [x, y]);
-    for (const list of [G.cells, G.tracks, G.ruins]) for (const c of Object.values(list)) mark(c.x, c.y);
+    for (const list of [G.cells, G.tracks, G.ruins]) for (const c of Object.values(list)) for (const p of footprint(c)) mark(p.x, p.y);
     for (const c of Object.values(G.cells)) {
       const to = c.type === 'pump' && c.to && G.cells[c.to];
       if (!to) continue;

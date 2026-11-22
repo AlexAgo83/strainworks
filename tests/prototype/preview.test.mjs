@@ -45,12 +45,12 @@ it("announces what a tap does", async () => {
             out.checked++;
             out.seen.add(p.act);
             const bad =
-              p.x !== x || p.y !== y ||
+              (BIG[p.type] || p.size ? x - p.x < 0 || x - p.x > 1 || y - p.y < 0 || y - p.y > 1 : p.x !== x || p.y !== y) ||
               (["no", "select", "none"].includes(p.act) && changed) ||
               (["scrap", "turn", "use"].includes(p.act) && !changed) ||
               (p.act === "build" && !changed) ||
-              (p.act === "build" && p.type !== "worm" && p.type !== "track" && G.cells[key(x, y)].type !== p.type) ||
-              (p.act === "build" && p.dir != null && p.type !== "track" && G.cells[key(x, y)].dir !== p.dir) ||
+              (p.act === "build" && p.type !== "worm" && p.type !== "track" && cellAt(x, y).type !== p.type) ||
+              (p.act === "build" && p.dir != null && p.type !== "track" && cellAt(x, y).dir !== p.dir) ||
               (p.act === "link" && changed && type !== "pump");
             if (bad) out.lies.push([type, x, y, dna, p.act, changed]);
           }

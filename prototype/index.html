@@ -135,6 +135,8 @@ const TYPES = {
   turret:{name:'Tourelle', help:'Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.', hp:180},
   cyst:{name:'Kyste', help:'Stocke 60 objets et les ressort par la flèche. À remplir avant un assaut.', hp:80},
   bridge:{name:'Pont', help:'Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie.', hp:40},
+  borer:{name:'Grand récolteur', help:'4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.', hp:180},
+  vault:{name:'Grand kyste', help:'4 cases, 360 objets. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.', hp:200},
   split2:{name:'Diviseur 2', help:'Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.', hp:40},
   split:{name:'Diviseur 3', help:'Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.', hp:40},
   sort:{name:'Trieur', help:'Entrée derrière. Ce qui correspond au filtre sort du côté choisi, le reste va tout droit.', hp:40},
@@ -148,7 +150,7 @@ const VEIN = {reach:24, speed:16, pulse:.5, load:8, cap:48, hp:50};
 const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 const STAGES = [
   {name:'Cellule', item:'SFS', count:100, gives:'Diviseur 3, Trieur et Encapsuleur'},
-  {name:'Tissu', item:'T:CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2 et Assembleur'},
+  {name:'Tissu', item:'T:CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2, Assembleur, Grand récolteur et Grand kyste'},
   {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4'}
 ];
 // A container is a string too, so whatever carries items carries it: 'A:CNF' is a magazine, 'T:CCF' a capsule.
@@ -167,9 +169,56 @@ const isGun = c => Boolean(c && GUNS[c.type]);
 const SPLIT = {split2:[3, 1], split:[3, 0, 1]};
 const isSplit = c => Boolean(c && SPLIT[c.type]);
 const splitExits = c => SPLIT[c.type].map(turn => (c.dir + turn) % 4);
+// These cover 2 x 2 cells. The object stands on its north-west cell: saved games need nothing new.
+const BIG = {borer:true, vault:true};
+const BORER = {harvesters:6, hold:24}, VAULT = {cap:360};
+const sizeOf = c => BIG[c.type] ? 2 : 1;
+const centreOf = c => ({x:c.x + sizeOf(c) / 2, y:c.y + sizeOf(c) / 2});
+function footprint(c) {
+  const cells = [];
+  for (let j = 0; j < sizeOf(c); j++) for (let i = 0; i < sizeOf(c); i++) cells.push({x:c.x + i, y:c.y + j});
+  return cells;
+}
+// Each cell of it with a face on the outside, side by side in the order of the compass.
+function edgesOf(c) {
+  const last = sizeOf(c) - 1, edges = [];
+  for (let dir = 0; dir < 4; dir++) for (let i = 0; i <= last; i++) {
+    if (dir % 2) edges.push({x:dir === 1 ? c.x + last : c.x, y:c.y + i, dir});
+    else edges.push({x:c.x + i, y:dir ? c.y + last : c.y, dir});
+  }
+  return edges;
+}
+function covering(list, x, y) {
+  const one = list[x + ',' + y];
+  if (one) return one;
+  for (const [i, j] of [[1, 0], [0, 1], [1, 1]]) {
+    const big = list[(x - i) + ',' + (y - j)];
+    if (big && BIG[big.type]) return big;
+  }
+  return undefined;
+}
+const cellAt = (x, y) => covering(G.cells, x, y);
+const ruinAt = (x, y) => covering(G.ruins, x, y);
+const buried = w => footprint(w).some(p => cellAt(p.x, p.y));
+// The finger may be on any of the four cells: the first square round it that fits, else why the first does not.
+function siteFor(type, x, y) {
+  let first = null;
+  for (const [i, j] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    const site = {type, x:x - i, y:y - j}, cells = footprint(site);
+    if (cells.some(p => !buildable(p.x, p.y))) site.why = 'Zone de ruche';
+    else if (cells.some(p => cellAt(p.x, p.y))) site.why = 'Il faut 2 × 2 cases libres';
+    else if (type === 'borer') {
+      const kind = depositAt(site.x, site.y);
+      if (!kind || cells.some(p => depositAt(p.x, p.y) !== kind)) site.why = '4 cases d’un même gisement';
+    }
+    if (!site.why) return site;
+    first ||= site;
+  }
+  return first;
+}
 const boxOf = item => item[1] === ':' ? item[0] : '';
 const contentOf = item => boxOf(item) ? item.slice(2) : item;
-const NEEDS = {split:1, sort:1, pack:1, pump:2, join:2, wire:2, track:3, pocket:3, worm:3};
+const NEEDS = {split:1, sort:1, pack:1, borer:2, vault:2, pump:2, join:2, wire:2, track:3, pocket:3, worm:3};
 const GROWTH_BONUS = 40;
 const CORE = {x:OX + 5, y:OY + 12};
 const NORTH = [{x:48,y:27}, {x:40,y:29}, {x:56,y:29}];
@@ -280,7 +329,7 @@ function richAt(x, y) {
 let wormId = null;
 // The way the next piece faces is the player's, kept from one piece, one game and one visit to the next.
 const HEADING_KEY = 'strainworks-heading';
-const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','split2','split','sort'];
+const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','vault','split2','split','sort'];
 const WAYS = ['haut','droite','bas','gauche'];
 let heading = 0;
 try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) {}
@@ -316,7 +365,7 @@ const refund = c => PRICE[c.type] ? Math.floor(PRICE[c.type](owned(c.type) - 1) 
 // Work only advances with the simulation and only with a drone at the site: one drone a site, oldest site first.
 const BUILDERS = 3;
 const DRONE = {speed:20, reach:2, longest:4}; // a flight never takes over 4 s, so far ones cruise faster
-const BUILD = {belt:.15, gate:.5, bridge:.5, split2:1, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5, pack:2.5, sting:7, maw:5};
+const BUILD = {belt:.15, gate:.5, bridge:.5, split2:1, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5, pack:2.5, sting:7, maw:5, borer:6, vault:5};
 // cut: a drone has started taking it down. Until then it goes on working.
 const built = c => !(c?.left > 0) && !c?.cut;
 // Healing starts after some quiet, so a wall under attack still falls. The core heals more slowly.
@@ -325,9 +374,12 @@ const fullHp = c => TYPES[c.type]?.hp ?? 100;
 const healing = c => !c.cut && c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt ?? -99) >= REPAIR.quiet;
 const unlocked = stage => G.open || G.stage >= stage;
 const richCap = () => unlocked(3) ? 4 : unlocked(2) ? 2 : 1;
-const perSecond = c => rate() * (c.type === 'mine' ? Math.min(richCap(), richAt(c.x, c.y) || 1) : 1);
+function perSecond(c) {
+  if (c.type !== 'mine' && c.type !== 'borer') return rate();
+  return rate() * (c.type === 'borer' ? BORER.harvesters : 1) * Math.min(richCap(), richAt(c.x, c.y) || 1);
+}
 const rate = () => Math.pow(1.2, G.upgrades);
-const ahead = (c, dir = c.dir) => G.cells[key(c.x + DX[dir], c.y + DY[dir])];
+const ahead = (c, dir = c.dir) => cellAt(c.x + DX[dir], c.y + DY[dir]);
 
 function cell(type, x, y, dir) {
   return {to:null, packets:[], veinHp:VEIN.hp, type, x, y, dir, hp:TYPES[type]?.hp ?? 100, item:null, t:0, clock:0, from:-1,
@@ -351,7 +403,7 @@ function sites() {
     if (c.to && c.veinOut != null) jobs.push({c, field:'veinOut', order:c.veinOutOrder});
   }
   for (const c of [...Object.values(G.tracks), ...G.worms, ...G.wires]) look(c);
-  for (const [id, c] of Object.entries(G.ruins)) if (!G.cells[id] && c.out != null) jobs.push({c, field:'out', order:c.outOrder});
+  for (const [id, c] of Object.entries(G.ruins)) if (c.out != null && !buried(c)) jobs.push({c, field:'out', order:c.outOrder});
   return jobs.sort((a, b) => a.order - b.order);
 }
 function perch(i) {
@@ -426,7 +478,7 @@ function workAt({c, field}) {
   else if (c.a) { a = at(c.a); b = at(c.b); }
   else {
     const p = c.path ? at(c.path[0]) : c;
-    return {x:p.x + .5, y:p.y + .5};
+    return c.path ? {x:p.x + .5, y:p.y + .5} : centreOf(c);
   }
   const total = workTime(c, vein);
   const k = Math.max(0, Math.min(1, 1 - c[field] / total));
@@ -584,7 +636,7 @@ function wayOf(c, axis) {
     let before = c, after = c;
     do before = ahead(before, (dir + 2) % 4); while (before?.type === 'bridge');
     do after = ahead(after, dir); while (after?.type === 'bridge');
-    if (before && ['belt','gate','mine','ligase','join','pack','cyst','split','sort'].includes(before.type) && before.dir === dir) return dir;
+    if (before && ['belt','gate','mine','ligase','join','pack','cyst','vault','split','sort'].includes(before.type) && before.dir === dir) return dir;
     if (before?.type === 'sort' && sideExit(before) === dir) return dir;
     if (before?.type === 'split2' && splitExits(before).includes(dir)) return dir;
     if (before && drains(before)) return dir;
@@ -594,7 +646,7 @@ function wayOf(c, axis) {
 }
 // A vein runs straight from a pump to the one named by `to`. A pump without one empties on its four sides.
 function pumps() { return Object.values(G.cells).filter(c => c.type === 'pump'); }
-function drains(c) { return (c.type === 'pump' && !c.to) || (c.type === 'pocket' && Boolean(c.unload)); }
+function drains(c) { return c.type === 'borer' || (c.type === 'pump' && !c.to) || (c.type === 'pocket' && Boolean(c.unload)); }
 function span(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function leaking(c) { return c.veinHp > 0 && c.veinHp < VEIN.hp / 2; }
 function nearest(a, b, x, y) {
@@ -829,7 +881,7 @@ function wireUp(a, b) {
 function connects(c, travel) {
   if (!c) return false;
   const back = (travel + 2) % 4;
-  if (['belt','gate','ligase','cyst'].includes(c.type)) return back !== c.dir;
+  if (['belt','gate','ligase','cyst','vault'].includes(c.type)) return back !== c.dir;
   if (isSplit(c) || c.type === 'sort') return travel === c.dir;
   if (c.type === 'bridge') { const way = c.ways?.[travel % 2]; return way == null || way === travel; }
   if (c.type === 'pocket') return !c.unload;
@@ -846,6 +898,7 @@ function accepts(c, item, travel) {
     case 'pack': return packTakes(c, item, packPort(c, travel));
     case 'join': return item.length === 3 && c.ports[joinPort(c, travel)].length < 2;
     case 'cyst': return c.stock.length < 60;
+    case 'vault': return c.stock.length < VAULT.cap;
     case 'pocket': return c.stock.length < WORM.pocket && (!c.stock.length || c.stock[0] === item);
     case 'pump': { if (c.stock.length >= VEIN.cap) return false; const kind = veinKind(c); return !kind || kind === item; }
     case 'turret': case 'sting': case 'maw':
@@ -861,7 +914,7 @@ function receive(c, item, travel, carry = 0) {
   if (c.type === 'sort') c.seen = contentOf(item);
   if (isBelt(c) || isSplit(c) || c.type === 'sort') { c.item = item; c.t = carry; }
   else if (c.type === 'ligase') c.ports[portOf(c, travel)].push(item);
-  else if (c.type === 'cyst' || c.type === 'pump' || c.type === 'pocket') c.stock.push(item);
+  else if (['cyst','vault','pump','pocket'].includes(c.type)) c.stock.push(item);
   else if (c.type === 'join') c.ports[joinPort(c, travel)].push(item);
   else if (c.type === 'pack') c.ports[packPort(c, travel)].push(item);
   else if (isGun(c)) { const gene = contentOf(item); c.ammo[gene] = (c.ammo[gene] || 0) + (boxOf(item) ? PACK.size : 1); }
@@ -879,6 +932,15 @@ function flow(dt) {
     if (isBelt(c) || isSplit(c) || c.type === 'sort') c.t = c.item ? advance(c.t, dt * 4 * boost) : 0;
     if (c.type === 'bridge') for (const lane of c.lanes) if (lane) lane.t = advance(lane.t, dt * 4 * boost);
     if (c.type === 'cyst') c.t = advance(c.t, dt * 4 * boost);
+    // Two mouths, each at the pace of a belt.
+    if (c.type === 'vault') { c.t = advance(c.t, dt * 4 * boost); c.t2 = advance(c.t2 || 0, dt * 4 * boost); }
+    if (c.type === 'borer') {
+      c.made = c.made.filter(t => t > G.time - 10);
+      c.clock += dt * perSecond(c);
+      const kind = depositAt(c.x, c.y), room = BORER.hold - c.stock.length;
+      for (let n = Math.min(Math.floor(c.clock + 1e-6), room); n > 0; n--) { c.stock.push(kind); c.made.push(G.time); c.clock--; }
+      c.clock = Math.min(c.clock, 1);
+    }
     if (!['mine','ligase','join','pack'].includes(c.type)) continue;
     c.made = c.made.filter(t => t > G.time - 10);
     if (c.item) continue;
@@ -903,8 +965,9 @@ function flow(dt) {
   // Repeat so a full line advances together and a stop travels upstream.
   for (let pass = 0; pass < 12; pass++) {
     const offers = new Map();
-    const offer = (from, item, dir, take, carry = 0) => {
-      const to = ahead(from, dir);
+    // door: the cell of a big building it leaves by.
+    const offer = (from, item, dir, take, carry = 0, door = from) => {
+      const to = ahead(door, dir);
       if (!to || !accepts(to, item, dir)) return false;
       const current = offers.get(to);
       // A junction prefers the side it did not serve last.
@@ -916,7 +979,25 @@ function flow(dt) {
       // A listening gate lets out what it let in, so a change of mind never traps an item.
       if (isBelt(c) && (c.type === 'belt' || c.open || listens(c)) && c.item && c.t >= .999) offer(c, c.item, c.dir, () => { c.item = null; }, c.t - 1);
       if (c.type === 'sort' && c.item && c.t >= .999) offer(c, c.item, exitOf(c), () => { c.item = null; }, c.t - 1);
-      if (drains(c) && c.stock.length) {
+      if (c.type === 'borer' && c.stock.length) {
+        const doors = edgesOf(c);
+        let out = 0;
+        for (let i = 0; i < doors.length && out < c.stock.length; i++) {
+          const at = (c.turn + i) % doors.length;
+          if (offer(c, c.stock[0], doors[at].dir, () => { c.stock.shift(); c.turn = (at + 1) % doors.length; }, 0, doors[at])) out++;
+        }
+      }
+      if (c.type === 'vault' && c.stock.length) {
+        let out = 0;
+        edgesOf(c).filter(door => door.dir === c.dir).forEach((door, i) => {
+          const clock = i ? 't2' : 't', item = c.stock[out];
+          if (!item || (c[clock] || 0) < .999) return;
+          // The stock can hold a mix: each mouth takes its own item out.
+          const take = () => { c.stock.splice(c.stock.indexOf(item), 1); c[clock] = Math.max(0, c[clock] - 1); };
+          if (offer(c, item, c.dir, take, 0, door)) out++;
+        });
+      }
+      if (c.type !== 'borer' && drains(c) && c.stock.length) {
         // One matter, so each side may take one in the same pass. Two pumps side by side need a vein.
         let out = 0;
         for (let i = 0; i < 4 && out < c.stock.length; i++) {
@@ -1000,7 +1081,7 @@ function disturb() {
   }
   for (const b of [...G.breaches, ...around]) {
     if (b.state !== 'sleep') continue;
-    const x = b.x + .5, y = b.y + .5, near = c => Math.hypot(c.x - b.x, c.y - b.y) <= b.r;
+    const x = b.x + .5, y = b.y + .5, near = c => footprint(c).some(p => Math.hypot(p.x - b.x, p.y - b.y) <= b.r);
     const cause = cells.find(near) || tracks.find(near)
       || veins.find(([a, to]) => { const at = nearest(a, to, x, y); return Math.hypot(at.x - x, at.y - y) <= b.r; })?.[0];
     if (cause) wake(b, cause);
@@ -1050,8 +1131,8 @@ function menace(dt) {
   for (const e of G.enemies) {
     let goal = {x:CORE.x + .5, y:CORE.y + .5}, lure = 6, gnawing = false, prey = null, reach = Infinity;
     for (const c of outposts.get(G.breaches[e.home]) || []) {
-      const d = Math.hypot(c.x + .5 - e.x, c.y + .5 - e.y);
-      if (d < reach) { prey = c; reach = d; goal = {x:c.x + .5, y:c.y + .5}; }
+      const mid = centreOf(c), d = Math.hypot(mid.x - e.x, mid.y - e.y);
+      if (d < reach) { prey = c; reach = d; goal = mid; }
     }
     for (const [from, to] of veins) {
       if (from.veinHp <= 0) continue;
@@ -1082,7 +1163,7 @@ function menace(dt) {
     }
     if (gnawing) continue;
     const dx = goal.x - e.x, dy = goal.y - e.y, distance = Math.hypot(dx, dy) || 1;
-    const c = G.cells[key(Math.floor(e.x + dx / distance * .4), Math.floor(e.y + dy / distance * .4))];
+    const c = cellAt(Math.floor(e.x + dx / distance * .4), Math.floor(e.y + dy / distance * .4));
     let pace = .4;
     if (c) {
       const passable = c !== prey && (!built(c) || isBelt(c) || c.type === 'bridge');
@@ -1142,12 +1223,13 @@ function step(dt) {
 // Diagnosis: light the links that explain the selected machine's speed.
 function feeders(c, wanted) {
   const found = [];
-  for (let side = 0; side < 4; side++) {
+  for (const edge of edgesOf(c)) {
+    const side = edge.dir;
     if (wanted != null && side !== wanted) continue;
-    const from = ahead(c, side);
+    const from = ahead(edge, side);
     if (!from) continue;
     const dir = (side + 2) % 4;
-    const emits = (drains(from) && !(from.type === 'pump' && c.type === 'pump') && !(isBelt(c) && c.dir === (dir + 2) % 4)) || (from.type === 'bridge' && wayOf(from, dir % 2) === dir) || (from.type === 'sort' && (dir === from.dir || dir === sideExit(from))) || (isSplit(from) ? splitExits(from).includes(dir) : 'belt gate mine ligase join pack cyst'.split(' ').includes(from.type) && from.dir === dir);
+    const emits = (drains(from) && !(from.type === 'pump' && c.type === 'pump') && !(isBelt(c) && c.dir === (dir + 2) % 4)) || (from.type === 'bridge' && wayOf(from, dir % 2) === dir) || (from.type === 'sort' && (dir === from.dir || dir === sideExit(from))) || (isSplit(from) ? splitExits(from).includes(dir) : 'belt gate mine ligase join pack cyst vault'.split(' ').includes(from.type) && from.dir === dir);
     if (emits && connects(c, dir)) found.push({c:from, dir});
   }
   return found;
@@ -1159,7 +1241,7 @@ function upstream(c, side) {
     const {c:from, dir} = links[0], id = key(from.x, from.y) + dir;
     if (seen.has(id)) break;
     seen.add(id); path.push(from);
-    if (['mine','ligase','join','pack','pocket'].includes(from.type)) break;
+    if (['mine','borer','ligase','join','pack','pocket'].includes(from.type)) break;
     if (from.type === 'pump') {
       const back = pumps().find(p => p.to === key(from.x, from.y));
       links = back ? [{c:back, dir}] : feeders(from);
@@ -1212,6 +1294,14 @@ function diagnose(c) {
     return load ? `${name} : ${load}. 3, 2, 1 ou 0 bases justes : ${[12, 5, 2, 1].map(n => n * gun.power).slice(0, 3).join(', ')} ou ${gun.power} dégâts${gun.volley > 1 ? ', deux coups à la fois' : ''}, à ${String(gun.range).replace('.', ',')} cases. ${c.strict ? 'Économe, elle ne tire qu’à 2 justes ou plus.' : 'Elle tire sur tout.'}` : name + ' : rien à tirer. Amène-lui des gènes de trois bases.';
   }
   if (c.type === 'cyst') { chain = upstream(c); return `Kyste : ${c.stock.length} sur 60 objets.`; }
+  if (c.type === 'vault') { chain = upstream(c); return `Grand kyste : ${c.stock.length} sur ${VAULT.cap} objets.`; }
+  if (c.type === 'borer') {
+    const figure = n => n.toFixed(1).replace('.', ','), per = figure(c.made.length / Math.max(1, Math.min(10, G.time)));
+    const rich = richAt(c.x, c.y), later = rich > richCap() ? ` Ce gisement est ×${rich}, exploitable ainsi au stade ${rich === 2 ? 2 : 3}.` : '';
+    const belts = Math.ceil(perSecond(c) / (4 * rate()) - 1e-6);
+    const full = c.stock.length >= BORER.hold ? ` Il déborde : il lui faut ${belts} tapis, 8 bords au plus.` : '';
+    return `Grand récolteur de ${MATTER[depositAt(c.x, c.y)].toLowerCase()} : ${per} sur ${figure(perSecond(c))}/s.${full}${later}`;
+  }
   if (c.type === 'sort') {
     const left = c.side === 3 ? 'à gauche' : 'à droite', what = {1:'les bases', 3:'les gènes', 6:'les brins'}[c.want.length];
     let state = `Trieur : ${what} ${c.want} sortent ${left}, le reste va tout droit.`;
@@ -1527,6 +1617,20 @@ function drawCell(g, c, inputs = []) {
     const fill = c.stock.length / 60;
     circle(g,0,0,.18 + fill*.22,fill > .95 ? '#FF4D5E' : '#7A2638','#FF8FA2');
     arrow(g,c.dir,.54,'#FF8FA2');
+  } else if (type === 'borer') {
+    // Drawn at half scale and stretched over its four cells.
+    for (const [a,b] of [[-.2,-.2],[.2,-.2],[-.2,.2],[.2,.2]]) circle(g,a,b,.12,'#0B1417','#4A6A73',.03);
+    circle(g,0,0,.17,'#142126','#55D6E8',.035);
+    glyph(g,depositAt(c.x,c.y) || 'S',0,0,.11);
+    for (let dir = 0; dir < 4; dir++) for (const s of [-.25,.25]) {
+      g.save(); g.translate(DY[dir] * s,-DX[dir] * s); g.scale(.5,.5); arrow(g,dir,1.1,'#FF8FA2'); g.restore();
+    }
+  } else if (type === 'vault') {
+    const fill = c.stock.length / VAULT.cap;
+    [[-.19,-.19],[.19,-.19],[-.19,.19],[.19,.19]].forEach(([a,b],i) => {
+      circle(g,a,b,.11 + Math.max(0,Math.min(1,fill * 4 - i)) * .09,fill > .95 ? '#FF4D5E' : '#7A2638','#FF8FA2',.03);
+    });
+    for (const s of [-.25,.25]) { g.save(); g.translate(DY[c.dir] * s,-DX[c.dir] * s); g.scale(.6,.6); arrow(g,c.dir,.92,'#FF8FA2'); g.restore(); }
   } else if (type === 'split' || type === 'split2') {
     for (const dir of splitExits(c)) arrow(g,dir,.43);
     if (type === 'split') circle(g,0,0,.12,'#6A8D94');
@@ -1602,7 +1706,7 @@ function draw() {
     }
     if (cam.zoom < 14) { glyph(ctx,base,x + w / 2,y + h / 2,Math.min(w,h) * .32); continue; }
     for (let i = Math.max(x,x0); i < Math.min(x + w,x1); i++) for (let j = Math.max(y,y0); j < Math.min(y + h,y1); j++)
-      if (!G.cells[key(i,j)]) glyph(ctx,base,i + .5,j + .5,.22);
+      if (!cellAt(i,j)) glyph(ctx,base,i + .5,j + .5,.22);
   }
   ctx.strokeStyle = '#1B2F35'; ctx.lineWidth = 1 / cam.zoom; ctx.beginPath();
   const every = cam.zoom < 11 ? 8 : 1;
@@ -1612,12 +1716,13 @@ function draw() {
   drawOrganism();
   for (const b of breachesIn(x0,y0,x1,y1)) drawBreach(b);
 
-  const cells = Object.values(G.cells).filter(c => c.x >= x0 - 1 && c.x <= x1 && c.y >= y0 - 1 && c.y <= y1);
+  const cells = Object.values(G.cells).filter(c => c.x >= x0 - 2 && c.x <= x1 && c.y >= y0 - 2 && c.y <= y1);
   drawVeins();
   drawTracks();
-  for (const [id, w] of Object.entries(G.ruins)) if (!G.cells[id]) rect(ctx,w.x + .15,w.y + .15,.7,.7,'#321820','#FF6B6B');
+  for (const w of Object.values(G.ruins)) if (!buried(w)) rect(ctx,w.x + .15,w.y + .15,sizeOf(w) - .3,sizeOf(w) - .3,'#321820','#FF6B6B');
   for (const c of cells) {
-    ctx.save(); ctx.translate(c.x+.5,c.y+.5); if (!built(c)) ctx.globalAlpha = .4; drawCell(ctx,c,isBelt(c) ? feeders(c).map(f => (f.dir + 2) % 4) : []); ctx.restore();
+    const size = sizeOf(c);
+    ctx.save(); ctx.translate(c.x + size / 2,c.y + size / 2); ctx.scale(size,size); if (!built(c)) ctx.globalAlpha = .4; drawCell(ctx,c,isBelt(c) ? feeders(c).map(f => (f.dir + 2) % 4) : []); ctx.restore();
   }
   for (const c of cells) {
     const x = c.x+.5, y = c.y+.5;
@@ -1631,10 +1736,10 @@ function draw() {
       token(ctx,l.item,at.x,at.y,at.angle);
     }
     const base = depositAt(c.x,c.y);
-    if (base && c.type !== 'mine') { rect(ctx,c.x,c.y + .7,.32,.3,'#05090B'); glyph(ctx,base,c.x + .16,c.y + .85,.12); }
+    if (base && c.type !== 'mine' && c.type !== 'borer') { rect(ctx,c.x,c.y + .7,.32,.3,'#05090B'); glyph(ctx,base,c.x + .16,c.y + .85,.12); }
     if (isGun(c) && !Object.values(c.ammo).some(n => n)) circle(ctx,x,y,.48,null,'#FF6B6B',.07);
     const max = TYPES[c.type]?.hp ?? 100;
-    if (c.hp < max - .5) { rect(ctx,c.x+.1,c.y+.03,.8,.09,'#05090B'); rect(ctx,c.x+.1,c.y+.03,.8*Math.max(0,c.hp/max),.09,healing(c) ? '#62E06A' : '#FF6B6B'); }
+    if (c.hp < max - .5) { const span2 = sizeOf(c) - .2; rect(ctx,c.x+.1,c.y+.03,span2,.09,'#05090B'); rect(ctx,c.x+.1,c.y+.03,span2*Math.max(0,c.hp/max),.09,healing(c) ? '#62E06A' : '#FF6B6B'); }
   }
   // Over the items, so a blocked one cannot hide the way it is refused. Grey is guessed, green is set.
   for (const c of cells) {
@@ -1653,13 +1758,14 @@ function draw() {
   for (const c of [...cells, ...Object.values(G.ruins).filter(w => w.out != null)]) {
     if (built(c) && c.out == null) continue;
     const done = woven(c), color = c.out != null ? '#FF6B6B' : '#55D6E8';
-    ctx.setLineDash([.14,.1]); rect(ctx,c.x + .06,c.y + .06,.88,.88,null,color); ctx.setLineDash([]);
-    if (!built(c) && done > 0) rect(ctx,c.x + .1,c.y + .82,.8 * done,.1,color);
+    const size = sizeOf(c);
+    ctx.setLineDash([.14,.1]); rect(ctx,c.x + .06,c.y + .06,size - .12,size - .12,null,color); ctx.setLineDash([]);
+    if (!built(c) && done > 0) rect(ctx,c.x + .1,c.y + size - .18,(size - .2) * done,.1,color);
   }
-  for (const c of chain) rect(ctx,c.x+.04,c.y+.04,.92,.92,null,'#FF6B6B');
+  for (const c of chain) rect(ctx,c.x+.04,c.y+.04,sizeOf(c) - .08,sizeOf(c) - .08,null,'#FF6B6B');
   if (selected && G.cells[selected]) {
     const c = G.cells[selected];
-    rect(ctx,c.x,c.y,1,1,null,'#B7F34A');
+    rect(ctx,c.x,c.y,sizeOf(c),sizeOf(c),null,'#B7F34A');
     if (isGun(c)) circle(ctx,c.x+.5,c.y+.5,GUNS[c.type].range,null,'#55D6E8');
   }
   drawNerves();
@@ -1963,6 +2069,7 @@ function showActions() {
       sense(); showActions();
     });
   }
+  if (c.type === 'vault') button('Vider', () => { c.stock = []; });
   if (c.type === 'ligase') button('Vider', () => { c.ports = [[],[],[]]; c.item = null; });
   if (c.out != null) button('Annuler le démontage', () => { keepIt(c); showActions(); });
   else button(refund(c) ? `Démonter +${refund(c)}` : 'Démonter', () => {
@@ -2008,7 +2115,7 @@ function stockOf(gene) {
   let n = 0;
   for (const c of Object.values(G.cells)) {
     if (isGun(c)) n += c.ammo[gene] || 0;
-    if (c.type === 'cyst' || c.type === 'pump' || c.type === 'pocket') for (const item of c.stock) { if (item === gene) n++; else if (item === `A:${gene}`) n += PACK.size; }
+    if (['cyst','vault','pump','pocket'].includes(c.type)) for (const item of c.stock) { if (item === gene) n++; else if (item === `A:${gene}`) n += PACK.size; }
   }
   return n;
 }
@@ -2058,13 +2165,13 @@ function refresh() {
   else $('message').textContent = note;
   $('pause').textContent = paused ? '▶' : 'II';
   $('pause').setAttribute('aria-label', paused ? 'Reprendre' : 'Mettre en pause');
-  const lost = Object.keys(G.ruins).filter(id => !G.cells[id]).length;
+  const lost = Object.values(G.ruins).filter(w => !buried(w)).length;
   const torn = pumps().filter(c => c.to && c.veinHp < VEIN.hp / 2).length + G.wires.filter(w => !w.hp).length;
   $('rebuild').hidden = !(lost + torn) || G.over;
   if (lost + torn) {
     const bill = {}, count = {};
     for (const [id, w] of Object.entries(G.ruins)) {
-      if (G.cells[id] || !PRICE[w.type]) continue;
+      if (buried(w) || !PRICE[w.type]) continue;
       const scale = GUNS[w.type] ? 'turret' : w.type;
       count[scale] ??= owned(w.type);
       bill.total = (bill.total || 0) + Math.ceil(PRICE[w.type](count[scale]++) / 2);
@@ -2087,12 +2194,12 @@ function remove(x,y) {
 function wipe(x,y) {
   const id = key(x,y), w = G.worms.find(o => o.path.includes(id));
   if (w) return scrap(w, () => dropWorm(w, true));
-  const top = G.cells[id] || G.ruins[id];
-  if (top) return scrap(top, () => remove(x,y));
+  const top = cellAt(x,y) || ruinAt(x,y);
+  if (top) return scrap(top, () => remove(top.x,top.y));
   if (G.tracks[id]) scrap(G.tracks[id], () => { delete G.tracks[id]; });
 }
 function place(x,y) {
-  const id = key(x,y), old = G.cells[id];
+  const id = key(x,y), old = cellAt(x,y);
   if (linking) {
     const from = G.cells[linking];
     linking = null;
@@ -2126,7 +2233,7 @@ function place(x,y) {
     return say(TYPES.track.help);
   }
   if (tool === 'hand') {
-    if (old) return select(id);
+    if (old) return select(key(old.x,old.y));
     select(null); say(TYPES.hand.help);
     if (G.tracks[id]) return say(trackAfter(id) || !built(G.tracks[id]) ? 'Piste de phéromones. Pose une poche contre elle, ou un ver dessus.' : 'Fin de piste : les vers s’arrêtent ici. Referme la boucle.');
     const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
@@ -2137,11 +2244,16 @@ function place(x,y) {
   }
   if (tool === 'erase') return wipe(x,y);
   if (old) {
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split2','split','sort'].includes(tool)) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
     // A bridge may replace a belt, to make a crossing on an existing line.
     else if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) { build(tool,x,y,old.dir); }
-    select(id);
+    select(key(old.x,old.y));
     return;
+  }
+  if (BIG[tool]) {
+    const site = siteFor(tool,x,y);
+    if (site.why) return say(`${site.why}.`);
+    build(tool,site.x,site.y,heading); select(key(site.x,site.y)); return say(TYPES[tool].help);
   }
   if (!buildable(x,y)) return say('La zone des ruches n’est pas constructible.');
   const cost = price(tool);
@@ -2158,7 +2270,7 @@ function screenPoint(event) {
 }
 function joinVein(from,x,y) {
   if (from?.type !== 'pump') return;
-  let to = G.cells[key(x,y)];
+  let to = cellAt(x,y);
   if (!to) {
     if (!buildable(x,y)) return say('La zone des ruches n’est pas constructible.');
     if (Math.hypot(x - from.x,y - from.y) > VEIN.reach) return link(from,{x,y,type:'pump'});
@@ -2190,9 +2302,11 @@ function extend(to) {
       continue;
     }
     if (tool !== 'belt') { drag = null; return; }
-    const from = G.cells[key(drag.x,drag.y)];
+    const from = cellAt(drag.x,drag.y);
+    // Still inside a big one: the line starts at the face it leaves by.
+    if (from && BIG[from.type] && from === cellAt(x,y)) { drag = {...drag, x, y}; continue; }
     // Drawn over again, a belt on its way out stays.
-    for (const c of [from, G.cells[key(x,y)]]) if (isBelt(c)) keepIt(c);
+    for (const c of [from, cellAt(x,y)]) if (isBelt(c)) keepIt(c);
     if (from && !isBelt(from) && from.type !== 'bridge' && drag.moved) { drag = null; return; }
     if (from && drag.existing && drag.moved && isBelt(from) && from.dir !== dir) {
       say('Ce tapis existe déjà : la ligne s’y raccorde. Pour le traverser, pose un pont.');
@@ -2202,7 +2316,7 @@ function extend(to) {
       if (!buildable(drag.x,drag.y)) { drag = null; return; }
       build('belt',drag.x,drag.y,dir);
     } else if (isBelt(from) || (!drag.moved && ['mine','cyst'].includes(from.type))) from.dir = dir;
-    const next = G.cells[key(x,y)];
+    const next = cellAt(x,y);
     // A belt drawn through a bridge takes that lane with it.
     for (const c of [from, next]) if (c?.type === 'bridge' && c.ways?.[dir % 2] != null) c.ways[dir % 2] = dir;
     if (!next) { if (!buildable(x,y)) { drag = null; return; } build('belt',x,y,dir); }
@@ -2219,7 +2333,10 @@ function preview() {
   const drawing = gesture?.mode === 'draw';
   const {x, y} = view3d && !drawing ? view3d.pick(point) : position(point);
   if (!inside(x, y)) return null;
-  const id = key(x, y), old = G.cells[id], to = (act, more) => ({x, y, act, ...more}), no = (why, more) => to('no', {why, ...more});
+  const id = key(x, y), old = cellAt(x, y);
+  // A big one answers as a whole, from its corner.
+  const whole = old || (tool === 'erase' ? ruinAt(x, y) : null), over = whole && BIG[whole.type] ? {x:whole.x, y:whole.y, size:2} : {};
+  const to = (act, more) => ({x, y, act, ...over, ...more}), no = (why, more) => to('no', {why, ...more});
   const hive = 'Zone de ruche', free = () => buildable(x, y);
   const fromVein = (drawing && drag?.vein) || (linking && G.cells[linking]);
   if (fromVein) {
@@ -2240,7 +2357,7 @@ function preview() {
   if (tool === 'wire') return NERVE.ends.includes(old?.type) ? to('link') : no('Tourelle, feu ou trieur');
   const worm = G.worms.find(w => w.path.includes(id));
   if (tool === 'erase') {
-    const ruin = G.ruins[id], track = G.tracks[id], top = worm || old || ruin || track;
+    const ruin = ruinAt(x, y), track = G.tracks[id], top = worm || old || ruin || track;
     if (!top) return to('none');
     if (top.type === 'core') return no('Le cœur ne se démonte pas');
     if (top.out != null) return to('none', {label:'Déjà dans la file'});
@@ -2272,11 +2389,15 @@ function preview() {
   }
   if (old) {
     if (drawing) return to('select');
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
     if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
     return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
   }
   const cost = price(tool), ghost = {type:tool, dir:drawing && drag?.heading != null ? drag.heading : heading, cost};
+  if (BIG[tool]) {
+    const site = siteFor(tool, x, y), big = {...ghost, x:site.x, y:site.y, size:2};
+    return site.why ? no(site.why, big) : to('build', big);
+  }
   if (!free()) return no(hive, ghost);
   if (cost > G.dna) return no(`Il manque ${cost - G.dna} ADN`, ghost);
   if (tool === 'mine' && !depositAt(x, y)) return no('Sur un gisement seulement', ghost);
@@ -2287,9 +2408,9 @@ const PREVIEW = {no:'#FF6B6B', scrap:'#FF6B6B', build:'#55D6E8', link:'#55D6E8',
 function drawPreview(g, models) {
   const p = preview();
   if (!p) return;
-  const {x, y, act} = p, color = PREVIEW[act];
+  const {x, y, act} = p, color = PREVIEW[act], size = p.size || (p.type && BIG[p.type] ? 2 : 1), mx = x + size / 2, my = y + size / 2;
   if (p.type && !models) {
-    g.save(); g.globalAlpha = .55; g.translate(x + .5, y + .5);
+    g.save(); g.globalAlpha = .55; g.translate(mx, my); g.scale(size, size);
     if (p.type === 'worm') circle(g, 0, 0, .42, '#2A4A22', '#C9F77A', .07);
     else if (p.type === 'track') arrow(g, p.dir, .46, '#B7F34A');
     else drawCell(g, cell(p.type, x, y, p.dir));
@@ -2301,7 +2422,8 @@ function drawPreview(g, models) {
   }
   const cells = p.worm ? p.worm.path.map(id => id.split(',').map(Number)) : [[x, y]];
   for (const [cx, cy] of cells) {
-    g.beginPath(); g.rect(cx + .02, cy + .02, .96, .96);
+    const wideAs = p.worm ? 1 : size;
+    g.beginPath(); g.rect(cx + .02, cy + .02, wideAs - .04, wideAs - .04);
     g.fillStyle = color + (act === 'none' ? '18' : '2A'); g.fill();
     g.strokeStyle = color + (act === 'none' ? '55' : 'DD'); g.lineWidth = 1.5 / cam.zoom; g.stroke();
   }
@@ -2311,12 +2433,19 @@ function drawPreview(g, models) {
     g.setLineDash([.4, .3]); circle(g, x + .5, y + .5, GUNS[p.type].range, null, color + '99', 1.5 / cam.zoom); g.setLineDash([]);
   }
   if (p.dir != null && !['wall','turret','sting','maw','pump','pocket','bridge'].includes(p.type)) {
-    g.save(); g.translate(x + .5, y + .5);
-    for (const dir of p.type === 'split2' ? splitExits(p) : [p.dir]) arrow(g, dir, .72, color);
-    g.restore();
+    if (BIG[p.type]) {
+      // Every mouth it would have.
+      for (const door of edgesOf(p).filter(d => p.type === 'borer' || d.dir === p.dir)) {
+        g.save(); g.translate(door.x + .5, door.y + .5); arrow(g, door.dir, .72, color); g.restore();
+      }
+    } else {
+      g.save(); g.translate(x + .5, y + .5);
+      for (const dir of p.type === 'split2' ? splitExits(p) : [p.dir]) arrow(g, dir, .72, color);
+      g.restore();
+    }
   }
   if (act === 'no' || act === 'scrap') {
-    g.beginPath(); g.moveTo(x + .3, y + .3); g.lineTo(x + .7, y + .7); g.moveTo(x + .7, y + .3); g.lineTo(x + .3, y + .7);
+    const r = size * .2; g.beginPath(); g.moveTo(mx - r, my - r); g.lineTo(mx + r, my + r); g.moveTo(mx + r, my - r); g.lineTo(mx - r, my + r);
     g.strokeStyle = color; g.lineWidth = 2 / cam.zoom; g.stroke();
   }
   const text = p.why || p.label || (p.cost ? `${p.cost} ADN` : '');
@@ -2325,9 +2454,9 @@ function drawPreview(g, models) {
   g.save(); g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   g.font = '600 12px Verdana';
   const wide = g.measureText(text).width + 12, squash = cam.zoom * flat();
-  const left = Math.max(4, Math.min(view.w - wide - 4, view.w / 2 + (x + .5 - cam.x) * cam.zoom - wide / 2));
-  let top = view.h / 2 + (y + 1 - cam.y) * squash + 14;
-  if (top > view.h - 24) top -= squash + 48;
+  const left = Math.max(4, Math.min(view.w - wide - 4, view.w / 2 + (mx - cam.x) * cam.zoom - wide / 2));
+  let top = view.h / 2 + (y + size - cam.y) * squash + 14;
+  if (top > view.h - 24) top -= squash * size + 48;
   g.fillStyle = '#05090BE6'; g.fillRect(left, top, wide, 20);
   g.fillStyle = act === 'none' ? '#E6F0EC' : color; g.textAlign = 'left'; g.textBaseline = 'middle';
   g.fillText(text, left + 6, top + 10);
@@ -2395,13 +2524,13 @@ canvas.addEventListener('pointermove', event => {
     gesture.mode = 'draw';
     const from = position(gesture.start);
     if (!inside(from.x,from.y)) return;
-    drag = {...from, moved:false, existing:Boolean(G.cells[key(from.x,from.y)])};
+    drag = {...from, moved:false, existing:Boolean(cellAt(from.x,from.y))};
     if (tool === 'wire') {
       if (!NERVE.ends.includes(G.cells[key(from.x,from.y)]?.type)) { drag = null; say(TYPES.wire.help); return; }
       drag.nerve = {...from}; drag.aim = {...from};
     }
     if (tool === 'pump') {
-      if (drag.existing && G.cells[key(from.x,from.y)].type !== 'pump') { drag = null; say('Tire depuis une pompe ou un sol libre.'); return; }
+      if (drag.existing && cellAt(from.x,from.y).type !== 'pump') { drag = null; say('Tire depuis une pompe ou un sol libre.'); return; }
       if (!drag.existing && !buildable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
@@ -2425,7 +2554,7 @@ function release(event) {
     if (vein.x !== aim.x || vein.y !== aim.y) {
       // The first pump is only created when the vein can be made.
       if (Math.hypot(aim.x - vein.x,aim.y - vein.y) > VEIN.reach) link({...vein,type:'pump'},{...aim,type:'pump'});
-      else if (G.cells[key(aim.x,aim.y)] && G.cells[key(aim.x,aim.y)].type !== 'pump') say('Termine la veine sur une pompe ou un sol libre, juste à côté du bâtiment.');
+      else if (cellAt(aim.x,aim.y) && cellAt(aim.x,aim.y).type !== 'pump') say('Termine la veine sur une pompe ou un sol libre, juste à côté du bâtiment.');
       else joinVein(G.cells[key(vein.x,vein.y)] || build('pump',vein.x,vein.y,0),aim.x,aim.y);
     }
   }
@@ -2529,7 +2658,7 @@ $('rebuild').onclick = () => {
   }
   let unpaid = 0;
   for (const [id, w] of Object.entries(G.ruins)) {
-    if (G.cells[id]) { delete G.ruins[id]; continue; }
+    if (buried(w)) { delete G.ruins[id]; continue; }
     const cost = Math.ceil(price(w.type) / 2);
     if (cost > G.dna) { unpaid++; continue; }
     G.dna -= cost;
@@ -2540,7 +2669,7 @@ $('rebuild').onclick = () => {
 };
 
 // What is usable from the start comes first, then each stage's tools in the order they open.
-const TOOLBAR = ['hand','erase','belt','mine','ligase','turret','sting','maw','wall','cyst','bridge','gate','split2','split','sort','pack','pump','join','wire','track','pocket','worm'];
+const TOOLBAR = ['hand','erase','belt','mine','ligase','turret','sting','maw','wall','cyst','bridge','gate','split2','split','sort','pack','borer','vault','pump','join','wire','track','pocket','worm'];
 for (const [type,info] of TOOLBAR.map(type => [type,TYPES[type]])) {
   const b = document.createElement('button'), icon = document.createElement('canvas'), g = icon.getContext('2d');
   icon.width = icon.height = 52; b.dataset.type = type;
@@ -2594,7 +2723,7 @@ $('again').onclick = () => begin();
 // R turns what is under the pointer, or the piece in hand. Shift turns the other way.
 function rotate(back) {
   const by = back ? 3 : 1, building = tool !== 'hand' && tool !== 'erase';
-  const p = hovered && preview(), under = p && G.cells[key(p.x, p.y)];
+  const p = hovered && preview(), under = p && cellAt(p.x, p.y);
   // With a piece in hand the last one placed stays selected: it must not take the key from the next.
   const c = under && (TURNS.includes(under.type) || under.type === 'bridge') ? under : !building && selected ? G.cells[selected] : null;
   if (c?.type === 'bridge') turnWay(c, back ? 0 : 1);

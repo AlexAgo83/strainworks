@@ -21,7 +21,7 @@ exports[`progression behaves as the recorded prototype 1`] = `
         "unlocked": true,
       },
       "inversion": "FFFSFS",
-      "locked0": 9,
+      "locked0": 11,
       "oneLigaseNotEnough": [
         1,
         0,

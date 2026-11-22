@@ -211,9 +211,8 @@ window.createView3D = (glCanvas) => {
       g.stroke();
     }
     for (const c of Object.values(G.cells)) {
-      const x = c.x + 0.5;
-      const y = c.y + 0.5;
-      if (!built(c)) bar(x, y + 0.36, woven(c), c.cut ? '#FF6B6B' : '#55D6E8');
+      const { x, y } = centreOf(c);
+      if (!built(c)) bar(x, y + sizeOf(c) / 2 - 0.14, woven(c), c.cut ? '#FF6B6B' : '#55D6E8');
       if (c.hp < hull(c) - 0.5) bar(x, up(c.y, 0.8), c.hp / hull(c), healing(c) ? '#62E06A' : '#FF6B6B');
       if (c.type === 'ligase' && cam.zoom >= 20) {
         for (let port = 0; port < 3; port++) {
@@ -261,7 +260,7 @@ window.createView3D = (glCanvas) => {
     // Waiting for a drone to take it down.
     const marked = [...Object.values(G.cells), ...Object.values(G.ruins)].filter((c) => c.out != null);
     g.setLineDash([0.14, 0.1]);
-    for (const c of marked) rect(g, c.x + 0.06, c.y + 0.06, 0.88, 0.88, null, '#FF6B6B');
+    for (const c of marked) rect(g, c.x + 0.06, c.y + 0.06, sizeOf(c) - 0.12, sizeOf(c) - 0.12, null, '#FF6B6B');
     for (const c of Object.values(G.cells)) {
       const to = c.veinOut != null && c.to && G.cells[c.to];
       if (!to) continue;
@@ -278,10 +277,10 @@ window.createView3D = (glCanvas) => {
       const [wx, wy] = w.path[0].split(',').map(Number);
       circle(g, wx + 0.5, wy + 0.5, 0.62, null, '#FF6B6B', 0.06);
     }
-    for (const c of chain) rect(g, c.x + 0.04, c.y + 0.04, 0.92, 0.92, null, '#FF6B6B');
+    for (const c of chain) rect(g, c.x + 0.04, c.y + 0.04, sizeOf(c) - 0.08, sizeOf(c) - 0.08, null, '#FF6B6B');
     const picked = selected && G.cells[selected];
     if (picked) {
-      rect(g, picked.x, picked.y, 1, 1, null, '#B7F34A');
+      rect(g, picked.x, picked.y, sizeOf(picked), sizeOf(picked), null, '#B7F34A');
       if (isGun(picked)) circle(g, picked.x + 0.5, picked.y + 0.5, GUNS[picked.type].range, null, '#55D6E8', 2 * px);
     }
     const from = (linking && G.cells[linking]) || (wiring && G.cells[wiring]);
@@ -316,8 +315,8 @@ window.createView3D = (glCanvas) => {
       const x = Math.floor(p.x);
       for (const h of [0.75, 0.5, 0.3]) {
         const y = Math.floor(p.y + h * lean);
-        const c = G.cells[key(x, y)];
-        if (c && !isBelt(c) && c.type !== 'bridge' && y !== Math.floor(p.y) && !G.cells[key(x, Math.floor(p.y))]) return { x, y };
+        const c = cellAt(x, y);
+        if (c && !isBelt(c) && c.type !== 'bridge' && y !== Math.floor(p.y) && !cellAt(x, Math.floor(p.y))) return { x, y };
       }
       return { x, y: Math.floor(p.y) };
     },
