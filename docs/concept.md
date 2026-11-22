@@ -55,6 +55,7 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | ADN rate bonus | Rejected | Ranks replace it. Games that bought it get their ADN back |
 | Crossing time | Decided | Nothing crosses a building at once: 0.25 s a cell, the rate stays the same |
 | Deposit shape | Decided | Irregular round patches with splashes, never rectangles |
+| Distance | Decided | Nests are sparse and come in four bodies. Five levels by distance, capped at 640 cells: harder nests, richer deposits |
 | Carbon and containers | Decided | Carbon stays outside the genetic code. The Encapsulator packs magazines for turrets and tech capsules for the core |
 | Higher tech matter | Decided | Later stages ask for a rarer matter instead of carbon, like uranium found farther. Its mutagen effect is a proposal |
 | Four bases, genes of three | Proposed | See sections 3 and 4 |
@@ -133,7 +134,7 @@ Starting values, to balance:
 | Belt (Tapis) | 4 items per second, 8 at MK2 (1 ADN a cell), 12 at MK3 (3 ADN a cell) |
 | Turret (Tourelle) | up to 3 genes fired per second |
 | Cyst (Kyste) | 60 items |
-| Large cyst (Grand kyste), 2 x 2, stage 2 | 360 items, two mouths of a belt each |
+| Large cyst (Grand kyste), 2 x 2, stage 2 | 360 items, 720 at MK2 (30 ADN), 1440 at MK3 (80 ADN), two mouths at the pace of their rails |
 | Large harvester (Grand récolteur), 2 x 2, stage 2 | as 6 harvesters, out by its 8 faces |
 
 - A machine pushes as soon as a place is free and stops when its output is full. The stop travels back up the line.
@@ -143,6 +144,7 @@ Starting values, to balance:
 - A bridge, gate, splitter or sorter runs at the slowest rail it joins, those side by side share one pace. A cyst gives at the pace of the rail it gives to.
 - An item stays 0.25 s in a cyst, pump or pocket, 0.5 s in a large cyst, several at a time. A machine starts giving 0.25 s after its last ingredient at the earliest. Turrets and the core take at once.
 - An upgrade is a drone's job: the piece goes on working at its old rank until it is done. Cancelled, it is paid back.
+- A cyst holds 60, 120 or 240 by rank (10 and 25 ADN).
 - Example: the CNC antidote needs 2 chitin harvesters and 1 nerve harvester for 1 gene per second. A turret firing 3 empties a cyst of 60 in 30 seconds, even when fed.
 
 Continuous sinks: ammunition, research delivered to the core, and the upkeep of worms.
@@ -186,7 +188,7 @@ Example worms:
 
 Prototype rules:
 
-- Deposit: 1 base per second near the core, 2 at mid distance, 4 at the edge, for a MK1 harvester.
+- Deposit: 1 base per second near the core, 2 at mid distance, 4 at the edge of the landing square, then 4 to 8 by level of distance, for a MK1 harvester. Stage 2 opens x2, stage 3 everything above.
 - Vein: 16 items per second of a single matter, under everything, 24 cells at most between two pumps. The last pump empties on its four sides.
 - Wounded, a vein drops to 7 per second and attracts nearby creatures until it breaks.
 - Trail (Piste): one exit per cell, under everything, as a loop. Branches and priorities remain to be built.
@@ -249,7 +251,8 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 ## 10. Threat and defense
 
 - **Breaches sleep** while nothing is built or drawn inside their circle. Each guards a rich deposit and shows its weak gene and creature count.
-- **Few nests near the base**: a single one, to the north, within 30 cells of the core. The four nearest ×2 deposits are free, the guarded ones start farther out.
+- **Levels**: every 160 cells from the core, up to level 5 at 640: 70 to 260 creatures, 1 to 3 times as tough, guarding x4 to x8. Carbon far out goes from x2 to x6, unguarded.
+- **Few nests**: six on the landing square, a single one, to the north, within 30 cells of the core. Two x2 deposits are free, the other rich ones are guarded. Beyond, nests stand at least 30 cells apart, about one in 70 cells each way.
 - Once awake, a breach sends prowlers and assaults. **Emptied, it fades**, returns the ground and pays in ADN.
 - Defense is prepared at the edge of the circle, then the player expands: each advance needs its outpost and its supply.
 - The threat rises with woken or emptied breaches and with production.

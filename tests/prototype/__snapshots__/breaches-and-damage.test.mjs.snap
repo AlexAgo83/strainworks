@@ -7,7 +7,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
     {
       "badPlace": 0,
       "blockedDeposit": 0,
-      "breaches": 13,
+      "breaches": 6,
       "coreWhenCloser": true,
       "damage": [
         12,
@@ -32,7 +32,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
           36,
         ],
       },
-      "freeDeposits": 4,
+      "freeDeposits": 2,
       "freeOnesSleepOn": 0,
       "idle": {
         "awake": 0,

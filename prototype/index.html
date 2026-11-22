@@ -353,6 +353,8 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   #info.docked #actions { flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; scrollbar-width:none; pointer-events:auto; }
   #info.docked #actions > * { flex:none; }
   .ranking #info.docked { bottom:calc(146px + var(--b)); }
+  /* Placing at a rank: the ground matters more than the card. */
+  .ranking #info.holding #card { display:none; }
   .traying #info { display:none; }
   #hint { display:none; }
 }
@@ -560,10 +562,10 @@ const TYPES = {
   pack:{name:'Encapsuleur', help:'Gènes derrière, carbone sur le côté. Règle sa recette : capsule pour le cœur (2 carbones) ou chargeur pour les tourelles (1 carbone), avec 6 objets identiques.', hp:60},
   join:{name:'Assembleur', help:'Gène 1 à gauche, gène 2 à droite : un brin de deux gènes sort devant, le premier en tête.', hp:60},
   turret:{name:'Tourelle', help:'Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.', hp:180},
-  cyst:{name:'Kyste', help:'Stocke 60 objets et les ressort par la flèche. À remplir avant un assaut.', hp:80},
+  cyst:{name:'Kyste', help:'Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut.', hp:80},
   bridge:{name:'Pont', help:'Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.', hp:40},
   borer:{name:'Grand récolteur', help:'4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.', hp:180},
-  vault:{name:'Grand kyste', help:'4 cases, 360 objets. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.', hp:200},
+  vault:{name:'Grand kyste', help:'4 cases, 360 objets, 720 en MK2, 1440 en MK3. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.', hp:200},
   split2:{name:'Diviseur 2', help:'Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.', hp:40},
   split:{name:'Diviseur 3', help:'Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.', hp:40},
   sort:{name:'Trieur', help:'Entrée derrière. Ce qui correspond au filtre sort du côté choisi, le reste va tout droit.', hp:40},
@@ -578,7 +580,7 @@ const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 const STAGES = [
   {name:'Cellule', item:'SFS', count:100, gives:'Diviseur 3, Trieur et Encapsuleur'},
   {name:'Tissu', item:'T:CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2, Assembleur, Grand récolteur et Grand kyste'},
-  {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4'}
+  {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4 à ×8'}
 ];
 // A container is a string too, so whatever carries items carries it: 'A:CNF' is a magazine, 'T:CCF' a capsule.
 // K is carbon: matter, never a base, so it has no pair and never enters a gene.
@@ -598,7 +600,7 @@ const isSplit = c => Boolean(c && SPLIT[c.type]);
 const splitExits = c => SPLIT[c.type].map(turn => (c.dir + turn) % 4);
 // These cover 2 x 2 cells. The object stands on its north-west cell: saved games need nothing new.
 const BIG = {borer:true, vault:true};
-const BORER = {harvesters:6, hold:24}, VAULT = {cap:360};
+const BORER = {harvesters:6, hold:24};
 const sizeOf = c => BIG[c.type] ? 2 : 1;
 const centreOf = c => ({x:c.x + sizeOf(c) / 2, y:c.y + sizeOf(c) / 2});
 function footprint(c) {
@@ -652,10 +654,14 @@ const NORTH = [{x:48,y:27}, {x:40,y:29}, {x:56,y:29}];
 // Saves from before the deposits moved away keep these four, their harvesters stand on them.
 const INNER = [['C',44,46,2,3], ['N',51,46,2,3], ['S',44,51,2,2], ['F',51,51,2,2]];
 const OUTER = [
-  ['S',34,44,4,3], ['F',59,43,4,3], ['C',36,56,3,4], ['N',57,57,4,3], ['S',47,63,4,3], ['F',28,52,3,4],
-  ['N',32,35,3,3], ['C',62,34,3,3], ['F',41,67,4,3], ['S',66,50,3,4], ['C',20,42,5,5], ['N',74,42,5,5],
-  ['S',23,66,6,4], ['F',67,66,6,4], ['C',46,78,6,5], ['N',40,12,5,4], ['F',12,20,7,6], ['S',78,18,7,6],
-  ['N',10,78,7,7], ['C',80,80,7,7], ['S',6,50,5,6], ['F',85,52,5,6], ['K',60,50,3,3]
+  ['F',59,43,4,3], ['C',36,56,3,4], ['N',57,57,4,3], ['S',47,63,4,3], ['K',60,50,3,3],
+  ['N',32,35,3,3], ['C',62,34,3,3], ['C',46,78,6,5],
+  ['F',12,20,7,6], ['S',78,18,7,6], ['N',10,78,7,7], ['C',80,80,7,7]
+];
+// What lay there before the map breathed, to tell what an older game's harvesters stand on.
+const CROWDED = [
+  ...OUTER, ['S',34,44,4,3], ['F',28,52,3,4], ['F',41,67,4,3], ['S',66,50,3,4], ['C',20,42,5,5], ['N',74,42,5,5],
+  ['S',23,66,6,4], ['F',67,66,6,4], ['N',40,12,5,4], ['S',6,50,5,6], ['F',85,52,5,6]
 ];
 let FIELDS = [], DEPOSIT = {}, RICH = {};
 function richness(x, y) { const d = Math.hypot(x - CORE.x - .5, y - CORE.y - .5); return d < 18 ? 1 : d < 34 ? 2 : 4; }
@@ -663,9 +669,10 @@ function richness(x, y) { const d = Math.hypot(x - CORE.x - .5, y - CORE.y - .5)
 const CALM = 30;
 const keepsNest = b => b.id || (b.x === NORTH[0].x && b.y === NORTH[0].y) || Math.hypot(b.x - CORE.x, b.y - CORE.y) >= CALM;
 // A game saved with more loses those still asleep. One that woke finishes its fight.
+const inLayout = b => Boolean(b.id) || [NORTH[0], ...OUTER.map(nestBy)].some(spot => spot && spot.x === b.x && spot.y === b.y);
 function thinNests() {
   const all = G.breaches;
-  G.breaches = all.filter(b => b.state !== 'sleep' || keepsNest(b));
+  G.breaches = all.filter(b => b.state !== 'sleep' || (keepsNest(b) && inLayout(b)));
   for (const e of G.enemies || []) if (e.home != null) e.home = G.breaches.indexOf(all[e.home]);
 }
 function nestBy([, x, y, w, h]) {
@@ -685,7 +692,7 @@ function nest() {
     all.push({...at, left:rich === 2 ? 40 : 70});
   }
   // Thinned last, so each nest keeps the family it always had.
-  G.breaches = all.map((b, i) => ({...b, total:b.left, genes:[G.families[i % 3]], state:'sleep', wave:0, pending:0, ended:0})).filter(keepsNest);
+  G.breaches = all.filter(keepsNest).map((b, i) => ({...b, total:b.left, genes:[G.families[i % 3]], form:i % 4, state:'sleep', wave:0, pending:0, ended:0}));
 }
 // A deposit is a main blot and a few splashes round it. The rectangle it was written as still sizes it and its guard.
 const spotHash = (x, y, n) => {
@@ -721,6 +728,7 @@ function makePatch(field, allowed) {
 }
 const patchOf = field => patches.get(field);
 function survey() {
+  sectors = new Map();
   FIELDS = G.far ? OUTER : [...INNER, ...OUTER]; DEPOSIT = {}; RICH = {};
   const nests = new Map();
   for (const field of OUTER) { const spot = nestBy(field); if (spot && keepsNest(spot)) nests.set(field, spot); }
@@ -746,16 +754,44 @@ function survey() {
 // What a harvester works: what was under it before deposits became patches, or what is there.
 const matterUnder = c => c.on || depositAt(c.x, c.y);
 const richUnder = c => c.onRich || richAt(c.x, c.y);
-// A game from before the patches: what already harvests keeps its matter.
+// The world as it was dealt before it was spread out, only to know what an older harvester stands on.
+function crowdedField(sx, sy) {
+  const left = sx * SECTOR, top = sy * SECTOR, chance = dice(sx, sy, 1);
+  if (chance > .72) return chance > .86 ? ['K', left + 12, top + 12, 5 + Math.floor(dice(sx, sy, 9) * 3), 5] : null;
+  const roll = n => dice(sx, sy, n), away = Math.hypot(left + SECTOR / 2 - CORE.x, top + SECTOR / 2 - CORE.y);
+  const grown = Math.min(3, Math.floor(away / 120)), w = 5 + grown + Math.floor(roll(2) * 3), h = 4 + grown + Math.floor(roll(3) * 3);
+  return ['SFCN'[Math.floor(roll(6) * 4)], left + 8 + Math.floor(roll(4) * (17 - w)), top + 8 + Math.floor(roll(5) * (17 - h)), w, h];
+}
 function keepHarvests() {
   for (const c of [...Object.values(G.cells), ...Object.values(G.ruins)]) {
-    if (c.type !== 'mine' && c.type !== 'borer') continue;
-    const home = atHome(c.x, c.y), found = home ? FIELDS : [sector(Math.floor(c.x / SECTOR), Math.floor(c.y / SECTOR))?.field].filter(Boolean);
-    const was = found.find(([, x, y, w, h]) => c.x >= x && c.x < x + w && c.y >= y && c.y < y + h);
-    if (!was || footprint(c).every(p => depositAt(p.x, p.y) === was[0])) continue;
-    c.on = was[0];
-    c.onRich = home ? richness(was[1] + was[3] / 2, was[2] + was[4] / 2) : was[0] === 'K' ? 2 : 4;
+    if ((c.type !== 'mine' && c.type !== 'borer') || c.on) continue;
+    const home = atHome(c.x, c.y);
+    const found = home ? [...(G.far ? [] : INNER), ...CROWDED] : [crowdedField(Math.floor(c.x / SECTOR), Math.floor(c.y / SECTOR))].filter(Boolean);
+    // Inside its rectangle, or on a splash round it.
+    const off = ([, x, y, w, h]) => Math.hypot(Math.max(x - c.x, 0, c.x - x - w + 1), Math.max(y - c.y, 0, c.y - y - h + 1));
+    const was = found.filter(f => off(f) <= 5.5).sort((a, b) => off(a) - off(b))[0];
+    if (!was) continue;
+    const rich = home ? richness(was[1] + was[3] / 2, was[2] + was[4] / 2) : was[0] === 'K' ? 2 : 4;
+    if (footprint(c).every(p => depositAt(p.x, p.y) === was[0] && richAt(p.x, p.y) === rich)) continue;
+    c.on = was[0]; c.onRich = rich;
   }
+}
+// A nest the spread-out world would have dealt over what an older game built is not dealt: none wakes on loading.
+function spreadOut() {
+  keepHarvests();
+  const built = [...Object.values(G.cells), ...Object.values(G.tracks)].filter(c => c.type !== 'core'), cleared = new Set(), points = [];
+  for (const c of built) {
+    for (const p of c.type ? footprint(c) : [c]) points.push(p);
+    const to = c.to && G.cells[c.to];
+    if (to) for (let i = 1, n = Math.ceil(span(c, to)); i < n; i++) points.push({x:c.x + (to.x - c.x) * i / n, y:c.y + (to.y - c.y) * i / n});
+  }
+  for (const p of points) eachSector(p.x - SECTOR, p.y - SECTOR, p.x + SECTOR, p.y + SECTOR, s => {
+    if (s.breach && Math.hypot(p.x - s.breach.x, p.y - s.breach.y) <= s.breach.r + 1) cleared.add(s.breach.id);
+  });
+  G.cleared = [...cleared];
+  sectors = new Map();
+  G.breaches.forEach((b, i) => { b.form ??= i % 4; });
+  G.world = 2;
 }
 
 // Past the landing square the world is never stored: a sector is a pure function of the seed and where it is.
@@ -774,25 +810,33 @@ function sector(sx, sy) {
   const id = sx + ',' + sy;
   if (!sectors.has(id)) {
     const made = generate(sx, sy, id), b = made?.breach;
-    if (made) patches.set(made.field, makePatch(made.field, (i, j) => {
-      if (Math.floor(i / SECTOR) !== sx || Math.floor(j / SECTOR) !== sy) return false;
-      if (!b) return true;
-      const d = Math.hypot(i - b.x, j - b.y);
-      return d >= 3.5 && d <= b.r;
-    }));
+    if (made) {
+      const patch = makePatch(made.field, (i, j) => {
+        if (Math.floor(i / SECTOR) !== sx || Math.floor(j / SECTOR) !== sy) return false;
+        if (!b) return true;
+        const d = Math.hypot(i - b.x, j - b.y);
+        return d >= 3.5 && d <= b.r;
+      });
+      patch.rich = made.rich;
+      patches.set(made.field, patch);
+    }
     sectors.set(id, made);
   }
   return sectors.get(id);
 }
-function generate(sx, sy, id) {
+// Levels climb every so many cells from the core and stop at the last one.
+const LEVEL = {every:160, total:[70, 110, 150, 200, 260], tough:[1, 1.4, 1.9, 2.4, 3]};
+const tierAt = (x, y) => Math.min(LEVEL.total.length - 1, Math.floor(Math.hypot(x - CORE.x, y - CORE.y) / LEVEL.every));
+const levelOf = b => (b.tier || 0) + 1;
+const formOf = b => b.form ?? Math.floor(spotHash(b.x, b.y, 30) * 4);
+const mod = (a, n) => ((a % n) + n) % n;
+// Nests stand on staggered rows two sectors apart, one in five missing, so two never crowd each other.
+function nestSector(sx, sy) {
   const left = sx * SECTOR, top = sy * SECTOR;
-  if (atHome(left, top)) return null;
-  const chance = dice(sx, sy, 1);
-  // Carbon only lands where nothing was, so a world already played keeps its deposits. Nothing guards it.
-  if (chance > .72) return chance > .86 ? {field:['K', left + 12, top + 12, 5 + Math.floor(dice(sx, sy, 9) * 3), 5]} : null;
-  const roll = n => dice(sx, sy, n), away = Math.hypot(left + SECTOR / 2 - CORE.x, top + SECTOR / 2 - CORE.y);
-  // Farther: bigger deposits, fuller breaches, harder creatures.
-  const grown = Math.min(3, Math.floor(away / 120)), w = 5 + grown + Math.floor(roll(2) * 3), h = 4 + grown + Math.floor(roll(3) * 3);
+  if (atHome(left, top) || mod(sy, 2) || mod(sx + mod(sy / 2, 2), 2) || dice(sx, sy, 1) > .8) return null;
+  const roll = n => dice(sx, sy, n), tier = tierAt(left + SECTOR / 2, top + SECTOR / 2);
+  // Farther: bigger and richer deposits, fuller breaches, harder creatures.
+  const w = 5 + tier + Math.floor(roll(2) * 3), h = 4 + tier + Math.floor(roll(3) * 3);
   // Field and body stay clear of the sector's edge, so they never land on a neighbour's.
   const x = left + 8 + Math.floor(roll(4) * (17 - w)), y = top + 8 + Math.floor(roll(5) * (17 - h));
   const cx = x + w / 2, cy = y + h / 2, dx = cx - CORE.x, dy = cy - CORE.y, wide = Math.abs(dx) > Math.abs(dy);
@@ -800,11 +844,28 @@ function generate(sx, sy, id) {
   const reach = Math.max(...[[x,y],[x+w-1,y],[x,y+h-1],[x+w-1,y+h-1]].map(([a,b]) => Math.hypot(a - bx, b - by))), r = Math.ceil(reach) + 1;
   // Never into the landing square, or a game saved before the world grew would wake it on loading.
   if (Math.hypot(Math.max(-bx, 0, bx - W + 1), Math.max(-by, 0, by - H + 1)) <= r) return null;
-  const total = Math.min(260, 70 + Math.floor(away / 80) * 15);
-  return {
-    field:['SFCN'[Math.floor(roll(6) * 4)], x, y, w, h],
-    breach:{id, x:bx, y:by, r, left:total, total, tough:1 + Math.min(2, away / 400), genes:[G.families[Math.floor(roll(7) * 3)]], state:'sleep', wave:0, pending:0, ended:0}
-  };
+  return {x, y, w, h, bx, by, r, tier};
+}
+function generate(sx, sy, id) {
+  const left = sx * SECTOR, top = sy * SECTOR;
+  if (atHome(left, top)) return null;
+  const roll = n => dice(sx, sy, n), nest = nestSector(sx, sy);
+  if (nest) {
+    const {x, y, w, h, bx, by, r, tier} = nest, name = 'n' + id, total = LEVEL.total[tier];
+    return {
+      rich:4 + tier,
+      field:['SFCN'[Math.floor(roll(6) * 4)], x, y, w, h],
+      breach:G.cleared?.includes(name) ? null : {id:name, x:bx, y:by, r, left:total, total, tier, form:Math.floor(roll(10) * 4), tough:LEVEL.tough[tier], genes:[G.families[Math.floor(roll(7) * 3)]], state:'sleep', wave:0, pending:0, ended:0}
+    };
+  }
+  // Carbon lies between the rows, where no circle reaches. Nothing guards it.
+  if (!mod(sy, 2) || roll(1) > .3) return null;
+  const w = 5 + Math.floor(roll(9) * 3), cx = left + 12 + w / 2, cy = top + 14.5;
+  for (let i = -1; i < 2; i++) for (const j of [-1, 1]) {
+    const near = nestSector(sx + i, sy + j);
+    if (near && Math.hypot(near.bx - cx, near.by - cy) <= near.r + w / 2 + 3) return null;
+  }
+  return {rich:2 + tierAt(cx, cy), field:['K', left + 12, top + 12, w, 5]};
 }
 function eachSector(x0, y0, x1, y1, visit) {
   for (let sx = Math.floor(x0 / SECTOR); sx <= Math.floor(x1 / SECTOR); sx++)
@@ -831,8 +892,7 @@ function depositAt(x, y) {
 }
 function richAt(x, y) {
   if (atHome(x, y)) return RICH[key(x, y)];
-  const kind = depositAt(x, y);
-  return kind && (kind === 'K' ? 2 : 4);
+  return depositAt(x, y) && sector(Math.floor(x / SECTOR), Math.floor(y / SECTOR)).rich;
 }
 
 let wormId = null;
@@ -885,13 +945,17 @@ const REPAIR = {quiet:5, share:.02, core:.005};
 const fullHp = c => TYPES[c.type]?.hp ?? 100;
 const healing = c => !c.cut && c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt ?? -99) >= REPAIR.quiet;
 const unlocked = stage => G.open || G.stage >= stage;
-const richCap = () => unlocked(3) ? 4 : unlocked(2) ? 2 : 1;
+const richCap = () => unlocked(3) ? 8 : unlocked(2) ? 2 : 1;
 // Three ranks of belts and harvesters, paid in ADN. cost is from the first rank, time is a drone's.
 const RANKS = {
   belt:{cost:[0, 1, 3], time:.15},
   mine:{cost:[0, 15, 40], time:2},
-  borer:{cost:[0, 60, 160], time:4}
+  borer:{cost:[0, 60, 160], time:4},
+  cyst:{cost:[0, 10, 25], time:2},
+  vault:{cost:[0, 30, 80], time:5}
 };
+const HOLD = {cyst:[60, 120, 240], vault:[360, 720, 1440]};
+const capOf = c => HOLD[c.type][rankOf(c) - 1];
 const BELT_SPEED = 4;
 const rankOf = c => c.mk || 1;
 const rankCost = (type, mk = 1) => RANKS[type]?.cost[mk - 1] || 0;
@@ -1195,7 +1259,7 @@ function recipe(item) {
   return box ? `${BOX[box].name.toLowerCase()} de ${PACK.size} ${genes}` : genes;
 }
 function fresh() {
-  G = {time:0, capsules:true, patches:true, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0,
+  G = {time:0, capsules:true, world:2, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0,
     woken:0, breaches:[], families:['SFN','SSC','FNN'], over:false};
   put('core', CORE.x, CORE.y, 0);
   survey();
@@ -1495,8 +1559,7 @@ function accepts(c, item, travel) {
     case 'ligase': return item in BASE && c.ports[portOf(c, travel)].length < 2;
     case 'pack': return packTakes(c, item, packPort(c, travel));
     case 'join': return item.length === 3 && c.ports[joinPort(c, travel)].length < 2;
-    case 'cyst': return c.stock.length < 60;
-    case 'vault': return c.stock.length < VAULT.cap;
+    case 'cyst': case 'vault': return c.stock.length < capOf(c);
     case 'pocket': return c.stock.length < WORM.pocket && (!c.stock.length || c.stock[0] === item);
     case 'pump': { if (c.stock.length >= VEIN.cap) return false; const kind = veinKind(c); return !kind || kind === item; }
     case 'turret': case 'sting': case 'maw':
@@ -1929,8 +1992,8 @@ function diagnose(c) {
     if (net) return `${name} sur nerf, demande : ${net.list.join(', ') || 'rien, personne à portée'}. En stock : ${load || 'rien'}.`;
     return load ? `${name} : ${load}. 3, 2, 1 ou 0 bases justes : ${[12, 5, 2, 1].map(n => n * gun.power).slice(0, 3).join(', ')} ou ${gun.power} dégâts${gun.volley > 1 ? ', deux coups à la fois' : ''}, à ${String(gun.range).replace('.', ',')} cases. ${c.strict ? 'Économe, elle ne tire qu’à 2 justes ou plus.' : 'Elle tire sur tout.'}` : name + ' : rien à tirer. Amène-lui des gènes de trois bases.';
   }
-  if (c.type === 'cyst') { chain = upstream(c); return `Kyste : ${c.stock.length} sur 60 objets.`; }
-  if (c.type === 'vault') { chain = upstream(c); return `Grand kyste : ${c.stock.length} sur ${VAULT.cap} objets.`; }
+  if (c.type === 'cyst') { chain = upstream(c); return `Kyste : ${c.stock.length} sur ${capOf(c)} objets.`; }
+  if (c.type === 'vault') { chain = upstream(c); return `Grand kyste : ${c.stock.length} sur ${capOf(c)} objets.`; }
   if (c.type === 'borer') {
     const figure = n => n.toFixed(1).replace('.', ','), per = figure(c.made.length / Math.max(1, Math.min(10, G.time)));
     const rich = richUnder(c), later = rich > richCap() ? ` Ce gisement est ×${rich}, exploitable ainsi au stade ${rich === 2 ? 2 : 3}.` : '';
@@ -2267,8 +2330,9 @@ function drawCell(g, c, inputs = []) {
       circle(g,dx * .42 - dy * s * .17,dy * .42 + dx * s * .17,.07,full ? '#F0A03C' : '#091013');
     }
   } else if (type === 'cyst') {
-    const fill = c.stock.length / 60;
+    const fill = c.stock.length / capOf(c);
     circle(g,0,0,.18 + fill*.22,fill > .95 ? '#FF4D5E' : '#7A2638','#FF8FA2');
+    for (let i = 1; i < rankOf(c); i++) circle(g,0,0,.3 + i * .06,null,i > 1 ? '#C77DFF' : '#F0A03C',.045);
   } else if (type === 'borer') {
     // Drawn at half scale and stretched over its four cells.
     for (const [a,b] of [[-.2,-.2],[.2,-.2],[-.2,.2],[.2,.2]]) circle(g,a,b,.12,'#0B1417','#4A6A73',.03);
@@ -2276,10 +2340,11 @@ function drawCell(g, c, inputs = []) {
     glyph(g,matterUnder(c) || 'S',0,0,.11);
     for (let i = 1; i < rankOf(c); i++) circle(g,0,0,.25 + i * .07,null,i > 1 ? '#C77DFF' : '#F0A03C',.035);
   } else if (type === 'vault') {
-    const fill = c.stock.length / VAULT.cap;
+    const fill = c.stock.length / capOf(c);
     [[-.19,-.19],[.19,-.19],[-.19,.19],[.19,.19]].forEach(([a,b],i) => {
       circle(g,a,b,.11 + Math.max(0,Math.min(1,fill * 4 - i)) * .09,fill > .95 ? '#FF4D5E' : '#7A2638','#FF8FA2',.03);
     });
+    for (let i = 1; i < rankOf(c); i++) circle(g,0,0,.05 + i * .06,null,i > 1 ? '#C77DFF' : '#F0A03C',.03);
   } else if (type === 'split' || type === 'split2') {
     if (type === 'split') circle(g,0,0,.12,'#6A8D94');
     else {
@@ -2492,7 +2557,17 @@ function drawBreach(b) {
   // The circle is the limit to build up to without waking it.
   if (asleep) { ctx.setLineDash([.6,.6]); circle(ctx,x,y,b.r + Math.sin(motionTime() * 1.1) * .08,null,'#6B5960',Math.max(.06,1 / cam.zoom)); ctx.setLineDash([]); }
   const full = b.left / b.total, beat = asleep ? 0 : Math.sin(G.time * 5) * .1;
-  circle(ctx,x,y,.7 + full * .6 + beat,asleep ? '#2A2527' : '#3A1820',asleep ? '#8B989C' : '#FF6B6B',.12);
+  const form = formOf(b), size = (.7 + full * .6 + beat) * (1 + (b.tier || 0) * .12);
+  const body = asleep ? '#2A2527' : '#3A1820', edge = asleep ? '#8B989C' : '#FF6B6B';
+  if (form === 1) polygon(ctx,Array.from({length:6},(_,i) => [x + Math.cos(i * Math.PI / 3) * size,y + Math.sin(i * Math.PI / 3) * size]),body,edge,.12);
+  else if (form === 2) polygon(ctx,[[-1.7,-.2],[-.5,-.75],[.4,-.4],[1.7,-.35],[.7,.5],[-.3,.35],[-1.1,.7]].map(([a,c]) => [x + a * size,y + c * size]),body,edge,.12);
+  else if (form === 3) for (let i = 0; i < 5; i++) circle(ctx,x + Math.cos(i * 1.257) * size * .75,y + Math.sin(i * 1.257) * size * .75,size * (.4 + (i % 3) * .08),body,edge,.1);
+  else circle(ctx,x,y,size,body,edge,.12);
+  // One spine a level above the first.
+  for (let i = 0; i < (b.tier || 0) * 3; i++) {
+    const a = i * Math.PI * 2 / ((b.tier || 0) * 3);
+    polygon(ctx,[[x + Math.cos(a) * 3,y + Math.sin(a) * 3],[x + Math.cos(a + .09) * 2.4,y + Math.sin(a + .09) * 2.4],[x + Math.cos(a - .09) * 2.4,y + Math.sin(a - .09) * 2.4]],edge);
+  }
   if (cam.zoom >= 8) {
     b.genes.forEach((gene,row) => [...gene].forEach((base,i) => glyph(ctx,base,x + (i - 1) * .65,y + 2 + row * .65,.24)));
     ctx.save(); ctx.translate(x,y); ctx.scale(1/40,1/40);
@@ -2904,7 +2979,7 @@ function place(x,y) {
     if (G.tracks[id]) return say(trackAfter(id) || !built(G.tracks[id]) ? 'Piste de phéromones. Pose une poche contre elle, ou un ver dessus.' : 'Fin de piste : les vers s’arrêtent ici. Referme la boucle.');
     const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
     if (!b) return;
-    say(`Brèche au ${bearing(b)} : ${b.left} créatures, gène faible ${b.genes.join(' et ')}, antidote ${b.genes.map(opposite).join(' et ')}. ${b.state === 'sleep' ? 'Elle dort tant que rien n’est bâti dans son cercle.' : 'Elle est réveillée. Vide-la pour qu’elle disparaisse.'}`);
+    say(`Brèche au ${bearing(b)}, niveau ${levelOf(b)} sur 5 : ${b.left} créatures, gène faible ${b.genes.join(' et ')}, antidote ${b.genes.map(opposite).join(' et ')}. ${b.state === 'sleep' ? 'Elle dort tant que rien n’est bâti dans son cercle.' : 'Elle est réveillée. Vide-la pour qu’elle disparaisse.'}`);
     if (b.state === 'sleep') button('Réveiller', () => { wake(b); $('actions').replaceChildren(); });
     return;
   }
@@ -3059,7 +3134,7 @@ function preview() {
     if (old) return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
     if (G.tracks[id]) return to('select', {label:'Piste'});
     const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
-    if (b) return to('select', {label:`Brèche : ${b.left} créatures`});
+    if (b) return to('select', {label:`Brèche niveau ${levelOf(b)} : ${b.left} créatures`});
     const base = depositAt(x, y);
     return to('none', base ? {label:`Gisement : ${MATTER[base].toLowerCase()} ×${richAt(x, y)}`} : {});
   }
@@ -3602,7 +3677,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.patches) { keepHarvests(); G.patches = true; } repayBonus(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); return true; }
+    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); return true; }
   } catch (_) {}
   return false;
 }
@@ -3816,8 +3891,7 @@ function cellsOf(c, worm) {
     return genes + Array.from({length:box.carbon}, (_, i) => i < carbon.length ? alveole(markOf('K') || 'C') : alveole('')).join('');
   }
   if (isGun(c)) return Object.entries(c.ammo).filter(([, n]) => n).slice(0, 4).map(([gene, n]) => `${geneMark(gene)}<b>${n}</b>`).join('');
-  if (c.type === 'cyst') return sac(c.stock.length, 60);
-  if (c.type === 'vault') return sac(c.stock.length, VAULT.cap);
+  if (c.type === 'cyst' || c.type === 'vault') return sac(c.stock.length, capOf(c));
   if (c.type === 'borer') return sac(c.stock.length, BORER.hold);
   if (c.type === 'pump') return sac(c.stock.length, VEIN.cap);
   if (c.type === 'pocket') return sac(c.stock.length, WORM.pocket);
@@ -3866,7 +3940,7 @@ function paintMoments() {
   if (ui.stage != null && G.stage === ui.stage + 1 && G.time - (G.grownAt ?? -1e9) < 3) {
     $('growth').querySelector('.stage').textContent = `Stade ${G.stage} achevé · +${GROWTH_BONUS} ADN`;
     const got = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage).map(type => [type, TYPES[type].name]);
-    if (G.stage > 1) got.push(['mine', `Gisements ×${G.stage === 2 ? 2 : 4}`]);
+    if (G.stage > 1) got.push(['mine', `Gisements ×${G.stage === 2 ? '2' : '4 à ×8'}`]);
     $('rewards').replaceChildren(...got.map(([type, name]) => {
       const item = document.createElement('div'), hole = document.createElement('span'), words = document.createElement('span');
       item.className = 'pod'; hole.className = 'porthole model'; words.className = 'name'; words.textContent = name;

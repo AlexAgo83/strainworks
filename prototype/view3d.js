@@ -203,6 +203,7 @@ window.createView3D = (glCanvas) => {
       }
       if (cam.zoom < 8) continue;
       label(b.left, x, up(y, 2.1), 26, asleep ? '#A3B8B3' : '#FFD0D0');
+      if (b.tier) label(`niveau ${levelOf(b)}`, x, up(y, 3.1), 20, '#F0A03C');
       b.genes.forEach((gene, row) => {
         [...gene].forEach((kind, i) => glyph(g, kind, x + (i - 1) * 0.65, y + 2 + row * 0.65, 0.24));
       });

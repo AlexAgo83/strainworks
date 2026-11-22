@@ -200,7 +200,11 @@ it("packs genes in carbon", async () => {
       eachSector(-600, -600, 700, 700, (sector) => {
         if (sector.field[0] === "K") found.push(sector);
       });
-      out.farCarbon = found.length > 10 && found.every(({ field, breach }) => !breach && patchOf(field).list.every((c) => richAt(c.x, c.y) === 2));
+      out.farCarbon = found.length > 10 && found.every(({ field, breach, rich }) => {
+        if (breach || rich < 2 || rich > 6) return false;
+        // And nothing guards it.
+        return patchOf(field).list.every((c) => richAt(c.x, c.y) === rich && !breachesIn(c.x, c.y, c.x, c.y).some((b) => Math.hypot(c.x - b.x, c.y - b.y) <= b.r));
+      });
 
       begin();
       paused = true;

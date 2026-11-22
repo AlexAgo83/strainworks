@@ -20,7 +20,7 @@ it("progression behaves as the recorded prototype", async () => {
       const line=(...pts)=>{ for(let i=0;i<pts.length-1;i++){ let [x,y]=pts[i]; const [a,b]=pts[i+1]; const d=a>x?1:a<x?3:b>y?2:0; while(x!==a||y!==b){ const o=G.cells[key(x,y)]; if(!o)put('belt',x,y,d); else if(isBelt(o))o.dir=d; x+=DX[d]; y+=DY[d]; } } };
       const refused=t=>{ choose('hand'); choose(t); return tool!==t; };
       out.locked0=Object.keys(NEEDS).filter(refused).length;
-      out.richLocked=perSecond({type:'mine',x:42,y:14});
+      out.richLocked=perSecond({type:'mine',x:15,y:23});
 
       // Stage 1, wired on the real map from real deposits.
       put('mine',47,64,0); line([47,63],[47,56],[48,56]); put('mine',49,63,0); line([49,62],[49,56],[48,56]);
@@ -38,7 +38,7 @@ it("progression behaves as the recorded prototype", async () => {
       supply(80); out.oneLigaseNotEnough=[G.stage,+G.held.toFixed(0),mealRate()];
       ligase(44,55,1,'CCF'); line([45,55],[48,55]);
       t=0; while(G.stage<2&&t<200){supply(1);t++;}
-      out.tissue={seconds:t,stage:G.stage,vein:!refused('pump'),join:!refused('join'),worm:refused('worm'),rich:perSecond({type:'mine',x:42,y:14})};
+      out.tissue={seconds:t,stage:G.stage,vein:!refused('pump'),join:!refused('join'),worm:refused('worm'),rich:perSecond({type:'mine',x:15,y:23})};
 
       clear(); packer(); put('join',48,57,0); line([48,56],[48,54]);
       feed(47,57,1,'SFS'); feed(49,57,3,'FFF');
@@ -47,7 +47,7 @@ it("progression behaves as the recorded prototype", async () => {
       j.flip=false; j.ports=[[],[],[]]; j.item=null;
       for (const c of Object.values(G.cells)) { if (isBelt(c)) c.item=null; if (c.type==='pack') { c.ports=[[],[],[]]; c.item=null; } }
       t=0; while(G.stage<3&&t<200){supply(1);t++;}
-      out.organ={seconds:t,stage:G.stage,worm:!refused('worm'),rich:perSecond({type:'mine',x:42,y:14})};
+      out.organ={seconds:t,stage:G.stage,worm:!refused('worm'),rich:perSecond({type:'mine',x:15,y:23})};
       const s=cell('sort',1,1,0); s.want='SFS???'; out.sortStrand=[fits(s,'SFSFFF'),fits(s,'FFFSFS')];
       const tu=cell('turret',1,1,0); out.turretRefuses=!accepts(tu,'SFSFFF',0);
       begin(); out.reset=[G.stage,G.open,refused('split')];

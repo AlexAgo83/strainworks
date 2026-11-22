@@ -48,7 +48,7 @@ it("goes on past the landing square", async () => {
           for (const { x: cx, y: cy } of patchOf(field).list) {
             if (!buildable(cx, cy)) out.faults.push(["covered", seed, b.id]);
             if (Math.hypot(cx - b.x, cy - b.y) > b.r) out.faults.push(["unguarded", seed, b.id]);
-            if (depositAt(cx, cy) !== field[0] || richAt(cx, cy) !== 4) out.faults.push(["deposit", seed, b.id]);
+            if (depositAt(cx, cy) !== field[0] || richAt(cx, cy) !== 3 + levelOf(b)) out.faults.push(["deposit", seed, b.id]);
           }
         }
       }
@@ -58,6 +58,14 @@ it("goes on past the landing square", async () => {
       const far = generated(4000, 4600);
       const mean = (list, of) => list.reduce((sum, s) => sum + of(s), 0) / list.length;
       out.fartherIsBigger = mean(far, (s) => s.field[3] * s.field[4]) > mean(near, (s) => s.field[3] * s.field[4]) * 1.4;
+      out.fartherIsRicher = mean(far, (s) => s.rich) >= mean(near, (s) => s.rich) + 3;
+      // Levels stop climbing, whatever the distance.
+      const farthest = [...far, ...generated(30000, 30600)];
+      out.capped = farthest.every((s) => levelOf(s.breach) === 5 && s.rich === 8 && s.breach.total === 260 && s.breach.tough === 3);
+      // Nests stand apart.
+      const all = generated(-700, 800);
+      out.forms = new Set(all.map((s) => formOf(s.breach))).size;
+      out.crowded = all.filter((s, i) => all.some((o, j) => j > i && Math.hypot(s.breach.x - o.breach.x, s.breach.y - o.breach.y) < 30)).length;
       out.fartherIsFuller = mean(far, (s) => s.breach.total) > mean(near, (s) => s.breach.total) * 1.5;
 
       // Looking stores nothing.
@@ -96,7 +104,7 @@ it("goes on past the landing square", async () => {
 
       // A trail wakes it too, and they then march on what still stands.
       lab();
-      const trail = generated(128, 250)[0].breach;
+      const trail = generated(128, 420)[0].breach;
       layTrack(trail.x + 4, trail.y, 1).left = 0;
       run(1);
       const woke = G.breaches.find((o) => o.id === trail.id);
@@ -129,7 +137,7 @@ it("goes on past the landing square", async () => {
 
       // Seed and woken breaches are all that is saved.
       lab();
-      const kept = generated(128, 250)[0];
+      const kept = generated(128, 420)[0];
       wake(kept.breach);
       save();
       const bytes = localStorage.getItem(SAVE).length;
@@ -168,6 +176,10 @@ it("goes on past the landing square", async () => {
       otherSeedOtherWorld: true,
       faults: [],
       fartherIsBigger: true,
+      fartherIsRicher: true,
+      capped: true,
+      forms: 4,
+      crowded: 0,
       fartherIsFuller: true,
       lookingStoresNothing: true,
       harvests: true,
@@ -183,7 +195,7 @@ it("goes on past the landing square", async () => {
       sleepingOneIsGone: true,
       smallSave: true,
       oldSave: true,
-      thinned: [14, true, "wake"],
+      thinned: [7, true, "wake"],
       camera: true,
     });
     for (const [away, took, back] of out.flights) {

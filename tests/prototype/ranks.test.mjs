@@ -209,18 +209,86 @@ it("spreads deposits in patches and keeps older games harvesting", async () => {
       // A corner of an old rectangle that is bare ground now.
       const [kind, x, y] = OUTER.find(([, x, y, w, h]) => !depositAt(x, y) && richness(x + w / 2, y + h / 2) === 1);
       put("mine", x, y, 1);
-      delete G.patches;
+      delete G.world;
       G.upgrades = 2;
       G.dna = 10;
       save();
       load();
       const old = G.cells[key(x, y)];
+      out.migrated = G.world;
       out.kept = [matterUnder(old) === kind, perSecond(old), G.dna, "upgrades" in G];
       return out;
     });
     expect(out.starters).toEqual(["C", "F", "N"]);
     expect([out.squares, out.rectangles, out.touching]).toEqual([true, 0, 0]);
-    expect(out.kept).toEqual([true, 1, 100, false]);
+    expect([out.migrated, ...out.kept]).toEqual([2, true, 1, 100, false]);
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});
+
+it("lets cysts hold more by rank, at the same pace", async () => {
+  const browser = await launch();
+  try {
+    const { page, errors } = await open(browser);
+    const out = await page.evaluate(() => {
+      const out = {};
+      for (const type of ["cyst", "vault"]) {
+        out[type] = [1, 2, 3].map((mk) => {
+          lab();
+          const c = put(type, 20, 80, 1);
+          c.mk = mk;
+          c.stock = Array(capOf(c) - 1).fill("S");
+          const room = accepts(c, "S", 1);
+          c.stock.push("S");
+          return [capOf(c), room && !accepts(c, "S", 1)];
+        });
+      }
+      lab();
+      G.dna = 100;
+      const c = put("cyst", 20, 80, 1);
+      c.stock = Array(60).fill("S");
+      raise([c], 3);
+      out.before = accepts(c, "S", 1);
+      run(9);
+      out.after = [rankOf(c), accepts(c, "S", 1), G.dna, refund(c)];
+      return out;
+    });
+    expect(out).toEqual({
+      cyst: [[60, true], [120, true], [240, true]],
+      vault: [[360, true], [720, true], [1440, true]],
+      before: false,
+      after: [3, true, 75, 25],
+    });
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});
+
+it("wakes nothing when an older game meets the spread-out world", async () => {
+  const browser = await launch();
+  try {
+    const { page, errors } = await open(browser);
+    const out = await page.evaluate(() => {
+      begin();
+      paused = true;
+      G.seed = 12345;
+      const nests = [];
+      eachSector(96, -300, 500, 500, (s) => {
+        if (s.breach) nests.push(s.breach);
+      });
+      const b = nests[0];
+      put("wall", b.x + 4, b.y, 0);
+      delete G.world;
+      delete G.cleared;
+      save();
+      load();
+      run(3);
+      return { awake: G.breaches.filter((o) => o.state !== "sleep").length, cleared: G.cleared.includes(b.id), others: breachesIn(nests[1].x, nests[1].y, nests[1].x, nests[1].y).length > 0 };
+    });
+    expect(out).toEqual({ awake: 0, cleared: true, others: true });
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

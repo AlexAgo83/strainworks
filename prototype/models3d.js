@@ -538,7 +538,7 @@ window.createModels3D = (B, scene) => {
 
     // A sac in a bone cradle, swelling and lighting its nodes as it fills.
     cyst(c, x, y) {
-      const full = c.stock.length / 60;
+      const full = c.stock.length / capOf(c);
       const beat = 1 + Math.sin(clock * 2.6 + c.x) * 0.035;
       const r = (0.46 + full * 0.36) * beat;
       footing(x, y, 0.8);
@@ -554,6 +554,7 @@ window.createModels3D = (B, scene) => {
         if (fine) limb('gore', ...from(x, y, a + 0.3, r * 0.46), 0.22 + r * 0.22, ...from(x, y, a, r * 0.3), 0.22 + r * 0.68, 0.035);
       }
       add('lip', 'pink', x, y, 0.2 + r * 0.83, 0.2);
+      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.12 + i * 0.14, 0.78);
       if (c.stock.length && fine) cargo(c.stock[0], x, y, 0.3 + r * 0.85, Math.PI, 0.36);
       nozzle(x, y, c.dir, 0.22);
     },
@@ -587,7 +588,7 @@ window.createModels3D = (B, scene) => {
 
     // Four sacs in one cradle, filling one after the other, two mouths side by side.
     vault(c, x, y) {
-      const full = c.stock.length / VAULT.cap;
+      const full = c.stock.length / capOf(c);
       add('hull', 'dark', x, y, 0.09, 1.9, 0.18, 1.9);
       add('hull', 'steel', x, y, 0.22, 1.62, 0.14, 1.62);
       for (let i = 0; i < 4; i++) {
@@ -604,6 +605,7 @@ window.createModels3D = (B, scene) => {
       }
       add('sac', 'skin', x, y, 0.62, 0.4, 0.46, 0.4);
       add('ring', full > 0.95 ? 'alarm' : 'cyan', x, y, 0.84, 0.36);
+      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.18 + i * 0.2, 1.66);
       if (c.stock.length) cargo(c.stock[0], x, y, 0.98, Math.PI, 0.5);
       for (const door of edgesOf(c)) {
         if (door.dir === c.dir) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.26);
@@ -887,16 +889,105 @@ window.createModels3D = (B, scene) => {
   };
 
   // A crater with a maw: eggs for what is left inside, arms that curl shut while it sleeps.
+  // A breach has four bodies. The first is the maw below, these are the others.
+  const NESTS = [
+    // A hive: stacked rings, one lit mouth for each share still inside.
+    function hive(b, x, y, z, asleep, left, breath) {
+      const skin = asleep ? 'sleep' : 'gore';
+      const pale = asleep ? 'sleep2' : 'flesh';
+      const floors = [[2.7, 0.3], [2.1, 0.78], [1.5, 1.2], [0.95, 1.56]];
+      floors.forEach(([w, h], i) => {
+        const swell = (1 + breath * (i % 2 ? 1 : -1)) * z;
+        add('sac', i % 2 ? pale : skin, x, y, h * z, w * swell, 0.7 * z, w * swell, b.x + i);
+        if (i === 3) return;
+        const holes = fine ? 8 - i * 2 : 3;
+        for (let j = 0; j < holes; j++) {
+          const a = (j / holes) * TAU + i * 0.5 + b.y;
+          const lit = (j * 3 + i) % 8 < left * 8;
+          const at = from(x, y, a, w * 0.46 * z);
+          add('bead', 'black', ...at, (h + 0.1) * z, 0.3 * z, 0.26 * z, 0.3 * z);
+          if (lit) add('bead', asleep ? 'pink' : 'alarm', ...at, (h + 0.14) * z, 0.12 * z);
+        }
+      });
+      add('lip', pale, x, y, 1.92 * z, 0.5 * z);
+      add('ball', asleep ? 'sleep2' : 'alarm', x, y, 1.96 * z, 0.26 * z);
+      if (asleep || !fine) return;
+      // Awake, what lives in it circles the top.
+      for (let i = 0; i < 9; i++) {
+        const a = clock * (1.4 + (i % 3) * 0.4) + i * 0.7;
+        add('bead', i % 2 ? 'alarm' : 'bone', ...from(x, y, a, (0.9 + (i % 4) * 0.35) * z), (1.5 + Math.sin(a * 2 + i) * 0.4) * z, 0.12);
+      }
+    },
+    // A rift: a torn seam between leaning shards, lit from under.
+    function rift(b, x, y, z, asleep, left, breath) {
+      const along = b.x * 0.7 + b.y;
+      const skin = asleep ? 'sleep' : 'gore';
+      const open = (asleep ? 0.26 : 0.44 + breath) * z;
+      const parts = fine ? 9 : 5;
+      for (let i = 0; i < parts; i++) {
+        const k = i / (parts - 1) - 0.5;
+        const n = noise(i + b.x, b.y);
+        const thin = 1 - Math.abs(k) * 1.5;
+        const [px, py] = from(x, y, along, k * 4.8 * z, Math.sin(i * 2.2) * 0.18 * z);
+        add('stain', 'black', px, py, 0.2, 0.8 * z, 0.06, (open * 2 + 0.2) * thin, along);
+        add('bead', asleep ? 'pink' : 'alarm', px, py, 0.24, (asleep ? 0.14 : 0.3) * thin * z);
+        for (const s of [-1, 1]) {
+          const at = from(px, py, along + Math.PI / 2, s * (open + 0.36 * z));
+          const tall = (0.5 + n * 0.9) * (0.4 + thin) * z;
+          add('rock', skin, ...at, 0.2, 0.85 * z, 0.5 * z, 0.62 * z, along + n);
+          const a = along + (s * Math.PI) / 2;
+          add(i % 2 ? 'crystal' : 'horn', i % 3 ? 'bone' : asleep ? 'sleep2' : 'flesh2', ...at, tall / 2 + 0.1, 0.36 * z, tall, 0.36 * z, a, 0.45);
+        }
+      }
+      const eggs = Math.ceil(left * 8);
+      for (let i = 0; i < eggs; i++) {
+        const [ex, ey] = from(x, y, along, ((i % 4) - 1.5) * 1.1 * z, (i < 4 ? 1 : -1) * 1.45 * z);
+        add('sac', asleep ? 'sleep2' : 'flesh2', ex, ey, 0.3, 0.34 * z, 0.42 * z, 0.34 * z, i);
+      }
+    },
+    // A cluster: pods on stalks round a knot, full or burst.
+    function cluster(b, x, y, z, asleep, left, breath) {
+      const skin = asleep ? 'sleep' : 'gore';
+      const pale = asleep ? 'sleep2' : 'flesh';
+      add('sac', skin, x, y, 0.35 * z, 1.5 * z, 0.8 * z, 1.5 * z, b.x);
+      for (let i = 0; i < 7; i++) {
+        const n = noise(i, b.x * 3 + b.y);
+        const a = (i / 7) * TAU + n * 0.5;
+        const sway = asleep ? 0 : Math.sin(clock * 2.4 + i) * 0.14;
+        const tall = (0.6 + ((i * 3) % 4) * 0.36) * z;
+        const [px, py] = from(x, y, a + sway, (0.9 + n * 0.9) * z);
+        limb(skin, x, y, 0.35 * z, px, py, tall, 0.22 * z, 'taper');
+        const full = i < Math.ceil(left * 7);
+        const size = (full ? 0.8 + n * 0.4 + breath : 0.4) * z;
+        add('sac', full ? pale : skin, px, py, tall + size * 0.2, size, size * 1.15, size, a);
+        if (!full) continue;
+        add('bead', asleep ? 'pink' : 'alarm', px, py, tall + size * 0.72, size * 0.28);
+        if (fine) for (let j = 0; j < 3; j++) add('bead', asleep ? 'gore' : 'flesh2', ...from(px, py, a + j * 2.1, size * 0.4), tall + size * 0.3, 0.14 * z);
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.047 + b.y;
+        limb(skin, x, y, 0.3, ...from(x, y, a, 2.4 * z), 0.06, 0.3 * z, 'taper');
+      }
+    },
+  ];
   function breaches(area) {
     for (const b of breachesIn(area.x0, area.y0, area.x1, area.y1)) {
       if (cam.zoom < 6.5 && b.state !== 'spent') {
         const sleeping = b.state === 'sleep';
-        add('lip', sleeping ? 'sleep2' : 'flesh', b.x + 0.5, b.y + 0.5, 0.3, 3.4, 1.6, 3.4);
+        const form = formOf(b);
+        const wide = 3.4 * (1 + (b.tier || 0) * 0.12);
+        const skin = sleeping ? 'sleep2' : 'flesh';
+        if (form === 1) add('taper', skin, b.x + 0.5, b.y + 0.5, 0.9, wide, 2.6, wide);
+        else if (form === 2) add('sac', skin, b.x + 0.5, b.y + 0.5, 0.4, wide * 1.6, 1.2, wide * 0.5, b.x);
+        else if (form === 3) for (let i = 0; i < 4; i++) add('sac', skin, ...from(b.x + 0.5, b.y + 0.5, i * 1.57, wide * 0.3), 0.5, wide * 0.5);
+        else add('lip', skin, b.x + 0.5, b.y + 0.5, 0.3, wide, 1.6, wide);
         add('ball', sleeping ? 'sleep' : 'alarm', b.x + 0.5, b.y + 0.5, 0.4, 1.5);
         continue;
       }
       if (b.x < area.x0 - 6 || b.x > area.x1 + 6 || b.y < area.y0 - 6 || b.y > area.y1 + 6) continue;
-      const fade = b.state === 'spent' ? 1 - (G.time - b.ended) / 8 : 1;
+      const tier = b.tier || 0;
+      // It fades as it dies, and stands bigger the farther it was dealt.
+      const fade = (b.state === 'spent' ? 1 - (G.time - b.ended) / 8 : 1) * (1 + tier * 0.08);
       if (fade <= 0) continue;
       const x = b.x + 0.5;
       const y = b.y + 0.5;
@@ -904,6 +995,17 @@ window.createModels3D = (B, scene) => {
       const left = b.left / b.total;
       const breath = asleep ? Math.sin(clock * 0.8 + b.x) * 0.02 : Math.sin(clock * 5) * 0.08;
       add('stain', asleep ? 'husk' : 'infected', x, y, 0.035, 7.2 * fade, 0.04, 7.2 * fade, b.x);
+      for (let i = 0; i < tier * 3; i++) {
+        // A crown of spines for what a level adds.
+        const a = (i / (tier * 3)) * TAU + b.y;
+        const tall = (0.6 + tier * 0.22) * Math.min(1, fade);
+        add('horn', 'bone', ...from(x, y, a, 2.5 * fade), tall / 2, 0.42, tall, 0.42, a + Math.PI);
+      }
+      const form = formOf(b);
+      if (form) {
+        NESTS[form - 1](b, x, y, fade, asleep, left, breath);
+        continue;
+      }
       add('lip', asleep ? 'sleep2' : 'gore', x, y, 0.22, (2.1 + left * 0.3) * fade, 1.3 * fade, (2.1 + left * 0.3) * fade, b.y);
       add('stain', 'black', x, y, 0.3, 1.5 * fade, 0.05, 1.5 * fade);
       const rocks = fine ? 12 : 6;
