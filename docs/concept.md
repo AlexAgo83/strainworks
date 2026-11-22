@@ -1,14 +1,13 @@
 # Strainworks: game concept
 
-English translation of version 8 of the private concept document (22 November 2026), which lives in Jarvis HQ, Perso > Documents. French names shown by the prototype are given in brackets on first use. The working name was SOUCHE. The availability of the name Strainworks has not been checked.
+The reference for the game and its decisions. French names shown by the prototype are given in brackets on first use. The working name was SOUCHE. The availability of the name Strainworks has not been checked.
 
 **Write the living. Make it a factory. Survive its mutations.**
 
-This document wins over the illustrated deck when they differ: the corrections listed in "What we corrected" are not in the deck yet.
+This document wins over earlier drafts and mockups.
 
-- Illustrated deck (private): https://claude.ai/artifact/WMThjhMPBNZfUQu1GmXzzb
-- Transport mockup (private): https://claude.ai/artifact/1zH31wticcAc6bWmpchPZf, copy in `prototype/transports/`
-- Playable prototype (private): https://claude.ai/artifact/31DTPUFBgMiqVaFUuH5AgH, copy in `prototype/`
+- Transport mockup: `prototype/transports/`
+- Playable prototype: `prototype/`
 
 ## 1. The game in short
 

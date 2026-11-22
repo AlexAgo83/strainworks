@@ -99,4 +99,8 @@ Rejected are the operator's decisions, rows marked Proposed are open.
   `src/render/` may depend on it, never the reverse. Do not copy rules into a view.
 - Chat with the operator in French. Docs, comments and commits are in English.
 - Do not deploy, release or make the repository public without an explicit request.
+- The repository will be public: no host, private address or path, account, private link,
+  or name of private tooling, in files, commit messages, captures or saved games.
+- Deployment follows a published release only, see `docs/static-site.md`. A new file
+  the prototype loads must be named in `scripts/build-site.mjs` too.
 - Run `npm run check` before pushing.

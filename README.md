@@ -2,7 +2,7 @@
 
 A browser and mobile incremental factory game crossed with tower defense: harvest four organic bases, write genes and strands of DNA, feed a growing organism, and fight creatures with the exact opposite of their gene.
 
-The game is at prototype stage. See the [concept](docs/concept.md).
+The game is at prototype stage. Version `0.1.0`. See the [concept](docs/concept.md) and the [changelogs](changelogs/README.md).
 
 ## Run the prototype
 
@@ -13,7 +13,16 @@ npm run dev
 
 The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. `prototype/index.html` also opens directly as a file, with `view3d.js`, `models3d.js` and `terrain3d.js` beside it.
 
-The **3D** button beside the zoom draws the same game in Babylon.js. The engine is fetched from jsDelivr on first use, pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
+The **3D** button beside the zoom draws the same game in Babylon.js. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
+
+## Build the site
+
+```sh
+npm run build
+npm run preview   # http://127.0.0.1:4173
+```
+
+An installable static site that plays offline. Deployment follows a published release: see [static site and releases](docs/static-site.md).
 
 ## Check
 
@@ -35,5 +44,6 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 | `docs/concept.md` | Game concept and decisions |
 | `tests/prototype/` | Behavior tests of the prototype |
 | `tests/fixtures/saves/` | Saved games from earlier prototype versions |
+| `site/`, `scripts/` | The static site: service worker, manifest, icons, build |
 | `src/` | The product. Empty until the simulation is ported |
 | `logics/` | Workflow corpus |

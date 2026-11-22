@@ -5,10 +5,11 @@ coverage/
 test-results/
 *.png
 !docs/design/**/*.png
+!site/*.png
 logics/.cache/
 .DS_Store
 .claude/
 .env
 .env.*
 !.env.example
-.jarvis-artifacts/
+.*-artifacts/

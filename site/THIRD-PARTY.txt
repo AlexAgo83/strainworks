@@ -1,0 +1,9 @@
+Strainworks is served with:
+
+Babylon.js 9.31.0
+https://github.com/BabylonJS/Babylon.js
+Licensed under the Apache License, Version 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+Fonts loaded from Google Fonts, under the SIL Open Font License 1.1:
+Barlow, Chakra Petch

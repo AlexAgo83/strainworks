@@ -1,6 +1,6 @@
 {
   "name": "strainworks",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "A browser and mobile incremental factory and tower defense game where you write living strands of DNA.",
@@ -11,12 +11,15 @@
   },
   "scripts": {
     "dev": "vite --open /prototype/",
+    "build": "node scripts/build-site.mjs",
+    "preview": "node scripts/serve-site.mjs",
     "test": "vitest run",
     "typecheck": "tsc",
-    "lint": "biome lint src tests",
+    "lint": "biome lint src tests scripts site",
     "format": "biome format --write src",
     "logics:validate": "logics-manager lint --require-status && logics-manager audit --group-by-doc && logics-manager i18n validate",
-    "check": "npm run lint && npm run typecheck && npm test && npm run logics:validate"
+    "check:versions": "node scripts/check-versions.mjs",
+    "check": "npm run check:versions && npm run lint && npm run typecheck && npm test && npm run logics:validate"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

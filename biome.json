@@ -8,7 +8,9 @@
   "files": {
     "includes": [
       "src/**/*.ts",
-      "tests/**/*.mjs"
+      "tests/**/*.mjs",
+      "scripts/**/*.mjs",
+      "site/*.js"
     ]
   },
   "formatter": {

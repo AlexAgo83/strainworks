@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: strainworks
+    runtime: static
+    # Only a published release deploys: see .github/workflows/render-release-deploy.yml.
+    autoDeployTrigger: "off"
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    previews:
+      generation: "off"
+    headers:
+      - path: /
+        name: Cache-Control
+        value: no-cache
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+      - path: /version.json
+        name: Cache-Control
+        value: no-store
+      - path: /site.webmanifest
+        name: Cache-Control
+        value: no-cache
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(), microphone=(), camera=()
+      - path: /*
+        name: Content-Security-Policy
+        # The build leaves no inline script. The game does write inline styles.
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' data: blob: https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
