@@ -108,7 +108,10 @@ window.createView3D = (glCanvas) => {
     site: ['#55D6E8', 0.25, 0.3, 0.1], wreck: ['#FF4D5E', 0.3, 0.35, 0.1], infected: ['#4A1420', 0.1, 0.45, 0.2],
     husk: ['#191D1E', 0, 0.45, 0.05], scent: ['#B7F34A', 0.55, 0.75, 0.1],
   };
-  const FLAT = new Set(['belt', 'Sfield', 'Ffield', 'Cfield', 'Nfield', 'site', 'wreck', 'infected', 'husk', 'scent']);
+  // Instances share their material, so a fade is a set of opacities to step through.
+  const FADE = 16;
+  for (let i = 1; i <= FADE; i++) PAINT[`chevron${i}`] = ['#86A3AB', 0, (i / FADE) * 0.95, 0.15];
+  const FLAT = new Set([...Array.from({ length: FADE }, (_, i) => `chevron${i + 1}`), 'belt', 'Sfield', 'Ffield', 'Cfield', 'Nfield', 'site', 'wreck', 'infected', 'husk', 'scent']);
   const materials = {};
   function material(name) {
     if (materials[name]) return materials[name];
@@ -208,6 +211,21 @@ window.createView3D = (glCanvas) => {
   function membrane(x, y, dir, full, h = 0.3) {
     add('ball', full ? 'pink' : 'grey', x + DX[dir] * 0.38, y + DY[dir] * 0.38, h, 0.14, 0.3, 0.28, facing(dir));
   }
+  // Every cell shares one phase, so the chevron leaving a cell is the one entering the next: the line
+  // scrolls without a seam, at the speed of what it carries. It only fades where the line starts or ends.
+  function chevron(c, travel, out, h) {
+    const speed = 4 * rate();
+    const p = built(c) ? ((G.time + owed) * speed) % 1 : 0.5;
+    const line = (n) => n && built(n) && (isBelt(n) || n.type === 'bridge');
+    let shown = 1;
+    if (p < 0.4 && !line(ahead(c, (travel + 2) % 4))) shown = p / 0.4;
+    if (p > 0.6 && !line(ahead(c, out))) shown = (1 - p) / 0.4;
+    const step = Math.round(shown * FADE);
+    if (!step) return;
+    // along() adds the frame's head start itself.
+    const at = along(c, travel, out, p - owed * speed);
+    add('cone', `chevron${step}`, at.x, at.y, h, 0.1, 0.18, 0.2, at.angle, LYING);
+  }
   // What a listener reads, floating over it.
   function readingOf(c, x, y, h) {
     const net = netOf(c);
@@ -233,8 +251,8 @@ window.createView3D = (glCanvas) => {
         add('box', 'belt', x + ox * 0.365, y + oy * 0.365, 0.07, 0.27, 0.14, 0.46, a);
         for (const s of [-1, 1]) add('box', 'rail', x + ox * 0.365 - oy * s * 0.25, y + oy * 0.365 + ox * s * 0.25, 0.16, 0.27, 0.1, 0.06, a);
       }
-      const shift = built(c) ? (((G.time + owed) * 2 * rate()) % 1) * 0.34 - 0.17 : 0;
-      if (c.type === 'belt') pointer('trim', x + DX[c.dir] * shift, y + DY[c.dir] * shift, 0.15, c.dir, 0.18, 0.2);
+      if (c.type === 'gate' && !(listens(c) ? netOf(c).focus : c.open)) return;
+      for (const travel of fed.length ? fed.map((side) => (side + 2) % 4) : [c.dir]) chevron(c, travel, c.dir, 0.16);
     },
     gate(c, x, y) {
       BUILDINGS.belt(c, x, y);
@@ -259,7 +277,9 @@ window.createView3D = (glCanvas) => {
       }
       for (const axis of [0, 1]) {
         const way = wayOf(c, axis);
-        if (way != null) pointer(c.ways?.[axis] != null ? 'acid' : 'trim', x + DX[way] * 0.4, y + DY[way] * 0.4, axis ? 0.46 : 0.17, way);
+        if (way == null) continue;
+        chevron(c, way, way, axis ? 0.43 : 0.16);
+        pointer(c.ways?.[axis] != null ? 'acid' : 'trim', x + DX[way] * 0.4, y + DY[way] * 0.4, axis ? 0.46 : 0.17, way);
       }
     },
     mine(c, x, y) {
