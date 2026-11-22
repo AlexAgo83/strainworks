@@ -614,6 +614,65 @@ window.createModels3D = (B, scene) => {
       add('bead', count ? 'cyan' : 'alarm', ...from(x, y, a, 0.14), 0.87, 0.16, 0.1, 0.12, a);
     },
 
+    // A long rail of chitin on a tripod: charge climbs its coils until the one heavy shot.
+    sting(c, x, y) {
+      const count = Object.values(c.ammo).reduce((s, n) => s + n, 0);
+      const a = c.aim ?? -Math.PI / 2;
+      const gun = GUNS.sting;
+      const wait = Math.max(0, c.clock) * gun.pace * rate(); // 1 just fired, 0 ready
+      const kick = built(c) ? Math.max(0, wait - 0.7) * 0.5 : 0;
+      add('skirt', 'dark', x, y, 0.1, 0.7, 0.2, 0.7);
+      for (let i = 0; i < 3; i++) {
+        const t = a + Math.PI / 3 + (i * TAU) / 3;
+        const [fx, fy] = from(x, y, t, 0.46);
+        add('hull', 'steel', fx, fy, 0.08, 0.17, 0.14, 0.17, t);
+        limb('steel2', fx, fy, 0.12, ...from(x, y, t, 0.08), 0.56, 0.09, 'taper');
+      }
+      add('gear', 'steel2', x, y, 0.56, 0.4, 0.08, 0.4, a);
+      add('sac', 'skin', ...from(x, y, a, -0.24 - kick), 0.78, 0.42, 0.32, 0.34, a);
+      add('shell', 'bone', ...from(x, y, a, -0.1 - kick), 0.86, 0.44, 0.26, 0.3, a);
+      limb('chrome', ...from(x, y, a, -0.1 - kick), 0.8, ...from(x, y, a, 0.8 - kick), 0.86, 0.085);
+      limb('bone', ...from(x, y, a, 0.7 - kick), 0.855, ...from(x, y, a, 1 - kick), 0.875, 0.12, 'cone');
+      for (let i = 0; i < 4; i++) {
+        const lit = count > 0 && 1 - wait > i / 4;
+        add('ring', lit ? 'acid' : 'steel2', ...from(x, y, a, 0.12 + i * 0.16 - kick), 0.815 + i * 0.011, 0.23 - i * 0.025, 0.2, 0.23 - i * 0.025, a, LYING);
+      }
+      if (fine) {
+        for (const s of [-1, 1]) limb('copper', ...from(x, y, a, -0.3, s * 0.1), 0.72, ...from(x, y, a, 0.1, s * 0.07), 0.82, 0.035);
+      }
+      // A scope on the side.
+      limb('black', ...from(x, y, a, -0.12, 0.17), 0.96, ...from(x, y, a, 0.16, 0.17), 0.98, 0.1);
+      add('bead', count ? 'cyan' : 'alarm', ...from(x, y, a, 0.18, 0.17), 0.98, 0.1);
+      add('ring', count ? 'cyan' : 'alarm', x, y, 0.22, 0.58, 0.8, 0.58);
+      if (kick > 0.06) add('bead', 'acid', ...from(x, y, a, 1 - kick), 0.875, kick * 1.4);
+    },
+
+    // Squat and armoured, two throats between jaws, both spitting at once.
+    maw(c, x, y) {
+      const count = Object.values(c.ammo).reduce((s, n) => s + n, 0);
+      const a = c.aim ?? -Math.PI / 2;
+      const wait = Math.max(0, c.clock) * GUNS.maw.pace * rate();
+      const kick = built(c) ? Math.max(0, wait - 0.5) * 0.18 : 0;
+      add('skirt', 'dark', x, y, 0.16, 1, 0.32, 1, Math.PI / 8);
+      add('ring', count ? 'amber' : 'alarm', x, y, 0.33, 0.74, 0.9, 0.74);
+      add('sac', 'flesh', ...from(x, y, a, -0.1), 0.5, 0.72, 0.5, 0.8, a);
+      add('shell', 'steel', ...from(x, y, a, -0.14), 0.58, 0.64, 0.4, 0.74, a);
+      if (fine) for (let i = 0; i < 3; i++) add('horn', 'bone', ...from(x, y, a, -0.3 + i * 0.14), 0.74, 0.22, 0.2, 0.22, a + Math.PI);
+      for (const s of [-1, 1]) {
+        const root = from(x, y, a, 0.06 - kick, s * 0.19);
+        const lips = from(x, y, a, 0.44 - kick, s * 0.19);
+        limb('flesh2', ...root, 0.5, ...lips, 0.52, 0.27);
+        add('lip', count ? 'pink' : 'flesh', ...lips, 0.52, 0.3, 0.3, 0.3, a, LYING);
+        add('bead', 'black', ...from(x, y, a, 0.47 - kick, s * 0.19), 0.52, 0.07, 0.17, 0.17, a);
+        // The jaws gape as it fires.
+        limb('bone', ...from(x, y, a, 0.2, s * 0.4), 0.4, ...from(x, y, a, 0.64, s * (0.3 + kick * 1.6)), 0.36, 0.13, 'taper');
+        add('bead', count ? 'amber' : 'alarm', ...from(x, y, a, 0.08, s * 0.16), 0.76, 0.1);
+        if (kick > 0.03) add('bead', 'amber', ...from(x, y, a, 0.58, s * 0.19), 0.52, kick * 3);
+      }
+      const pips = Math.ceil(Math.min(12, count) / 3);
+      for (let i = 0; i < 4; i++) status(...from(x, y, a, -0.4, -0.15 + i * 0.1), 0.62, 'amber', i < pips);
+    },
+
     // Buttresses that join their neighbours, and come apart as they are hurt.
     wall(c, x, y) {
       const life = Math.max(0, c.hp / maxHp(c));
@@ -938,7 +997,7 @@ window.createModels3D = (B, scene) => {
       let a = G.cells[w.a];
       let b = G.cells[w.b];
       if (!a || !b) continue;
-      if (b.type === 'turret') [a, b] = [b, a];
+      if (isGun(b)) [a, b] = [b, a];
       const live = carries(w);
       const length = span(a, b);
       const at = (k) => [a.x + 0.5 + (b.x - a.x) * k, a.y + 0.5 + (b.y - a.y) * k, 0.9 - Math.sin(k * Math.PI) * Math.min(0.5, length * 0.05)];
@@ -1210,9 +1269,17 @@ window.createModels3D = (B, scene) => {
     for (const s of G.shots) {
       const paint = { 1: 'steel2', 2: 'pink', 5: 'amber', 12: 'acid' }[s.hurt];
       const a = Math.atan2(s.ty - s.y, s.tx - s.x);
-      const muzzle = from(s.x, s.y, a, 0.6);
-      limb(paint, ...muzzle, 0.68, s.tx, s.ty, 0.36, s.hurt === 12 ? 0.11 : 0.06);
-      add('bead', paint, s.tx, s.ty, 0.36, s.hurt === 12 ? 0.4 : 0.22);
+      const far = s.gun === 'sting';
+      const muzzle = from(s.x, s.y, a, far ? 0.86 : 0.6, (s.barrel || 0) * 0.19);
+      const high = far ? 0.875 : s.gun === 'maw' ? 0.52 : 0.68;
+      limb(paint, ...muzzle, high, s.tx, s.ty, 0.36, (s.hurt === 12 ? 0.11 : 0.06) * (far ? 1.5 : 1));
+      if (far) {
+        for (let i = 1; i < 5; i++) {
+          const k = i / 5;
+          add('ring', paint, muzzle[0] + (s.tx - muzzle[0]) * k, muzzle[1] + (s.ty - muzzle[1]) * k, high + (0.36 - high) * k, 0.3, 0.24, 0.3, a, LYING);
+        }
+      }
+      add('bead', paint, s.tx, s.ty, 0.36, (s.hurt === 12 ? 0.4 : 0.22) * (far ? 1.5 : 1));
       if (fine && s.hurt >= 5) for (let i = 0; i < 5; i++) add('cone', paint, ...from(s.tx, s.ty, i * 1.257, 0.26), 0.4, 0.07, 0.3, 0.07, i * 1.257, LYING);
     }
   }

@@ -42,6 +42,7 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Goal besides defense | Decided | The core demands shapes: delivering them grows it and unlocks what follows. Three stages in the prototype |
 | Nervous system | Decided | Nerves link smart objects that emit or read what is needed, including in position 1, 2 or 3 |
 | Adaptive ligase | Rejected | Sending the right compositions is the player's job |
+| Three turrets | Decided | Beside the Turret: the Dard shoots far and slowly, the Gueule close and two shots at once |
 | Creature target | Decided | A turret closer than the core takes priority |
 | Name | Decided | Strainworks |
 | Transports | Decided | Richer distant deposits, veins and worms, all in the prototype |
@@ -106,7 +107,7 @@ Ages unlock technologies, not matters. A gene is unlocked by delivering it in qu
 
 - Planning while paused is allowed, but sites only advance while the game runs.
 - **3 drones live on the core, one per site**, and take sites in placement order. A site only advances while its drone is within 2 cells. A drone flies 20 cells per second and goes from one site to the next without returning to its nest.
-- Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitter and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, turret 6 s, vein by length.
+- Prototype build times, travel excluded: Belt 0.15 s, gate and bridge 0.5 s, splitter and sorter 1 s, pump 1.5 s, harvester and cyst 2 s, ligase 2.5 s, wall 3 s, Gueule 5 s, turret 6 s, Dard 7 s, vein by length.
 - A site does not carry, shoot, block or attract creatures.
 - **Dismantling shares the same drones and queue, and lasts as long as building did.** A building works until its drone starts, the refund comes at the end, and it can be cancelled. A site nobody started is cancelled at once.
 
@@ -246,6 +247,14 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 - An assault shows its weak gene before it arrives.
 - Each creature has **a single weak gene**, so three bases to counter. The gene fired is compared with its exact opposite, position by position: 3, 2, 1 or 0 correct bases deal **12, 5, 2 or 1 damage**. The player is never blocked.
 - **No family reads the same backwards**, at the start or after mutation: the order of ligase inputs always matters.
+- Three turrets take the same genes and share one rising price:
+
+| Turret | Range | Volleys per second | Genes per volley | Damage | Hit points | Price |
+|---|---|---|---|---|---|---|
+| Tourelle | 6.8 | 3 | 1 | ×1 | 180 | 20 + 10 per turret |
+| Dard | 13 | 1 | 1 | ×2 | 120 | 40 + 10 per turret |
+| Gueule | 4 | 2.5 | 2 | ×1 | 260 | 30 + 10 per turret |
+
 - A turret fires at everything by default. In economy mode it only fires with 2 or more correct bases and moves on to a target it can counter.
 - A mutation **adds** a family. The old ones stay: a line built still serves, and the factory grows.
 - The number of families per region is capped, to allow durable lines prioritized during assaults. The prototype starts with 3 and caps at 6, to tune.

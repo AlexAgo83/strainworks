@@ -282,7 +282,7 @@ window.createView3D = (glCanvas) => {
     const picked = selected && G.cells[selected];
     if (picked) {
       rect(g, picked.x, picked.y, 1, 1, null, '#B7F34A');
-      if (picked.type === 'turret') circle(g, picked.x + 0.5, picked.y + 0.5, NERVE.range, null, '#55D6E8', 2 * px);
+      if (isGun(picked)) circle(g, picked.x + 0.5, picked.y + 0.5, GUNS[picked.type].range, null, '#55D6E8', 2 * px);
     }
     const from = (linking && G.cells[linking]) || (wiring && G.cells[wiring]);
     if (from) circle(g, from.x + 0.5, from.y + 0.5, linking ? VEIN.reach : NERVE.reach, null, linking ? '#FF8FA2' : '#55D6E8', 2 * px);

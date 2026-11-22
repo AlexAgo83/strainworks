@@ -46,6 +46,8 @@ exports[`economy behaves as the recorded prototype 1`] = `
       "bottom": 694,
       "prices": [
         "30",
+        "50!",
+        "40!",
         "5",
         "stade 1",
         "stade 1",
