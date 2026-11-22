@@ -25,7 +25,9 @@ it("goes on past the landing square", async () => {
       };
       const generated = (from, to) => {
         const all = [];
-        eachSector(from, from, to, to, (s) => all.push(s));
+        eachSector(from, from, to, to, (s) => {
+          if (s.breach) all.push(s);
+        });
         return all;
       };
       const out = {};

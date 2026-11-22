@@ -121,6 +121,7 @@ window.createModels3D = (B, scene) => {
     glass: ['#8FE3EF', 0.06, 0.2, 1], membraneGlass: ['#B9E88A', 0.06, 0.32, 1],
     S: ['#69AE32', 0.28, 1, 0.7], S2: ['#B9EC7C', 0.35, 1, 0.7], F: ['#C9741F', 0.22, 1, 0.45], F2: ['#FFC06B', 0.3, 1, 0.4],
     C: ['#BFAF8E', 0.08, 1, 0.85], C2: ['#F3E6C8', 0.12, 1, 0.9], N: ['#36AFC6', 0.5, 1, 0.5], N2: ['#B8F3FA', 0.6, 1, 0.5],
+    K: ['#272D31', 0.05, 1, 1], K2: ['#87959D', 0.1, 1, 1],
     Nsoil: ['#0C2A31', 0.06, 1, 0.4],
     flesh: ['#7C2A3D', 0.07, 1, 0.9], flesh2: ['#A8485C', 0.12, 1, 0.9], pink: ['#E8738A', 0.28, 1, 0.8],
     gore: ['#32151C', 0.02, 1, 0.8], chitin: ['#241319', 0.02, 1, 1], bone: ['#A89C84', 0.03, 1, 0.5],
@@ -197,6 +198,10 @@ window.createModels3D = (B, scene) => {
       add('crystal', 'C', x, y, h, r * 1.5, r * 2.6, r * 1.2, angle, LYING);
       if (fine) add('crystal', 'C2', ...from(x, y, angle, -r * 0.35, r * 0.5), h + r * 0.25, r * 0.7, r * 1.5, r * 0.6, angle, LYING + 0.3);
     }
+    if (kind === 'K') {
+      add('hull', 'K', x, y, h, r * 2, r * 1.5, r * 1.7, angle + 0.5, 0.2);
+      add('crystal', 'K2', ...from(x, y, angle, r * 0.3), h + r * 0.6, r * 0.8, r * 1.3, r * 0.7, angle, 0.5);
+    }
     if (kind === 'N') {
       for (let i = 0; i < 3; i++) add('box', 'N', x, y, h, r * 2.1, r * 0.26, r * 0.26, angle + (i * Math.PI) / 3);
       if (fine) {
@@ -207,6 +212,21 @@ window.createModels3D = (B, scene) => {
   }
   function cargo(item, x, y, h, angle = 0, room = 0.74) {
     if (item.length === 1) return base(item, x, y, h, 0.16, angle);
+    const box = boxOf(item);
+    if (box) {
+      // A carbon shell, its content on the lid.
+      const magazine = box === 'A';
+      const trim = magazine ? 'amber' : 'cyan';
+      const long = room * 1.05;
+      const wide = Math.min(0.4, room * 0.58);
+      add('hull', 'K', x, y, h, long, 0.22, wide, angle);
+      add('box', 'K2', x, y, h + 0.1, long * 0.76, 0.04, wide * 0.7, angle);
+      for (const s of [-1, 1]) add('box', trim, ...from(x, y, angle, s * long * 0.4), h + 0.11, 0.05, 0.05, wide * 0.85, angle);
+      if (magazine && fine) {
+        for (let i = 0; i < 6; i++) add('cone', trim, ...from(x, y, angle, (i - 2.5) * long * 0.13, wide * 0.5), h + 0.06, 0.07, 0.14, 0.07, angle);
+      }
+      return cargo(contentOf(item), x, y, h + 0.19, angle, room * 0.7);
+    }
     // First base leading, on a spine.
     const n = item.length;
     const width = Math.min(0.24, room * 0.36);
@@ -442,6 +462,41 @@ window.createModels3D = (B, scene) => {
       if (c.item) cargo(c.item, ...from(x, y, out, 0.3), 0.5, out, 0.34);
     },
 
+    // A press over a carousel of six, with a hopper of carbon on one side.
+    pack(c, x, y) {
+      const out = facing(c.dir);
+      const [goods, carbon] = c.ports;
+      const magazine = c.box === 'A';
+      const trim = magazine ? 'amber' : 'cyan';
+      const working = built(c) && goods.length >= PACK.size && carbon.length >= BOX[c.box].carbon;
+      footing(x, y);
+      add('hull', 'steel', x, y, 0.27, 0.76, 0.26, 0.64, out);
+      intake(x, y, (c.dir + 2) % 4, goods.length);
+
+      const side = carbonSide(c);
+      const a = facing(side);
+      const [hx, hy] = from(x, y, a, 0.33);
+      add('skirt', 'dark', hx, hy, 0.46, 0.36, 0.3, 0.36, a, Math.PI);
+      add('ring', 'hazard', hx, hy, 0.6, 0.36);
+      for (let i = 0; i < Math.min(4, carbon.length); i++) base('K', ...from(hx, hy, i * 1.7, i ? 0.08 : 0), 0.62, 0.085, i);
+      if (!carbon.length) add('stain', 'black', hx, hy, 0.59, 0.24, 0.02, 0.24);
+
+      const [cx, cy] = from(x, y, a, -0.1);
+      const turn = working ? clock * 2.4 : 0;
+      add('gear', 'steel2', cx, cy, 0.43, 0.52, 0.08, 0.52, turn);
+      for (let i = 0; i < PACK.size; i++) {
+        const [px, py] = from(cx, cy, turn + (i / PACK.size) * TAU, 0.19);
+        add('bead', i < goods.length ? trim : 'off', px, py, 0.5, 0.11);
+      }
+      const press = working ? Math.max(0, Math.sin(clock * 5)) * 0.14 : 0;
+      for (const s of [-1, 1]) add('tube', 'steel2', ...from(cx, cy, out, 0, s * 0.27), 0.62, 0.07, 0.46, 0.07);
+      add('box', 'dark', cx, cy, 0.86, 0.14, 0.08, 0.62, out);
+      add('taper', 'copper', cx, cy, 0.76 - press, 0.17, 0.24, 0.17, out, Math.PI);
+      const inside = c.item || (goods.length ? `${c.box}:${goods[0]}` : c.last);
+      if (inside) cargo(inside, ...from(x, y, out, 0.22), 0.5, out, 0.4);
+      nozzle(x, y, c.dir, 0.25, trim);
+    },
+
     // Two gene chambers spliced under an arch.
     join(c, x, y) {
       const out = facing(c.dir);
@@ -636,6 +691,15 @@ window.createModels3D = (B, scene) => {
     }
   }
   const GROWTH = {
+    // Seams of graphite breaking out in six-sided slabs.
+    K(x, y, n, m) {
+      add('hull', 'K', x, y, 0.12 + n * 0.06, 0.44 + m * 0.2, 0.24 + n * 0.14, 0.36 + n * 0.16, n * 6, (m - 0.5) * 0.5);
+      for (let i = 0; i < (fine ? 3 : 1); i++) {
+        const a = m * 6 + i * 2.1;
+        const [px, py] = from(x, y, a, 0.28);
+        add(i ? 'hull' : 'crystal', i % 2 ? 'K2' : 'K', px, py, 0.13, 0.2, 0.18 + ((n + i * 0.3) % 1) * 0.3, 0.18, a, 0.45);
+      }
+    },
     // Pods on stalks, breathing.
     S(x, y, n, m) {
       const count = fine ? 2 + Math.floor(m * 3) : 1;
@@ -846,7 +910,7 @@ window.createModels3D = (B, scene) => {
         const [px, py] = from(ax, ay, a, length * Math.min(1, p.t));
         const r = 0.32 + Math.min(8, p.n) * 0.025;
         add('sac', 'pink', px, py, 0.2, r * 1.3, r, r, a);
-        base(p.item[0], px, py, 0.42, 0.12);
+        base(contentOf(p.item)[0], px, py, 0.42, 0.12);
       }
       if (leaking(c)) {
         for (let i = 0; i < 8; i++) {

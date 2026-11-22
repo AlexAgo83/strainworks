@@ -33,17 +33,19 @@ it("progression behaves as the recorded prototype", async () => {
       const clear=()=>{ for(const id of Object.keys(G.cells)) if(id!=='48,52') delete G.cells[id]; };
       const supply=s=>{ for(let i=0;i<Math.round(s/STEP);i++){ for(const c of Object.values(G.cells)) if(c.keep) while(c.stock.length<60)c.stock.push(c.keep); step(STEP); } };
       const ligase=(x,y,dir,g)=>{ put('ligase',x,y,dir); [3,2,1].forEach((turn,i)=>{ const d=(dir+turn)%4; feed(x+DX[d],y+DY[d],(d+2)%4,g[i]); }); };
-      clear(); ligase(48,56,0,'CCF'); line([48,55],[48,52]);
+      const packer=()=>{ put('pack',48,54,0); feed(47,54,1,'K'); line([48,53],[48,52]); };
+      clear(); packer(); ligase(48,57,0,'CCF'); line([48,56],[48,54]);
       supply(80); out.oneLigaseNotEnough=[G.stage,+G.held.toFixed(0),mealRate()];
-      ligase(44,52,1,'CCF'); line([45,52],[48,52]);
+      ligase(44,55,1,'CCF'); line([45,55],[48,55]);
       t=0; while(G.stage<2&&t<200){supply(1);t++;}
       out.tissue={seconds:t,stage:G.stage,vein:!refused('pump'),join:!refused('join'),worm:refused('worm'),rich:perSecond({type:'mine',x:40,y:12})};
 
-      clear(); put('join',48,56,0); line([48,55],[48,52]);
-      feed(47,56,1,'SFS'); feed(49,56,3,'FFF');
-      supply(5); const j=G.cells['48,56']; out.strand=[j.last,G.fed>0];
+      clear(); packer(); put('join',48,57,0); line([48,56],[48,54]);
+      feed(47,57,1,'SFS'); feed(49,57,3,'FFF');
+      supply(15); const j=G.cells['48,57']; out.strand=[j.last,G.fed>0];
       const _before=G.fed; j.flip=true; supply(1); j.ports=[[],[],[]]; supply(5); out.inversion=j.last;
       j.flip=false; j.ports=[[],[],[]]; j.item=null;
+      for (const c of Object.values(G.cells)) { if (isBelt(c)) c.item=null; if (c.type==='pack') { c.ports=[[],[],[]]; c.item=null; } }
       t=0; while(G.stage<3&&t<200){supply(1);t++;}
       out.organ={seconds:t,stage:G.stage,worm:!refused('worm'),rich:perSecond({type:'mine',x:40,y:12})};
       const s=cell('sort',1,1,0); s.want='SFS???'; out.sortStrand=[fits(s,'SFSFFF'),fits(s,'FFFSFS')];

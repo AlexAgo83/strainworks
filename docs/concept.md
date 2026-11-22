@@ -48,6 +48,8 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Mutation | Decided | It adds an enemy family, it does not replace the old ones |
 | Room at the start | Decided | Large grid, deposits away from the core, spaced elements |
 | Maturation on belts | Rejected | Too complex: a strand only changes inside a machine |
+| Carbon and containers | Decided | Carbon stays outside the genetic code. The Encapsulator packs magazines for turrets and tech capsules for the core |
+| Higher tech matter | Decided | Later stages ask for a rarer matter instead of carbon, like uranium found farther. Its mutagen effect is a proposal |
 | Four bases, genes of three | Proposed | See sections 3 and 4 |
 | Built-in ports (membranes) | Proposed | No transfer arm to place |
 | Antidote by opposite strand | Proposed | To validate in the prototype |
@@ -274,14 +276,29 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 
 | Prototype stage | The core demands | Unlocks |
 |---|---|---|
-| 1. Cell (Cellule) | 100 Motor (SFS) | splitter, sorter |
-| 2. Tissue (Tissu) | 2 Shell (CCF) per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
-| 3. Organ (Organe) | 60 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
+| 1. Cell (Cellule) | 100 Motor (SFS), loose | splitter, sorter, Encapsulator |
+| 2. Tissue (Tissu) | capsules of Shell (CCF): 2 genes per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
+| 3. Organ (Organe) | 10 capsules of 6 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
 
 - A stage gives 40 ADN and restores the core's hit points. What is not demanded becomes ADN.
 - A dip in rate at stage 2 loses the time it lasted, never the whole minute.
 - The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.
 - Proposed next: the System and Organism stages, organs to place and feed, and creatures invented by writing their genes.
+
+### Carbon and containers
+
+Carbon is matter, not a base: it has no pair and never enters a gene. One free deposit lies east of the core, more lie unguarded in the open world.
+
+The Encapsulator takes six identical loose items from behind and carbon on one side, and the player picks its recipe:
+
+| Container | Recipe | Use |
+|---|---|---|
+| Magazine (Chargeur) | 1 carbon, 6 genes | 6 shots in one belt item, a turret holds 24 |
+| Tech capsule (Capsule) | 2 carbons, 6 genes or strands | what the core demands from stage 2 on |
+
+- Loose genes still load a turret: loose reacts fast to a new antidote, magazines carry throughput.
+- Containers are used up. Carbon is never a building price, which would be a second currency to get stuck on.
+- Filters, smart gates and smart sorters read what a magazine holds.
 
 ### Rhythms
 

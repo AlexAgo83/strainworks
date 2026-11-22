@@ -45,6 +45,7 @@ button:disabled { opacity:.4; cursor:default; }
 .need { color:var(--acid); }
 .gene .cut { width:1px; height:18px; margin-inline:3px; background:var(--acid); }
 #brief .order { display:flex; align-items:center; gap:2px 7px; flex-wrap:wrap; width:100%; }
+#brief .boxed { padding:1px 6px; border:1px solid var(--cyan); border-radius:4px; color:var(--cyan); font-size:11px; white-space:nowrap; }
 #brief .order output { margin-left:auto; color:var(--acid); font-variant-numeric:tabular-nums; }
 #tools button.locked { color:var(--muted); }
 #tools button.locked canvas { opacity:.3; }
@@ -55,7 +56,7 @@ button:disabled { opacity:.4; cursor:default; }
 #works { position:absolute; left:6px; top:6px; padding:4px 8px; border-radius:6px; background:var(--night); color:var(--cyan); font-size:12px; pointer-events:none; }
 #rebuild { position:absolute; left:6px; bottom:6px; border-color:var(--alarm); color:var(--alarm); }
 #gl { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-#game { position:absolute; inset:0; width:100%; height:100%; touch-action:none; user-select:none; -webkit-user-select:none; }
+#game { outline:none; position:absolute; inset:0; width:100%; height:100%; touch-action:none; user-select:none; -webkit-user-select:none; }
 #over { position:absolute; inset:0; display:grid; place-content:center; justify-items:center; gap:12px; text-align:center; background:var(--night); }
 #over h2 { margin:0; font:600 26px var(--display); color:var(--alarm); text-wrap:balance; }
 #over p { margin:0; }
@@ -69,8 +70,9 @@ button:disabled { opacity:.4; cursor:default; }
 #info.filter #message { flex:none; }
 #info.filter #actions { max-width:100%; justify-content:flex-start; }
 #actions .slot { min-width:40px; border-color:var(--acid); }
-#tools { grid-area:tools; display:grid; grid-template-rows:repeat(2,auto); grid-auto-flow:column; grid-auto-columns:minmax(56px,1fr); gap:3px; overflow-x:auto; }
-#tools button { display:grid; justify-items:center; gap:1px; padding:3px 0; font-size:10px; min-width:0; }
+#tools { grid-area:tools; display:grid; grid-template-rows:repeat(2,auto); grid-auto-flow:column; grid-auto-columns:minmax(max-content,1fr); gap:3px; overflow-x:auto; }
+/* A long name widens its own column only. */
+#tools button { display:grid; justify-items:center; gap:1px; padding:3px 1px; font-size:10px; min-width:56px; }
 #tools button { position:relative; }
 #tools .price { position:absolute; top:1px; right:2px; padding:0 3px; border-radius:4px; background:var(--night); color:var(--acid); font-size:10px; font-variant-numeric:tabular-nums; }
 #tools .price.short { color:var(--alarm); }
@@ -99,7 +101,7 @@ button:disabled { opacity:.4; cursor:default; }
   <section id="brief" aria-live="polite"></section>
   <div id="board">
     <canvas id="gl" hidden aria-hidden="true"></canvas>
-    <canvas id="game" aria-label="Plateau : gisements, machines, tapis et créatures"></canvas>
+    <canvas id="game" tabindex="-1" aria-label="Plateau : gisements, machines, tapis et créatures"></canvas>
     <div id="zoom"><button id="zoom-in" aria-label="Zoomer">+</button><button id="zoom-out" aria-label="Dézoomer">−</button><button id="home" aria-label="Revenir au cœur">⌂</button><button id="dimension" aria-label="Passer en vue 3D">3D</button></div>
     <output id="works" hidden></output>
     <button id="rebuild" hidden>Reconstruire</button>
@@ -128,6 +130,7 @@ const TYPES = {
   pocket:{name:'Poche', help:'À poser contre une piste. Trois poches côte à côte s’alignent sur les trois soutes. Touche-la pour charger ou vider.', hp:90},
   worm:{name:'Ver', help:'Touche une piste pour l’incuber : 3 soutes de 40, 12 cases par seconde.', hp:150},
   ligase:{name:'Ligase', help:'Trois entrées : 1 à gauche, 2 derrière, 3 à droite. Leur ordre écrit le gène.', hp:60},
+  pack:{name:'Encapsuleur', help:'Gènes derrière, carbone sur le côté. Règle sa recette : capsule pour le cœur (2 carbones) ou chargeur pour les tourelles (1 carbone), avec 6 objets identiques.', hp:60},
   join:{name:'Assembleur', help:'Gène 1 à gauche, gène 2 à droite : un brin de deux gènes sort devant, le premier en tête.', hp:60},
   turret:{name:'Tourelle', help:'Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.', hp:180},
   cyst:{name:'Kyste', help:'Stocke 60 objets et les ressort par la flèche. À remplir avant un assaut.', hp:80},
@@ -141,11 +144,17 @@ const TYPES = {
 const VEIN = {reach:24, speed:16, pulse:.5, load:8, cap:48, hp:50};
 const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 const STAGES = [
-  {name:'Cellule', item:'SFS', count:100, gives:'Diviseur et Trieur'},
-  {name:'Tissu', item:'CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2 et Assembleur'},
-  {name:'Organe', item:'SFSFFF', count:60, gives:'Pistes, poches, vers et gisements ×4'}
+  {name:'Cellule', item:'SFS', count:100, gives:'Diviseur, Trieur et Encapsuleur'},
+  {name:'Tissu', item:'T:CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2 et Assembleur'},
+  {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4'}
 ];
-const NEEDS = {split:1, sort:1, pump:2, join:2, wire:2, track:3, pocket:3, worm:3};
+// A container is a string too, so whatever carries items carries it: 'A:CNF' is a magazine, 'T:CCF' a capsule.
+// K is carbon: matter, never a base, so it has no pair and never enters a gene.
+const BOX = {A:{name:'Chargeur', carbon:1}, T:{name:'Capsule', carbon:2}};
+const PACK = {size:6, genes:12, carbon:4, magazines:24};
+const boxOf = item => item[1] === ':' ? item[0] : '';
+const contentOf = item => boxOf(item) ? item.slice(2) : item;
+const NEEDS = {split:1, sort:1, pack:1, pump:2, join:2, wire:2, track:3, pocket:3, worm:3};
 const GROWTH_BONUS = 40;
 const CORE = {x:OX + 5, y:OY + 12};
 const NORTH = [{x:48,y:27}, {x:40,y:29}, {x:56,y:29}];
@@ -155,7 +164,7 @@ const OUTER = [
   ['S',34,44,4,3], ['F',59,43,4,3], ['C',36,56,3,4], ['N',57,57,4,3], ['S',47,63,4,3], ['F',28,52,3,4],
   ['N',32,35,3,3], ['C',62,34,3,3], ['F',41,67,4,3], ['S',66,50,3,4], ['C',20,42,5,5], ['N',74,42,5,5],
   ['S',23,66,6,4], ['F',67,66,6,4], ['C',46,78,6,5], ['N',40,12,5,4], ['F',12,20,7,6], ['S',78,18,7,6],
-  ['N',10,78,7,7], ['C',80,80,7,7], ['S',6,50,5,6], ['F',85,52,5,6]
+  ['N',10,78,7,7], ['C',80,80,7,7], ['S',6,50,5,6], ['F',85,52,5,6], ['K',60,50,3,3]
 ];
 let FIELDS = [], DEPOSIT = {}, RICH = {};
 function richness(x, y) { const d = Math.hypot(x - CORE.x - .5, y - CORE.y - .5); return d < 18 ? 1 : d < 34 ? 2 : 4; }
@@ -205,7 +214,10 @@ function sector(sx, sy) {
 }
 function generate(sx, sy, id) {
   const left = sx * SECTOR, top = sy * SECTOR;
-  if (atHome(left, top) || dice(sx, sy, 1) > .72) return null;
+  if (atHome(left, top)) return null;
+  const chance = dice(sx, sy, 1);
+  // Carbon only lands where nothing was, so a world already played keeps its deposits. Nothing guards it.
+  if (chance > .72) return chance > .86 ? {field:['K', left + 12, top + 12, 5 + Math.floor(dice(sx, sy, 9) * 3), 5]} : null;
   const roll = n => dice(sx, sy, n), away = Math.hypot(left + SECTOR / 2 - CORE.x, top + SECTOR / 2 - CORE.y);
   // Farther: bigger deposits, fuller breaches, harder creatures.
   const grown = Math.min(3, Math.floor(away / 120)), w = 5 + grown + Math.floor(roll(2) * 3), h = 4 + grown + Math.floor(roll(3) * 3);
@@ -236,7 +248,7 @@ function fieldsIn(x0, y0, x1, y1) {
 function breachesIn(x0, y0, x1, y1) {
   const meets = b => b.x + b.r >= x0 && b.x - b.r <= x1 && b.y + b.r >= y0 && b.y - b.r <= y1;
   const found = G.breaches.filter(meets), woken = new Set(G.breaches.map(b => b.id));
-  eachSector(x0 - 16, y0 - 16, x1 + 16, y1 + 16, s => { if (!woken.has(s.breach.id) && meets(s.breach)) found.push(s.breach); });
+  eachSector(x0 - 16, y0 - 16, x1 + 16, y1 + 16, s => { if (s.breach && !woken.has(s.breach.id) && meets(s.breach)) found.push(s.breach); });
   return found;
 }
 function depositAt(x, y) {
@@ -244,10 +256,24 @@ function depositAt(x, y) {
   const f = sector(Math.floor(x / SECTOR), Math.floor(y / SECTOR))?.field;
   return f && x >= f[1] && x < f[1] + f[3] && y >= f[2] && y < f[2] + f[4] ? f[0] : undefined;
 }
-const richAt = (x, y) => atHome(x, y) ? RICH[key(x, y)] : depositAt(x, y) && 4;
+function richAt(x, y) {
+  if (atHome(x, y)) return RICH[key(x, y)];
+  const kind = depositAt(x, y);
+  return kind && (kind === 'K' ? 2 : 4);
+}
 
 let wormId = null;
-let G, tool = 'hand', heading = 0, selected = null, chain = [], paused = false, speed = 1, note = '';
+// The way the next piece faces is the player's, kept from one piece, one game and one visit to the next.
+const HEADING_KEY = 'strainworks-heading';
+const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','split','sort'];
+const WAYS = ['haut','droite','bas','gauche'];
+let heading = 0;
+try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) {}
+function setHeading(dir) {
+  heading = dir;
+  try { localStorage.setItem(HEADING_KEY, dir); } catch (_) {}
+}
+let G, tool = 'hand', selected = null, chain = [], paused = false, speed = 1, note = '';
 
 const $ = id => document.getElementById(id);
 // A gate is a belt with a switch.
@@ -255,6 +281,12 @@ const isBelt = c => c?.type === 'belt' || c?.type === 'gate';
 const key = (x, y) => x + ',' + y;
 const buildable = (x, y) => inside(x, y) && !breachesIn(x, y, x, y).some(h => h.state !== 'spent' && Math.hypot(x - h.x, y - h.y) < 3.5);
 const inside = (x, y) => Math.abs(x) < LIMIT && Math.abs(y) < LIMIT;
+const MATTER = {...BASE, K:'Carbone'};
+function itemName(item) {
+  const box = boxOf(item);
+  if (box) return `${BOX[box].name.toLowerCase()} ${contentOf(item)}`;
+  return MATTER[item]?.toLowerCase() || (item.length === 6 ? 'brin ' : 'gène ') + item;
+}
 const opposite = gene => [...gene].map(b => PAIR[b]).join('');
 const geneName = gene => GENES[gene] ? `${GENES[gene]} (${gene})` : gene;
 // Defences cost ADN, each one more than the last: the soft limit on turrets and walls.
@@ -267,7 +299,7 @@ const refund = c => PRICE[c.type] ? Math.floor(PRICE[c.type](owned(c.type) - 1) 
 // Work only advances with the simulation and only with a drone at the site: one drone a site, oldest site first.
 const BUILDERS = 3;
 const DRONE = {speed:20, reach:2, longest:4}; // a flight never takes over 4 s, so far ones cruise faster
-const BUILD = {belt:.15, gate:.5, bridge:.5, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5};
+const BUILD = {belt:.15, gate:.5, bridge:.5, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5, pack:2.5};
 // cut: a drone has started taking it down. Until then it goes on working.
 const built = c => !(c?.left > 0) && !c?.cut;
 // Healing starts after some quiet, so a wall under attack still falls. The core heals more slowly.
@@ -282,7 +314,7 @@ const ahead = (c, dir = c.dir) => G.cells[key(c.x + DX[dir], c.y + DY[dir])];
 
 function cell(type, x, y, dir) {
   return {to:null, packets:[], veinHp:VEIN.hp, type, x, y, dir, hp:TYPES[type]?.hp ?? 100, item:null, t:0, clock:0, from:-1,
-    ports:[[],[],[]], flip:false, open:true, want:'C', side:3, seen:'', stock:[], ammo:{}, lanes:[null,null], made:[], turn:0, last:''};
+    ports:[[],[],[]], flip:false, open:true, want:'C', side:3, box:'T', seen:'', stock:[], ammo:{}, lanes:[null,null], made:[], turn:0, last:''};
 }
 function put(type, x, y, dir) { return G.cells[key(x, y)] = cell(type, x, y, dir); }
 function build(type, x, y, dir) {
@@ -464,18 +496,23 @@ function repair(dt) {
   }
 }
 function eat(item) {
-  G.dna += item.length / 3;
+  // A container is worth what it holds, carbon adds nothing.
+  const holds = boxOf(item) ? PACK.size : 1;
+  G.dna += holds * contentOf(item).length / 3;
   const want = STAGES[G.stage];
   if (!want || item !== want.item) return;
-  if (want.rate) G.meals.push(G.time); else if (++G.fed >= want.count) grow();
+  if (want.rate) for (let i = 0; i < holds; i++) G.meals.push(G.time);
+  else if (++G.fed >= want.count) grow();
 }
-function mealRate() { return G.meals.length / 5; }
+// Capsules come three seconds apart: a short window would see the rate jump between none and double.
+const mealWindow = () => boxOf(STAGES[G.stage]?.item || '') ? 10 : 5;
+function mealRate() { return G.meals.length / mealWindow(); }
 function digest(dt) {
   const want = STAGES[G.stage];
   if (!want?.rate) return;
-  G.meals = G.meals.filter(t => t > G.time - 5);
+  G.meals = G.meals.filter(t => t > G.time - mealWindow());
   // A short hiccup costs the time it lasted, never the whole minute.
-  G.held = mealRate() >= want.rate * .9 ? G.held + dt : Math.max(0, G.held - dt);
+  G.held = mealRate() >= want.rate * .9 - 1e-9 ? G.held + dt : Math.max(0, G.held - dt);
   if (G.held >= want.hold - 1e-6) grow();
 }
 function grow() {
@@ -487,10 +524,11 @@ function grow() {
   say(`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
 }
 function recipe(item) {
-  return item.match(/.{3}/g).map(geneName).join(' + ');
+  const box = boxOf(item), genes = contentOf(item).match(/.{3}/g).map(geneName).join(' + ');
+  return box ? `${BOX[box].name.toLowerCase()} de ${PACK.size} ${genes}` : genes;
 }
 function fresh() {
-  G = {time:0, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0, upgrades:0,
+  G = {time:0, capsules:true, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0, upgrades:0,
     woken:0, breaches:[], families:['SFN','SSC','FNN'], over:false};
   put('core', CORE.x, CORE.y, 0);
   survey();
@@ -516,7 +554,11 @@ function portOf(c, travel) {
 }
 function portSide(c, port) { return (c.dir + [3, 2, 1][c.flip ? 2 - port : port]) % 4; }
 // A sorter sends what fits its filter to the chosen side (3 left, 1 right). '?' is any base.
-function fits(c, item) { return item.length === c.want.length && [...c.want].every((b, i) => b === '?' || b === item[i]); }
+// A filter reads what is inside a container.
+function fits(c, item) {
+  const inside = contentOf(item);
+  return inside.length === c.want.length && [...c.want].every((b, i) => b === '?' || b === inside[i]);
+}
 function sideExit(c) { return (c.dir + c.side) % 4; }
 // A bridge has two lanes: 0 vertical, 1 horizontal. Each is automatic until the player sets its way.
 function wayOf(c, axis) {
@@ -525,7 +567,7 @@ function wayOf(c, axis) {
     let before = c, after = c;
     do before = ahead(before, (dir + 2) % 4); while (before?.type === 'bridge');
     do after = ahead(after, dir); while (after?.type === 'bridge');
-    if (before && ['belt','gate','mine','ligase','join','cyst','split','sort'].includes(before.type) && before.dir === dir) return dir;
+    if (before && ['belt','gate','mine','ligase','join','pack','cyst','split','sort'].includes(before.type) && before.dir === dir) return dir;
     if (before?.type === 'sort' && sideExit(before) === dir) return dir;
     if (before && drains(before)) return dir;
     if (after && ['belt','gate','split','sort'].includes(after.type) && after.dir === dir) return dir;
@@ -691,6 +733,23 @@ function crawl(dt, boost) {
     }
   }
 }
+function carbonSide(c) { return (c.dir + (c.flip ? 1 : 3)) % 4; }
+// 0 for what gets packed, 1 for carbon.
+function packPort(c, travel) {
+  const from = (travel + 2) % 4;
+  return from === (c.dir + 2) % 4 ? 0 : from === carbonSide(c) ? 1 : -1;
+}
+function packTakes(c, item, port) {
+  if (port === 1) return item === 'K' && c.ports[1].length < PACK.carbon;
+  const loose = item.length === 3 || (c.box === 'T' && item.length === 6);
+  // One gene at a time: the wrong one waits outside, it never spoils a box.
+  return loose && !boxOf(item) && c.ports[0].length < PACK.genes && (!c.ports[0].length || c.ports[0][0] === item);
+}
+function setRecipe(c, box) {
+  c.box = box;
+  if (box === 'A' && c.ports[0][0]?.length === 6) c.ports[0] = [];
+  c.last = '';
+}
 function joinSide(c, port) { return (c.dir + ((port === 0) !== c.flip ? 3 : 1)) % 4; }
 function joinPort(c, travel) {
   const from = (travel + 2) % 4;
@@ -737,7 +796,7 @@ function netOf(c) { return NET.get(key(c.x, c.y)); }
 function listens(c) { return (c.type === 'gate' || c.type === 'sort') && netOf(c)?.turrets > 0; }
 function asked(c, item) {
   const net = netOf(c), place = c.read || 0;
-  return place ? item.length === 1 && Boolean(net.focus) && net.focus[place - 1] === item : net.list.includes(item);
+  return place ? item.length === 1 && Boolean(net.focus) && net.focus[place - 1] === item : boxOf(item) !== 'T' && net.list.includes(contentOf(item));
 }
 function wireUp(a, b) {
   const ok = c => c && NERVE.ends.includes(c.type);
@@ -757,6 +816,7 @@ function connects(c, travel) {
   if (c.type === 'bridge') { const way = c.ways?.[travel % 2]; return way == null || way === travel; }
   if (c.type === 'pocket') return !c.unload;
   if (c.type === 'join') return joinPort(c, travel) >= 0;
+  if (c.type === 'pack') return packPort(c, travel) >= 0;
   return ['turret','core','pump'].includes(c.type);
 }
 function accepts(c, item, travel) {
@@ -764,25 +824,29 @@ function accepts(c, item, travel) {
   switch (c.type) {
     case 'belt': case 'split': case 'sort': return !c.item;
     case 'gate': return !c.item && (listens(c) ? asked(c, item) : c.open);
-    case 'ligase': return item.length === 1 && c.ports[portOf(c, travel)].length < 2;
+    case 'ligase': return item in BASE && c.ports[portOf(c, travel)].length < 2;
+    case 'pack': return packTakes(c, item, packPort(c, travel));
     case 'join': return item.length === 3 && c.ports[joinPort(c, travel)].length < 2;
     case 'cyst': return c.stock.length < 60;
     case 'pocket': return c.stock.length < WORM.pocket && (!c.stock.length || c.stock[0] === item);
     case 'pump': { if (c.stock.length >= VEIN.cap) return false; const kind = veinKind(c); return !kind || kind === item; }
-    case 'turret': return item.length === 3 && (c.ammo[item] || 0) < 12;
-    case 'core': return item.length === 3 || item.length === 6;
+    case 'turret':
+      if (boxOf(item) === 'A') return (c.ammo[contentOf(item)] || 0) + PACK.size <= PACK.magazines;
+      return item.length === 3 && (c.ammo[item] || 0) < 12;
+    case 'core': return item.length === 3 || item.length === 6 || Boolean(boxOf(item));
     case 'bridge': return !c.lanes[travel % 2];
   }
   return false;
 }
 function receive(c, item, travel, carry = 0) {
   c.from = travel;
-  if (c.type === 'sort') c.seen = item;
+  if (c.type === 'sort') c.seen = contentOf(item);
   if (isBelt(c) || c.type === 'split' || c.type === 'sort') { c.item = item; c.t = carry; }
   else if (c.type === 'ligase') c.ports[portOf(c, travel)].push(item);
   else if (c.type === 'cyst' || c.type === 'pump' || c.type === 'pocket') c.stock.push(item);
   else if (c.type === 'join') c.ports[joinPort(c, travel)].push(item);
-  else if (c.type === 'turret') c.ammo[item] = (c.ammo[item] || 0) + 1;
+  else if (c.type === 'pack') c.ports[packPort(c, travel)].push(item);
+  else if (c.type === 'turret') { const gene = contentOf(item); c.ammo[gene] = (c.ammo[gene] || 0) + (boxOf(item) ? PACK.size : 1); }
   else if (c.type === 'bridge') c.lanes[travel % 2] = {item, dir:travel, t:carry};
   else { c.hp = Math.min(100, c.hp + .2); eat(item); }
 }
@@ -797,7 +861,7 @@ function flow(dt) {
     if (isBelt(c) || c.type === 'split' || c.type === 'sort') c.t = c.item ? advance(c.t, dt * 4 * boost) : 0;
     if (c.type === 'bridge') for (const lane of c.lanes) if (lane) lane.t = advance(lane.t, dt * 4 * boost);
     if (c.type === 'cyst') c.t = advance(c.t, dt * 4 * boost);
-    if (!['mine','ligase','join'].includes(c.type)) continue;
+    if (!['mine','ligase','join','pack'].includes(c.type)) continue;
     c.made = c.made.filter(t => t > G.time - 10);
     if (c.item) continue;
     c.clock = Math.min(1.999, c.clock + dt * perSecond(c));
@@ -806,6 +870,11 @@ function flow(dt) {
     else if (c.type === 'join') {
       if (!c.ports[0].length || !c.ports[1].length) continue;
       c.item = c.last = c.ports[0].shift() + c.ports[1].shift();
+    } else if (c.type === 'pack') {
+      const [goods, carbon] = c.ports, need = BOX[c.box].carbon;
+      if (goods.length < PACK.size || carbon.length < need) continue;
+      c.item = c.last = `${c.box}:${goods[0]}`;
+      goods.splice(0, PACK.size); carbon.splice(0, need);
     } else {
       if (!c.ports.every(p => p.length)) continue;
       c.item = c.last = c.ports.map(p => p.shift()).join('');
@@ -825,7 +894,7 @@ function flow(dt) {
       return true;
     };
     for (const c of cells) {
-      if (['mine','ligase','join'].includes(c.type) && c.item) offer(c, c.item, c.dir, () => { c.item = null; });
+      if (['mine','ligase','join','pack'].includes(c.type) && c.item) offer(c, c.item, c.dir, () => { c.item = null; });
       // A listening gate lets out what it let in, so a change of mind never traps an item.
       if (isBelt(c) && (c.type === 'belt' || c.open || listens(c)) && c.item && c.t >= .999) offer(c, c.item, c.dir, () => { c.item = null; }, c.t - 1);
       if (c.type === 'sort' && c.item && c.t >= .999) offer(c, c.item, exitOf(c), () => { c.item = null; }, c.t - 1);
@@ -1001,7 +1070,7 @@ function menace(dt) {
       pace = passable ? .22 : 0;
       if (c.hp <= 0) {
         if (c.type === 'core') { G.over = true; c.hp = 0; }
-        else { delete G.cells[key(c.x, c.y)]; G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, open:c.open, read:c.read}; say('Ligne coupée : le bouton Reconstruire remet tout en place.'); }
+        else { delete G.cells[key(c.x, c.y)]; G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read}; say('Ligne coupée : le bouton Reconstruire remet tout en place.'); }
       }
     }
     e.x += dx / distance * pace * dt; e.y += dy / distance * pace * dt;
@@ -1051,7 +1120,7 @@ function feeders(c, wanted) {
     const from = ahead(c, side);
     if (!from) continue;
     const dir = (side + 2) % 4;
-    const emits = (drains(from) && !(from.type === 'pump' && c.type === 'pump') && !(isBelt(c) && c.dir === (dir + 2) % 4)) || (from.type === 'bridge' && wayOf(from, dir % 2) === dir) || (from.type === 'sort' && (dir === from.dir || dir === sideExit(from))) || (from.type === 'split' ? from.dir !== (dir + 2) % 4 : 'belt gate mine ligase join cyst'.split(' ').includes(from.type) && from.dir === dir);
+    const emits = (drains(from) && !(from.type === 'pump' && c.type === 'pump') && !(isBelt(c) && c.dir === (dir + 2) % 4)) || (from.type === 'bridge' && wayOf(from, dir % 2) === dir) || (from.type === 'sort' && (dir === from.dir || dir === sideExit(from))) || (from.type === 'split' ? from.dir !== (dir + 2) % 4 : 'belt gate mine ligase join pack cyst'.split(' ').includes(from.type) && from.dir === dir);
     if (emits && connects(c, dir)) found.push({c:from, dir});
   }
   return found;
@@ -1063,7 +1132,7 @@ function upstream(c, side) {
     const {c:from, dir} = links[0], id = key(from.x, from.y) + dir;
     if (seen.has(id)) break;
     seen.add(id); path.push(from);
-    if (['mine','ligase','join','pocket'].includes(from.type)) break;
+    if (['mine','ligase','join','pack','pocket'].includes(from.type)) break;
     if (from.type === 'pump') {
       const back = pumps().find(p => p.to === key(from.x, from.y));
       links = back ? [{c:back, dir}] : feeders(from);
@@ -1104,7 +1173,8 @@ function diagnose(c) {
     const want = STAGES[G.stage];
     if (!want) return `Organisme au stade 3, ${G.kills} créatures tuées. Tout ce que tu livres devient de l’ADN.`;
     const how = want.rate ? `${want.rate} par seconde pendant ${want.hold} s, il faut deux lignes en parallèle` : `${want.count} au total`;
-    return `Il veut ${recipe(want.item)} : ${how}. Entrées 1, 2, 3 dans cet ordre. En échange : ${want.gives}. Les autres gènes deviennent de l’ADN.`;
+    const pack = boxOf(want.item) ? ' Ça sort d’un Encapsuleur : 6 derrière, 2 carbones sur le côté. Le carbone est juste à l’est du cœur.' : '';
+    return `Il veut ${recipe(want.item)} : ${how}. Entrées 1, 2, 3 dans cet ordre.${pack} En échange : ${want.gives}. Les autres gènes deviennent de l’ADN.`;
   }
   if (c.type === 'turret') {
     const load = Object.entries(c.ammo).filter(([, n]) => n).map(([g, n]) => `${n} ${g}`).join(', ');
@@ -1135,12 +1205,12 @@ function diagnose(c) {
     return 'Pont : deux voies indépendantes. Auto suit les tapis voisins, sinon le sens choisi est imposé.';
   }
   if (c.type === 'pocket') {
-    const kind = c.stock[0], what = kind ? (BASE[kind]?.toLowerCase() || (kind.length === 6 ? 'brin ' : 'gène ') + kind) : 'vide';
+    const kind = c.stock[0], what = kind ? itemName(kind) : 'vide';
     if (![0,1,2,3].some(d => G.tracks[key(c.x + DX[d], c.y + DY[d])])) return 'Poche sans piste : elle doit toucher une piste.';
     return `Poche qui ${c.unload ? 'vide le ver et sort sur ses côtés libres' : 'charge le ver'}, ${what} : ${c.stock.length} sur ${WORM.pocket}. Une seule matière par poche, 16/s.`;
   }
   if (c.type === 'pump') {
-    const kind = veinKind(c), what = kind ? (BASE[kind]?.toLowerCase() || (kind.length === 6 ? 'brin ' : 'gène ') + kind) : 'vide';
+    const kind = veinKind(c), what = kind ? itemName(kind) : 'vide';
     const head = `Pompe, ${what} : ${c.stock.length} sur ${VEIN.cap}.`;
     for (const side of [0,1,2,3]) {
       const from = ahead(c, side);
@@ -1158,6 +1228,25 @@ function diagnose(c) {
       return `${head} ${to.stock.length >= VEIN.cap - 3 ? 'La pompe d’arrivée est pleine : branche plus de tapis en sortie.' : `Pousse jusqu’à ${Math.round(16 * rate())}/s.`}`;
     }
     return `${head} Sans veine au départ, elle se vide sur ses quatre côtés, 4/s par tapis.`;
+  }
+  if (c.type === 'pack') {
+    const [goods, carbon] = c.ports, box = BOX[c.box];
+    const head = `Encapsuleur, ${box.name.toLowerCase()}${goods.length ? ' de ' + goods[0] : ''} : ${Math.min(goods.length, PACK.size)} sur ${PACK.size}, carbone ${Math.min(carbon.length, box.carbon)} sur ${box.carbon}.`;
+    if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
+      if (ahead(c)) chain = [ahead(c)];
+      return `${head} Sa sortie est fermée ou pleine${boxOf(c.item) === 'A' ? ' : un chargeur va dans une tourelle' : ''}.`;
+    }
+    for (const [lacks, side, what] of [[goods.length < PACK.size, (c.dir + 2) % 4, 'les gènes'], [carbon.length < box.carbon, carbonSide(c), 'le carbone']]) {
+      if (!lacks) continue;
+      const from = feeders(c, side)[0];
+      if (!from) return `${head} Branche ${what} ${what === 'le carbone' ? (c.flip ? 'à droite' : 'à gauche') : 'derrière'}.`;
+      const waiting = from.c.item;
+      if (what === 'les gènes' && waiting && !packTakes(c, waiting, 0)) {
+        chain = [from.c];
+        return `${head} ${waiting} attend dehors : ${goods.length ? `la boîte se remplit de ${goods[0]}, vide-la pour changer` : c.box === 'A' ? 'un chargeur ne prend que des gènes de 3 bases' : 'il faut un gène ou un brin en vrac'}.`;
+      }
+    }
+    return `${head} Il tourne.`;
   }
   if (c.type === 'join') {
     const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', ',');
@@ -1178,7 +1267,7 @@ function diagnose(c) {
 
   const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', ',');
   const entries = c.type === 'ligase' ? ' Entrées : ' + c.ports.map((p, i) => `${i + 1} ${p.length ? BASE[p[0]].toLowerCase() : 'vide'}`).join(', ') + '.' : '';
-  const head = `${c.type === 'mine' ? 'Récolteur de ' + BASE[depositAt(c.x, c.y)].toLowerCase() : 'Ligase' + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', ',')}/s.${entries}${c.type === 'mine' && richAt(c.x, c.y) > richCap() ? ` Ce gisement est ×${richAt(c.x, c.y)}, exploitable ainsi au stade ${richAt(c.x, c.y) === 2 ? 2 : 3}.` : ''}`;
+  const head = `${c.type === 'mine' ? 'Récolteur de ' + MATTER[depositAt(c.x, c.y)].toLowerCase() : 'Ligase' + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', ',')}/s.${entries}${c.type === 'mine' && richAt(c.x, c.y) > richCap() ? ` Ce gisement est ×${richAt(c.x, c.y)}, exploitable ainsi au stade ${richAt(c.x, c.y) === 2 ? 2 : 3}.` : ''}`;
   if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
     let to = c, dir = c.dir;
     for (let i = 0; i < W * H; i++) {
@@ -1281,6 +1370,10 @@ function glyph(g, base, x, y, r) {
       g.beginPath(); g.moveTo(x-r*.55,y); g.lineTo(x+r*.55,y); g.stroke();
     }
   }
+  if (base === 'K') {
+    polygon(g, [0,1,2,3,4,5].map(i => [x + Math.cos(i * Math.PI / 3) * r, y + Math.sin(i * Math.PI / 3) * r]), '#23282C', '#AEB9BF', r * .2);
+    circle(g, x - r * .2, y - r * .2, r * .22, '#69757C');
+  }
   if (base === 'N') {
     g.lineWidth = r * .3; g.strokeStyle = '#55D6E8'; g.lineCap = 'round';
     for (let i = 0; i < 3; i++) {
@@ -1290,12 +1383,30 @@ function glyph(g, base, x, y, r) {
     circle(g, x, y, r * .35, '#D5FAFF');
   }
 }
+function crate(g, box, x, y, w, h) {
+  const cut = h * .25, color = box === 'A' ? '#F0A03C' : '#55D6E8';
+  polygon(g, [[x-w/2+cut,y-h/2],[x+w/2-cut,y-h/2],[x+w/2,y-h/2+cut],[x+w/2,y+h/2-cut],[x+w/2-cut,y+h/2],[x-w/2+cut,y+h/2],[x-w/2,y+h/2-cut],[x-w/2,y-h/2+cut]], '#23282C', color, h * .12);
+  // Six rounds showing on a magazine, two seals on a capsule.
+  for (let i = 0; i < (box === 'A' ? 6 : 2); i++) {
+    if (box === 'A') rect(g, x + (i - 2.5) * w / 7.5 - w / 30, y - h * .68, w / 15, h * .2, color);
+    else circle(g, x + (i - .5) * w * .94, y, h * .13, color);
+  }
+}
 function sequence(g, item, x, y, room, size) {
+  if (boxOf(item)) {
+    crate(g, boxOf(item), x, y, room * 1.1, room * .62);
+    return sequence(g, contentOf(item), x, y, room * .8, size * .8);
+  }
   const n = item.length;
   [...item].forEach((b, i) => glyph(g, b, x + (n === 1 ? 0 : (i - (n - 1) / 2) * room / n), y, n === 1 ? size : Math.min(size, room / n * .55)));
 }
 function token(g, item, x, y, angle = 0) {
   if (item.length === 1) return glyph(g, item, x, y, .17);
+  if (boxOf(item)) {
+    g.save(); g.translate(x, y); g.rotate(angle + Math.PI);
+    crate(g, boxOf(item), 0, 0, .78, .44); sequence(g, contentOf(item), 0, 0, .58, .12);
+    g.restore(); return;
+  }
   // A gene turns with the belt, first base leading.
   g.save(); g.translate(x, y); g.rotate(angle + Math.PI); x = y = 0;
   g.lineCap = 'round'; g.strokeStyle = '#05090B'; g.lineWidth = .34;
@@ -1393,6 +1504,16 @@ function drawCell(g, c, inputs = []) {
     if (kind) sequence(g,kind,0,0,.64,.16);
     // Towards the trail when it loads, away when it empties.
     for (let d = 0; d < 4; d++) if (c.x != null && G?.tracks?.[key(c.x + DX[d],c.y + DY[d])]) arrow(g,c.unload ? (d + 2) % 4 : d,.5,'#B7F34A');
+  } else if (type === 'pack') {
+    const side = carbonSide(c), color = c.box === 'A' ? '#F0A03C' : '#55D6E8', [goods, carbon] = c.ports;
+    crate(g, c.box, 0, -.02, .56, .4);
+    const inside = goods[0] || (c.last && contentOf(c.last));
+    if (inside) sequence(g, inside, 0, -.02, .44, .1);
+    for (let i = 0; i < PACK.size; i++) circle(g, (i - 2.5) * .13, .3, .045, i < goods.length ? color : '#0B1417');
+    g.globalAlpha *= carbon.length ? 1 : .5;
+    glyph(g, 'K', DX[side] * .4, DY[side] * .4, .12);
+    g.globalAlpha = built(c) ? 1 : .4;
+    arrow(g,c.dir,.54,color);
   } else if (type === 'join') {
     for (const port of [0,1]) {
       const side = joinSide(c,port), x = DX[side]*.28, y = DY[side]*.28, has = c.ports[port].length;
@@ -1419,9 +1540,9 @@ function draw() {
   rect(ctx,x0,y0,x1 - x0,y1 - y0,'#0D171A');
   for (const [base,x,y,w,h] of fieldsIn(x0,y0,x1,y1)) {
     if (x + w < x0 || x > x1 || y + h < y0 || y > y1) continue;
-    rect(ctx,x,y,w,h,{S:'#1E3A1D',F:'#35220F',C:'#2E2B25',N:'#102F37'}[base]);
+    rect(ctx,x,y,w,h,{K:'#22262A',S:'#1E3A1D',F:'#35220F',C:'#2E2B25',N:'#102F37'}[base]);
     // From afar one big glyph names the field.
-    const rich = richness(x + w / 2,y + h / 2);
+    const rich = richAt(x,y);
     if (rich > 1) {
       rect(ctx,x,y,w,h,null,rich > richCap() ? '#6A8D94' : '#B7F34A');
       ctx.save(); ctx.translate(x,y); ctx.scale(1/40,1/40);
@@ -1563,7 +1684,7 @@ function drawVeins() {
     for (const p of c.packets) {
       const k = Math.min(1,p.t), x = c.x + .5 + (to.x - c.x) * k, y = c.y + .5 + (to.y - c.y) * k;
       circle(ctx,x,y,.2 + Math.min(8,p.n) * .022,'#C85A72','#FF8FA2');
-      glyph(ctx,p.item[0],x,y,.16);
+      glyph(ctx,contentOf(p.item)[0],x,y,.16);
     }
     if (leak) for (let i = 0; i < 6; i++) {
       const p = (G.time + i / 6) % 1;
@@ -1686,6 +1807,7 @@ const SHAPE = {
   S:'<circle cx="9" cy="9" r="7" fill="#6DAA38" stroke="#C9F77A" stroke-width="2"/>',
   F:'<rect x="1.5" y="5" width="15" height="8" rx="4" fill="#B86B1E" stroke="#FFC06B" stroke-width="2"/>',
   C:'<path d="M2 9L13 2L16 9L13 16Z" fill="#B9AA8C" stroke="#FFF3D9" stroke-width="2"/>',
+  K:'<path d="M9 1.5L15.5 5.2V12.8L9 16.5L2.5 12.8V5.2Z" fill="#23282C" stroke="#AEB9BF" stroke-width="2"/>',
   N:'<path d="M2 9H16M5.5 3L12.5 15M12.5 3L5.5 15" stroke="#55D6E8" stroke-width="2.5"/><circle cx="9" cy="9" r="3" fill="#D5FAFF"/>'
 };
 function geneMark(gene) {
@@ -1723,7 +1845,7 @@ function showActions() {
   $('info').classList.toggle('filter', c?.type === 'sort');
   if (!c) {
     if (!['hand','erase','belt','wall','bridge','turret','track','worm','pocket','pump','wire'].includes(tool))
-      button(`Sens : ${['haut','droite','bas','gauche'][heading]}`, () => { heading = (heading + 1) % 4; showActions(); });
+      button(`Sens : ${WAYS[heading]}`, () => { setHeading((heading + 1) % 4); showActions(); });
     return;
   }
   if (c.type === 'core') {
@@ -1735,7 +1857,7 @@ function showActions() {
     if (!G.open) button('Tout débloquer (test)', () => { G.open = true; showActions(); say('Tout est débloqué pour tester. Les stades continuent de compter.'); });
     return;
   }
-  if (['belt','gate','mine','ligase','join','cyst','split','sort'].includes(c.type)) button('Tourner', () => { c.dir = (c.dir + 1) % 4; });
+  if (TURNS.includes(c.type)) button('Tourner', () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
   if (c.type === 'ligase') button('Inverser 1↔3', () => { c.flip = !c.flip; c.ports.reverse(); c.last = [...c.last].reverse().join(''); });
   if (c.type === 'bridge') [0, 1].forEach(axis => {
     const set = c.ways?.[axis] ?? null, name = axis ? 'Voie ↔' : 'Voie ↕';
@@ -1747,6 +1869,11 @@ function showActions() {
     button('Vider', () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
   }
   if (c.type === 'pocket') button(c.unload ? 'Poche : vide' : 'Poche : charge', () => { c.unload = !c.unload; showActions(); });
+  if (c.type === 'pack') {
+    button(`Recette : ${BOX[c.box].name}`, () => { setRecipe(c, c.box === 'T' ? 'A' : 'T'); showActions(); });
+    button(`Carbone : ${c.flip ? 'à droite' : 'à gauche'}`, () => { c.flip = !c.flip; showActions(); });
+    button('Vider', () => { c.ports = [[], [], []]; c.item = null; c.last = ''; });
+  }
   if (c.type === 'join') button('Inverser 1↔2', () => {
     c.flip = !c.flip; c.ports = [c.ports[1], c.ports[0], []];
     c.last = c.last ? c.last.slice(3) + c.last.slice(0, 3) : '';
@@ -1758,14 +1885,14 @@ function showActions() {
     // On a nerve the manual filter is only the fallback: its controls would cover the board on a phone.
     const onNerve = G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y));
     if (!onNerve) {
-    button({1:'Base', 3:'Gène', 6:'Brin'}[c.want.length], change(() => { c.want = c.want.length === 1 ? c.want + '??' : c.want.length === 3 && unlocked(2) ? c.want + '???' : c.want[0]; }));
+    button({1:'Base', 3:'Gène', 6:'Brin'}[c.want.length], change(() => { c.want = c.want.length === 1 ? (c.want === 'K' ? '?' : c.want) + '??' : c.want.length === 3 && unlocked(2) ? c.want + '???' : c.want[0]; }));
     [...c.want].forEach((base, i) => {
       const b = button('?', change(() => {
-        const order = 'SFCN?';
+        const order = c.want.length === 1 ? 'SFCNK?' : 'SFCN?';
         c.want = c.want.slice(0, i) + order[(order.indexOf(base) + 1) % order.length] + c.want.slice(i + 1);
       }));
       b.classList.add('slot');
-      b.setAttribute('aria-label', `Filtre, position ${i + 1} : ${BASE[base] || 'joker'}. Toucher pour changer.`);
+      b.setAttribute('aria-label', `Filtre, position ${i + 1} : ${MATTER[base] || 'joker'}. Toucher pour changer.`);
       if (SHAPE[base]) b.innerHTML = `<svg viewBox="0 0 18 18" width="20" height="20">${SHAPE[base]}</svg>`;
     });
       button('= dernier passé', change(() => { if (c.seen) c.want = c.seen; else say('Rien n’est encore passé dans ce trieur.'); })).disabled = !c.seen;
@@ -1794,7 +1921,7 @@ function pickedWorm() { return G.worms.find(w => w.id === wormId); }
 function wormState(w) {
   if (w.out != null) return w.cut ? `Ver en retrait : ${Math.max(0, w.out).toFixed(1).replace('.', ',')} s de jeu.` : 'Ver à retirer : un drone le rejoint, il roule en attendant.';
   if (!built(w)) return `Ver en incubation : ${w.left.toFixed(1).replace('.', ',')} s de jeu.`;
-  const cargo = w.holds.map(h => h.n ? `${h.n} ${h.kind}` : 'vide').join(', ');
+  const cargo = w.holds.map(h => h.n ? `${h.n} ${h.kind in BASE ? h.kind : itemName(h.kind)}` : 'vide').join(', ');
   const doing = w.docked ? 'à quai' : w.stuck ? `arrêté, ${w.stuck}` : 'en route';
   const why = w.docked && w.rule === 'full' ? ' Il attend que tout soit plein ou vide.' : '';
   return `Ver ${doing}, de la tête à la queue : ${cargo}.${why} ${Math.ceil(w.hp)} PV sur ${WORM.hp}.`;
@@ -1821,13 +1948,14 @@ function orderHTML() {
   const want = STAGES[G.stage];
   if (!want) return '<div class="order"><b>Organisme né</b><span>les stades suivants restent à écrire</span></div>';
   const done = want.rate ? `${mealRate().toFixed(1).replace('.', ',')} sur ${want.rate}/s · ${Math.floor(G.held)} sur ${want.hold} s` : `${G.fed} sur ${want.count}`;
-  return `<div class="order"><b>${G.stage + 1}. ${want.name}</b>${geneMark(want.item)}<output>${done}</output></div>`;
+  const boxed = boxOf(want.item) ? `<span class="boxed">capsule de ${PACK.size}</span>` : '';
+  return `<div class="order"><b>${G.stage + 1}. ${want.name}</b>${boxed}${geneMark(contentOf(want.item))}<output>${done}</output></div>`;
 }
 function stockOf(gene) {
   let n = 0;
   for (const c of Object.values(G.cells)) {
     if (c.type === 'turret') n += c.ammo[gene] || 0;
-    if (c.type === 'cyst' || c.type === 'pump' || c.type === 'pocket') for (const item of c.stock) if (item === gene) n++;
+    if (c.type === 'cyst' || c.type === 'pump' || c.type === 'pocket') for (const item of c.stock) { if (item === gene) n++; else if (item === `A:${gene}`) n += PACK.size; }
   }
   return n;
 }
@@ -1940,7 +2068,7 @@ function place(x,y) {
   if (tool === 'track') {
     if (!buildable(x,y)) return say('La zone des ruches n’est pas constructible.');
     const t = G.tracks[id];
-    if (t) t.dir = (t.dir + 1) % 4; else layTrack(x,y,heading);
+    if (t) { t.dir = (t.dir + 1) % 4; setHeading(t.dir); } else layTrack(x,y,heading);
     return say(TYPES.track.help);
   }
   if (tool === 'hand') {
@@ -1955,7 +2083,7 @@ function place(x,y) {
   }
   if (tool === 'erase') return wipe(x,y);
   if (old) {
-    if (old.type === tool && ['belt','mine','ligase','join','cyst','split','sort'].includes(tool)) old.dir = (old.dir + 1) % 4;
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split','sort'].includes(tool)) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
     // A bridge may replace a belt, to make a crossing on an existing line.
     else if (old.type === 'belt' && ['bridge','split','sort','gate'].includes(tool)) { build(tool,x,y,old.dir); }
     select(id);
@@ -2086,11 +2214,11 @@ function preview() {
     const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && Math.hypot(h.x - x, h.y - y) < 3);
     if (b) return to('select', {label:`Brèche : ${b.left} créatures`});
     const base = depositAt(x, y);
-    return to('none', base ? {label:`Gisement : ${BASE[base].toLowerCase()} ×${richAt(x, y)}`} : {});
+    return to('none', base ? {label:`Gisement : ${MATTER[base].toLowerCase()} ×${richAt(x, y)}`} : {});
   }
   if (old) {
     if (drawing) return to('select');
-    if (old.type === tool && ['belt','mine','ligase','join','cyst','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
     if (old.type === 'belt' && ['bridge','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
     return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
   }
@@ -2172,6 +2300,9 @@ let gesture = null;
 canvas.addEventListener('pointerdown', event => {
   if (G.over) return;
   event.preventDefault();
+  // Preventing the default also keeps the keyboard out, in a frame R would never arrive.
+  window.focus();
+  canvas.focus({preventScroll:true});
   try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
   if (event.pointerType === 'touch') hovered = null;
   const p = screenPoint(event);
@@ -2317,13 +2448,13 @@ $('rebuild').onclick = () => {
     if (cost > G.dna) { unpaid++; continue; }
     G.dna -= cost;
     delete G.ruins[id];
-    Object.assign(build(w.type, w.x, w.y, w.dir), {flip:w.flip, want:w.want || 'C', side:w.side || 3, ways:w.ways || null, open:w.open !== false, to:w.to || null, strict:Boolean(w.strict), unload:Boolean(w.unload), read:w.read || 0});
+    Object.assign(build(w.type, w.x, w.y, w.dir), {flip:w.flip, want:w.want || 'C', side:w.side || 3, ways:w.ways || null, open:w.open !== false, to:w.to || null, strict:Boolean(w.strict), unload:Boolean(w.unload), box:w.box || 'T', read:w.read || 0});
   }
   say(unpaid ? `${unpaid} défense${unpaid > 1 ? 's' : ''} en attente d’ADN, le reste est en chantier.` : 'Reconstruction lancée à l’identique.'); refresh();
 };
 
 // What is usable from the start comes first, then each stage's tools in the order they open.
-const TOOLBAR = ['hand','erase','belt','mine','ligase','turret','wall','cyst','bridge','gate','split','sort','pump','join','wire','track','pocket','worm'];
+const TOOLBAR = ['hand','erase','belt','mine','ligase','turret','wall','cyst','bridge','gate','split','sort','pack','pump','join','wire','track','pocket','worm'];
 for (const [type,info] of TOOLBAR.map(type => [type,TYPES[type]])) {
   const b = document.createElement('button'), icon = document.createElement('canvas'), g = icon.getContext('2d');
   icon.width = icon.height = 52; b.dataset.type = type;
@@ -2350,11 +2481,29 @@ $('restart').onclick = () => {
   armed = 0; $('restart').textContent = 'Reset'; begin();
 };
 $('again').onclick = () => begin();
+// R turns what is under the pointer, or the piece in hand. Shift turns the other way.
+function rotate(back) {
+  const by = back ? 3 : 1, building = tool !== 'hand' && tool !== 'erase';
+  const p = hovered && preview(), under = p && G.cells[key(p.x, p.y)];
+  // With a piece in hand the last one placed stays selected: it must not take the key from the next.
+  const c = under && (TURNS.includes(under.type) || under.type === 'bridge') ? under : !building && selected ? G.cells[selected] : null;
+  if (c?.type === 'bridge') turnWay(c, back ? 0 : 1);
+  else if (c && TURNS.includes(c.type)) {
+    c.dir = (c.dir + by) % 4;
+    if (building) setHeading(c.dir);
+  } else {
+    setHeading((heading + by) % 4);
+    if (building) {
+      select(null);
+      say(`Sens : ${WAYS[heading]}. R pour tourner, Maj+R dans l’autre sens.`);
+    }
+  }
+  showActions();
+}
 document.addEventListener('keydown', event => {
-  if (event.key.toLowerCase() !== 'r') return;
-  const c = selected && G.cells[selected];
-  if (c?.type === 'bridge') { turnWay(c, event.shiftKey ? 0 : 1); showActions(); }
-  else if (c && c.type !== 'core') c.dir = (c.dir+1)%4; else { heading = (heading+1)%4; showActions(); }
+  if (event.key.toLowerCase() !== 'r' || event.ctrlKey || event.metaKey || event.altKey) return;
+  event.preventDefault();
+  rotate(event.shiftKey);
 });
 
 const SAVE = 'souche-proto-2', OLD_SAVE = 'souche-proto-1';
@@ -2372,7 +2521,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); return true; }
+    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); return true; }
   } catch (_) {}
   return false;
 }

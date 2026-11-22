@@ -21,15 +21,15 @@ exports[`progression behaves as the recorded prototype 1`] = `
         "unlocked": true,
       },
       "inversion": "FFFSFS",
-      "locked0": 8,
+      "locked0": 9,
       "oneLigaseNotEnough": [
         1,
         0,
-        1,
+        1.2,
       ],
       "organ": {
         "rich": 4,
-        "seconds": 55,
+        "seconds": 49,
         "stage": 3,
         "worm": true,
       },
@@ -50,7 +50,7 @@ exports[`progression behaves as the recorded prototype 1`] = `
       "tissue": {
         "join": true,
         "rich": 2,
-        "seconds": 65,
+        "seconds": 68,
         "stage": 2,
         "vein": true,
         "worm": true,

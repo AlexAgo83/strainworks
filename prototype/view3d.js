@@ -172,8 +172,14 @@ window.createView3D = (glCanvas) => {
       g.lineWidth = px;
       g.stroke();
     }
-    for (const [, x, y, w, h] of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
-      const rich = richness(x + w / 2, y + h / 2);
+    for (const [kind, x, y, w, h] of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
+      // Dark on dark ground: carbon is framed and named, or it passes for rubble.
+      if (kind === 'K') {
+        rect(g, x, y, w, h, null, '#AEB9BF');
+        if (cam.zoom >= 8) label('carbone', x + w / 2, y - 0.42, Math.min(40, Math.max(14, 440 / cam.zoom)), '#D3DCE0');
+        continue;
+      }
+      const rich = richAt(x, y);
       if (rich < 2) continue;
       const color = rich > richCap() ? '#8B989C' : '#B7F34A';
       rect(g, x, y, w, h, null, color);
