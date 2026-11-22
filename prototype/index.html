@@ -121,7 +121,7 @@ const PAIR = {S:'C', C:'S', F:'N', N:'F'};
 const BASE = {S:'Spore', F:'Fibre', C:'Chitine', N:'Nerf'};
 const GENES = {SFS:'Moteur', FFF:'Soute', FSF:'Bouche', SSS:'Racine', CCF:'Carapace', CFC:'Dard', CCC:'Lame', CSC:'Acide', NFN:'Œil', SSN:'Soin', NSN:'Flair', FNF:'Pulsation', NNN:'Mémoire', NCN:'Commande', CNS:'Mutation', SNS:'Instinct'};
 const TYPES = {
-  hand:{name:'Inspecter', help:'Glisse pour te déplacer, pince pour zoomer, touche une machine pour l’inspecter.'},
+  hand:{name:'Inspecter', help:'Glisse ou utilise les flèches pour te déplacer, pince pour zoomer, touche une machine pour l’inspecter.'},
   belt:{name:'Tapis', help:'Glisse de la sortie vers l’entrée, la vue suit au bord. Deux doigts pour te déplacer. Pour croiser, pose un pont.', hp:30},
   gate:{name:'Feu', help:'Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière.', hp:30},
   mine:{name:'Récolteur', help:'À poser sur un gisement. Il donne 1 base par seconde.', hp:60},
@@ -2379,6 +2379,32 @@ canvas.addEventListener('wheel', event => {
   const p = screenPoint(event);
   zoomAt(Math.exp(-event.deltaY * .0015),p.x,p.y);
 }, {passive:false});
+// The arrows glide the camera at one speed on screen, whatever the zoom. Shift is faster.
+const GLIDE = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]};
+const arrows = new Set();
+let hurried = false;
+document.addEventListener('keydown', event => {
+  hurried = event.shiftKey;
+  if (!GLIDE[event.key] || event.ctrlKey || event.metaKey || event.altKey) return;
+  event.preventDefault();
+  arrows.add(event.key);
+});
+document.addEventListener('keyup', event => { hurried = event.shiftKey; arrows.delete(event.key); });
+// A key let go outside the page never says so.
+window.addEventListener('blur', () => { arrows.clear(); hurried = false; });
+document.addEventListener('visibilitychange', () => { if (document.hidden) arrows.clear(); });
+function glide(elapsed) {
+  let x = 0, y = 0;
+  for (const name of arrows) { x += GLIDE[name][0]; y += GLIDE[name][1]; }
+  if (!x && !y) return;
+  const far = (hurried ? 1800 : 720) * elapsed / Math.hypot(x, y);
+  pan(-x * far, -y * far);
+  // A line being drawn follows the pointer over the moving map.
+  if (gesture?.mode === 'draw' && drag) {
+    const to = position(gesture.now);
+    if (inside(to.x, to.y)) extend(to);
+  }
+}
 function followEdge(elapsed) {
   if (gesture?.mode !== 'draw' || !drag) return;
   const p = gesture.now, margin = 28, side = (v,max) => v < margin ? 1 : v > max - margin ? -1 : 0;
@@ -2532,7 +2558,7 @@ function begin() {
 }
 
 resize();
-if (load()) { choose('hand'); home(); say('Partie reprise. Glisse pour te déplacer, pince pour zoomer.'); }
+if (load()) { choose('hand'); home(); say('Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.'); }
 else begin();
 new ResizeObserver(resize).observe($('board'));
 
@@ -2546,6 +2572,7 @@ function frame(now) {
   if (armed && Date.now() > armed) { armed = 0; $('restart').textContent = 'Reset'; }
   if (now-shownAt > 250) { refresh(); shownAt = now; }
   if (now-savedAt > 3000) { save(); savedAt = now; }
+  glide(elapsed);
   followEdge(elapsed);
   setCursor();
   draw();
