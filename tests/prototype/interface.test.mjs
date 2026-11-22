@@ -99,6 +99,17 @@ it("answers the keys, the menu and the moments without changing a rule", async (
     // An event takes the camera to where it happened.
     await page.evaluate(() => tell("Ici", { at: { x: 70, y: 20 } }));
     await page.locator("#events button", { hasText: "Ici" }).click();
+    // Events stay until closed, the latest five kept.
+    const kept = await page.evaluate(async () => {
+      for (let i = 0; i < 7; i++) tell(`Événement ${i}`);
+      const before = document.querySelectorAll("#events .event").length;
+      await new Promise((done) => setTimeout(done, 300));
+      for (let i = 0; i < 300; i++) step(STEP);
+      const after = document.querySelectorAll("#events .event").length;
+      document.querySelector("#events .event:last-child .close").click();
+      return [before, after, document.querySelectorAll("#events .event").length, document.querySelector("#events .event:last-child .text").textContent];
+    });
+    expect(kept).toEqual([5, 5, 4, "Événement 5"]);
     expect(await page.evaluate(() => [cam.x, cam.y])).toEqual([70.5, 20.5]);
 
     // A refusal is written where the hand is.

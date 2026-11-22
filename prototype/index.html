@@ -327,6 +327,41 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #menu { border-radius:18px; }
 /* Time under the view switch, apart from the camera by a little gap. */
 #zoom #view-toggle { margin-bottom:10px; }
+#app .event { padding:4px 4px 4px 12px; gap:4px; }
+#app .event .what { display:flex; align-items:center; gap:8px; min-width:0; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+#app .event p.what { cursor:default; }
+#app .event .close { flex:none; display:grid; place-items:center; width:32px; height:32px; margin-left:2px; padding:0; border:0; border-radius:50%; background:none; color:var(--muted); font:400 20px/1 var(--body); cursor:pointer; }
+#app .event .close:hover { color:var(--ink); background:rgba(255,255,255,.08); }
+
+/* The core's card as a diagram (board 20). */
+#sheet { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+#sheet[hidden] { display:none; }
+#sheet h3 { margin:0; color:#8FB8BF; font:700 11px var(--display); letter-spacing:.14em; text-transform:uppercase; }
+#sheet .want { display:flex; align-items:center; gap:14px; }
+#sheet .crate { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1.5px solid #E8738A; border-radius:10px; background:rgba(232,115,138,.08); }
+#sheet .crate b { color:#E8738A; font:700 16px var(--display); }
+#sheet .gene svg { width:18px; height:18px; }
+#sheet .goal { display:flex; flex-direction:column; line-height:1.1; }
+#sheet .goal b { font:700 26px var(--display); }
+#sheet .goal small, #sheet .goal span { color:var(--muted); font-size:13px; }
+#sheet .gauge { position:relative; height:9px; border-radius:5px; background:rgba(255,255,255,.08); overflow:hidden; }
+#sheet .gauge i { position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg, var(--amber), #F7C35C); }
+#sheet .gauge.done i { background:var(--acid); }
+#sheet .legend { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; }
+#sheet .legend b { color:var(--ink); }
+#sheet .step { display:flex; align-items:center; gap:5px; flex-wrap:nowrap; }
+#sheet .in { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:3px; min-width:28px; height:28px; padding:0 4px; border:1px solid rgba(102,217,234,.3); border-radius:7px; background:rgba(255,255,255,.04); font:700 12px var(--display); }
+#sheet .in svg { width:16px; height:16px; }
+#sheet .num { position:absolute; top:-7px; left:-5px; width:14px; height:14px; border-radius:50%; background:var(--cyan); color:var(--night); font:700 9px/14px var(--display); text-align:center; }
+#sheet .to { flex:none; width:16px; height:10px; }
+#sheet .machine { width:34px; height:34px; border-color:rgba(240,160,60,.6); }
+#sheet .side { color:var(--muted); font-size:11px; }
+#sheet .hints { display:flex; flex-direction:column; gap:6px; font-size:13px; }
+#sheet .hints p { display:flex; align-items:center; gap:8px; margin:0; }
+#sheet .hints svg { width:16px; height:16px; flex:none; }
+#sheet .gives { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px 10px; }
+#sheet .gives span { display:flex; align-items:center; gap:7px; font-size:12px; }
+#sheet .gives .porthole { width:30px; height:30px; border-color:rgba(183,243,74,.5); }
 #app #organism > .skin { display:none; }
 @media (min-width:760px) and (min-height:521px) { #organism { width:340px; height:200px; } }
 @media (max-width:1179px) {
@@ -668,6 +703,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
         <div class="card-head" hidden><span id="card-model" class="porthole model" aria-hidden="true"></span><div><h2 id="card-title"></h2><p id="card-sub"></p></div></div>
         <div id="cells"></div>
         <p id="message"></p>
+        <div id="sheet" hidden></div>
       </div>
     </div>
     <div id="actions"></div>
@@ -4126,16 +4162,21 @@ function markOf(base) { return SHAPE[base] ? `<svg viewBox="0 0 18 18">${SHAPE[b
 function tell(text, {at, gene, bad} = {}) {
   say(text);
   ui.saidAt = 0;
-  const now = performance.now(), same = ui.events.find(e => e.text === text);
-  if (same) { same.until = now + 8000; return; }
-  const el = document.createElement(at ? 'button' : 'p'), dot = document.createElement('i'), words = document.createElement('span');
-  el.className = `event${bad ? ' bad' : ''}`; dot.className = 'dot'; words.className = 'text'; write(words, text);
-  el.append(dot, words);
-  if (gene) el.insertAdjacentHTML('beforeend', geneMark(gene));
-  if (at) { const there = {x:at.x + .5, y:at.y + .5}; el.onclick = () => travelTo(there); }
+  // It stays until closed, the latest five kept: what happened is not lost while looking away.
+  const same = ui.events.find(e => e.text === text);
+  if (same) { $('events').append(same.el); ui.events.push(ui.events.splice(ui.events.indexOf(same), 1)[0]); return; }
+  const el = document.createElement('div'), body = document.createElement(at ? 'button' : 'p'), dot = document.createElement('i'), words = document.createElement('span'), close = document.createElement('button');
+  el.className = `event${bad ? ' bad' : ''}`; body.className = 'what'; dot.className = 'dot'; words.className = 'text'; write(words, text);
+  body.append(dot, words);
+  if (gene) body.insertAdjacentHTML('beforeend', geneMark(gene));
+  if (at) { const there = {x:at.x + .5, y:at.y + .5}; body.onclick = () => travelTo(there); }
+  close.className = 'close'; close.setAttribute('aria-label', 'Fermer'); close.textContent = '×';
+  const entry = {el, text};
+  close.onclick = () => { el.remove(); ui.events.splice(ui.events.indexOf(entry), 1); };
+  el.append(body, close);
   $('events').append(el);
-  ui.events.push({el, text, until:now + 8000});
-  while (ui.events.length > 3) ui.events.shift().el.remove();
+  ui.events.push(entry);
+  while (ui.events.length > 5) ui.events.shift().el.remove();
 }
 function forgetEvents() {
   for (const e of ui.events) e.el.remove();
@@ -4318,6 +4359,45 @@ function cellsOf(c, worm) {
   }
   return '';
 }
+// ---- The core's card as a diagram: what it wants, how to make it, what it gives.
+const ARROW = '<svg class="to" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#66D9EA" stroke-width="1.5"/></svg>';
+const machineOf = (type, label) => `<span class="porthole model machine" data-model="${type}" role="img" aria-label="${label}"></span>`;
+function coreSheet() {
+  const want = STAGES[G.stage];
+  if (!want) return '';
+  const box = boxOf(want.item), body = contentOf(want.item), genes = body.match(/.{3}/g);
+  const figure = n => n.toFixed(1).replace('.', ',');
+  const picture = box ? `<span class="crate" role="img" aria-label="${BOX[box].name} de ${PACK.size}">${geneMark(body)}<b>×${PACK.size}</b></span>` : geneMark(body);
+  const rate = mealRate(), part = want.rate ? Math.min(1, G.held / want.hold) : Math.min(1, G.fed / want.count);
+  const goal = want.rate
+    ? `<div class="goal"><b>${want.rate}<small> / s</small></b><span>pendant ${want.hold} s</span></div>`
+    : `<div class="goal"><b>${G.fed}<small> / ${want.count}</small></b><span>livrés</span></div>`;
+  const legend = want.rate
+    ? `<div class="legend"><span>débit <b>${figure(rate)} / s</b></span><span>tenu <b>${Math.floor(G.held)} / ${want.hold} s</b></span></div>`
+    : '';
+  const steps = [...new Set(genes)].map(gene => `<div class="step">${[...gene].map((b, i) => `<span class="in"><span class="num">${i + 1}</span>${markOf(b)}</span>`).join('')}${ARROW}${machineOf('ligase', 'Ligase')}${ARROW}${geneMark(gene)}</div>`);
+  if (genes.length === 2) steps.push(`<div class="step"><span class="in">${geneMark(genes[0])}</span><span class="side">+</span><span class="in">${geneMark(genes[1])}</span>${ARROW}${machineOf('join', 'Assembleur')}${ARROW}${geneMark(body)}</div>`);
+  if (box) steps.push(`<div class="step"><span class="in">${PACK.size}×${geneMark(body)}</span><span class="side">+</span><span class="in">${BOX[box].carbon}×${markOf('K')}</span>${ARROW}${machineOf('pack', 'Encapsuleur')}${ARROW}${picture.replace(`<b>×${PACK.size}</b>`, '')}</div>`);
+  const hints = [];
+  if (want.rate) hints.push('<p><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h12M2 11h12" stroke="#F0A03C" stroke-width="2.2"/></svg>2 lignes en parallèle</p>');
+  if (box) hints.push(`<p>${markOf('K')}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`);
+  const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
+  if (G.stage + 1 > 1) gives.push(['mine', `Gisements ×${G.stage + 1 === 2 ? '2' : '4 à ×8'}`]);
+  return `<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
+    + `<h3>Recette</h3>${steps.join('')}${hints.length ? `<div class="hints">${hints.join('')}</div>` : ''}`
+    + (gives.length ? `<h3>Débloque</h3><div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : '');
+}
+function paintSheet(c) {
+  const sheet = $('sheet'), on = c?.type === 'core' && Boolean(STAGES[G.stage]);
+  sheet.hidden = !on;
+  $('message').hidden = on;
+  if (!on) return;
+  const html = coreSheet();
+  if (sheet.innerHTML === html) return;
+  sheet.innerHTML = html;
+  for (const el of sheet.querySelectorAll('[data-model]')) showModel(el, el.dataset.model);
+}
+
 function paintInfo() {
   const c = selected && G.cells[selected], worm = !c && pickedWorm(), any = Boolean(c || worm);
   const busy = tool !== 'hand' || linking || wiring, offers = $('actions').childElementCount > 0;
@@ -4342,6 +4422,7 @@ function paintInfo() {
     showModel($('card-model'), type);
   }
   paint('cells', cellsOf(c, worm));
+  paintSheet(c);
   const row = $('actions');
   row.classList.toggle('more', row.scrollWidth - row.clientWidth - row.scrollLeft > 8);
   $('card').classList.toggle('alert', Boolean(c && ((!isGun(c) && chain.length) || /bloqué|manque|pas branchée|rien à tirer|déborde|rompue|fermée|percée|Branche/.test($('message').textContent))));
@@ -4454,10 +4535,6 @@ function animateHud(elapsed) {
     if (el) el.style.transform = `translate(${p.x}px,${p.y}px)`;
   });
   const now = performance.now();
-  for (const e of [...ui.events]) {
-    if (now > e.until + 500) { e.el.remove(); ui.events.splice(ui.events.indexOf(e), 1); }
-    else e.el.classList.toggle('gone', now > e.until);
-  }
   if (!$('refusal').hidden && now - ui.refusedAt > 3200) $('refusal').hidden = true;
   if (ui.grown && now > ui.grown) { ui.grown = 0; $('growth').hidden = true; }
 }
