@@ -356,7 +356,10 @@ window.createView3D = (glCanvas) => {
       terrain.draw(add, area, G.time + owed);
       models.draw(add, area);
       flush();
+      // Framed as Babylon's own loop does, so its GPU timer sees each frame.
+      engine.beginFrame();
       scene.render();
+      engine.endFrame();
       drawOverlay(area);
     },
     dispose() {
