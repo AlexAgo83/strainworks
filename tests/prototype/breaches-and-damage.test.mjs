@@ -22,14 +22,14 @@ it("breaches-and-damage behaves as the recorded prototype", async () => {
       out.nearTheBase = G.breaches.filter(b => Math.hypot(b.x-CORE.x,b.y-CORE.y) < CALM).map(b => [b.x,b.y]);
       // The four x2 deposits of the first ring are free, every other rich one stays guarded.
       const free = ([,x,y,w,h]) => richness(x+w/2,y+h/2)===2 && Math.hypot(x+w/2-CORE.x,y+h/2-CORE.y) < 24;
-      const openField = (x,y) => OUTER.filter(free).some(([,a,b,w,h]) => x>=a&&x<a+w&&y>=b&&y<b+h);
+      const openField = (x,y) => OUTER.filter(free).some(f => patchOf(f).cells.has(key(x,y)));
       out.freeDeposits = OUTER.filter(free).length;
-      out.freeOnesSleepOn = OUTER.filter(free).filter(([,x,y,w,h]) => { lab(); put('mine',x,y,0); put('mine',x+w-1,y+h-1,0); run(1); return G.breaches.some(b=>b.state==='wake'); }).length;
+      out.freeOnesSleepOn = OUTER.filter(free).filter(f => { lab(); for (const c of patchOf(f).list) put('mine',c.x,c.y,0); run(1); return G.breaches.some(b=>b.state==='wake'); }).length;
       lab();
       out.unguardedRich = Object.keys(DEPOSIT).filter(k => { const [x,y]=k.split(',').map(Number); return RICH[k]>1 && !openField(x,y) && !G.breaches.some(b=>Math.hypot(b.x-x,b.y-y)<=b.r); }).length;
       run(720); out.idle = {awake:G.breaches.filter(b=>b.state!=='sleep').length, enemies:G.enemies.length, over:G.over};
-      out.wakeEach = OUTER.filter(f => !free(f) && richness(f[1]+f[3]/2,f[2]+f[4]/2)>1).filter(([,x,y]) => {
-        lab(); put('mine',x,y,0); run(1); return !G.breaches.some(b=>b.state==='wake');
+      out.wakeEach = OUTER.filter(f => !free(f) && richness(f[1]+f[3]/2,f[2]+f[4]/2)>1).filter(f => {
+        lab(); const {x,y}=patchOf(f).list[0]; put('mine',x,y,0); run(1); return !G.breaches.some(b=>b.state==='wake');
       }).length;
       lab(); put('belt',48,32,0); run(1); out.onlyOne = G.breaches.filter(b=>b.state==='wake').length;
       lab(); const a=put('pump',12,45,0), _z=put('pump',12,60,0); const before=G.breaches.filter(b=>b.state==='wake').length; a.to=key(12,60); run(1);

@@ -51,6 +51,10 @@ The loop: harvest, write, hatch, expand, defend, recycle.
 | Mutation | Decided | It adds an enemy family, it does not replace the old ones |
 | Room at the start | Decided | Large grid, deposits away from the core, spaced elements |
 | Maturation on belts | Rejected | Too complex: a strand only changes inside a machine |
+| Ranks | Decided | Belts and harvesters have MK2 and MK3, bought in ADN on the object or its whole row. A bridge runs at the slowest rail round it |
+| ADN rate bonus | Rejected | Ranks replace it. Games that bought it get their ADN back |
+| Crossing time | Decided | Nothing crosses a building at once: 0.25 s a cell, the rate stays the same |
+| Deposit shape | Decided | Irregular round patches with splashes, never rectangles |
 | Carbon and containers | Decided | Carbon stays outside the genetic code. The Encapsulator packs magazines for turrets and tech capsules for the core |
 | Higher tech matter | Decided | Later stages ask for a rarer matter instead of carbon, like uranium found farther. Its mutagen effect is a proposal |
 | Four bases, genes of three | Proposed | See sections 3 and 4 |
@@ -126,7 +130,7 @@ Starting values, to balance:
 |---|---|
 | Harvester (Récolteur) | 1 base per second |
 | Ligase | 1 gene per second, so 3 bases |
-| Belt (Tapis) | 4 items per second |
+| Belt (Tapis) | 4 items per second, 8 at MK2 (1 ADN a cell), 12 at MK3 (3 ADN a cell) |
 | Turret (Tourelle) | up to 3 genes fired per second |
 | Cyst (Kyste) | 60 items |
 | Large cyst (Grand kyste), 2 x 2, stage 2 | 360 items, two mouths of a belt each |
@@ -135,6 +139,10 @@ Starting values, to balance:
 - A machine pushes as soon as a place is free and stops when its output is full. The stop travels back up the line.
 - A junction alternates. A priority is set with an arrow.
 - An item takes one place whatever its length: a belt carries 4 bases per second, or 12 once bound into genes. Assembling near the deposit or near the front becomes a real choice.
+- A harvester pulls 1, 2 or 3 per second by rank (15 and 40 ADN for MK2 and MK3, 60 and 160 for the large one), times the deposit's richness. Prices are counted from MK1 and are a first setting.
+- A bridge, gate, splitter or sorter runs at the slowest rail it joins, those side by side share one pace. A cyst gives at the pace of the rail it gives to.
+- An item stays 0.25 s in a cyst, pump or pocket, 0.5 s in a large cyst, several at a time. A machine starts giving 0.25 s after its last ingredient at the earliest. Turrets and the core take at once.
+- An upgrade is a drone's job: the piece goes on working at its old rank until it is done. Cancelled, it is paid back.
 - Example: the CNC antidote needs 2 chitin harvesters and 1 nerve harvester for 1 gene per second. A turret firing 3 empties a cyst of 60 in 30 seconds, even when fed.
 
 Continuous sinks: ammunition, research delivered to the core, and the upkeep of worms.
@@ -178,7 +186,7 @@ Example worms:
 
 Prototype rules:
 
-- Deposit: 1 base per second near the core, 2 at mid distance, 4 at the edge.
+- Deposit: 1 base per second near the core, 2 at mid distance, 4 at the edge, for a MK1 harvester.
 - Vein: 16 items per second of a single matter, under everything, 24 cells at most between two pumps. The last pump empties on its four sides.
 - Wounded, a vein drops to 7 per second and attracts nearby creatures until it breaks.
 - Trail (Piste): one exit per cell, under everything, as a loop. Branches and priorities remain to be built.
@@ -268,6 +276,7 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 ## 11. Map and zoom
 
 The landing square, 96 cells wide, is the same in every game. Around it the world is generated on demand from the save's seed, by sectors of 32 cells: only the seed and the breaches that woke are saved. Deposits grow with the distance, and so do their breaches, in numbers and in strength.
+A deposit is a patch: a main blot and two or three splashes, always with room for a large harvester, a bare cell from the next one, and inside its nest's circle when it has one.
 
 A breach out there attacks the outpost that woke it, then the nearest thing still standing once that outpost is razed. Drones cruise faster over long distances, so a flight takes 4 seconds at most.
 

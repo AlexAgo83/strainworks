@@ -36,15 +36,15 @@ it("packs genes in carbon", async () => {
 
       // Carbon lies free near the base, harvests, and stays out of the genetic code.
       lab();
-      const [, kx, ky, kw, kh] = OUTER.find(([kind]) => kind === "K");
+      const carbonField = OUTER.find(([kind]) => kind === "K");
       begin();
       paused = true;
+      const carbon = patchOf(carbonField).list;
+      const { x: kx, y: ky } = carbon.reduce((low, c) => (c.y > low.y ? c : low));
       let clear = true;
-      for (let x = kx; x < kx + kw; x++) {
-        for (let y = ky; y < ky + kh; y++) {
-          if (!buildable(x, y) || G.cells[key(x, y)] || OUTER.some(([kind, a, b, w, h]) => kind !== "K" && x >= a && x < a + w && y >= b && y < b + h)) clear = false;
-          if (G.breaches.some((b) => Math.hypot(x - b.x, y - b.y) <= b.r)) clear = false;
-        }
+      for (const { x, y } of carbon) {
+        if (!buildable(x, y) || G.cells[key(x, y)] || OUTER.some((f) => f[0] !== "K" && patchOf(f).cells.has(key(x, y)))) clear = false;
+        if (G.breaches.some((b) => Math.hypot(x - b.x, y - b.y) <= b.r)) clear = false;
       }
       out.depositFree = [clear, depositAt(kx, ky), richAt(kx, ky)];
       const mine = put("mine", kx, ky, 1);
@@ -149,12 +149,12 @@ it("packs genes in carbon", async () => {
       paused = true;
       G.open = true;
       G.breaches = [];
-      put("mine", kx, ky + kh - 1, 2);
-      for (let y = ky + kh; y < ky + kh + 2; y++) put("belt", kx, y, 2);
-      p = put("pack", kx, ky + kh + 2, 1);
+      put("mine", kx, ky, 2);
+      for (let y = ky + 1; y < ky + 3; y++) put("belt", kx, y, 2);
+      p = put("pack", kx, ky + 3, 1);
       setRecipe(p, "A");
-      const genes = put("cyst", kx - 1, ky + kh + 2, 1);
-      const target = put("turret", kx + 1, ky + kh + 2, 0);
+      const genes = put("cyst", kx - 1, ky + 3, 1);
+      const target = put("turret", kx + 1, ky + 3, 0);
       run(15, () => {
         while (genes.stock.length < 12) genes.stock.push("CNF");
       });
@@ -200,7 +200,7 @@ it("packs genes in carbon", async () => {
       eachSector(-600, -600, 700, 700, (sector) => {
         if (sector.field[0] === "K") found.push(sector);
       });
-      out.farCarbon = found.length > 10 && found.every(({ field: [, x, y], breach }) => !breach && richAt(x, y) === 2);
+      out.farCarbon = found.length > 10 && found.every(({ field, breach }) => !breach && patchOf(field).list.every((c) => richAt(c.x, c.y) === 2));
 
       begin();
       paused = true;

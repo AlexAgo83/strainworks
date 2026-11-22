@@ -248,7 +248,7 @@ window.createTerrain3D = (B, scene, glow) => {
   bark.specularPower = 36;
 
   const outside = (x, y, left, top, right, bottom) => Math.hypot(Math.max(left - x, 0, x - right), Math.max(top - y, 0, y - bottom));
-  const nearField = (fields, x, y, room) => fields.some(([, fx, fy, w, h]) => outside(x, y, fx, fy, fx + w, fy + h) < room);
+  const nearField = (fields, x, y, room) => fields.some((field) => patchOf(field).gap(x, y) < room);
   const fieldsAround = (x, y, room) => fieldsIn(x - room, y - room, x + room, y + room);
   const onSteel = (plates, x, y) => plates.some((p) => x >= p.x - 1 && x < p.x + 1 && y >= p.y - 1 && y < p.y + 1);
 
@@ -383,11 +383,11 @@ window.createTerrain3D = (B, scene, glow) => {
 
         let near = 99;
         let kind = 'S';
-        for (const [base, fx, fy, w, d] of fields) {
-          const away = outside(x, y, fx, fy, fx + w, fy + d);
+        for (const field of fields) {
+          const away = Math.max(0, patchOf(field).gap(x, y));
           if (away < near) {
             near = away;
-            kind = base;
+            kind = field[0];
           }
         }
         h *= mix(0.3, 1, smooth(0, 1.5, near));
@@ -430,14 +430,14 @@ window.createTerrain3D = (B, scene, glow) => {
         if (metal[(y - oy) * CHUNK + x - ox]) continue;
         let kind = '';
         let best = 5;
-        for (const [base, fx, fy, w, h] of fields) {
-          const away = outside(x + 0.5, y + 0.5, fx, fy, fx + w, fy + h);
+        if (depositAt(x, y)) continue;
+        for (const field of fields) {
+          const away = patchOf(field).gap(x + 0.5, y + 0.5);
           if (away < best) {
             best = away;
-            kind = base;
+            kind = field[0];
           }
         }
-        if (kind && best === 0) continue;
         const roll = hash(x, y, 51);
         let type = '';
         if (kind && roll < 0.2) type = kind;

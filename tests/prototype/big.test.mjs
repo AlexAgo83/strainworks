@@ -56,10 +56,11 @@ it("stores and harvests on four cells", async () => {
       // The square slides to fit round the finger, and says why when none does.
       lab();
       const field = OUTER.find(([, , , w, h]) => w >= 4 && h >= 3);
-      const [kind, fx, fy, fw, fh] = field;
+      const kind = field[0];
+      const { x: fx, y: fy } = squareIn(field);
       choose("borer");
-      out.slides = siteFor("borer", fx + fw - 1, fy + fh - 1);
-      out.wanted = { x: fx + fw - 2, y: fy + fh - 2 };
+      out.slides = siteFor("borer", fx + 1, fy + 1);
+      out.wanted = { x: fx, y: fy };
       out.noDeposit = siteFor("borer", 5, 5).why;
       put("wall", 31, 81, 0);
       put("wall", 29, 79, 0);
@@ -72,7 +73,7 @@ it("stores and harvests on four cells", async () => {
         lab();
         G.cells = {};
         put("core", CORE.x, CORE.y, 0);
-        const [, x, y] = OUTER.find(([base, a, b, w, h]) => base !== "K" && RICH[key(a, b)] === richness && w >= 3 && h >= 3);
+        const { x, y } = squareIn(OUTER.find((f) => f[0] !== "K" && richAt(patchOf(f).list[0].x, patchOf(f).list[0].y) === richness));
         const b = put("borer", x, y, 0);
         const ends = edgesOf(b).slice(0, doors).map((d) => {
           const belt = put("belt", d.x + DX[d.dir], d.y + DY[d.dir], d.dir);

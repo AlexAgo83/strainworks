@@ -13,8 +13,9 @@ exports[`deposits-and-veins behaves as the recorded prototype 1`] = `
   [
     "measures",
     {
-      "belt up0": 4,
-      "belt up1": 4.8,
+      "belt mk1": 4,
+      "belt mk2": 8,
+      "belt mk3": 11.8,
       "broke": [
         0,
         false,
@@ -29,12 +30,15 @@ exports[`deposits-and-veins behaves as the recorded prototype 1`] = `
         32.2,
         false,
       ],
-      "mine x1 up0": 1,
-      "mine x1 up1": 1.2,
-      "mine x2 up0": 2,
-      "mine x2 up1": 2.4,
-      "mine x4 up0": 4,
-      "mine x4 up1": 4.8,
+      "mine x1 mk1": 1,
+      "mine x1 mk2": 2,
+      "mine x1 mk3": 3,
+      "mine x2 mk1": 2,
+      "mine x2 mk2": 4,
+      "mine x2 mk3": 6,
+      "mine x4 mk1": 4,
+      "mine x4 mk2": 8,
+      "mine x4 mk3": 12,
       "oneMatter": [
         true,
         false,

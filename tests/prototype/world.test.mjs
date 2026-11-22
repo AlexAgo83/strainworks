@@ -44,9 +44,8 @@ it("goes on past the landing square", async () => {
       for (let seed = 1; seed <= 24; seed++) {
         G.seed = seed * 7919;
         for (const { field, breach: b } of generated(-290, 380)) {
-          const [, x, y, w, h] = field;
           if (Math.hypot(Math.max(-b.x, 0, b.x - 95), Math.max(-b.y, 0, b.y - 95)) <= b.r) out.faults.push(["home", seed, b.id]);
-          for (const [cx, cy] of [[x, y], [x + w - 1, y], [x, y + h - 1], [x + w - 1, y + h - 1]]) {
+          for (const { x: cx, y: cy } of patchOf(field).list) {
             if (!buildable(cx, cy)) out.faults.push(["covered", seed, b.id]);
             if (Math.hypot(cx - b.x, cy - b.y) > b.r) out.faults.push(["unguarded", seed, b.id]);
             if (depositAt(cx, cy) !== field[0] || richAt(cx, cy) !== 4) out.faults.push(["deposit", seed, b.id]);
@@ -69,7 +68,8 @@ it("goes on past the landing square", async () => {
 
       // Harvest 500 cells out, towards negative coordinates.
       const spot = generated(-480, -200).sort((a, b) => Math.hypot(b.breach.x, b.breach.y) - Math.hypot(a.breach.x, a.breach.y))[0];
-      const [kind, x, y] = spot.field;
+      const kind = spot.field[0];
+      const { x, y } = patchOf(spot.field).list[0];
       const mine = put("mine", x, y, 1);
       run(1.1);
       out.harvests = mine.item === kind;

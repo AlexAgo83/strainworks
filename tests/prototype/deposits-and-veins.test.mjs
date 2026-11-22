@@ -18,18 +18,18 @@ it("deposits-and-veins behaves as the recorded prototype", async () => {
     report('measures', JSON.stringify(await page.evaluate(() => {
       const lab = () => { fresh(); G.open=true; paused=true; G.breaches=[]; }, out = {};
       const run = s => { for (let i=0;i<s*20;i++) step(STEP); };
-      for (const want of [1,2,4]) for (const up of [0,1]) {
-        lab(); G.upgrades=up;
+      for (const want of [1,2,4]) for (const mk of [1,2,3]) {
+        lab();
         const id = Object.keys(RICH).find(k => RICH[k]===want && !G.cells[k]), [x,y] = id.split(',').map(Number);
-        const _m = put('mine',x,y,0), sink = put('cyst',x,y-1,0); run(5); sink.stock=[]; G.breaches=[]; let n=0;
+        const _m = put('mine',x,y,0), sink = put('cyst',x,y-1,0); _m.mk=mk; run(5); sink.stock=[]; G.breaches=[]; let n=0;
         for (let i=0;i<400;i++){ step(STEP); n+=sink.stock.length; sink.stock=[]; }
-        out[`mine x${want} up${up}`] = n/20;
+        out[`mine x${want} mk${mk}`] = n/20;
       }
-      for (const up of [0,1]) {
-        lab(); G.upgrades=up;
-        put('mine',80,81,1); put('mine',80,82,1); put('belt',81,82,0); for(let x=81;x<92;x++)put('belt',x,81,1); const sink=put('cyst',92,81,0); let n=0;
+      for (const mk of [1,2,3]) {
+        lab();
+        for(const y of [81,82]){ const m=put('mine',80,y,1); m.on='C'; m.onRich=4; m.mk=mk; } put('belt',81,82,0).mk=mk; for(let x=81;x<92;x++)put('belt',x,81,1).mk=mk; const sink=put('cyst',92,81,0); let n=0;
         for(let i=0;i<800;i++){ step(STEP); if(i>=400){n+=sink.stock.length;} sink.stock=[]; }
-        out[`belt up${up}`]=n/20;
+        out[`belt mk${mk}`]=n/20;
       }
       for (const mode of ['ok','leak','relay']) {
         lab(); const a=put('pump',4,90,0), b=put('pump',28,90,0); link(a,b); let end=b;

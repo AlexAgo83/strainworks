@@ -171,18 +171,25 @@ window.createView3D = (glCanvas) => {
       g.lineWidth = px;
       g.stroke();
     }
-    for (const [kind, x, y, w, h] of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
+    for (const field of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
+      const kind = field[0];
+      const patch = patchOf(field);
       // Dark on dark ground: carbon is framed and named, or it passes for rubble.
       if (kind === 'K') {
-        rect(g, x, y, w, h, null, '#AEB9BF');
-        if (cam.zoom >= 8) label('carbone', x + w / 2, y - 0.42, Math.min(40, Math.max(14, 440 / cam.zoom)), '#D3DCE0');
+        g.beginPath();
+        for (const p of patch.list) {
+          g.moveTo(p.x + 1.1, p.y + 0.5);
+          g.arc(p.x + 0.5, p.y + 0.5, 0.6, 0, Math.PI * 2);
+        }
+        g.fillStyle = '#AEB9BF14';
+        g.fill();
+        if (cam.zoom >= 8) label('carbone', patch.cx, patch.top - 0.42, Math.min(40, Math.max(14, 440 / cam.zoom)), '#D3DCE0');
         continue;
       }
-      const rich = richAt(x, y);
+      const rich = richAt(patch.list[0].x, patch.list[0].y);
       if (rich < 2) continue;
       const color = rich > richCap() ? '#8B989C' : '#B7F34A';
-      rect(g, x, y, w, h, null, color);
-      label(`×${rich}`, x + 0.4, y - 0.5, Math.min(90, Math.max(18, (13 * 40) / cam.zoom)), color);
+      label(`×${rich}`, patch.cx, patch.top - 0.5, Math.min(90, Math.max(18, (13 * 40) / cam.zoom)), color);
     }
     for (const b of breachesIn(area.x0, area.y0, area.x1, area.y1)) {
       if (b.state === 'spent') continue;

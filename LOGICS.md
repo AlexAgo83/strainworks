@@ -76,6 +76,10 @@ Rejected are the operator's decisions, rows marked Proposed are open.
   a family in FAMILIES and its model in the `--models` sprite (MODELS gives the order).
   Ways in and out are drawn by portsOf/drawPorts on demand, never baked into a model:
   when connects() or an exit rule changes, portsOf follows and a test holds them together.
+- A field's rectangle only sizes it and places its guard: what can be mined is
+  patchOf(field) and depositAt. Read a harvester's matter with matterUnder and richUnder,
+  an older game may keep both on the cell. Read a speed with paceOf, never a constant.
+  Items that enter go through intoStock or intoPort, and leave once settled() says so.
 - `tests/prototype/` records its behavior. An intended rule change updates the
   snapshot in the same commit and the concept with it. Never update a snapshot to
   silence a failure you cannot explain.

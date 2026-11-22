@@ -20,6 +20,12 @@ function seedRandom() {
 
 // The tools live in folded families: each is opened before its names are measured.
 function layoutProbe() {
+  // Where a large harvester fits in a patch, the last one to the south east.
+  window.squareIn = (field) => {
+    const { cells, list } = patchOf(field);
+    const fits = list.filter((c) => [[1, 0], [0, 1], [1, 1]].every(([i, j]) => cells.has(key(c.x + i, c.y + j))));
+    return fits.sort((a, b) => b.x + b.y - (a.x + a.y))[0];
+  };
   window.clippedTools = () => {
     const was = ui.family;
     const bad = new Set();

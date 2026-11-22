@@ -130,6 +130,7 @@ window.createModels3D = (B, scene) => {
     infected: ['#4A1420', 0.08, 0.45, 0.2], husk: ['#15191A', 0, 0.45, 0.05], smoke: ['#59605F', 0, 0.22, 0],
     site: ['#55D6E8', 0.25, 0.26, 0.1], scrap: ['#FF5A5A', 0.25, 0.28, 0.1], holo: ['#55D6E8', 0.6, 0.7, 0.1], scent: ['#9FDC3C', 0.45, 0.75, 0.1],
   };
+  Object.assign(PAINT, { rail2: ['#D88C2C', 0.22, 1, 0.5], rail3: ['#A45CF0', 0.35, 1, 0.5] });
   // Instances share their material, so a fade is a set of opacities to step through.
   const FADE = 16;
   for (let i = 1; i <= FADE; i++) PAINT[`chevron${i}`] = ['#7FA0A8', 0.05, (i / FADE) * 0.95, 0.15];
@@ -242,7 +243,7 @@ window.createModels3D = (B, scene) => {
   // Every cell shares one phase, so the chevron leaving a cell is the one entering the next: the line
   // scrolls without a seam, at the speed of what it carries. It only fades where the line starts or ends.
   function chevron(c, travel, out, h) {
-    const speed = 4 * rate();
+    const speed = paceOf(c);
     const p = built(c) ? (clock * speed) % 1 : 0.5;
     const line = (n) => n && built(n) && (isBelt(n) || n.type === 'bridge');
     let shown = 1;
@@ -265,6 +266,7 @@ window.createModels3D = (B, scene) => {
 
   // ---- Logistics
   function conveyor(c, x, y) {
+    const rail = c.type === 'belt' ? ['rail', 'rail2', 'rail3'][rankOf(c) - 1] : 'rail';
     const fed = feeders(c).map((f) => (f.dir + 2) % 4);
     const sides = fed.length ? [...new Set(fed)] : [(c.dir + 2) % 4];
     const turning = sides.length === 1 && sides[0] % 2 !== c.dir % 2;
@@ -281,8 +283,8 @@ window.createModels3D = (B, scene) => {
         const a = a0 + (sweep * (i + 0.5)) / n;
         const piece = (shape, paint, r, h, width, tall, long) => add(shape, paint, ...from(ix, iy, a, r), h, long, tall, width, a + Math.PI / 2);
         piece('box', 'rubber', 0.5, 0.08, 0.46, 0.13, (0.8 / n) * 1.25);
-        piece('box', 'rail', 0.25, 0.16, 0.07, 0.12, (0.4 / n) * 1.2);
-        piece('box', 'rail', 0.75, 0.16, 0.07, 0.12, (1.2 / n) * 1.12);
+        piece('box', rail, 0.25, 0.16, 0.07, 0.12, (0.4 / n) * 1.2);
+        piece('box', rail, 0.75, 0.16, 0.07, 0.12, (1.2 / n) * 1.12);
         if (fine) piece('box', 'slat', 0.5, 0.147, 0.4, 0.012, 0.03);
       }
       return sides;
@@ -292,12 +294,12 @@ window.createModels3D = (B, scene) => {
     for (let side = 0; side < 4; side++) {
       const a = facing(side);
       if (!open.has(side)) {
-        add('box', 'rail', ...from(x, y, a, 0.25), 0.16, 0.07, 0.12, 0.56, a);
+        add('box', rail, ...from(x, y, a, 0.25), 0.16, 0.07, 0.12, 0.56, a);
         continue;
       }
       add('box', 'rubber', ...from(x, y, a, 0.365), 0.08, 0.27, 0.13, 0.46, a);
       for (const s of [-1, 1]) {
-        add('box', 'rail', ...from(x, y, a, 0.385, s * 0.25), 0.16, 0.25, 0.12, 0.07, a);
+        add('box', rail, ...from(x, y, a, 0.385, s * 0.25), 0.16, 0.25, 0.12, 0.07, a);
         if (fine && side === c.dir) add('hull', 'dark', ...from(x, y, a, 0.36, s * 0.32), 0.09, 0.14, 0.18, 0.1, a);
       }
     }
@@ -416,7 +418,7 @@ window.createModels3D = (B, scene) => {
     // ---- Production
     // A tripod derrick: the cutter spins and the piston dives while it works.
     mine(c, x, y) {
-      const kind = depositAt(c.x, c.y) || 'S';
+      const kind = matterUnder(c) || 'S';
       const working = built(c) && !c.item;
       const dive = working ? (Math.sin(clock * 7 + c.x) + 1) * 0.06 : 0.06;
       const spin = working ? clock * 6 : c.x;
@@ -438,6 +440,7 @@ window.createModels3D = (B, scene) => {
       limb('copper', ...from(x, y, out, 0.14), 0.72, tx, ty, 0.3, 0.1);
       nozzle(x, y, c.dir, 0.24);
       status(...from(x, y, out + 2.5, 0.2), 0.86, 'lime', working);
+      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.5 + i * 0.16, 0.5 + i * 0.12);
     },
 
     // A glass column holding the helix it is binding, three mouths in, one nozzle out.
@@ -557,7 +560,7 @@ window.createModels3D = (B, scene) => {
 
     // A derrick over four cells: two counter-turning cutters, a mast, and a mouth on each of eight faces.
     borer(c, x, y) {
-      const kind = depositAt(c.x, c.y) || 'S';
+      const kind = matterUnder(c) || 'S';
       const working = built(c) && c.stock.length < BORER.hold;
       const spin = working ? clock * 4 : c.x;
       const dive = working ? (Math.sin(clock * 5 + c.x) + 1) * 0.05 : 0.04;
@@ -576,6 +579,7 @@ window.createModels3D = (B, scene) => {
       if (fine) for (let i = 0; i < 3; i++) add('ring', 'copper', x, y, 0.62 + i * 0.16 + dive, 0.4 - i * 0.05);
       add('hull', 'steel', x, y, 1.26, 0.74, 0.22, 0.74);
       add('ring', working ? 'cyan' : 'amber', x, y, 1.39, 0.7);
+      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.8 + i * 0.22, 1 + i * 0.2);
       add('dome', 'glass', x, y, 1.36, 0.6, 0.7, 0.6);
       base(kind, x, y, 1.5, 0.19, spin * 0.2);
       for (const door of edgesOf(c)) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.22);
@@ -682,7 +686,7 @@ window.createModels3D = (B, scene) => {
       const count = Object.values(c.ammo).reduce((s, n) => s + n, 0);
       const a = c.aim ?? -Math.PI / 2;
       const gun = GUNS.sting;
-      const wait = Math.max(0, c.clock) * gun.pace * rate(); // 1 just fired, 0 ready
+      const wait = Math.max(0, c.clock) * gun.pace; // 1 just fired, 0 ready
       const kick = built(c) ? Math.max(0, wait - 0.7) * 0.5 : 0;
       add('skirt', 'dark', x, y, 0.1, 0.7, 0.2, 0.7);
       for (let i = 0; i < 3; i++) {
@@ -714,7 +718,7 @@ window.createModels3D = (B, scene) => {
     maw(c, x, y) {
       const count = Object.values(c.ammo).reduce((s, n) => s + n, 0);
       const a = c.aim ?? -Math.PI / 2;
-      const wait = Math.max(0, c.clock) * GUNS.maw.pace * rate();
+      const wait = Math.max(0, c.clock) * GUNS.maw.pace;
       const kick = built(c) ? Math.max(0, wait - 0.5) * 0.18 : 0;
       add('skirt', 'dark', x, y, 0.16, 1, 0.32, 1, Math.PI / 8);
       add('ring', count ? 'amber' : 'alarm', x, y, 0.33, 0.74, 0.9, 0.74);
@@ -788,27 +792,27 @@ window.createModels3D = (B, scene) => {
 
   // ---- The ground
   function fields(area) {
-    for (const [kind, x, y, w, h] of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
+    for (const field of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
+      const [kind, , , w, h] = field;
+      const patch = patchOf(field);
       // From very far, one big sign for a field.
       if (cam.zoom < 6.5) {
-        base(kind, x + w / 2, y + h / 2, 0.8, Math.min(w, h) * 0.22);
+        base(kind, patch.cx, patch.cy, 0.8, Math.min(w, h) * 0.22);
         continue;
       }
-      for (let i = x; i < x + w; i++) {
-        for (let j = y; j < y + h; j++) {
-          if (i < area.x0 - 1 || i > area.x1 + 1 || j < area.y0 - 1 || j > area.y1 + 1) continue;
-          const n = noise(i, j);
-          const m = noise(j + 4, i + 9);
-          const cx = i + 0.5;
-          const cy = j + 0.5;
-          const covered = cellAt(i, j);
-          if (covered) {
-            if (covered.type !== 'mine' && covered.type !== 'borer') base(kind, cx - 0.38, cy + 0.38, 0.12, 0.08);
-            continue;
-          }
-          if (cam.zoom < 9 && (i + j) % 2) continue;
-          GROWTH[kind](cx + (n - 0.5) * 0.4, cy + (m - 0.5) * 0.4, n, m, i, j);
+      for (const { x: i, y: j } of patch.list) {
+        if (i < area.x0 - 1 || i > area.x1 + 1 || j < area.y0 - 1 || j > area.y1 + 1) continue;
+        const n = noise(i, j);
+        const m = noise(j + 4, i + 9);
+        const cx = i + 0.5;
+        const cy = j + 0.5;
+        const covered = cellAt(i, j);
+        if (covered) {
+          if (covered.type !== 'mine' && covered.type !== 'borer') base(kind, cx - 0.38, cy + 0.38, 0.12, 0.08);
+          continue;
         }
+        if (cam.zoom < 9 && (i + j) % 2) continue;
+        GROWTH[kind](cx + (n - 0.5) * 0.4, cy + (m - 0.5) * 0.4, n, m, i, j);
       }
     }
   }
@@ -1087,7 +1091,7 @@ window.createModels3D = (B, scene) => {
     add.solid = 0;
     if (type === 'worm') add('sac', 'skin2', x, y, 0.34, 0.86, 0.6, 0.68);
     else if (type === 'track') arrow('scent', x, y, 0.06, dir, 0.3);
-    else BUILDINGS[type]?.(cell(type, aimed.x, aimed.y, dir), x, y);
+    else BUILDINGS[type]?.({ ...cell(type, aimed.x, aimed.y, dir), mk: aimed.mk }, x, y);
     add.ghost = false;
     add.plane = false;
   }
@@ -1131,6 +1135,14 @@ window.createModels3D = (B, scene) => {
         }
       }
       if (cam.zoom < 9) continue;
+      for (const p of passing(c)) {
+        // Swallowed: a lump through the body, what it holds showing on top.
+        const bulge = Math.sin(p.done * Math.PI);
+        const high = size > 1 ? 1.05 : 0.62;
+        const swell = 0.3 + bulge * 0.22;
+        add('sac', 'flesh2', p.x, p.y, high * (0.6 + bulge * 0.4), swell, swell * 0.8, swell);
+        cargo(p.item, p.x, p.y, high * (0.6 + bulge * 0.4) + 0.22, 0, 0.42);
+      }
       if ((isBelt(c) || isSplit(c) || c.type === 'sort') && c.item) {
         const p = along(c, c.from, exitOf(c), c.t);
         cargo(c.item, p.x, p.y, isBelt(c) ? 0.27 : 0.66, p.angle);
@@ -1160,7 +1172,7 @@ window.createModels3D = (B, scene) => {
   function worms() {
     for (const w of G.worms) {
       const moving = built(w) && !w.docked && !w.stuck;
-      const k = moving ? Math.min(1, w.t + owed * WORM.speed * rate()) : 0;
+      const k = moving ? Math.min(1, w.t + owed * WORM.speed) : 0;
       const next = moving && trackAfter(w.path[0]);
       const spots = w.path.map((id, i) => {
         const [x, y] = id.split(',').map((n) => Number(n) + 0.5);
