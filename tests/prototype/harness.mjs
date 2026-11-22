@@ -66,6 +66,13 @@ function seenEverywhere() {
   });
 }
 
+// The game opens in 3D by default. The rules are tested in 2D, unless a test picks the view itself.
+function flatUnlessPicked() {
+  try {
+    if (!localStorage.getItem("strainworks-view")) localStorage.setItem("strainworks-view", "2d");
+  } catch (_) {}
+}
+
 // Tests of the game step past the opening screen into the last game played, or a first one.
 function pastThePlanet() {
   document.addEventListener("DOMContentLoaded", () => {
@@ -77,18 +84,20 @@ export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
     close: () => browser.close(),
-    async newContext({ fog = false, planet = false, ...options } = {}) {
+    async newContext({ fog = false, planet = false, view3d = false, ...options } = {}) {
       const context = await browser.newContext(options);
       if (!fog) await context.addInitScript(seenEverywhere);
       if (!planet) await context.addInitScript(pastThePlanet);
+      if (!view3d) await context.addInitScript(flatUnlessPicked);
       await context.addInitScript(seedRandom);
       await context.addInitScript(layoutProbe);
       return context;
     },
-    async newPage({ fog = false, planet = false, ...options } = {}) {
+    async newPage({ fog = false, planet = false, view3d = false, ...options } = {}) {
       const page = await browser.newPage(options);
       if (!fog) await page.addInitScript(seenEverywhere);
       if (!planet) await page.addInitScript(pastThePlanet);
+      if (!view3d) await page.addInitScript(flatUnlessPicked);
       await page.addInitScript(seedRandom);
       await page.addInitScript(layoutProbe);
       return page;

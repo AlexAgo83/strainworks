@@ -9,8 +9,8 @@ const file = (path) => fileURLToPath(new URL(path, import.meta.url));
 const ENGINE = file("../../node_modules/babylonjs/babylon.js");
 const PARTS = ["view3d.js", "models3d.js", "terrain3d.js"];
 
-async function open(browser, { network = true } = {}) {
-  const page = await browser.newPage({ viewport: { width: 375, height: 700 }, hasTouch: true });
+async function open(browser, { network = true, view3d = false } = {}) {
+  const page = await browser.newPage({ viewport: { width: 375, height: 700 }, hasTouch: true, view3d });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/*", (route) => {
@@ -147,6 +147,22 @@ it("remakes the 3D view at the quality picked, and says when the GPU cannot be t
       return { quality: window.quality3d, kept: localStorage.getItem("strainworks-3d-quality"), gpu: gpu === null || gpu >= 0, pressed: document.querySelector("#quality-fast").getAttribute("aria-pressed") };
     });
     expect(state).toEqual({ quality: "fast", kept: "fast", gpu: true, pressed: "true" });
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});
+
+it("opens a game in 3D unless the player picked 2D", async () => {
+  const browser = await launch();
+  try {
+    const { page, errors } = await open(browser, { view3d: true });
+    await page.waitForFunction(() => view3d !== null);
+    expect(await page.evaluate(() => [document.querySelector("#dimension").getAttribute("aria-pressed"), localStorage.getItem("strainworks-view")])).toEqual(["true", "3d"]);
+    await fromMenu(page, "flat");
+    await page.reload();
+    await page.waitForFunction(() => typeof G === "object" && !orbit.on);
+    expect(await page.evaluate(() => [view3d, localStorage.getItem("strainworks-view")])).toEqual([null, "2d"]);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

@@ -5249,7 +5249,8 @@ function leavePlanet(enter, at) {
   }
   resize(); home();
   canvas.focus({preventScroll:true});
-  try { if (localStorage.getItem(VIEW_KEY) === '3d' && !view3d) show3D(true); } catch (_) {}
+  // 3D unless the player picked 2D.
+  if (stored(VIEW_KEY) !== '2d' && !view3d) show3D(true);
   return true;
 }
 function playPicked(at) {
@@ -5456,8 +5457,8 @@ showPerf(stored(PERF_KEY) === 'on');
 growDock();
 resize();
 setMotion(stored(MOTION_KEY) === 'less');
-$('dimension').setAttribute('aria-pressed', stored(VIEW_KEY) === '3d');
-$('flat').setAttribute('aria-pressed', stored(VIEW_KEY) !== '3d');
+$('dimension').setAttribute('aria-pressed', stored(VIEW_KEY) !== '2d');
+$('flat').setAttribute('aria-pressed', stored(VIEW_KEY) === '2d');
 // A world to stand on, kept nowhere, until a hexagon is picked.
 begin();
 forgetEvents();
