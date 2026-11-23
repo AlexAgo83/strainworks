@@ -58,20 +58,24 @@ window.createView3D = (glCanvas) => {
 
   const terrain = window.createTerrain3D(B, scene, glow);
 
-  // ---- A small planet: past the middle of the screen the ground falls away toward the horizon, more the further.
-  // It bends with depth alone, smoothly from the middle: the near half stays flat, every row bends alike, and what
-  // is drawn flat over it (grid, previews) can follow it row by row. The ground meshes bend in their shader; pieces
-  // lean with the slope under their foot and drop with it (their matrices, so glow and shadows follow), so a run
-  // of belts stays joined. A strength under a quarter over lean keeps the horizon past the top of the screen.
-  const CURVES = { none: 0, soft: 0.12 / lean, strong: 0.22 / lean };
+  // ---- A small planet: the ground falls away toward the horizon and toward both sides, smoothly from the middle.
+  // Lowering a point only moves it down the screen, so what is drawn flat over the ground (grid, previews) can be
+  // laid where it shows, and a point of the screen is turned back into its cell. The ground meshes bend in their
+  // shader; pieces lean with the slope under their foot and drop with it (their matrices, so glow and shadows
+  // follow), so a run of belts stays joined. window.curve3d runs from 0 to 1; at 1 the horizon stays past the top.
+  const SIDE = 0.9;
+  const MAXK = 0.2 / lean;
   const bend = { cx: 0, cy: 0, hw: 1, hh: 1, k: 0 };
   const depthOf = (y) => Math.max(0, (bend.cy - y) / bend.hh);
-  const dropAt = (x, y) => (bend.k ? bend.k * depthOf(y) ** 2 * bend.hh : 0);
+  const sideOf = (x) => ((x - bend.cx) / bend.hw) * SIDE;
+  const dropAt = (x, y) => (bend.k ? bend.k * (depthOf(y) ** 2 + sideOf(x) ** 2) * bend.hh : 0);
+  // The ground's slope under a point: toward the horizon, and toward the side.
   const slopeAt = (y) => Math.atan(2 * bend.k * depthOf(y));
+  const rollAt = (x) => -Math.atan((2 * bend.k * sideOf(x) * SIDE * bend.hh) / bend.hw);
   // The ground cell under a point of the flat screen: where it shows, it was lowered by its drop.
-  const groundRow = (flatY) => {
+  const groundRow = (x, flatY) => {
     let y = flatY;
-    for (let i = 0; i < 8; i++) y = flatY - dropAt(0, y) * lean;
+    for (let i = 0; i < 8; i++) y = flatY - dropAt(x, y) * lean;
     return y;
   };
   class Bend extends B.MaterialPluginBase {
@@ -96,7 +100,8 @@ window.createView3D = (glCanvas) => {
       return {
         CUSTOM_VERTEX_UPDATE_WORLDPOS: `#ifdef BEND
           float bendT = max(0.0, (bendView.y + worldPos.z) / bendView.w);
-          worldPos.y -= bendK * bendT * bendT * bendView.w;
+          float bendS = (worldPos.x - bendView.x) / bendView.z * ${SIDE.toFixed(3)};
+          worldPos.y -= bendK * (bendT * bendT + bendS * bendS) * bendView.w;
           #endif`,
       };
     }
@@ -167,6 +172,8 @@ window.createView3D = (glCanvas) => {
       B.Matrix.TranslationToRef(-x, 0, y, foot);
       B.Matrix.RotationXToRef(slopeAt(y), lean2);
       foot.multiplyToRef(lean2, foot);
+      B.Matrix.RotationZToRef(rollAt(x), lean2);
+      foot.multiplyToRef(lean2, foot);
       B.Matrix.TranslationToRef(x, -drop, -y, lean2);
       foot.multiplyToRef(lean2, foot);
       matrix.multiplyToRef(foot, bent);
@@ -195,9 +202,18 @@ window.createView3D = (glCanvas) => {
 
   // ---- Read-outs stay on the 2D canvas, flattened on the ground and lifted to their object's height.
   function drawOverlay(area) {
-    const s = cam.zoom * view.dpr;
     // Bent, the read-outs are drawn flat apart, then laid on the screen row by row where the ground shows.
-    if (bend.k && (flat.canvas.width !== canvas.width || flat.canvas.height !== canvas.height)) Object.assign(flat.canvas, { width: canvas.width, height: canvas.height });
+    // The flat drawing reaches past the top of the screen by a margin: the bent ground shows cells from there.
+    flat.lift = bend.k ? Math.ceil(canvas.height * 0.6) : 0;
+    if (bend.k && (flat.canvas.width !== canvas.width || flat.canvas.height !== canvas.height + flat.lift)) Object.assign(flat.canvas, { width: canvas.width, height: canvas.height + flat.lift });
+    if (bend.k) { flat.raw(1, 0, 0, 1, 0, 0); flat.ctx.clearRect(0, 0, flat.canvas.width, flat.canvas.height); }
+    // What is drawn is picked from the screen's top-left corner: bent, that corner reaches up by the margin too.
+    const shownFrom = window.worldAt;
+    if (bend.k) window.worldAt = (sx, sy) => shownFrom(sx, sy <= 0 ? sy - flat.lift / view.dpr : sy);
+    try { drawFlat(area); } finally { window.worldAt = shownFrom; }
+  }
+  function drawFlat(area) {
+    const s = cam.zoom * view.dpr;
     const g = bend.k ? flat.ctx : ctx;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, canvas.width, canvas.height);
@@ -371,17 +387,41 @@ window.createView3D = (glCanvas) => {
     marker(CORE.x + 0.5, CORE.y + 0.5, '#B7F34A');
     if (bend.k) layBent(s * tilt);
   }
-  const flat = { canvas: document.createElement('canvas') };
+  const flat = { canvas: document.createElement('canvas'), lift: 0 };
   flat.ctx = flat.canvas.getContext('2d');
+  // Every transform set on the flat drawing is moved down by the margin, the screen-space ones included.
+  flat.raw = flat.ctx.setTransform.bind(flat.ctx);
+  flat.ctx.setTransform = (a, b, c, d, e, f) => flat.raw(a, b, c, d, e, f + flat.lift);
+  // The flat read-outs laid on the bent ground through a mesh of small triangles: each screen point shows the flat
+  // drawing of the cell under it. A point only moves down the screen, so x stays and only y is looked up.
   function layBent(S) {
-    const W = canvas.width, H = canvas.height, mid = Math.floor(H / 2), step = 3;
-    const source = (r) => mid + (groundRow(cam.y + (r - H / 2) / S) - cam.y) * S + (H / 2 - mid);
+    const W = canvas.width, H = canvas.height, s = cam.zoom * view.dpr, cols = 14, rows = 12;
+    const src = [];
+    for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
+      const u = (W * i) / cols, v = (H * j) / rows, x = cam.x + (u - W / 2) / s;
+      src.push([u, v, flat.lift + H / 2 + (groundRow(x, cam.y + (v - H / 2) / S) - cam.y) * S]);
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(flat.canvas, 0, mid, W, H - mid, 0, mid, W, H - mid);
-    for (let r = 0; r < mid; r += step) {
-      const end = Math.min(mid, r + step), a = source(r), b = source(end);
-      if (b > a && b > 0) ctx.drawImage(flat.canvas, 0, Math.max(0, a), W, b - Math.max(0, a), 0, r + (Math.max(0, a) - a) * ((end - r) / (b - a)), W, (end - r) * ((b - Math.max(0, a)) / (b - a)));
+    const tri = (a, b, c) => {
+      // The affine map from the flat triangle (u, sv) to the screen one (u, v); x is the same in both.
+      const [ax, ay, as] = a, [bx, by, bs] = b, [cx, cy, cs] = c;
+      const det = (bx - ax) * (cs - as) - (cx - ax) * (bs - as);
+      if (Math.abs(det) < 1e-6) return;
+      const m21 = ((by - ay) * (cs - as) - (cy - ay) * (bs - as)) / det, m22 = ((bx - ax) * (cy - ay) - (cx - ax) * (by - ay)) / det;
+      const gx = (ax + bx + cx) / 3, gy = (ay + by + cy) / 3, grow = (px, py) => [px + Math.sign(px - gx) * 0.6, py + Math.sign(py - gy) * 0.6];
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(...grow(ax, ay)); ctx.lineTo(...grow(bx, by)); ctx.lineTo(...grow(cx, cy)); ctx.closePath();
+      ctx.clip();
+      ctx.setTransform(1, m21, 0, m22, 0, ay - m21 * ax - m22 * as);
+      ctx.drawImage(flat.canvas, 0, 0);
+      ctx.restore();
+    };
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      const at = (di, dj) => src[(j + dj) * (cols + 1) + i + di];
+      tri(at(0, 0), at(1, 0), at(1, 1));
+      tri(at(0, 0), at(1, 1), at(0, 1));
     }
   }
 
@@ -392,10 +432,15 @@ window.createView3D = (glCanvas) => {
     gpu() { const c = timing?.gpuFrameTimeCounter; return c?.count ? c.lastSecAverage * 1e-6 : null; },
     tilt,
     ground: terrain.groundAt,
+    // Where the camera shows a point of the ground, bent as the shader bends it: tests hold the cursor to it.
+    project(x, y) {
+      const v = B.Vector3.Project(new B.Vector3(x, terrain.height(x, y) - dropAt(x, y), -y), B.Matrix.IdentityReadOnly, scene.getTransformMatrix(), new B.Viewport(0, 0, view.w, view.h));
+      return { x: v.x, y: v.y };
+    },
     // A tap on the top of a tall object means that object, though the ground behind it is another cell.
     pick(point) {
       const p = worldAt(point.x, point.y);
-      p.y = groundRow(p.y);
+      p.y = groundRow(p.x, p.y);
       const x = Math.floor(p.x);
       for (const h of [0.75, 0.5, 0.3]) {
         const y = Math.floor(p.y + h * lean);
@@ -419,7 +464,7 @@ window.createView3D = (glCanvas) => {
       const back = 160;
       camera.position.copyFromFloats(cam.x, Math.sin(ELEVATION) * back, -cam.y - Math.cos(ELEVATION) * back);
       camera.setTarget(at(cam.x, 0, cam.y));
-      Object.assign(bend, { cx: cam.x, cy: cam.y, hw: halfW, hh: halfH / tilt, k: CURVES[window.curve3d] || 0 });
+      Object.assign(bend, { cx: cam.x, cy: cam.y, hw: halfW, hh: halfH / tilt, k: MAXK * Math.max(0, Math.min(1, Number(window.curve3d) || 0)) });
       // The shadow map follows what is on screen, so it stays sharp up close.
       const reach = Math.min(48, Math.max(halfW, halfH / tilt) + 4);
       sun.position.copyFromFloats(cam.x - 33, 60, -cam.y + 21);
@@ -431,8 +476,9 @@ window.createView3D = (glCanvas) => {
       const a = worldAt(0, 0);
       const b = worldAt(view.w, view.h);
       // Tall things just south of the screen still show their tops.
+      // Rows past the top still show where the ground falls most, in the corners.
       const kl = bend.k * lean;
-      const above = kl ? Math.ceil(((1 - Math.sqrt(1 - 4 * kl)) / (2 * kl) - 1) * bend.hh) + 1 : 0;
+      const above = kl ? Math.ceil(((1 - Math.sqrt(Math.max(0, 1 - 4 * kl * (1 + kl * SIDE * SIDE)))) / (2 * kl) - 1) * bend.hh) + 1 : 0;
       const area = { x0: Math.floor(a.x) - 1, y0: Math.floor(a.y) - 2 - above, x1: Math.ceil(b.x) + 1, y1: Math.ceil(b.y) + 2 };
       heartbeat();
       terrain.update(area);

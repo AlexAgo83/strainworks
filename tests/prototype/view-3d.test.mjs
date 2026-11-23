@@ -168,3 +168,28 @@ it("opens a game in 3D unless the player picked 2D", async () => {
     await browser.close();
   }
 });
+
+it("keeps the cell under the cursor on curved ground, in the middle, on the sides and near the top", async () => {
+  const browser = await launch();
+  try {
+    const { page, errors } = await open(browser, { view3d: true });
+    await page.waitForFunction(() => view3d !== null);
+    const misses = await page.evaluate(async () => {
+      paused = true;
+      window.curve3d = 1;
+      Object.assign(cam, { x: CORE.x + 0.5, y: CORE.y + 0.5, zoom: 22 });
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+      const hw = view.w / 2 / cam.zoom, hh = view.h / 2 / cam.zoom / view3d.tilt, out = [];
+      for (const fx of [-0.8, 0, 0.8]) for (const fy of [-0.85, -0.4, 0.5]) {
+        const cell = { x: Math.floor(cam.x + fx * hw), y: Math.floor(cam.y + fy * hh) };
+        const at = view3d.project(cell.x + 0.5, cell.y + 0.5), got = view3d.pick(at);
+        if (got.x !== cell.x || got.y !== cell.y) out.push({ cell, at, got });
+      }
+      return out;
+    });
+    expect(misses).toEqual([]);
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});

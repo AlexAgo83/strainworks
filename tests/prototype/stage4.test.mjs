@@ -40,3 +40,38 @@ it("mutates on entering the system stage and every five minutes after", async ()
     await browser.close();
   }
 });
+
+it("spreads mutations over the nearest belt's breaches, then the next belts", async () => {
+  const browser = await launch();
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) =>
+      route.request().url().startsWith("http://proto.test") ? route.fulfill({ body: pageHTML(), contentType: "text/html" }) : route.abort(),
+    );
+    await page.goto("http://proto.test/prototype/");
+    const seen = await page.evaluate(() => {
+      begin();
+      paused = true;
+      const nest = (tier, i) => ({ x: CORE.x + 20 + tier * 30, y: CORE.y + i * 12, r: 5, left: 10, total: 10, state: "sleep", genes: ["SSF"], tier });
+      G.breaches = [nest(0, 0), nest(0, 1), nest(0, 2), nest(1, 0), nest(1, 1), nest(1, 2), nest(2, 0)];
+      const firstOuter = [];
+      for (let n = 0; n < 18; n++) {
+        const b = mutationTarget();
+        if (b.tier > 0 && !firstOuter.length) firstOuter.push(n);
+        b.mutations = (b.mutations || 0) + 1;
+      }
+      const per = G.breaches.map((b) => b.mutations || 0);
+      return { firstOuter: firstOuter[0], most: Math.max(...per), inner: per.slice(0, 3).reduce((a, n) => a + n, 0), farthest: per[6] };
+    });
+    // The first belt alone takes the first six (two each on average), the second then opens; none piles up.
+    expect(seen.firstOuter).toBeGreaterThanOrEqual(6);
+    expect(seen.most).toBeLessThanOrEqual(4);
+    expect(seen.inner).toBeLessThan(18);
+    expect(seen.farthest).toBeLessThanOrEqual(2);
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});

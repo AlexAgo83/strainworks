@@ -279,7 +279,8 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #commands dl { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; margin:0 0 16px; }
 #commands dt { color:var(--cyan); }
 #commands dd { margin:0; }
-#music-volume, #sfx-volume { width:110px; accent-color:var(--cyan); }
+#music-volume, #sfx-volume, #curve-amount { width:110px; accent-color:var(--cyan); }
+#curve-shown { min-width:3.2em; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
 #commands .keys-head { margin:0 0 8px; color:var(--muted, #8B989C); font-size:13px; }
 #commands #keys { margin-bottom:6px; }
 #commands #keys button { min-width:64px; padding:3px 10px; border:1px solid var(--cyan); border-radius:6px; background:transparent; color:var(--cyan); font:inherit; cursor:pointer; }
@@ -1036,7 +1037,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <div class="row at-planet" id="view-row"><span>Vue</span><span class="choice"><button id="flat" class="tip" aria-pressed="true">2D</button><button id="dimension" class="tip" aria-pressed="false">3D</button></span></div>
     <div class="row"><span>Animations</span><span class="choice"><button id="motion-auto" class="tip">Auto</button><button id="motion-less" class="tip">Réduites</button></span></div>
     <div class="row"><span>Qualité 3D</span><span class="choice"><button id="quality-high" class="tip">Haute</button><button id="quality-fast" class="tip">Rapide</button></span></div>
-    <div class="row"><span>Courbure 3D</span><span class="choice"><button id="curve-none" class="tip">Aucune</button><button id="curve-soft" class="tip">Douce</button><button id="curve-strong" class="tip">Forte</button></span></div>
+    <div class="row"><span>Courbure 3D</span><span class="choice"><input id="curve-amount" type="range" min="0" max="100" step="5" aria-label="Courbure 3D"><output id="curve-shown" for="curve-amount"></output></span></div>
    </div>
    <div class="page" data-page="audio" hidden>
     <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Audio</h2></div>
@@ -3272,7 +3273,7 @@ function flow(dt) {
 }
 
 // Stage 4 lets the families grow to eight. MAX_FAMILIES is what a saved game may hold.
-const MAX_FAMILIES = 8, MUTATION = {every:300};
+const MAX_FAMILIES = 8, MUTATION = {every:300, spread:2};
 const familyCap = () => G.stage >= 3 ? 8 : 6;
 // A family one base away from an old one, never a palindrome: swapping entries 1 and 3 must always matter.
 function breed(b) {
@@ -3283,11 +3284,26 @@ function breed(b) {
   if (b) b.genes.push(born);
   return born;
 }
-// Stage 4 on: a mutation now and then, on the nearest breach still alive.
+// Which breach a mutation lands on. The nearest belt of live breaches takes them first; once its breaches hold
+// MUTATION.spread each on average, the next belt opens too, so mutations spread outward over time. Among the open
+// ones the draw is at random, a breach mutated n times weighing 1 / (1 + n)², so they share rather than pile up.
+function mutationTarget() {
+  const alive = G.breaches.filter(o => o.state !== 'spent');
+  if (!alive.length) return null;
+  const belts = [...new Set(alive.map(o => o.tier || 0))].sort((a, c) => a - c);
+  let open = 0;
+  const within = () => alive.filter(o => (o.tier || 0) <= belts[open]);
+  while (open < belts.length - 1 && within().reduce((n, o) => n + (o.mutations || 0), 0) / within().length >= MUTATION.spread) open++;
+  const pool = within(), weights = pool.map(o => 1 / (1 + (o.mutations || 0)) ** 2);
+  let roll = Math.random() * weights.reduce((a, w) => a + w, 0);
+  return pool.find((o, i) => (roll -= weights[i]) <= 0) || pool[pool.length - 1];
+}
+// Stage 4 on: a mutation now and then, on a breach still alive.
 function mutation() {
   playSound('mutation');
-  const b = G.breaches.filter(o => o.state !== 'spent').sort((a, c) => span(a, CORE) - span(c, CORE))[0];
+  const b = mutationTarget();
   const born = breed(b);
+  if (born && b) b.mutations = (b.mutations || 0) + 1;
   if (born) tell(L`Mutation${b ? L` au ${bearing(b)}` : ''} : une nouvelle famille, son antidote est ${opposite(born)}.`, {at:b, gene:born, bad:true});
   return born;
 }
@@ -5957,6 +5973,12 @@ function guideRoute(from, done, goal = null, limit = 1600) {
   const id = (x, y) => `${x},${y}`, back = new Map(), queue = [], size = sizeOf(from);
   // A harvester or a Ligase gives only by its arrow: the way starts there.
   const exit = (from.type === 'mine' || from.type === 'ligase') && size === 1 ? {x:from.x + DX[from.dir], y:from.y + DY[from.dir]} : null;
+  // Kept for the guide's other belts: the Ligase's other inputs, and its way out to the core.
+  const kept = new Set(), lig = guideLigase(), core = coreCell();
+  if (lig && from !== lig) {
+    for (let d = 0; d < 4; d++) kept.add(id(lig.x + DX[d], lig.y + DY[d]));
+    for (let k = 1; k <= 6 && cellAt(lig.x + DX[lig.dir] * k, lig.y + DY[lig.dir] * k) !== core; k++) kept.add(id(lig.x + DX[lig.dir] * k, lig.y + DY[lig.dir] * k));
+  }
   for (let i = -1; i <= size; i++) for (let j = -1; j <= size; j++) {
     if ((i < 0 || i >= size) === (j < 0 || j >= size)) continue;
     const x = from.x + i, y = from.y + j;
@@ -5970,8 +5992,17 @@ function guideRoute(from, done, goal = null, limit = 1600) {
     for (let d = 0; d < 4; d++) {
       const n = {x:c.x + DX[d], y:c.y + DY[d]};
       if (back.has(id(n.x, n.y)) || !inside(n.x, n.y)) continue;
-      const isGoal = goal && n.x === goal.x && n.y === goal.y;
-      if (!(isGoal && (!cellAt(n.x, n.y) || isBelt(cellAt(n.x, n.y)))) && (cellAt(n.x, n.y) || !placeable(n.x, n.y))) continue;
+      const isGoal = goal && n.x === goal.x && n.y === goal.y, there = cellAt(n.x, n.y);
+      if (!isGoal && kept.has(id(n.x, n.y))) continue;
+      // A belt crossed square on, straight through to free ground beyond: drawing it there lays a bridge.
+      if (!isGoal && there?.type === 'belt' && there.dir % 2 !== d % 2) {
+        const past = {x:n.x + DX[d], y:n.y + DY[d]};
+        if (!back.has(id(past.x, past.y)) && !kept.has(id(past.x, past.y)) && inside(past.x, past.y) && !cellAt(past.x, past.y) && placeable(past.x, past.y)) {
+          back.set(id(n.x, n.y), c); back.set(id(past.x, past.y), n); queue.push(past);
+        }
+        continue;
+      }
+      if (!(isGoal && (!there || isBelt(there))) && (there || !placeable(n.x, n.y))) continue;
       back.set(id(n.x, n.y), c); queue.push(n);
     }
   }
@@ -6026,16 +6057,18 @@ function guideSpot(step) {
   ui.guideTrace = null; ui.guidePort = null; ui.guideNoRoute = false;
   const old = ui.guideSpot, middle = s => s && {...s, x:s.x + .5, y:s.y + .5};
   if (want.place) {
-    // Between the harvesters and the core: the free cell nearest the middle of the way.
+    // Two cells clear of the core's right side, level with its middle (three if that is taken), its way out to the
+    // core: room for its three inputs and a short belt in. Else the same on the left, below, then above.
     if (old?.step === step && !cellAt(old.x, old.y) && placeable(old.x, old.y)) return middle(old);
-    const mines = [...allCells()].filter(c => c.type === 'mine');
-    if (!mines.length) return null;
-    const tx = (mines.reduce((a, c) => a + c.x, 0) / mines.length + CORE.x) / 2, ty = (mines.reduce((a, c) => a + c.y, 0) / mines.length + CORE.y) / 2;
+    const core = coreCell() || {x:CORE.x, y:CORE.y, type:'core'}, n = sizeOf(core), mid = {x:core.x + Math.floor(n / 2), y:core.y + Math.floor(n / 2)};
+    const open = (x, y) => !cellAt(x, y) && !depositAt(x, y) && placeable(x, y);
     let best = null;
-    for (let x = Math.floor(tx) - 6; x <= Math.floor(tx) + 6; x++) for (let y = Math.floor(ty) - 6; y <= Math.floor(ty) + 6; y++) {
-      if (cellAt(x, y) || depositAt(x, y) || !placeable(x, y)) continue;
-      const d = Math.hypot(x - tx, y - ty);
-      if (!best || d < best.d) best = {x, y, d};
+    for (const side of [1, 3, 2, 0]) for (const gap of [2, 3]) for (const shift of [0, -1, 1, -2, 2]) {
+      if (best) break;
+      const along = side % 2 ? {x:side === 1 ? core.x + n - 1 + gap + 1 : core.x - gap - 1, y:mid.y + shift} : {x:mid.x + shift, y:side === 2 ? core.y + n - 1 + gap + 1 : core.y - gap - 1};
+      const back = (side + 2) % 4, room = [0, 1, 2, 3].filter(d => d !== back).map(d => ({x:along.x + DX[d], y:along.y + DY[d]}));
+      const gapCells = Array.from({length:gap}, (_, i) => ({x:along.x + DX[back] * (i + 1), y:along.y + DY[back] * (i + 1)}));
+      if ([along, ...room, ...gapCells].every(c => open(c.x, c.y))) best = along;
     }
     ui.guideSpot = best && {step, x:best.x, y:best.y};
     return middle(ui.guideSpot);
@@ -6059,21 +6092,30 @@ function guideSpot(step) {
     const mines = [...allCells()].filter(c => c.type === 'mine' && matterUnder(c) === want.base)
       .sort((a, b) => (free(b) - free(a)) || Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y));
     ui.guideNoRoute = mines.length > 0 && 'mine';
+    // The shortest real way from a harvester not yet feeding anything, else from any.
+    let way = null;
     for (const c of mines) {
       const route = guideRoute(c, n => n.x === goal.x && n.y === goal.y, goal);
-      if (route) { ui.guideTrace = [centreOf(c), ...route.map(n => ({x:n.x + .5, y:n.y + .5}))]; ui.guideNoRoute = false; break; }
+      if (route && (!way || free(c) > free(way.c) || (free(c) === free(way.c) && route.length < way.route.length))) way = {c, route};
     }
+    if (way) { ui.guideTrace = [centreOf(way.c), ...way.route.map(n => ({x:n.x + .5, y:n.y + .5}))]; ui.guideNoRoute = false; }
     ui.guidePort = want.port;
     return at;
   }
   if (!want.base) return null;
   if (old?.step === step && !cellAt(old.x, old.y)) return middle(old);
-  let best = null;
-  for (let r = 2; r <= 26 && !best; r++) for (let x = CORE.x - r; x <= CORE.x + r; x++) for (let y = CORE.y - r; y <= CORE.y + r; y++) {
+  // The second harvester of a base goes on the other side of the core from the first when that is not much
+  // farther: the Ligase takes that base on both its sides, and each belt then stays short.
+  const first = step > 0 && GUIDE.slice(0, step).some(s => s.base === want.base) ? [...allCells()].find(c => c.type === 'mine' && matterUnder(c) === want.base) : null;
+  const across = (x, y) => first && Math.sign(y - CORE.y) === -Math.sign(first.y - CORE.y) && first.y !== CORE.y;
+  let best = null, other = null;
+  for (let r = 2; r <= 26; r++) for (let x = CORE.x - r; x <= CORE.x + r; x++) for (let y = CORE.y - r; y <= CORE.y + r; y++) {
     if (Math.max(Math.abs(x - CORE.x), Math.abs(y - CORE.y)) !== r || depositAt(x, y) !== want.base || cellAt(x, y) || !placeable(x, y)) continue;
     const d = Math.hypot(x - CORE.x, y - CORE.y);
     if (!best || d < best.d) best = {x, y, d};
+    if (across(x, y) && (!other || d < other.d)) other = {x, y, d};
   }
+  if (other && other.d <= best.d * 1.6) best = other;
   ui.guideSpot = best && {step, x:best.x, y:best.y};
   return middle(ui.guideSpot);
 }
@@ -7729,13 +7771,15 @@ function setQuality(fast, remake) {
 }
 for (const [id, fast] of [['quality-high', false], ['quality-fast', true]]) $(id).onclick = () => { setQuality(fast, true); keep(QUALITY_KEY, fast ? 'fast' : 'high'); };
 setQuality(stored(QUALITY_KEY) === 'fast', false);
-// The 3D view reads it on every frame. shortcut: the flat overlay (bars, previews) does not follow the fall past the middle; bend it too if it bothers.
+// The 3D view reads it on every frame, from 0 (flat) to 1. Choices kept from before become their nearest strength.
 const CURVE_KEY = 'strainworks-3d-curve';
-function setCurve(name) {
-  window.curve3d = ['none', 'soft', 'strong'].includes(name) ? name : 'none';
-  for (const id of ['none', 'soft', 'strong']) $(`curve-${id}`).setAttribute('aria-pressed', id === window.curve3d);
+function setCurve(value) {
+  const named = {none:0, soft:.5, strong:1}[value], amount = named ?? Math.max(0, Math.min(1, Number(value) || 0));
+  window.curve3d = amount;
+  $('curve-amount').value = Math.round(amount * 100);
+  $('curve-shown').textContent = `${Math.round(amount * 100)} %`;
 }
-for (const id of ['none', 'soft', 'strong']) $(`curve-${id}`).onclick = () => { setCurve(id); keep(CURVE_KEY, id); };
+$('curve-amount').oninput = () => { setCurve(Number($('curve-amount').value) / 100); keep(CURVE_KEY, String(window.curve3d)); };
 setCurve(stored(CURVE_KEY));
 // A game in progress is saved and reopened after the page reloads.
 function keepForReload() {
