@@ -56,6 +56,19 @@ it("builds a site that plays in 3D and offline under its own policy", async () =
     expect(await page.locator("#game-version").textContent()).toContain("aaaaaaa");
     // A game opens in 3D by default: offline, the engine comes from the site's own cache.
     await page.waitForFunction(() => view3d !== null, null, { timeout: 60000 });
+
+    // A new version is published while the game runs: it is offered, and taken only when the player asks.
+    await page.evaluate(() => showMenu(false));
+    await context.setOffline(false);
+    execFileSync(process.execPath, [at("scripts/build-site.mjs"), dir], { env: { ...process.env, BUILD_COMMIT: "b".repeat(40) } });
+    await page.evaluate(() => navigator.serviceWorker.getRegistration().then((registration) => registration.update()));
+    const offer = page.locator("#events button.what", { hasText: "Nouvelle version disponible" });
+    await offer.waitFor();
+    expect(await page.evaluate(() => G.dna)).toBe(222);
+    await Promise.all([page.waitForEvent("load"), offer.click()]);
+    await page.waitForFunction(() => typeof G !== "undefined" && !orbit.on && G.dna === 222);
+    await page.click("#menu-toggle");
+    expect(await page.locator("#game-version").textContent()).toContain("bbbbbbb");
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

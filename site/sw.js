@@ -8,7 +8,11 @@ self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES.map((file) => new Request(file, { cache: "no-cache" })))));
 });
 
-// No skipWaiting: an open game keeps the files it was started with until it is closed.
+// No automatic skipWaiting: an open game keeps the files it was started with until the player asks for the new version.
+self.addEventListener("message", (event) => {
+  if (event.data === "activate") self.skipWaiting();
+});
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
