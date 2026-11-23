@@ -328,6 +328,36 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 /* Time under the view switch, apart from the camera by a little gap. */
 #zoom #view-toggle { margin-bottom:10px; }
 
+/* Living networks (opening screen). */
+#hexes .glow, #slot-icon .glow { opacity:.22; }
+#hexes .pulse, #slot-icon .pulse { animation:run linear infinite; }
+#hexes .twinkle, #slot-icon .twinkle { animation:twinkle 2.6s ease-in-out infinite; }
+#hexes .twinkle.t1, #slot-icon .twinkle.t1 { animation-delay:-.65s; } #hexes .twinkle.t2, #slot-icon .twinkle.t2 { animation-delay:-1.3s; } #hexes .twinkle.t3, #slot-icon .twinkle.t3 { animation-delay:-1.95s; }
+#hexes .breath, #slot-icon .breath { transform-box:fill-box; transform-origin:center; animation:breath 3.2s ease-in-out infinite; }
+#hexes .breath.late, #slot-icon .breath.late { animation-delay:-1.6s; }
+@keyframes run { to { stroke-dashoffset:-36; } }
+@keyframes twinkle { 50% { opacity:.45; } }
+@keyframes breath { 50% { transform:scale(1.18); opacity:.6; } }
+/* The game panel, compact, in the console style of the game's top strip. */
+#projection { gap:10px; padding:16px 18px; }
+#projection > .scan { display:none; }
+#projection > .skin path:first-child { fill:rgba(5,12,15,.9); }
+#slot-head { gap:14px; align-items:center; }
+#slot-head > svg { width:72px; height:72px; }
+#slot-kicker { font-size:11px; letter-spacing:.12em; }
+#slot-name { margin-top:1px!important; font-size:22px; }
+#slot-sub { margin-top:1px!important; font-size:13px; }
+#slot-facts { justify-content:flex-start; flex-wrap:wrap; gap:6px; margin-top:8px; }
+#slot-facts p { display:inline-flex; align-items:baseline; gap:5px; padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.05); font-size:12px; }
+#slot-facts b { display:inline; font-size:15px; }
+#slot-actions { grid-template-columns:minmax(0,1.6fr) repeat(3, minmax(0,1fr)); gap:6px; margin-top:4px; }
+#slot-actions .act.go { grid-column:auto; }
+#app #slot-actions .act { min-height:40px; padding:4px 10px; font-size:13px; }
+@media (max-width:759px), (max-height:520px), (max-aspect-ratio:11/10) {
+  #slot-actions { grid-template-columns:repeat(3, minmax(0,1fr)); }
+  #slot-actions .act.go { grid-column:1 / -1; }
+}
+
 /* The guided start (boards 15 and 16). */
 #guide { position:absolute; left:calc(22px + var(--l)); top:calc(240px + var(--t)); z-index:4; width:330px; padding:14px 16px 12px;
   background:var(--glass); -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3);
@@ -5269,7 +5299,7 @@ function layoutPlanet() {
   if (wide) {
     const ss = Math.min(h * .62, w * .39), pw = Math.min(590, w * .43);
     box = {cx:Math.min(h * .289, w * .2), cy:h * .567, r:h * .586, sx:w - ss - w * .035, sy:h * .011, ss};
-    Object.assign(panel, {left:`${w - pw - w * .035}px`, width:`${pw}px`, bottom:`${h * .045}px`, minHeight:`${Math.min(310, h * .355)}px`});
+    Object.assign(panel, {left:`${w - pw - w * .035}px`, width:`${pw}px`, bottom:`${h * .045}px`, minHeight:'0'});
   } else if (low) {
     const ss = h * .46, pw = Math.min(420, w * .52);
     box = {cx:w * .17, cy:h * .55, r:h * .68, sx:w - ss - 70, sy:0, ss};
@@ -5321,6 +5351,8 @@ function settlementSVG(to, game, seed, k) {
   const tier = game.over ? 5 : within((Number(game.stage) || 0) + 1, 1, 4), roll = n => spotHash(Number(seed) || 0, n, 77);
   const [base, spread] = [[3, .45], [6, .62], [9, .74], [14, .82], [6, .62]][tier - 1];
   const arms = base + within(Math.floor((Number(game.built) || 0) / 180), 0, 4), dead = tier === 5, ends = [], out = [];
+  const glow = (points, color, width, extra = '') => out.push(`<polyline class="glow" points="${dotsOf(points.map(p => to(...p)))}" fill="none" stroke="${color}" stroke-width="${(width * 3.2 * k).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round"${extra}/>`);
+  const pulse = (points, color, width, i) => out.push(`<polyline class="pulse" style="animation-duration:${(1.8 + roll(i + 300) * 1.6).toFixed(2)}s;animation-delay:-${(roll(i + 400) * 3).toFixed(2)}s" points="${dotsOf(points.map(p => to(...p)))}" fill="none" stroke="${color}" stroke-width="${(width * 1.4 * k).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${(2 * k).toFixed(1)} ${(16 * k).toFixed(1)}"/>`);
   const line = (points, color, width) => out.push(`<polyline points="${dotsOf(points.map(p => to(...p)))}" fill="none" stroke="${color}" stroke-width="${(width * k).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round"/>`);
   const spotted = (p, color, size, cls = '') => {
     const [x, y] = to(...p);
@@ -5329,8 +5361,11 @@ function settlementSVG(to, game, seed, k) {
   for (let i = 0; i < arms; i++) {
     const a = i * 2.39996 + roll(i) * .3, long = spread * (.55 + roll(i + 40) * .45), x = Math.cos(a) * long, y = Math.sin(a) * long;
     const rail = dead ? '#6B2531' : game.rank >= 3 && i % 4 === 0 ? '#A45CF0' : game.rank >= 2 && i % 3 === 0 ? '#F0A03C' : '#66D9EA';
-    line(i % 2 ? [[0, 0], [x, 0], [x, y]] : [[0, 0], [0, y], [x, y]], rail, 1.5);
-    spotted([x, y], dead ? (i % 3 ? '#4A1B25' : '#FF6B74') : ['#B7F34A', '#F0A03C', '#F3E6C8', '#66D9EA'][i % 4], 2.6);
+    const path = i % 2 ? [[0, 0], [x, 0], [x, y]] : [[0, 0], [0, y], [x, y]];
+    if (!dead) glow(path, rail, 1.5);
+    line(path, rail, 1.5);
+    if (!dead || i === 0) pulse(path, dead ? '#FF6B74' : '#E9F3EF', 1.5, i);
+    spotted([x, y], dead ? (i % 3 ? '#4A1B25' : '#FF6B74') : ['#B7F34A', '#F0A03C', '#F3E6C8', '#66D9EA'][i % 4], 2.6, dead ? '' : `twinkle t${i % 4}`);
     ends.push([x, y]);
   }
   if (tier === 3 || tier === 4) ends.forEach(([x, y], i) => {
@@ -5348,6 +5383,7 @@ function settlementSVG(to, game, seed, k) {
   }
   if (dead) line([[-.6, .5], [-.2, .15], [-.1, -.2], [.2, -.1], [.55, -.6]], '#0A0405', 3);
   const core = [4, 6, 8, 10, 6][tier - 1];
+  if (!dead) { spotted([0, 0], '#B7F34A1F', core * 3.2, 'breath'); spotted([0, 0], '#B7F34A33', core * 2, 'breath late'); }
   spotted([0, 0], dead ? '#32151C' : '#366426', core + 2.5);
   spotted([0, 0], dead ? '#FF6B74' : '#B7F34A', core * .7, 'heartbeat');
   return out.join('');
