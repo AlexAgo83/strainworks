@@ -57,10 +57,24 @@ it("guides a new game to its first line into the core", async () => {
       startGuide();
       document.querySelector("#guide-hide").click();
       const hidden = [document.querySelector("#guide").hidden, document.querySelector("#guide-open").hidden];
-      document.querySelector("#guide-open").click();
+      document.querySelector("#guide-show").click();
       return [...hidden, document.querySelector("#guide").hidden];
     });
     expect(again).toEqual([true, false, false]);
+    // Folded, its button and the events do not overlap.
+    const apart = await page.evaluate(() => {
+      document.querySelector("#guide-hide").click();
+      tell("Partie reprise.");
+      const b = document.querySelector("#guide-open").getBoundingClientRect(), e = document.querySelector("#events").getBoundingClientRect();
+      return e.top >= b.bottom;
+    });
+    expect(apart).toBe(true);
+    // Passer ends it, nothing left on screen.
+    const dropped = await page.evaluate(() => {
+      document.querySelector("#guide-drop").click();
+      return [G.guide.step === GUIDE.length, document.querySelector("#guide").hidden, document.querySelector("#guide-open").hidden];
+    });
+    expect(dropped).toEqual([true, true, true]);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

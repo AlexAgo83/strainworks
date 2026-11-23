@@ -347,8 +347,11 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #guide li svg { width:13px; height:13px; }
 #guide .foot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:12px; }
 #guide .chip { padding:3px 10px; border:1px solid var(--acid); border-radius:10px; color:var(--acid); font-size:12px; font-weight:600; }
-#guide-open { position:absolute; left:calc(22px + var(--l)); top:calc(240px + var(--t)); z-index:4; }
+#guide-open { position:absolute; left:calc(22px + var(--l)); top:calc(240px + var(--t)); z-index:4; display:flex; gap:6px; }
+#guide-open[hidden] { display:none; }
+#guide .ways { display:flex; gap:6px; }
 #app.guiding #events { top:calc(var(--guide-h, 0px) + 252px + var(--t)); }
+#app.guide-folded #events { top:calc(296px + var(--t)); }
 #guide-spot { position:absolute; left:0; top:0; z-index:2; width:0; height:0; pointer-events:none; }
 #guide-spot i { position:absolute; left:-26px; top:-26px; width:52px; height:52px; border:2.5px dashed var(--amber); border-radius:50%; animation:spin 6s linear infinite, beat 1.3s ease-in-out infinite; }
 #guide-spot i::after { content:""; position:absolute; left:50%; top:-14px; margin-left:-7px; border:7px solid transparent; border-top-color:var(--amber); }
@@ -362,6 +365,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   #guide .foot { margin-top:8px; }
   #guide-open { left:calc(8px + var(--l)); top:calc(154px + var(--t)); }
   #app.guiding #events { top:calc(var(--guide-h, 0px) + 162px + var(--t)); }
+  #app.guide-folded #events { top:calc(208px + var(--t)); }
 }
 /* Calm, the threat panel steps back: smaller, fainter, the count of sleeping nests only. */
 #brief.calm { opacity:.62; transform:scale(.82); transform-origin:top right; transition:opacity .25s, transform .25s; }
@@ -743,9 +747,9 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div class="head"><span id="guide-model" class="porthole model" aria-hidden="true"></span><h2 id="guide-title"></h2></div>
     <p id="guide-why"></p>
     <ol id="guide-steps"></ol>
-    <div class="foot"><span class="chip">+5 ADN par étape</span><button id="guide-hide" class="tip">Masquer</button></div>
+    <div class="foot"><span class="chip">+5 ADN par étape</span><span class="ways"><button id="guide-hide" class="tip">Masquer</button><button id="guide-skip" class="tip">Passer</button></span></div>
   </section>
-  <button id="guide-open" class="tip" hidden>Premier atelier</button>
+  <div id="guide-open" hidden><button id="guide-show" class="tip">Premier atelier</button><button id="guide-drop" class="tip" aria-label="Passer le guide">×</button></div>
   <div id="guide-spot" hidden aria-hidden="true"><i></i></div>
   <div id="events" role="log" aria-live="polite"></div>
 
@@ -4147,9 +4151,12 @@ document.addEventListener('keyup', spacePauses);
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || modalOpen()) return;
   event.preventDefault();
-  showMenu(false);
+  if (ui.menu) { showMenu(false); return; }
+  // Nothing left to put down: Escape opens the menu.
+  const idle = tool === 'hand' && !selected && !gesture && !drag && !linking && !wiring && !ui.family;
   // Without a gesture, letting the button go builds nothing.
   gesture = null; drag = null;
+  if (idle) { showMenu(true); return; }
   choose('hand');
 });
 $('speed').onclick = () => { speed = speed === 1 ? 3 : 1; $('speed').textContent = '×' + speed; refresh(); };
@@ -4574,6 +4581,7 @@ function paintGuide() {
   const on = live && g.step < GUIDE.length && !g.hidden;
   $('guide').hidden = !on;
   $('guide-open').hidden = !(live && g.step < GUIDE.length && g.hidden);
+  $('app').classList.toggle('guide-folded', !$('guide-open').hidden);
   $('app').classList.toggle('guiding', on);
   for (const b of $('tools').querySelectorAll('.family')) b.classList.toggle('call', on && b.dataset.family === GUIDE[g.step]?.family);
   if (!on) { $('guide-spot').hidden = true; return; }
@@ -4596,7 +4604,10 @@ function placeGuideSpot() {
   spot.style.transform = `translate(${p.x}px,${p.y}px)`;
 }
 $('guide-hide').onclick = () => { if (G.guide) G.guide.hidden = true; paintGuide(); };
-$('guide-open').onclick = () => { if (G.guide) G.guide.hidden = false; paintGuide(); };
+$('guide-show').onclick = () => { if (G.guide) G.guide.hidden = false; paintGuide(); };
+const skipGuide = () => { if (G.guide) G.guide.step = GUIDE.length; paintGuide(); };
+$('guide-skip').onclick = skipGuide;
+$('guide-drop').onclick = skipGuide;
 $('guide-again').onclick = () => { startGuide(); showMenu(false); paintGuide(); };
 
 function paintInfo() {

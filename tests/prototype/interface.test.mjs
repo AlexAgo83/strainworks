@@ -99,6 +99,14 @@ it("answers the keys, the menu and the moments without changing a rule", async (
     // An event takes the camera to where it happened.
     await page.evaluate(() => tell("Ici", { at: { x: 70, y: 20 } }));
     await page.locator("#events button", { hasText: "Ici" }).click();
+    // Escape puts the tool down, then opens the menu, then closes it.
+    await page.evaluate(() => choose("belt"));
+    const presses = [];
+    for (let i = 0; i < 3; i++) {
+      await page.keyboard.press("Escape");
+      presses.push(await page.evaluate(() => [tool, ui.menu]));
+    }
+    expect(presses).toEqual([["hand", false], ["hand", true], ["hand", false]]);
     // A family gives back the tool last taken from it.
     const back = await page.evaluate(() => {
       choose("belt");
