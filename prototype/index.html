@@ -328,6 +328,49 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 /* Time under the view switch, apart from the camera by a little gap. */
 #zoom #view-toggle { margin-bottom:10px; }
 
+/* ---- Board 21: slim top strips on a desktop (phones keep their compact layout). */
+@media (min-width:760px) and (min-height:521px) {
+  #app #organism { display:flex; align-items:center; gap:14px; width:auto; height:64px; padding:0 20px 0 10px; transform:none;
+    clip-path:polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+  #app #organism::before, #app #organism::after { width:26px; height:26px; }
+  #app #organism::before { clip-path:polygon(12px 0, 100% 0, 100% 2px, 2px 100%, 0 100%, 0 12px); }
+  #organism .orb { position:static; flex:none; width:48px; height:48px; }
+  #organism #order { position:static; width:auto; display:grid; grid-template-columns:auto auto; align-items:center; column-gap:8px; row-gap:2px; }
+  #organism #order b { grid-column:1 / -1; font-size:11px; letter-spacing:.12em; }
+  #organism #order .wanted { margin:0; gap:8px; }
+  #organism #order .crate { padding:2px 6px; border-width:1px; border-radius:7px; }
+  #organism #order output { font-size:17px; }
+  #organism #order .unit { margin:0; font-size:11px; white-space:nowrap; }
+  #organism .helix { display:none; }
+  #organism #dna { position:static; order:2; font-size:22px; color:var(--acid); }
+  #organism #gain { position:relative; left:auto; top:auto; order:3; width:0; margin-left:-8px; font-size:12px; }
+  #organism #life-text { position:static; order:4; width:auto; font-size:12px; white-space:nowrap; }
+  #organism #dna::before, #organism #life-text::before { content:""; display:inline-block; width:1px; height:34px; margin-right:14px; vertical-align:middle; background:rgba(255,255,255,.12); }
+  #app #brief { left:auto; right:calc(16px + var(--r)); top:calc(16px + var(--t)); width:auto; max-width:calc(100% - 470px - var(--l) - var(--r));
+    display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; column-gap:6px; padding:4px 4px 4px 0; border-radius:16px; transform:none; opacity:1; }
+  #app #brief.calm { background:none; border-color:transparent; border-bottom-color:rgba(143,184,191,.25); border-radius:0; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; }
+  #app #brief.calm #threat-toggle { opacity:.78; }
+  #app #brief.calm:hover #threat-toggle, #app #brief.calm:focus-within #threat-toggle { opacity:1; }
+  #app #threat-toggle { flex-direction:row; align-items:center; gap:10px; min-width:0; min-height:44px; padding:2px 8px 2px 12px; white-space:nowrap; }
+  #threat-toggle .pulse { position:static; flex:none; width:56px; height:28px; }
+  #threat-toggle .title { flex:none; font-size:14px; }
+  #threat-toggle .detail { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  #app #brief.calm .detail { display:block; }
+  #threat-toggle #versus { position:static; flex:none; gap:6px; }
+  #brief #families { grid-column:1 / -1; margin:6px 0 0; }
+  #brief #menu-toggle { width:44px; height:44px; }
+  #app #zoom { top:calc(100px + var(--t)); }
+  #app #events, #app #guide, #app #guide-open { top:calc(104px + var(--t)); }
+  #app.guiding #events { top:calc(var(--guide-h, 0px) + 116px + var(--t)); }
+  #app.guide-folded #events { top:calc(160px + var(--t)); }
+  #app #info.docked { top:calc(100px + var(--t)); }
+}
+@media (min-width:760px) and (max-width:999px) and (min-height:521px) {
+  #app #brief { top:calc(90px + var(--t)); right:calc(8px + var(--r)); max-width:calc(100% - 16px - var(--l) - var(--r)); }
+  #app #zoom { top:calc(160px + var(--t)); }
+  #app #info.docked { top:calc(160px + var(--t)); }
+}
+
 /* Living networks (opening screen). */
 #hexes .glow, #slot-icon .glow { opacity:.22; }
 #hexes .pulse, #slot-icon .pulse { animation:run linear infinite; }
@@ -4427,15 +4470,18 @@ function showMenu(open) {
 // Where floating things may go without landing under the interface.
 function layoutHud() {
   const narrow = NARROW.matches, speedButton = $('speed'), pauseButton = $('pause');
+  const menuButton = $('menu-toggle');
   if (narrow) {
+    if (menuButton.parentElement !== $('time')) $('time').append(menuButton);
     if (speedButton.parentElement !== $('menu')) $('menu').insertBefore(speedButton, $('view-row'));
     if (pauseButton.parentElement !== $('time')) $('time').insertBefore(pauseButton, $('menu-toggle'));
   } else {
     for (const b of [pauseButton, speedButton]) if (b.parentElement !== $('zoom')) $('zoom').append(b);
+    if (menuButton.parentElement !== $('brief')) $('brief').insertBefore(menuButton, $('families'));
   }
   ui.safe = {
     left:8,
-    top:narrow ? (view.h <= 520 ? 108 : 154) : view.w < 1180 ? 180 : 146,
+    top:narrow ? (view.h <= 520 ? 108 : 154) : view.w < 1000 ? 150 : 96,
     right:narrow ? 60 : 72,
     bottom:Math.max(8, view.h - $('tools').getBoundingClientRect().top + 6)
   };
