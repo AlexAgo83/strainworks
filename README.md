@@ -11,6 +11,9 @@
   <img src="https://img.shields.io/badge/status-prototype-66D9EA" alt="Status" />
 </p>
 
+<h3 align="center"><a href="https://strainworks.onrender.com">▶ Play now at strainworks.onrender.com</a></h3>
+<p align="center">No install, no account. On a desktop or a phone, installable and playable offline.</p>
+
 <p align="center"><img src="docs/media/strainworks-factory.gif" alt="A living factory running in 3D" /></p>
 
 You run a station that industrializes life. You mine organic bases, splice them into genes, weave the genes
@@ -50,7 +53,11 @@ small-planet curvature, on a desktop or a phone.
 
 <p align="center"><img src="docs/media/strainworks.png" alt="The starting base in 3D" /></p>
 
-## Play it locally
+## Play
+
+In your browser: **[strainworks.onrender.com](https://strainworks.onrender.com)**.
+
+Or locally:
 
 ```sh
 npm install
