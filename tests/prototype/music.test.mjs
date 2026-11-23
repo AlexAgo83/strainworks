@@ -31,6 +31,15 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
     await page.fill("#music-volume", "20");
     await page.click("#music-on");
     const menu = await page.evaluate(() => [music.volume, music.on, document.querySelector("#music-on").textContent, JSON.parse(localStorage.getItem("strainworks-music"))]);
+    // Effects: one at a time per sound, silent when far from the screen, a volume and a switch kept like the music's.
+    const effects = await page.evaluate(() => {
+      const first = playSound("turret"), again = playSound("turret");
+      const far = heard({ x: cam.x + 500, y: cam.y + 500 }), near = heard({ x: Math.floor(cam.x), y: Math.floor(cam.y) });
+      return [first, again, far, near];
+    });
+    await page.fill("#sfx-volume", "40");
+    await page.click("#sfx-on");
+    const sfxMenu = await page.evaluate(() => [sfx.volume, sfx.on, JSON.parse(localStorage.getItem("strainworks-sfx"))]);
     await page.reload();
     const kept = await page.evaluate(() => [document.querySelector("#music-volume").value, document.querySelector("#music-on").getAttribute("aria-pressed")]);
 
@@ -39,6 +48,8 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
     expect(fight).toEqual([true, true, true]);
     expect(menu).toEqual([0.2, false, "Coupée", { volume: 0.2, on: false }]);
     expect(kept).toEqual(["20", "false"]);
+    expect(effects).toEqual([true, false, false, true]);
+    expect(sfxMenu).toEqual([0.4, false, { volume: 0.4, on: false }]);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

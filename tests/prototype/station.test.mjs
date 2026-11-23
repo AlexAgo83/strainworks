@@ -39,10 +39,13 @@ it("opens on a live station that aims the beam, and frees it for the game", asyn
       };
     });
     expect(shown).toEqual({ live: true, picture: true, beam: true, inside: true });
-    await page.locator("#slot-actions button", { hasText: "Fonder" }).click();
-    await page.waitForFunction(() => !orbit.on);
-    // Through the zoom the live station stays: the picture is an older model.
-    expect(await page.evaluate(() => [Boolean(station3d.st), document.querySelector("#station-live").hidden, document.querySelector("#station").hidden])).toEqual([true, false, true]);
+    // Through the zoom the live station stays: the picture is an older model. Read in the same task as the click,
+    // so a slow first press (the audio context it makes) cannot let the zoom end before the reading.
+    const zooming = await page.evaluate(() => {
+      [...document.querySelectorAll("#slot-actions button")].find((b) => b.textContent.includes("Fonder")).click();
+      return [orbit.on, Boolean(station3d.st), document.querySelector("#station-live").hidden, document.querySelector("#station").hidden];
+    });
+    expect(zooming).toEqual([false, true, false, true]);
     await page.waitForFunction(() => station3d.st === null);
     expect(await page.evaluate(() => [document.querySelector("#station-live").hidden, document.querySelector("#station").hidden, document.querySelector("#planet").hidden])).toEqual([true, false, true]);
     expect(errors).toEqual([]);
