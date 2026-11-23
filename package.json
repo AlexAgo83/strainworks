@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A browser and mobile incremental factory and tower defense game where you write living strands of DNA.",
   "author": "Alexandre Agostini",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=22"
   },

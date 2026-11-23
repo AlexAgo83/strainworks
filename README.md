@@ -1,8 +1,62 @@
+<img src="site/icon-192.png" alt="Strainworks icon" width="64" align="left" />
+
 # Strainworks
 
-A browser and mobile incremental factory game crossed with tower defense: harvest four organic bases, write genes and strands of DNA, feed a growing organism, and fight creatures with the exact opposite of their gene.
+<br clear="left"/>
 
-The game is at prototype stage. Version `0.1.0`. See the [concept](docs/concept.md) and the [changelogs](changelogs/README.md).
+![Version](https://img.shields.io/badge/version-0.1.0-B7F34A)
+![License](https://img.shields.io/badge/license-MIT-2E8B57)
+![Babylon.js](https://img.shields.io/badge/Babylon.js-9-BB464B)
+![Status](https://img.shields.io/badge/status-prototype-66D9EA)
+
+**Write the living. Make it a factory. Survive its mutations.**
+
+A factory game crossed with tower defense, for the browser and the phone. The interface is in French.
+
+Version `0.1.0`, a playable prototype. See the [concept](docs/concept.md) and the [changelogs](changelogs/README.md).
+
+![The starting base in 3D: harvesters, belts and a ligase feeding the core](docs/media/strainworks.png)
+
+---
+
+## A factory that writes DNA
+
+Four organic bases lie in deposits around a hungry core: Spore, Fibre, Chitine and Nerf. Harvesters pull
+them out, belts carry them, and a Ligase joins three of them, in order, into a gene. Assemblers join genes
+into strands, the Encapsulator packs them with carbon into capsules and magazines.
+
+The core asks for one product at a time. Feed it and the organism grows through five stages, from Cellule to
+Noyau, each one opening new machines, richer deposits and longer logistics.
+
+![The factory running in 3D](docs/media/strainworks-factory.gif)
+
+## Fight a gene with its opposite
+
+Breaches sleep in the fog. Build near one and it wakes; every wave carries a gene, and only the opposite
+gene hurts it. Turrets fire whatever they are fed, so the factory has to make the right ammunition at the
+right time: sorters and gates, wired by nerves to turrets and radar pylons, switch the lines to the antidote
+the moment a wave shows up. Nests have hit points: destroy them, or their wave comes back.
+
+From stage 4 the creatures mutate: a new family is born every five minutes, and the lines built for the
+old ones still have to hold.
+
+![An assault on the starting base](docs/media/strainworks-assault.gif)
+
+## What is in the prototype
+
+- **Build** with drones: harvesters, belts, bridges, splitters, sorters, gates, ligases, assemblers,
+  encapsulators, cysts and vaults, pumps and veins, trails, pockets and worms, turrets, stings, maws and
+  walls, each with MK ranks.
+- **Command**: nerves link turrets, radar pylons, gates and sorters into one net that follows the threat.
+- **Read it**: a Statistics sheet with production, ADN, defense, threat and what slows the factory; touch a
+  problem and the camera goes there.
+- **Explore**: an endless map in levels, fog that lifts around what you build, isotope far out.
+- **See it** in 2D or 3D, with a small-planet curvature, on a desktop or a phone, offline once installed.
+- **Keep it**: games live on a planet of hexagons, saved in the browser, exported and imported as files.
+
+![The Statistics sheet](docs/media/strainworks-stats.png)
+
+![The planet of saved games](docs/media/strainworks-planet.png)
 
 ## Run the prototype
 
@@ -50,8 +104,14 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 | `prototype/` | The playable prototype, its 3D view (`view3d.js`, models in `models3d.js`, ground in `terrain3d.js`) and the transport mockup, French interface |
 | `docs/design/interface/` | Approved mockup of the interface |
 | `docs/concept.md` | Game concept and decisions |
+| `docs/media/` | README images and clips |
 | `tests/prototype/` | Behavior tests of the prototype |
 | `tests/fixtures/saves/` | Saved games from earlier prototype versions |
 | `site/`, `scripts/` | The static site: service worker, manifest, icons, build |
 | `src/` | The product. Empty until the simulation is ported |
 | `logics/` | Workflow corpus |
+
+## License
+
+[MIT](LICENSE). What the repository holds was checked before it turned public: see
+[public readiness](docs/public-readiness.md).
