@@ -63,6 +63,19 @@ it("shows each model alone and edits its state without saving", async () => {
     const droneShown = await near();
     await page.selectOption("#lab-list", "cell|ligase");
     expect([nestShown, droneShown, await near()]).toEqual([[true, false], [false, true], [false, false]]);
+    // The Sounds tab: every effect plays, ten in a row never pass ten voices, each candidate is listed, a moment is forced.
+    await page.click('#lab-tabs [data-tab="sounds"]');
+    await page.click('[data-sound="turret"]');
+    await page.click('[data-burst="hit"]');
+    await page.click('[data-piece="calm"]');
+    const sounds = await page.evaluate(() => ({
+      shown: !document.querySelector("#lab-sounds").hidden && document.querySelector("#lab-models").hidden,
+      audio: Boolean(sfx.ctx),
+      voices: sfx.voices <= 10,
+      files: document.querySelectorAll("[data-file]").length === LAB_FILES.length && LAB_FILES.length > 0,
+      calm: music.force === "calm" && music.src.endsWith("_02.mp3"),
+    }));
+    expect(sounds).toEqual({ shown: true, audio: true, voices: true, files: true, calm: true });
     expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => /game|save|planet/i.test(k)))).toEqual([]);
     expect(errors).toEqual([]);
   } finally {

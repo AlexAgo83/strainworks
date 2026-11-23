@@ -17,6 +17,7 @@
 }
 [hidden] { display:none!important; }
 html, body { height:100%; margin:0; padding:0; overflow:hidden; overscroll-behavior:none; }
+html { background:#05090B; }
 body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body); font-variant-numeric:tabular-nums; -webkit-tap-highlight-color:transparent; }
 #app { position:fixed; inset:0; overflow:hidden; pointer-events:none; }
 /* Installed on iOS with a translucent status bar, 100% stops one status bar short of the bottom: the screen
@@ -355,6 +356,10 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #lab label { display:grid; grid-template-columns:90px 1fr 34px; align-items:center; gap:8px; }
 #lab output { color:var(--muted); text-align:right; }
 #lab .note { margin:0; color:var(--muted); }
+#lab .sounds { display:flex; flex-wrap:wrap; gap:6px; }
+/* On a phone the panel is a sheet on the lower half: the model stays in sight above it. */
+@media (max-width:600px) { #lab { top:auto; right:12px; width:auto; height:48%; } }
+#lab .sounds span { display:inline-flex; gap:2px; }
 /* ---- Board 25: the drones in one compact glass pill. */
 #app #drones { gap:6px; padding:6px 8px; border:1px solid var(--glass-edge); border-radius:999px; background:var(--glass); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); box-shadow:var(--glass-shadow); }
 #app .pip { position:relative; display:grid; place-items:center; width:44px; min-height:44px; height:44px; padding:0; border:0; background:none; }
@@ -1227,6 +1232,11 @@ const EN = {
   "Relie la Ligase au cœur": "Connect the Ligase to the core",
   "Un tapis de la sortie de la Ligase jusqu’au cœur : il mange le gène, et le premier atelier tourne.": "A belt from the Ligase output to the core: it eats the gene, and the first workshop runs.",
   "Ouvre {} (touche {}), puis prends {} (Maj+{}).": "Open {} (key {}), then take {} (Shift+{}).",
+  "L’entrée {} reçoit {} : il lui faut {}. Démonte ce tapis et relie le bon récolteur.": "Input {} gets {}: it needs {}. Dismantle that belt and connect the right harvester.",
+  "Ligase : {}": "Ligase: {}",
+  "Inverser 1↔3": "Swap 1↔3",
+  "Inverser 1↔2": "Swap 1↔2",
+  "vide": "empty",
   "Elle ira au milieu du gène, par l’arrière de la Ligase.": "It will go in the middle of the gene, through the back of the Ligase.",
   "Puis un récolteur sur": "Then a harvester on",
   "Un récolteur sur": "A harvester on",
@@ -3424,12 +3434,12 @@ function diagnose(c) {
     return L('Pont : deux voies indépendantes. Auto suit les tapis voisins, sinon le sens choisi est imposé.');
   }
   if (c.type === 'pocket') {
-    const kind = c.stock[0], what = kind ? itemName(kind) : 'vide';
+    const kind = c.stock[0], what = kind ? itemName(kind) : L('vide');
     if (![0,1,2,3].some(d => G.tracks[key(c.x + DX[d], c.y + DY[d])])) return L('Poche sans piste : elle doit toucher une piste.');
     return L`Poche qui ${c.unload ? L('vide le ver et sort sur ses côtés libres') : L('charge le ver')}, ${what} : ${c.stock.length} sur ${WORM.pocket}. Une seule matière par poche, 16/s.`;
   }
   if (c.type === 'pump') {
-    const kind = veinKind(c), what = kind ? itemName(kind) : 'vide';
+    const kind = veinKind(c), what = kind ? itemName(kind) : L('vide');
     const head = L`Pompe, ${what} : ${c.stock.length} sur ${VEIN.cap}.`;
     for (const side of [0,1,2,3]) {
       const from = ahead(c, side);
@@ -3485,7 +3495,7 @@ function diagnose(c) {
   if (c.type !== 'mine' && c.type !== 'ligase') return TYPES[c.type].help;
 
   const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', DEC);
-  const entries = c.type === 'ligase' ? L(' Entrées : ') + c.ports.map((p, i) => `${i + 1} ${p.length ? named(p[0]) : 'vide'}`).join(', ') + '.' : '';
+  const entries = c.type === 'ligase' ? L(' Entrées : ') + c.ports.map((p, i) => `${i + 1} ${p.length ? named(p[0]) : L('vide')}`).join(', ') + '.' : '';
   const head = L`${c.type === 'mine' ? L('Récolteur de ') + named(matterUnder(c)) : L('Ligase') + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', DEC)}/s.${entries}${c.type === 'mine' && richUnder(c) > richCap() ? L` Ce gisement est ×${richUnder(c)}, exploitable ainsi au stade ${richUnder(c) === 2 ? 2 : 3}.` : ''}`;
   if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
     let to = c, dir = c.dir;
@@ -4216,7 +4226,7 @@ function showActions() {
     return;
   }
   if (TURNS.includes(c.type)) button(L('Tourner'), () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
-  if (c.type === 'ligase') button('Inverser 1↔3', () => { c.flip = !c.flip; c.ports.reverse(); c.portDue?.reverse(); c.last = [...c.last].reverse().join(''); });
+  if (c.type === 'ligase') button(L('Inverser 1↔3'), () => { c.flip = !c.flip; c.ports.reverse(); c.portDue?.reverse(); c.last = [...c.last].reverse().join(''); });
   if (c.type === 'bridge') [0, 1].forEach(axis => {
     const set = c.ways?.[axis] ?? null, name = axis ? 'Voie ↔' : 'Voie ↕';
     button(`${name} : ${set == null ? 'auto' : ['↑','→','↓','←'][set]}`, () => { turnWay(c, axis); showActions(); });
@@ -4232,7 +4242,7 @@ function showActions() {
     button(L`Carbone : ${c.flip ? L('à droite') : L('à gauche')}`, () => { c.flip = !c.flip; showActions(); });
     button(L('Vider'), () => { c.ports = [[], [], []]; c.item = null; c.last = ''; });
   }
-  if (c.type === 'join') button('Inverser 1↔2', () => {
+  if (c.type === 'join') button(L('Inverser 1↔2'), () => {
     c.flip = !c.flip; c.ports = [c.ports[1], c.ports[0], []];
     if (c.portDue) c.portDue = [c.portDue[1], c.portDue[0], []];
     c.last = c.last ? c.last.slice(3) + c.last.slice(0, 3) : '';
@@ -4294,7 +4304,7 @@ function pickedWorm() { return G.worms.find(w => w.id === wormId); }
 function wormState(w) {
   if (w.out != null) return w.cut ? L`Ver en retrait : ${Math.max(0, w.out).toFixed(1).replace('.', DEC)} s de jeu.` : L('Ver à retirer : un drone le rejoint, il roule en attendant.');
   if (!built(w)) return L`Ver en incubation : ${w.left.toFixed(1).replace('.', DEC)} s de jeu.`;
-  const cargo = w.holds.map(h => h.n ? `${h.n} ${itemName(h.kind)}` : 'vide').join(', ');
+  const cargo = w.holds.map(h => h.n ? `${h.n} ${itemName(h.kind)}` : L('vide')).join(', ');
   const doing = w.docked ? L('à quai') : w.stuck ? L`arrêté, ${w.stuck}` : L('en route');
   const why = w.docked && w.rule === 'full' ? L(' Il attend que tout soit plein ou vide.') : '';
   return L`Ver ${doing}, de la tête à la queue : ${cargo}.${why} ${Math.ceil(w.hp)} PV sur ${WORM.hp}.`;
@@ -5689,8 +5699,24 @@ function guideDone(step, now) {
   if (step === 2) return now.S >= base.S + 2;
   if (step === 3) return tool === 'ligase' || placed || fed;
   if (step === 4) return placed || fed;
-  if (want.port != null) return Boolean(G.guide.got?.[want.port]) || fed;
+  // Read as the input is now: its base waiting there, or a gene already made from all three.
+  if (want.port != null) { const lig = guideLigase(); return Boolean(lig?.ports[want.port].includes(GUIDE_GENE[want.port]) || lig?.last) || fed; }
   return fed;
+}
+const GUIDE_GENE = ['S', 'F', 'S'];
+// What stands in the way, said in the step: a wrong base in an input, or why no gene reaches the core.
+function guideHint(want) {
+  const lig = guideLigase();
+  if (!lig) return '';
+  if (want.port != null) {
+    const wrong = lig.ports[want.port].find(b => b !== GUIDE_GENE[want.port]);
+    return wrong ? L`L’entrée ${want.port + 1} reçoit ${named(wrong)} : il lui faut ${named(GUIDE_GENE[want.port])}. Démonte ce tapis et relie le bon récolteur.` : '';
+  }
+  if (!want.core) return '';
+  // The red line the diagnosis draws is the player's: it is put back as it was.
+  const was = chain, text = diagnose(lig);
+  chain = was;
+  return L`Ligase : ${text}`;
 }
 // How to reach the machine of a step from the dock, while it is not in hand.
 function howTo(want) {
@@ -5751,7 +5777,6 @@ function paintGuide() {
   const g = G.guide, live = Boolean(g) && g.step < GUIDE.length && !G.over && !orbit.on;
   if (live) {
     // A base seen in an input stays seen: the Ligase empties its inputs once the gene is made.
-    guideLigase()?.ports.forEach((port, i) => { if (port.length) (g.got ||= [false, false, false])[i] = true; });
     const now = builtNow();
     while (g.step < GUIDE.length && guideDone(g.step, now)) {
       g.step++;
@@ -5778,7 +5803,7 @@ function paintGuide() {
   $('guide-no').textContent = L`étape ${g.step + 1} sur ${GUIDE.length}`;
   const title = `${step.title}${base}`;
   if ($('guide-title').innerHTML !== title) $('guide-title').innerHTML = title;
-  write($('guide-why'), [step.why, howTo(step)].filter(Boolean).join(' '));
+  write($('guide-why'), [step.why, howTo(step), guideHint(step)].filter(Boolean).join(' '));
   showModel($('guide-model'), step.model);
   const list = GUIDE.map((s, i) => `<li class="${i < g.step ? 'done' : i === g.step ? 'now' : ''}"><i>${i < g.step ? '✓' : i + 1}</i><span>${s.list}</span>${s.base ? markOf(s.base) : ''}</li>`).join('');
   if ($('guide-steps').innerHTML !== list) $('guide-steps').innerHTML = list;
@@ -7291,7 +7316,7 @@ function keepForReload() {
 // It starts with the first press, as browsers want, and is not kept for offline play: the game runs without it.
 const MUSIC_KEY = 'strainworks-music';
 const MUSIC = {theme:'music/strainworks_music_01.mp3', fight:'music/strainworks_music_03.mp3', calm:['music/strainworks_music_02.mp3', 'music/strainworks_music_04.mp3']};
-const music = {volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, fightUntil:0};
+const music = {volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, fightUntil:0, force:null};
 try {
   const saved = JSON.parse(localStorage.getItem(MUSIC_KEY));
   if (saved) { music.volume = Math.max(0, Math.min(1, Number(saved.volume) || 0)); music.on = saved.on !== false; }
@@ -7302,6 +7327,8 @@ for (const a of music.players) {
   a.addEventListener('ended', () => { if (MUSIC.calm.includes(music.src)) { music.calm ^= 1; musicTick(); } });
 }
 function musicWant(now) {
+  // The lab plays what it is asked: a moment of the game, a piece, or nothing.
+  if (music.force != null) return music.force === 'calm' ? MUSIC.calm[music.calm] : MUSIC[music.force] ?? music.force;
   if (orbit.on || !G) return MUSIC.theme;
   // An assault, or creatures on the map: the fight piece, held 8 s after so it does not flicker.
   if (!G.over && $('app').classList.contains('hot')) music.fightUntil = now + 8000;
@@ -7310,14 +7337,14 @@ function musicWant(now) {
 function musicTick() {
   if (!music.started) return;
   const want = musicWant(performance.now());
-  if (want !== music.src) {
+  if (want && want !== music.src) {
     music.src = want; music.live ^= 1;
     const a = music.players[music.live];
     a.src = want; a.loop = !MUSIC.calm.includes(want); music.level[music.live] = 0;
   }
   // About 1.5 s of crossfade: the piece playing rises to the volume chosen, the other falls and stops.
   music.players.forEach((a, i) => {
-    const goal = i === music.live && music.on && !document.hidden ? music.volume : 0, was = music.level[i];
+    const goal = want && i === music.live && music.on && !document.hidden ? music.volume : 0, was = music.level[i];
     const level = music.level[i] = Math.max(0, Math.min(1, was + Math.sign(goal - was) * Math.min(Math.abs(goal - was), .07)));
     // Through a gain where the browser has Web Audio: an iPhone ignores the volume of an audio element.
     if (music.gains) music.gains[i].gain.value = level; else a.volume = level;
@@ -7334,18 +7361,83 @@ function keepMusic() { try { localStorage.setItem(MUSIC_KEY, JSON.stringify({vol
 $('music-volume').oninput = () => { music.volume = Number($('music-volume').value) / 100; if (music.volume > 0) music.on = true; keepMusic(); paintMusic(); musicTick(); };
 $('music-on').onclick = () => { music.on = !music.on; keepMusic(); paintMusic(); musicTick(); };
 paintMusic();
-if (!LAB.on) {
-  const startMusic = () => {
-    if (music.started) return;
-    try {
-      const Context = window.AudioContext || window.webkitAudioContext, ctx = new Context();
-      music.gains = music.players.map(a => { const gain = ctx.createGain(); gain.gain.value = 0; ctx.createMediaElementSource(a).connect(gain).connect(ctx.destination); return gain; });
-      ctx.resume?.();
-    } catch (_) { music.gains = null; }
-    music.started = true; musicTick();
-  };
-  for (const kind of ['pointerdown', 'keydown']) addEventListener(kind, startMusic, {once:true, capture:true});
-  setInterval(musicTick, 100);
+// One audio context for the music and the effects, made on a press as browsers want.
+function startSound() {
+  if (music.started) return;
+  // A media player, not a page sound: an iPhone in silent mode still plays it, as it does a video.
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
+  try {
+    const Context = window.AudioContext || window.webkitAudioContext, ctx = new Context();
+    music.gains = music.players.map(a => { const gain = ctx.createGain(); gain.gain.value = 0; ctx.createMediaElementSource(a).connect(gain).connect(ctx.destination); return gain; });
+    sfx.ctx = ctx; sfx.out = ctx.createGain(); sfx.out.gain.value = sfx.on ? sfx.volume : 0; sfx.out.connect(ctx.destination);
+    ctx.resume?.();
+  } catch (_) { music.gains = null; }
+  music.started = true; musicTick();
+}
+if (!LAB.on) for (const kind of ['pointerdown', 'keydown']) addEventListener(kind, startSound, {once:true, capture:true});
+// An iPhone unlocks sound only when a finger lifts: every lift or click resumes it until it runs.
+for (const kind of ['pointerup', 'touchend', 'click', 'keydown']) addEventListener(kind, () => {
+  if (!music.started || sfx.ctx?.state === 'running') return;
+  sfx.ctx?.resume?.();
+  music.players[music.live].play().catch(() => {});
+}, {capture:true, passive:true});
+setInterval(musicTick, 100);
+
+// ---- Effects: drawn by Web Audio, a little different each time, never more than ten at once.
+const sfx = {volume:.7, on:true, ctx:null, out:null, voices:0};
+function blip(t, {wave = 'sine', from = 440, to = from, dur = .12, gain = .3, noise = false, band = 0, attack = .004}) {
+  const ctx = sfx.ctx, g = ctx.createGain(), k = 1 + (Math.random() - .5) * .08;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + attack); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  let src;
+  if (noise) {
+    const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate), d = buffer.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    src = ctx.createBufferSource(); src.buffer = buffer;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = band || 1;
+    f.frequency.setValueAtTime(from * k, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, to * k), t + dur);
+    src.connect(f).connect(g);
+  } else {
+    src = ctx.createOscillator(); src.type = wave;
+    src.frequency.setValueAtTime(from * k, t); src.frequency.exponentialRampToValueAtTime(Math.max(1, to * k), t + dur);
+    src.connect(g);
+  }
+  g.connect(sfx.out); src.start(t); src.stop(t + dur + .02);
+}
+// Each effect: its family for the lab, its name, and how it is drawn (b = blip at an offset in seconds).
+const SOUNDS = {
+  click:{group:'Interface', name:'Button', play:b => b(0, {wave:'square', from:1800, to:1200, dur:.05, gain:.08})},
+  open:{group:'Interface', name:'Family or menu opens', play:b => { b(0, {from:300, to:620, dur:.18, gain:.18}); b(0, {noise:true, from:800, to:2400, dur:.18, gain:.06, band:2}); }},
+  refuse:{group:'Interface', name:'Refused', play:b => { b(0, {wave:'square', from:220, to:180, dur:.1, gain:.1}); b(.11, {wave:'square', from:180, to:140, dur:.14, gain:.1}); }},
+  step:{group:'Interface', name:'Guide step done', play:b => { b(0, {from:880, dur:.18, gain:.16}); b(.09, {from:1320, dur:.3, gain:.14}); }},
+  dna:{group:'Interface', name:'DNA earned', play:b => { b(0, {from:1500, to:2200, dur:.08, gain:.1}); b(.06, {from:2000, to:2900, dur:.1, gain:.08}); }},
+  place:{group:'Building', name:'Building placed', play:b => { b(0, {noise:true, from:900, to:300, dur:.18, gain:.22, band:1.5}); b(0, {from:180, to:90, dur:.16, gain:.25}); }},
+  belt:{group:'Building', name:'Belt laid', play:b => b(0, {noise:true, from:2500, to:1100, dur:.25, gain:.12, band:3})},
+  bridge:{group:'Building', name:'Bridge laid', play:b => { b(0, {wave:'triangle', from:400, to:380, dur:.3, gain:.16}); b(.02, {wave:'triangle', from:600, to:590, dur:.25, gain:.1}); }},
+  rotate:{group:'Building', name:'Rotate', play:b => { b(0, {wave:'square', from:2600, dur:.03, gain:.06}); b(.05, {wave:'square', from:2200, dur:.03, gain:.06}); }},
+  done:{group:'Building', name:'Construction done', play:b => { b(0, {from:660, dur:.25, gain:.14}); b(.08, {from:990, dur:.35, gain:.12}); }},
+  dismantle:{group:'Building', name:'Dismantled', play:b => { b(0, {noise:true, from:1200, to:200, dur:.35, gain:.18, band:1}); b(0, {wave:'sawtooth', from:200, to:60, dur:.3, gain:.08}); }},
+  rank:{group:'Building', name:'Rank up', play:b => { b(0, {from:440, to:880, dur:.3, gain:.14}); b(.12, {from:660, to:1320, dur:.35, gain:.12}); }},
+  gene:{group:'Production', name:'Ligase makes a gene', play:b => { b(0, {from:500, to:900, dur:.12, gain:.14}); b(.03, {noise:true, from:1200, to:600, dur:.1, gain:.05, band:4}); }},
+  eat:{group:'Production', name:'Core eats a gene', play:b => b(0, {from:220, to:110, dur:.3, gain:.22})},
+  turret:{group:'Fight', name:'Turret fires', play:b => { b(0, {noise:true, from:3000, to:800, dur:.09, gain:.16, band:1}); b(0, {wave:'square', from:900, to:300, dur:.06, gain:.05}); }},
+  sting:{group:'Fight', name:'Sting fires', play:b => b(0, {from:2400, to:1200, dur:.08, gain:.12})},
+  maw:{group:'Fight', name:'Maw fires', play:b => { b(0, {wave:'sawtooth', from:160, to:60, dur:.25, gain:.12}); b(0, {noise:true, from:600, to:200, dur:.2, gain:.1, band:1}); }},
+  hit:{group:'Fight', name:'Creature hit', play:b => b(0, {noise:true, from:1500, to:900, dur:.06, gain:.12, band:2})},
+  kill:{group:'Fight', name:'Creature killed', play:b => { b(0, {noise:true, from:800, to:100, dur:.3, gain:.2, band:1}); b(0, {from:300, to:80, dur:.25, gain:.12}); }},
+  throw:{group:'Fight', name:'Creature thrown out', play:b => b(0, {noise:true, from:400, to:1400, dur:.3, gain:.12, band:2})},
+  damaged:{group:'Fight', name:'Building damaged', play:b => b(0, {wave:'square', from:140, to:100, dur:.15, gain:.1})},
+  destroyed:{group:'Fight', name:'Building destroyed', play:b => { b(0, {noise:true, from:1500, to:80, dur:.7, gain:.24, band:.8}); b(0, {wave:'sawtooth', from:120, to:40, dur:.6, gain:.1}); }},
+  hex:{group:'Planet', name:'Hexagon picked', play:b => b(0, {from:1200, dur:.06, gain:.08})},
+  zoom:{group:'Planet', name:'Zoom into a game', play:b => b(0, {noise:true, from:300, to:2000, dur:.9, gain:.12, band:1.5})},
+};
+function playSound(id) {
+  const s = SOUNDS[id];
+  if (!s || !sfx.ctx || !sfx.on || sfx.voices >= 10) return false;
+  sfx.voices++;
+  const t = sfx.ctx.currentTime;
+  s.play((at, o) => blip(t + at, o));
+  setTimeout(() => { sfx.voices--; }, 800);
+  return true;
 }
 function setLang(id) {
   keep(LANG_KEY, id);
@@ -7440,6 +7532,8 @@ function labShow(value) {
   }
   forgetCells();
   Object.assign(cam, {x:focus.x + .5, y:focus.y + .5, zoom:Number($('lab-zoom').value)});
+  // Under the sheet of a narrow screen, the model is framed in the upper half.
+  if (matchMedia('(max-width:600px)').matches) cam.y += view.h * .24 / cam.zoom;
   labPaint(true);
 }
 function labPaint(fresh) {
@@ -7455,6 +7549,110 @@ function labEdit(change) {
   forgetCells();
   labPaint(true);
 }
+// The sounds of the game in one place: each piece, each moment as the game plays it, each effect.
+// Generated sounds waiting to be chosen, each in two takes. The build serves every file named here.
+const LAB_FILES = [
+  'sounds/stage_up_1.mp3',
+  'sounds/stage_up_2.mp3',
+  'sounds/game_over_1.mp3',
+  'sounds/game_over_2.mp3',
+  'sounds/nest_down_1.mp3',
+  'sounds/nest_down_2.mp3',
+  'sounds/mutation_1.mp3',
+  'sounds/mutation_2.mp3',
+  'sounds/assault_alarm_1.mp3',
+  'sounds/assault_alarm_2.mp3',
+  'sounds/station_loop_1.mp3',
+  'sounds/station_loop_2.mp3',
+  'sounds/ui_click_1.mp3',
+  'sounds/ui_click_2.mp3',
+  'sounds/ui_dna_1.mp3',
+  'sounds/ui_dna_2.mp3',
+  'sounds/ui_open_1.mp3',
+  'sounds/ui_open_2.mp3',
+  'sounds/ui_refuse_1.mp3',
+  'sounds/ui_refuse_2.mp3',
+  'sounds/ui_step_1.mp3',
+  'sounds/ui_step_2.mp3',
+  'sounds/build_belt_1.mp3',
+  'sounds/build_belt_2.mp3',
+  'sounds/build_bridge_1.mp3',
+  'sounds/build_bridge_2.mp3',
+  'sounds/build_dismantle_1.mp3',
+  'sounds/build_dismantle_2.mp3',
+  'sounds/build_done_1.mp3',
+  'sounds/build_done_2.mp3',
+  'sounds/build_place_1.mp3',
+  'sounds/build_place_2.mp3',
+  'sounds/build_rank_1.mp3',
+  'sounds/build_rank_2.mp3',
+  'sounds/build_rotate_1.mp3',
+  'sounds/build_rotate_2.mp3',
+  'sounds/prod_eat_1.mp3',
+  'sounds/prod_eat_2.mp3',
+  'sounds/prod_gene_1.mp3',
+  'sounds/prod_gene_2.mp3',
+  'sounds/turret_fire_1.mp3',
+  'sounds/turret_fire_2.mp3',
+  'sounds/fight_core_hit_1.mp3',
+  'sounds/fight_core_hit_2.mp3',
+  'sounds/fight_damaged_1.mp3',
+  'sounds/fight_damaged_2.mp3',
+  'sounds/fight_destroyed_1.mp3',
+  'sounds/fight_destroyed_2.mp3',
+  'sounds/fight_hit_1.mp3',
+  'sounds/fight_hit_2.mp3',
+  'sounds/fight_kill_1.mp3',
+  'sounds/fight_kill_2.mp3',
+  'sounds/fight_maw_1.mp3',
+  'sounds/fight_maw_2.mp3',
+  'sounds/fight_sting_1.mp3',
+  'sounds/fight_sting_2.mp3',
+  'sounds/fight_throw_1.mp3',
+  'sounds/fight_throw_2.mp3',
+  'sounds/planet_hex_1.mp3',
+  'sounds/planet_hex_2.mp3',
+  'sounds/planet_zoom_1.mp3',
+  'sounds/planet_zoom_2.mp3',
+];
+const LAB_PIECES = [['Main theme (planet)', 'theme'], ['Calm 1', MUSIC.calm[0]], ['Calm 2', MUSIC.calm[1]], ['Fight', 'fight']];
+function labSoundsHTML() {
+  const groups = [...new Set(Object.values(SOUNDS).map(s => s.group))];
+  return `<p class="note">Music</p>
+    <div class="quick">${LAB_PIECES.map(([name, id]) => `<button class="tip" data-piece="${id}">${name}</button>`).join('')}<button class="tip" data-piece="">Stop</button></div>
+    <div class="quick"><button class="tip" data-piece="theme">As on the planet</button><button class="tip" data-piece="calm">As in a calm game</button><button class="tip" data-piece="fight">As in a fight</button></div>
+    <p class="note" id="lab-now">Nothing playing</p>
+    <label>Music <input id="lab-music" type="range" min="0" max="100" value="${Math.round(music.volume * 100)}"><output id="lab-music-out">${Math.round(music.volume * 100)}</output></label>
+    <label>Effects <input id="lab-sfx" type="range" min="0" max="100" value="${Math.round(sfx.volume * 100)}"><output id="lab-sfx-out">${Math.round(sfx.volume * 100)}</output></label>
+    <p class="note">Candidates (generated, not in the game yet)</p>
+    <div class="sounds">${LAB_FILES.map(f => `<button class="tip" data-file="${f}">${f.split('/').pop().replace('.mp3', '')}</button>`).join('')}</div>
+    <p class="note">Effects drawn by the game</p>
+    ${groups.map(group => `<p class="note">${group}</p><div class="sounds">${Object.entries(SOUNDS).filter(([, s]) => s.group === group).map(([id, s]) => `<span><button class="tip" data-sound="${id}">${s.name}</button><button class="tip" data-burst="${id}" aria-label="${s.name}, ten in a row">×10</button></span>`).join('')}</div>`).join('')}`;
+}
+let labTake = null;
+function labSounds(panel) {
+  panel.addEventListener('click', event => {
+    const tab = event.target.closest('[data-tab]')?.dataset.tab;
+    if (tab) {
+      $('lab-models').hidden = tab !== 'models'; $('lab-sounds').hidden = tab !== 'sounds';
+      for (const b of panel.querySelectorAll('[data-tab]')) b.setAttribute('aria-pressed', b.dataset.tab === tab);
+    }
+    const piece = event.target.closest('[data-piece]')?.dataset.piece, sound = event.target.closest('[data-sound]')?.dataset.sound, burst = event.target.closest('[data-burst]')?.dataset.burst;
+    const file = event.target.closest('[data-file]')?.dataset.file;
+    if (file) { labTake?.pause(); labTake = new Audio(file); labTake.volume = sfx.volume; labTake.play().catch(() => {}); return; }
+    if (piece == null && !sound && !burst) return;
+    startSound();
+    if (piece != null) { music.force = piece; music.on = true; musicTick(); }
+    if (sound) playSound(sound);
+    if (burst) for (let i = 0; i < 10; i++) setTimeout(() => playSound(burst), i * 70);
+  });
+  $('lab-music').oninput = event => { music.volume = event.target.value / 100; $('lab-music-out').textContent = event.target.value; musicTick(); };
+  $('lab-sfx').oninput = event => { sfx.volume = event.target.value / 100; $('lab-sfx-out').textContent = event.target.value; if (sfx.out) sfx.out.gain.value = sfx.volume; };
+  setInterval(() => {
+    const a = music.players[music.live], name = music.src.split('/').pop();
+    $('lab-now').textContent = music.force ? `${name} · ${Math.floor(a.currentTime)} / ${Math.floor(a.duration || 0)} s` : 'Nothing playing';
+  }, 500);
+}
 function startLab() {
   leavePlanet(() => {
     slotId = orbit.pick; slotKey = null;
@@ -7468,7 +7666,10 @@ function startLab() {
   $('app').classList.add('lab');
   const panel = document.createElement('aside');
   panel.id = 'lab';
-  panel.innerHTML = `<h2>Strainworks models</h2>
+  panel.innerHTML = `<h2>Strainworks lab</h2>
+    <div class="quick" id="lab-tabs"><button class="tip" data-tab="models" aria-pressed="true">Models</button><button class="tip" data-tab="sounds" aria-pressed="false">Sounds</button></div>
+    <div id="lab-sounds" hidden>${labSoundsHTML()}</div>
+    <div id="lab-models">
     <select id="lab-list" size="12" aria-label="Models">${labSpecimens().map(([kind, id, name]) => `<option value="${kind}|${id}">${name}</option>`).join('')}</select>
     <div id="lab-quick" class="quick">
       <button class="tip" data-lab="turn">Rotate</button><button class="tip" data-lab="mk">Rank MK</button><button class="tip" data-lab="flip">Mirror</button><button class="tip" data-lab="site">Construction</button>
@@ -7477,9 +7678,13 @@ function startLab() {
     <label>Zoom <input id="lab-zoom" type="range" min="20" max="240" value="150"><output id="lab-zoom-out">150</output></label>
     <div class="quick"><button class="tip" id="lab-pause">Pause</button><button class="tip" id="lab-apply">Apply the JSON</button></div>
     <textarea id="lab-state" spellcheck="false" aria-label="State"></textarea>
-    <p class="note">The rules are stopped, the clock runs. Edit any field and apply.</p>`;
+    <p class="note">The rules are stopped, the clock runs. Edit any field and apply.</p>
+    </div>`;
   $('app').append(panel);
   $('lab-list').onchange = event => labShow(event.target.value);
+  // A frame that grows after loading (Jarvis shows the lab on demand) does not always say so: its size is watched.
+  new ResizeObserver(() => resize()).observe(document.documentElement);
+  labSounds(panel);
   panel.addEventListener('click', event => {
     const act = event.target.closest('[data-lab]')?.dataset.lab;
     if (act === 'turn') labEdit(c => { c.dir = ((c.dir ?? 0) + 1) % 4; });

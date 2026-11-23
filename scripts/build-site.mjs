@@ -2,7 +2,7 @@
 // usage: node scripts/build-site.mjs [out directory]
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -63,6 +63,13 @@ for (let n = 1; n <= 4; n++) {
   const path = `assets/strainworks_music_0${n}-${digest(data)}.mp3`;
   writeFileSync(resolve(out, path), data);
   app = replaceOnce(app, `'music/${name}'`, `'./${path}'`);
+}
+// The sounds the code names, served like the music and left out of the offline cache.
+for (const name of readdirSync(at("prototype/sounds")).filter((f) => f.endsWith(".mp3"))) {
+  if (!app.includes(`'sounds/${name}'`)) continue;
+  const data = readFileSync(at(`prototype/sounds/${name}`)), path = `assets/${name.replace(/\.mp3$/, "")}-${digest(data)}.mp3`;
+  writeFileSync(resolve(out, path), data);
+  app = app.replaceAll(`'sounds/${name}'`, `'./${path}'`);
 }
 // The engine comes with the site, so 3D works offline. The pinned hash still holds: it is the same file.
 const engineLink = /https:\/\/cdn\.jsdelivr\.net\/npm\/babylonjs@[\d.]+\/babylon\.js/.exec(app)?.[0];

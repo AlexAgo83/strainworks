@@ -66,7 +66,12 @@ it("guides a new game to its first line into the core", async () => {
       const travels = Math.abs((ui.travel ?? cam).x - ui.guidePoint.x) < 1e-9;
       ui.travel = null;
       Object.assign(cam, was);
-      // A base in an input completes its step.
+      // A wrong base in an input does not complete its step, and the guide says so.
+      lig.ports[0].push("F");
+      paintGuide();
+      const wrong = [G.guide.step, document.querySelector("#guide-why").textContent.includes("il lui faut")];
+      lig.ports[0].length = 0;
+      // The right base completes it.
       lig.ports[0].push("S");
       paintGuide();
       seen.push(read());
@@ -77,7 +82,7 @@ it("guides a new game to its first line into the core", async () => {
       seen.push(read());
       G.fed = 1;
       paintGuide();
-      return { seen, steady, lit, arrow, travels, dna: G.dna - dna, done: document.querySelector("#guide").hidden, bases: [depositAt(Math.floor(s.x), Math.floor(s.y)), depositAt(Math.floor(f.x), Math.floor(f.y))] };
+      return { seen, steady, lit, arrow, travels, wrong, dna: G.dna - dna, done: document.querySelector("#guide").hidden, bases: [depositAt(Math.floor(s.x), Math.floor(s.y)), depositAt(Math.floor(f.x), Math.floor(f.y))] };
     });
     expect(out.seen[0]).toMatchObject({ step: 0, shown: true, called: ["rec"], spot: true, pictured: 1 });
     expect(out.seen[0].title).toBe("Pose un récolteur sur");
@@ -88,6 +93,7 @@ it("guides a new game to its first line into the core", async () => {
     expect(out.seen[4]).toMatchObject({ step: 5, called: ["tra"], spot: true, trace: true, ports: true });
     expect(out.arrow).toEqual([true, true]);
     expect(out.travels).toBe(true);
+    expect(out.wrong).toEqual([5, true]);
     expect(out.seen[5]).toMatchObject({ step: 6 });
     expect(out.seen[6]).toMatchObject({ step: 8, spot: true });
     expect(out.steady).toEqual([0, 0, 0.5, 0.5]);
