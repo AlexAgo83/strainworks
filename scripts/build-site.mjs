@@ -58,11 +58,11 @@ for (const name of ["space", "station", "planet", "globe", "globe-glow"]) {
   app = replaceOnce(app, `'planet/${name}.webp'`, `'./${path}'`);
 }
 // The music is served with the site but left out of the offline cache: it is large, and the game runs without it.
-for (let n = 1; n <= 4; n++) {
-  const name = `strainworks_music_0${n}.mp3`, data = readFileSync(at(`prototype/music/${name}`));
-  const path = `assets/strainworks_music_0${n}-${digest(data)}.mp3`;
+for (const name of readdirSync(at("prototype/music")).filter((f) => f.endsWith(".mp3"))) {
+  if (!app.includes(`'music/${name}'`)) throw new Error(`music/${name} is in the folder but the game never plays it`);
+  const data = readFileSync(at(`prototype/music/${name}`)), path = `assets/${name.replace(/\.mp3$/, "")}-${digest(data)}.mp3`;
   writeFileSync(resolve(out, path), data);
-  app = replaceOnce(app, `'music/${name}'`, `'./${path}'`);
+  app = app.replaceAll(`'music/${name}'`, `'./${path}'`);
 }
 // The sounds the code names, served like the music and left out of the offline cache.
 for (const name of readdirSync(at("prototype/sounds")).filter((f) => f.endsWith(".mp3"))) {

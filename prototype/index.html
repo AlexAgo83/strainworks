@@ -535,6 +535,46 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #tools .call[data-guide-key]::after { content:attr(data-guide-key); position:absolute; left:50%; top:-46px; transform:translateX(-50%); color:var(--amber); font:700 12px var(--display, sans-serif); white-space:nowrap; pointer-events:none; }
 #tools.guide-dim .pod:not(.call) { opacity:.4; }
 @keyframes nudge { 50% { transform:translateY(-6px); } }
+/* The goal, told in three moving pictures made of the game's own models and marks. */
+#intro { position:absolute; inset:0; z-index:30; display:grid; place-items:center; padding:16px; background:rgba(5,9,11,.6); pointer-events:auto; }
+#intro .card { width:min(360px, 100%); display:grid; gap:12px; padding:18px 18px 16px; border:1px solid var(--glass-edge); border-radius:20px 8px; background:var(--glass); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); box-shadow:0 20px 60px rgba(0,0,0,.5); }
+#intro .kicker { margin:0; font:600 11px var(--display); letter-spacing:.14em; text-transform:uppercase; color:var(--amber); }
+#intro h2 { margin:0; font:700 21px/1.15 var(--display); }
+#intro p { margin:0; color:var(--ink); opacity:.85; }
+#intro .scene { position:relative; width:300px; max-width:100%; height:170px; margin:0 auto; border-radius:14px; background:#081114; border:1px solid var(--glass-edge); overflow:hidden; }
+#intro .scene > * { position:absolute; }
+#intro .sprite { border-radius:50%; }
+#intro .lane { inset:0; width:100%; height:100%; }
+#intro .lane path { fill:none; stroke:#22383F; stroke-width:9; stroke-linejoin:round; }
+#intro .tag { width:18px; height:18px; }
+#intro .tag svg, #intro .mover svg { width:100%; height:100%; display:block; }
+#intro .mover { left:0; top:0; width:14px; height:14px; margin:-7px 0 0 -7px; animation:ride 3s linear infinite; }
+#intro .mover.gene { width:auto; height:16px; margin:-8px 0 0 -24px; animation-delay:1.5s; }
+#intro .gene svg { width:16px; height:16px; }
+#intro .count { right:8px; bottom:8px; display:flex; align-items:center; gap:6px; font:700 13px var(--display); color:var(--acid); }
+#intro .count .gene svg { width:13px; height:13px; }
+@keyframes ride { from { offset-distance:0%; } to { offset-distance:100%; } }
+#intro .grow { transition:transform .5s cubic-bezier(.2,1.4,.4,1); }
+#intro .pips { left:10px; right:10px; bottom:8px; display:flex; justify-content:space-between; }
+#intro .pips span { display:grid; justify-items:center; gap:3px; font:700 9px var(--display); letter-spacing:.05em; text-transform:uppercase; color:var(--muted, #8B989C); }
+#intro .pips i { width:12px; height:12px; border-radius:50%; border:2px solid #22383F; background:#0B1417; transition:background .3s, border-color .3s; }
+#intro .pips i.lit { background:var(--acid); border-color:var(--acid); }
+#intro .crawler { left:240px; width:36px; height:36px; animation:crawl 4s linear infinite; }
+#intro .crawler.later { animation-delay:2s; }
+@keyframes crawl { 0% { transform:translateX(0); opacity:1; } 70% { transform:translateX(-110px); opacity:1; } 72%, 100% { transform:translateX(-112px); opacity:0; } }
+#intro .shot { left:0; top:0; width:100%; height:100%; }
+#intro .shot line { stroke:var(--cyan); stroke-width:3; stroke-linecap:round; stroke-dasharray:8 200; animation:fire 4s linear infinite; opacity:0; }
+#intro .shot line.later { animation-delay:2s; }
+@keyframes fire { 0%, 55% { stroke-dashoffset:200; opacity:0; } 56% { opacity:1; } 70% { stroke-dashoffset:-90; opacity:1; } 71%, 100% { opacity:0; } }
+#intro .burst { width:28px; height:28px; margin:-14px 0 0 -14px; border:3px solid var(--cyan); border-radius:50%; opacity:0; animation:burst 4s ease-out infinite; }
+#intro .burst.later { animation-delay:2s; }
+@keyframes burst { 0%, 69% { opacity:0; transform:scale(.2); } 71% { opacity:1; transform:scale(1); } 85%, 100% { opacity:0; transform:scale(1.8); } }
+#intro .foot { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+#intro .dots { display:flex; gap:6px; }
+#intro .dots button { width:10px; height:10px; padding:0; border-radius:50%; border:0; background:var(--glass-edge); cursor:pointer; }
+#intro .dots button[aria-current="true"] { background:var(--amber); }
+#intro .ways { display:flex; gap:8px; }
+@media (prefers-reduced-motion:reduce) { #intro * { animation:none !important; } }
 #guide-trace, #guide-trace svg { position:absolute; inset:0; z-index:2; width:100%; height:100%; overflow:visible; pointer-events:none; }
 #guide-trace path { fill:none; stroke:var(--amber); stroke-width:4; stroke-dasharray:10 8; stroke-linecap:round; opacity:.9; animation:march 1s linear infinite; }
 @keyframes march { to { stroke-dashoffset:-18; } }
@@ -571,6 +611,13 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #sheet[hidden] { display:none; }
 #sheet h3 { margin:0; color:#8FB8BF; font:700 11px var(--display); letter-spacing:.14em; text-transform:uppercase; }
 #sheet .want { display:flex; align-items:center; gap:14px; }
+#sheet .frieze { position:relative; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:4px; }
+#sheet .frieze::before { content:""; position:absolute; left:10%; right:10%; top:13px; height:2px; background:var(--glass-edge); }
+#sheet .frieze span { position:relative; display:grid; justify-items:center; gap:4px; min-width:0; font:700 10px var(--display); letter-spacing:.04em; color:#8FB8BF; text-align:center; }
+#sheet .frieze i { width:28px; height:28px; display:grid; place-items:center; border:2px solid var(--glass-edge); border-radius:50%; background:#0B1417; font-style:normal; z-index:1; }
+#sheet .frieze .done i { border-color:var(--acid); background:var(--acid); color:#0B1417; }
+#sheet .frieze .now { color:var(--amber); }
+#sheet .frieze .now i { border-color:var(--amber); box-shadow:0 0 0 4px rgba(240,160,60,.2); animation:beat 1.4s ease-in-out infinite; }
 #sheet .crate { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1.5px solid #E8738A; border-radius:10px; background:rgba(232,115,138,.08); }
 #sheet .crate b { color:#E8738A; font:700 16px var(--display); }
 #sheet .gene svg { width:18px; height:18px; }
@@ -919,6 +966,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div class="row"><span>Clavier et tactile</span><button id="help" class="tip">Voir</button></div>
     <div class="row at-planet"><span>Importer une partie</span><button id="import" class="tip">Choisir</button></div>
     <div class="row at-planet"><span>Sauvegarder la planète</span><button id="export-all" class="tip">Tout exporter</button></div>
+    <div class="row in-game"><span>Objectif</span><button id="intro-again" class="tip">Revoir</button></div>
     <div class="row in-game"><span>Guide de départ</span><button id="guide-again" class="tip">Revoir</button></div>
     <div class="row in-game" id="open-row"><span>Tout débloquer (test)</span><button id="open-all" class="tip">Activer</button></div>
     <div class="last in-game">
@@ -945,6 +993,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div class="foot"><span class="chip">+5 ADN par étape</span><span class="ways"><button id="guide-hide" class="tip">Masquer</button><button id="guide-skip" class="tip">Passer</button></span></div>
   </section>
   <div id="guide-open" hidden><button id="guide-show" class="tip">Premier atelier</button><button id="guide-drop" class="tip" aria-label="Passer le guide">×</button></div>
+  <section id="intro" hidden aria-label="Ton objectif"></section>
   <div id="guide-spot" hidden aria-hidden="true"><i></i></div>
   <div id="guide-trace" hidden aria-hidden="true"><svg><path/></svg></div>
   <div id="guide-ports" hidden aria-hidden="true"><b>1</b><b>2</b><b>3</b></div>
@@ -1207,6 +1256,19 @@ const EN = {
   "Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.": "Two of one and one of the other: the Ligase never keeps a belt waiting.",
   "Un second récolteur sur": "A second harvester on",
   "Aller à l’étape du guide": "Go to the guide step",
+  "Ton objectif": "Your goal",
+  "Stades": "Stages",
+  "Ton objectif · {} sur 3": "Your goal · {} of 3",
+  "Fais grandir le cœur": "Grow the core",
+  "Il passe par 5 stades. À chacun, il débloque de nouvelles machines.": "It goes through 5 stages. Each one unlocks new machines.",
+  "Nourris-le de gènes": "Feed it genes",
+  "Récolte des bases, assemble-les dans l’ordre qu’il réclame, puis achemine le gène jusqu’à lui.": "Harvest bases, join them in the order it asks for, then carry the gene to it.",
+  "Défends-le": "Defend it",
+  "Des créatures sortent des nids et visent le cœur. Charge tes tourelles avec le gène opposé au leur : c’est leur antidote.": "Creatures leave the nests and head for the core. Load your turrets with the gene opposite theirs: it is their antidote.",
+  "Suivant": "Next",
+  "Commencer": "Start",
+  "Objectif": "Goal",
+  "Image {}": "Picture {}",
   "Musique": "Music",
   "Volume de la musique": "Music volume",
   "Activée": "On",
@@ -3008,7 +3070,7 @@ function flow(dt) {
       G.made++;
     }
     c.clock = c.clock >= 1.998 ? 0 : Math.max(0, c.clock - 1); c.made.push(G.time);
-    if (c.type === 'ligase') playNear('gene', c, .2);
+    if (c.type === 'ligase') playNear('gene', c, 1);
   }
   // Repeat so a full line advances together and a stop travels upstream.
   for (let pass = 0; pass < 12; pass++) {
@@ -3276,7 +3338,7 @@ function menace(dt) {
       const passable = c !== prey && (!built(c) || isBelt(c) || c.type === 'bridge');
       c.hitAt = G.time;
       c.hp -= dt * (c.type === 'core' ? .6 : passable ? .4 : 3.5);
-      if (c.type === 'core') playSound('core_hit', 1.2); else playNear('damaged', c, .8);
+      if (c.type === 'core') playSound('core_hit', 1.2, heard(c) ? placeOf(c) : null); else playNear('damaged', c, .8);
       pace = passable ? .22 : 0;
       if (c.hp <= 0) {
         if (c.type === 'core') { G.over = true; c.hp = 0; playSound('game_over'); }
@@ -3321,7 +3383,7 @@ function fire(dt) {
         c.ammo[shell]--; c.clock = due;
         if (!shot) c.aim = Math.atan2(nest.y - c.y, nest.x - c.x);
         nest.hp -= hurt * gun.power; nest.hitAt = G.time;
-        if (heard(c)) playSound(c.type === 'turret' ? 'turret' : c.type);
+        playNear(c.type === 'turret' ? 'turret' : c.type, c);
         G.shots.push({x:c.x + .5, y:c.y + .5, tx:nest.x + .5, ty:nest.y + .5, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
         if (nest.hp <= 0) destroyNest(nest);
         continue;
@@ -3331,7 +3393,8 @@ function fire(dt) {
       c.ammo[ammo]--; c.clock = due;
       if (!shot) c.aim = Math.atan2(target.y - c.y - .5, target.x - c.x - .5);
       target.hp -= hurt * gun.power;
-      if (heard(c)) { playSound(c.type === 'turret' ? 'turret' : c.type); playSound(target.hp <= 0 ? 'kill' : 'hit'); }
+      playNear(c.type === 'turret' ? 'turret' : c.type, c);
+      playNear(target.hp <= 0 ? 'kill' : 'hit', {x:target.x - .5, y:target.y - .5});
       // hurt stays how right the gene was, it gives the colour. The gun gives the shape.
       G.shots.push({x:c.x + .5, y:c.y + .5, tx:target.x, ty:target.y, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
       if (target.hp <= 0) { G.kills++; earn('kills', 1); }
@@ -5672,7 +5735,8 @@ function coreSheet() {
   if (box) hints.push(L`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`);
   const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
   if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', L`Gisements ×${G.stage + 1 === 2 ? '2' : L('4 à ×8')}`]);
-  return L`<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
+  const frieze = `<div class="frieze">${STAGES.map((s, i) => `<span class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"><i>${i < G.stage ? '✓' : i + 1}</i>${s.name}</span>`).join('')}</div>`;
+  return `<h3>${L('Stades')}</h3>` + frieze + L`<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
     + L`<h3>Recette</h3>${steps.join('')}${hints.length ? `<div class="hints">${hints.join('')}</div>` : ''}`
     + (gives.length ? L`<h3>Débloque</h3><div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : '');
 }
@@ -5876,6 +5940,86 @@ function placeGuideSpot() {
   const far = L`${Math.round(Math.hypot(at.x - cam.x, at.y - cam.y))} cases`;
   if (arrow.lastElementChild.textContent !== far) arrow.lastElementChild.textContent = far;
 }
+// ---- The goal: three moving pictures, shown once on a first game and again from the menu. The game waits behind it.
+const INTRO_KEY = 'strainworks-intro';
+const intro = {at:0, timer:0, was:false};
+// A creature as the game draws it: a dark body, its legs, the marks of its gene.
+function creatureIcon(gene) {
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = c.height = 72;
+  g.setTransform(64, 0, 0, 64, 36, 36);
+  g.strokeStyle = '#B34A5A'; g.lineWidth = .06; g.beginPath();
+  for (const dx of [-.16, 0, .16]) { g.moveTo(dx, -.24); g.lineTo(dx, .32); }
+  g.stroke();
+  g.beginPath(); g.ellipse(0, 0, .36, .2, 0, 0, Math.PI * 2); g.fillStyle = '#3A1820'; g.fill(); g.strokeStyle = '#FF6B6B'; g.stroke();
+  [...gene].forEach((b, i) => glyph(g, b, (i - 1) * .22, 0, .1));
+  return c;
+}
+function introHTML() {
+  const sprite = (type, x, y, size, more = '') => `<span class="model sprite ${more}" data-model="${type}" style="left:${x}px;top:${y}px;width:${size}px;height:${size}px"></span>`;
+  const lanes = ['M52 32 H118 V78 H134', 'M52 84 H134', 'M52 136 H118 V90 H134'];
+  const panels = [
+    `<div class="scene">${sprite('core', 110, 18, 80, 'grow')}<div class="pips">${STAGES.map(s => `<span><i></i>${s.name}</span>`).join('')}</div></div>
+     <h2>${L('Fais grandir le cœur')}</h2><p>${L('Il passe par 5 stades. À chacun, il débloque de nouvelles machines.')}</p>`,
+    `<div class="scene"><svg class="lane" viewBox="0 0 300 170">${[...lanes, 'M178 84 H222'].map(d => `<path d="${d}"/>`).join('')}</svg>
+       ${['S', 'F', 'S'].map((b, i) => `${sprite('mine', 6, 10 + i * 52, 44)}<span class="tag" style="left:40px;top:${6 + i * 52}px">${markOf(b)}</span><span class="mover" style="offset-path:path('${lanes[i]}')">${markOf(b)}</span>`).join('')}
+       ${sprite('ligase', 134, 62, 44)}<span class="mover gene" style="offset-path:path('M178 84 H222')">${geneMark('SFS')}</span>
+       ${sprite('core', 220, 46, 72)}<span class="count">${geneMark('SFS')}<b data-fed>0 / 100</b></span></div>
+     <h2>${L('Nourris-le de gènes')}</h2><p>${L('Récolte des bases, assemble-les dans l’ordre qu’il réclame, puis achemine le gène jusqu’à lui.')}</p>`,
+    `<div class="scene">${sprite('core', 8, 50, 70)}${sprite('turret', 94, 14, 46)}
+       <span class="crawler" data-creature="CCN" style="top:70px"></span><span class="crawler later" data-creature="SSF" style="top:108px"></span>
+       <svg class="shot" viewBox="0 0 300 170"><line x1="128" y1="44" x2="160" y2="88"/><line class="later" x1="128" y1="44" x2="160" y2="126"/></svg>
+       <span class="burst" style="left:146px;top:88px"></span><span class="burst later" style="left:146px;top:126px"></span></div>
+     <h2>${L('Défends-le')}</h2><p>${L('Des créatures sortent des nids et visent le cœur. Charge tes tourelles avec le gène opposé au leur : c’est leur antidote.')}</p>`,
+  ];
+  return `<div class="card"><p class="kicker" id="intro-no"></p>${panels.map((html, i) => `<div data-intro="${i}" hidden>${html}</div>`).join('')}
+    <div class="foot"><div class="dots">${panels.map((_, i) => `<button data-dot="${i}" aria-label="${L`Image ${i + 1}`}"></button>`).join('')}</div>
+    <div class="ways"><button class="tip" id="intro-skip">${L('Passer')}</button><button class="tip" id="intro-next">${L('Suivant')}</button></div></div></div>`;
+}
+function introShow(i) {
+  intro.at = i;
+  $('intro').querySelectorAll('[data-intro]').forEach((el, k) => { el.hidden = k !== i; });
+  $('intro').querySelectorAll('[data-dot]').forEach((el, k) => el.setAttribute('aria-current', k === i));
+  $('intro-no').textContent = L`Ton objectif · ${i + 1} sur 3`;
+  $('intro-next').textContent = i === 2 ? L('Commencer') : L('Suivant');
+  clearTimeout(intro.timer);
+  if (!STILL.matches) intro.timer = setTimeout(() => introShow((intro.at + 1) % 3), 6000);
+}
+function showIntro(open) {
+  const box = $('intro');
+  if (open) {
+    if (!box.childElementCount) {
+      box.innerHTML = introHTML();
+      for (const el of box.querySelectorAll('[data-model]')) showModel(el, el.dataset.model);
+      for (const el of box.querySelectorAll('[data-creature]')) el.append(creatureIcon(el.dataset.creature));
+      box.onclick = event => {
+        const dot = event.target.closest('[data-dot]');
+        if (dot) introShow(Number(dot.dataset.dot));
+        if (event.target.closest('#intro-skip') || (event.target.closest('#intro-next') && intro.at === 2)) showIntro(false);
+        else if (event.target.closest('#intro-next')) introShow(intro.at + 1);
+      };
+      // The counter follows the genes reaching the core; the core grows a stage every 2 s, its stages lighting in turn.
+      let fed = 0, stage = 0;
+      setInterval(() => { if (!box.hidden) { fed = (fed + 1) % 101; box.querySelector('[data-fed]').textContent = `${fed} / 100`; } }, 3000);
+      const grow = () => {
+        box.querySelector('.grow').style.transform = `scale(${[.55, .7, .85, 1, 1.15][stage]})`;
+        box.querySelectorAll('.pips i').forEach((el, k) => el.classList.toggle('lit', k <= stage));
+        stage = (stage + 1) % STAGES.length;
+      };
+      grow();
+      if (!STILL.matches) setInterval(() => { if (!box.hidden) grow(); }, 2000);
+    }
+    if (box.hidden) { intro.was = paused; paused = true; }
+    box.hidden = false;
+    introShow(0);
+  } else if (!box.hidden) {
+    box.hidden = true; clearTimeout(intro.timer);
+    paused = intro.was;
+    keep(INTRO_KEY, '1');
+    paintGuide();
+  }
+}
+$('intro-again').onclick = () => { showMenu(false); showIntro(true); };
 $('guide-arrow').onclick = () => { const at = ui.guidePoint; if (at) travelTo({...cam, x:at.x, y:at.y}); };
 $('guide-hide').onclick = () => { if (G.guide) G.guide.hidden = true; paintGuide(); };
 $('guide-show').onclick = () => { if (G.guide) G.guide.hidden = false; paintGuide(); };
@@ -6438,6 +6582,7 @@ function foundGame(wanted) {
   }
   openSlot(id, key, newName(list));
   settleIn(); begin(); startGuide(); paintGuide();
+  if (!stored(INTRO_KEY)) showIntro(true);
   return true;
 }
 function openGame(id) {
@@ -7343,8 +7488,13 @@ function keepForReload() {
 // ---- Music: the main theme on the planet, two calm pieces in turn in a game, the fight piece while it is hot.
 // It starts with the first press, as browsers want, and is not kept for offline play: the game runs without it.
 const MUSIC_KEY = 'strainworks-music';
-const MUSIC = {theme:'music/strainworks_music_01.mp3', fight:'music/strainworks_music_03.mp3', calm:['music/strainworks_music_02.mp3', 'music/strainworks_music_04.mp3']};
-const music = {volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, fightUntil:0, force:null};
+// The calm pieces follow one another in this order, old and new in turn; a fight draws one of its pieces at random.
+const MUSIC = {
+  theme:'music/strainworks_music_01.mp3',
+  calm:['music/strainworks_music_02.mp3', 'music/strainworks_calm_a_1.mp3', 'music/strainworks_calm_b_1.mp3', 'music/strainworks_music_04.mp3', 'music/strainworks_calm_c_1.mp3', 'music/strainworks_calm_a_2.mp3', 'music/strainworks_calm_b_2.mp3', 'music/strainworks_calm_c_2.mp3'],
+  fight:['music/strainworks_music_03.mp3', 'music/strainworks_fight_a_1.mp3', 'music/strainworks_fight_b_1.mp3', 'music/strainworks_fight_a_2.mp3', 'music/strainworks_fight_b_2.mp3'],
+};
+const music = {volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, fight:0, fightUntil:0, force:null};
 try {
   const saved = JSON.parse(localStorage.getItem(MUSIC_KEY));
   if (saved) { music.volume = Math.max(0, Math.min(1, Number(saved.volume) || 0)); music.on = saved.on !== false; }
@@ -7352,15 +7502,18 @@ try {
 for (const a of music.players) {
   a.preload = 'auto';
   // A calm piece played to its end hands over to the other.
-  a.addEventListener('ended', () => { if (MUSIC.calm.includes(music.src)) { music.calm ^= 1; musicTick(); } });
+  a.addEventListener('ended', () => { if (MUSIC.calm.includes(music.src)) { music.calm = (music.calm + 1) % MUSIC.calm.length; musicTick(); } });
 }
 function musicWant(now) {
   // The lab plays what it is asked: a moment of the game, a piece, or nothing.
-  if (music.force != null) return music.force === 'calm' ? MUSIC.calm[music.calm] : MUSIC[music.force] ?? music.force;
+  if (music.force != null) return music.force === 'calm' ? MUSIC.calm[music.calm] : music.force === 'fight' ? MUSIC.fight[music.fight] : MUSIC[music.force] ?? music.force;
   if (orbit.on || !G) return MUSIC.theme;
-  // An assault, or creatures on the map: the fight piece, held 8 s after so it does not flicker.
-  if (!G.over && $('app').classList.contains('hot')) music.fightUntil = now + 8000;
-  return now < music.fightUntil ? MUSIC.fight : MUSIC.calm[music.calm];
+  // An assault, or creatures on the map: a fight piece, drawn as the fight starts and held 8 s after so it does not flicker.
+  if (!G.over && $('app').classList.contains('hot')) {
+    if (now >= music.fightUntil) music.fight = Math.floor(Math.random() * MUSIC.fight.length);
+    music.fightUntil = now + 8000;
+  }
+  return now < music.fightUntil ? MUSIC.fight[music.fight] : MUSIC.calm[music.calm];
 }
 function musicTick() {
   if (!music.started) return;
@@ -7415,7 +7568,8 @@ for (const kind of ['pointerup', 'touchend', 'click', 'keydown']) addEventListen
 setInterval(musicTick, 100);
 
 // ---- Effects: drawn by Web Audio, a little different each time, never more than ten at once.
-const sfx = {volume:.7, on:true, ctx:null, out:null, voices:0, buffers:{}, last:{}, loop:null};
+// By default the effects play at half the music's volume.
+const sfx = {volume:music.volume / 2, on:true, ctx:null, out:null, voices:0, buffers:{}, last:{}, loop:null};
 const SFX_KEY = 'strainworks-sfx';
 try {
   const saved = JSON.parse(localStorage.getItem(SFX_KEY));
@@ -7441,13 +7595,9 @@ function loadSounds() {
     }
   }
 }
-// Heard only on screen: a fight, a site or a machine far away stays silent.
-function heard(c) {
-  if (orbit.on || c?.x == null) return false;
-  const p = screenAt({x:c.x + .5, y:c.y + .5});
-  return p.x > -80 && p.x < view.w + 80 && p.y > -80 && p.y < view.h + 80;
-}
-const playNear = (id, c, gap) => heard(c) && playSound(id, gap);
+// Heard while it is in view or close to it: a fight, a site or a machine far away stays silent.
+const heard = c => !orbit.on && c?.x != null && placeOf(c).gain > .03;
+const playNear = (id, c, gap) => heard(c) && playSound(id, gap, placeOf(c));
 // Under the theme on the planet, the station hums.
 function stationHum() {
   const ctx = sfx.ctx, want = Boolean(ctx && orbit.on && sfx.on && !document.hidden && sfx.buffers.station_loop?.length);
@@ -7463,7 +7613,7 @@ function stationHum() {
     if (ctx) { gain.gain.setTargetAtTime(0, ctx.currentTime, .3); src.stop(ctx.currentTime + 1.5); }
   }
 }
-function blip(t, {wave = 'sine', from = 440, to = from, dur = .12, gain = .3, noise = false, band = 0, attack = .004}) {
+function blip(t, {wave = 'sine', from = 440, to = from, dur = .12, gain = .3, noise = false, band = 0, attack = .004}, dest = sfx.out) {
   const ctx = sfx.ctx, g = ctx.createGain(), k = 1 + (Math.random() - .5) * .08;
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + attack); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
   let src;
@@ -7479,7 +7629,16 @@ function blip(t, {wave = 'sine', from = 440, to = from, dur = .12, gain = .3, no
     src.frequency.setValueAtTime(from * k, t); src.frequency.exponentialRampToValueAtTime(Math.max(1, to * k), t + dur);
     src.connect(g);
   }
-  g.connect(sfx.out); src.start(t); src.stop(t + dur + .02);
+  g.connect(dest); src.start(t); src.stop(t + dur + .02);
+}
+const SOUND_LEVEL = {gene:.22, eat:.45, dna:.45, click:.6, rotate:.6, hit:.55, turret:.7, sting:.7, maw:.8, damaged:.6, throw:.7};
+// 3. Where a sound comes from, as the player looks: full near the middle of the screen, fading past its edges,
+// quieter as the view zooms out, and heard from its side.
+function placeOf(c) {
+  const p = screenAt({x:c.x + .5, y:c.y + .5}), cx = view.w / 2, cy = view.h / 2;
+  const off = Math.hypot((p.x - cx) / cx, (p.y - cy) / cy);
+  const near = Math.max(0, Math.min(1, (1.6 - off) / 1.1)), zoom = Math.max(.25, Math.min(1, cam.zoom / 40));
+  return {gain:near * zoom, pan:Math.max(-1, Math.min(1, (p.x - cx) / cx)) * .8};
 }
 // Each effect: its family for the lab, its name, and how it is drawn (b = blip at an offset in seconds).
 const SOUNDS = {
@@ -7515,23 +7674,29 @@ const SOUNDS = {
   zoom:{group:'Planet', name:'Zoom into a game', play:b => b(0, {noise:true, from:300, to:2000, dur:.9, gain:.12, band:1.5})},
 };
 // gap: the least time between two of the same, in seconds, so a fight does not pile one sound up.
-function playSound(id, gap = .06) {
-  if (!sfx.ctx || !sfx.on || sfx.voices >= 10) return false;
-  const now = sfx.ctx.currentTime;
+// where: its loudness and side from placeOf, for a sound that comes from a place on the map.
+function playSound(id, gap = .06, where = null) {
+  const ctx = sfx.ctx;
+  if (!ctx || !sfx.on || sfx.voices >= 10) return false;
+  const now = ctx.currentTime;
   if (now - (sfx.last[id] ?? -9) < gap) return false;
   sfx.last[id] = now;
+  const level = ctx.createGain();
+  level.gain.value = (SOUND_LEVEL[id] ?? 1) * (where ? where.gain : 1);
+  if (where && ctx.createStereoPanner) { const pan = ctx.createStereoPanner(); pan.pan.value = where.pan; level.connect(pan).connect(sfx.out); }
+  else level.connect(sfx.out);
   const takes = sfx.buffers[id];
   if (takes?.length) {
-    const src = sfx.ctx.createBufferSource();
+    const src = ctx.createBufferSource();
     src.buffer = takes[Math.floor(Math.random() * takes.length)];
-    src.connect(sfx.out); src.start();
+    src.connect(level); src.start();
     sfx.voices++; src.onended = () => { sfx.voices--; };
     return true;
   }
   const s = SOUNDS[id];
   if (!s) return false;
   sfx.voices++;
-  s.play((at, o) => blip(now + at, o));
+  s.play((at, o) => blip(now + at, o, level));
   setTimeout(() => { sfx.voices--; }, 800);
   return true;
 }
@@ -7711,7 +7876,8 @@ const LAB_FILES = [
   'sounds/planet_zoom_1.mp3',
   'sounds/planet_zoom_2.mp3',
 ];
-const LAB_PIECES = [['Main theme (planet)', 'theme'], ['Calm 1', MUSIC.calm[0]], ['Calm 2', MUSIC.calm[1]], ['Fight', 'fight']];
+const pieceName = src => src.split('/').pop().replace('strainworks_', '').replace(/(-[0-9a-f]+)?\.mp3$/, '');
+const LAB_PIECES = [['Main theme (planet)', 'theme'], ...MUSIC.calm.map(src => [`Calm · ${pieceName(src)}`, src]), ...MUSIC.fight.map(src => [`Fight · ${pieceName(src)}`, src])];
 function labSoundsHTML() {
   const groups = [...new Set(Object.values(SOUNDS).map(s => s.group))];
   return `<p class="note">Music</p>

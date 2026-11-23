@@ -37,7 +37,7 @@ it("draws what the core wants, its recipe and what it gives, for every stage", a
       }
       return seen;
     });
-    expect(stages[0]).toMatchObject({ shown: true, titles: ["Il réclame", "Recette", "Débloque"], steps: 1, machines: ["Ligase"], pictures: true, letters: false, carbon: false });
+    expect(stages[0]).toMatchObject({ shown: true, titles: ["Stades", "Il réclame", "Recette", "Débloque"], steps: 1, machines: ["Ligase"], pictures: true, letters: false, carbon: false });
     expect(stages[1]).toMatchObject({ shown: true, steps: 2, machines: ["Ligase", "Encapsuleur"], pictures: true, letters: false, carbon: true });
     expect(stages[2]).toMatchObject({ shown: true, steps: 4, machines: ["Ligase", "Ligase", "Assembleur", "Encapsuleur"], pictures: true, letters: false, carbon: true });
     expect(stages.every((s) => s.gives > 0)).toBe(true);

@@ -91,22 +91,26 @@ export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
     close: () => browser.close(),
-    async newContext({ fog = false, planet = false, view3d = false, lang = "fr", ...options } = {}) {
+    async newContext({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, ...options } = {}) {
       const context = await browser.newContext(options);
       if (!fog) await context.addInitScript(seenEverywhere);
       if (!planet) await context.addInitScript(pastThePlanet);
       if (!view3d) await context.addInitScript(flatUnlessPicked);
       if (lang) await context.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
+      // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
+      if (!intro) await context.addInitScript(() => localStorage.setItem("strainworks-intro", "1"));
       await context.addInitScript(seedRandom);
       await context.addInitScript(layoutProbe);
       return context;
     },
-    async newPage({ fog = false, planet = false, view3d = false, lang = "fr", ...options } = {}) {
+    async newPage({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, ...options } = {}) {
       const page = await browser.newPage(options);
       if (!fog) await page.addInitScript(seenEverywhere);
       if (!planet) await page.addInitScript(pastThePlanet);
       if (!view3d) await page.addInitScript(flatUnlessPicked);
       if (lang) await page.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
+      // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
+      if (!intro) await page.addInitScript(() => localStorage.setItem("strainworks-intro", "1"));
       await page.addInitScript(seedRandom);
       await page.addInitScript(layoutProbe);
       return page;
