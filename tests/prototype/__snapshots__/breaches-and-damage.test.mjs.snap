@@ -65,7 +65,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
       "north starved": {
         "buildable": false,
         "cleared": null,
-        "over": 137,
+        "over": 105,
         "reward": false,
         "turretsLeft": 0,
       },
@@ -90,7 +90,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
         ],
       ],
       "startingLineAlone": {
-        "left": 14,
+        "left": 18,
         "middle": "SFN",
         "over": false,
         "state": "wake",

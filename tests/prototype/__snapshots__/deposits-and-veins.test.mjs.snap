@@ -27,7 +27,7 @@ exports[`deposits-and-veins behaves as the recorded prototype 1`] = `
       ],
       "loop": true,
       "lured": [
-        32.2,
+        32.9,
         false,
       ],
       "mine x1 mk1": 1,

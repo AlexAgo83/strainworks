@@ -79,7 +79,7 @@ exports[`construction-and-repair behaves as the recorded prototype 1`] = `
       ],
       "veinFlows": true,
       "veinWaits": 0,
-      "wallSite": 0.27,
+      "wallSite": 0.52,
     },
   ],
   [

@@ -1105,6 +1105,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <div class="row in-game"><span>Objectif</span><button id="intro-again" class="tip">Revoir</button></div>
     <div class="row in-game"><span>Guide de départ</span><button id="guide-again" class="tip">Revoir</button></div>
     <div class="row in-game"><span>Graphe de performance</span><button id="perf-toggle" class="tip" aria-pressed="false" aria-controls="perf">Afficher</button></div>
+    <div class="row in-game"><span>Débloquer le stade suivant</span><button id="next-stage" class="tip">Achever</button></div>
     <div class="row in-game" id="open-row"><span>Tout débloquer (test)</span><button id="open-all" class="tip">Activer</button></div>
     <a class="row" href="?lab" target="_blank" rel="noopener"><span>Labo des modèles et des sons</span><span>↗</span></a>
    </div>
@@ -1704,6 +1705,9 @@ const EN = {
   "rien, personne à portée": "nothing, nobody in range",
   "{} sur nerf, demande : {}. En stock : {}.": "{} on a nerve, asks for: {}. In stock: {}.",
   "Il réclame": "It asks for",
+  "Débloquer le stade suivant": "Unlock the next stage",
+  "Achever": "Complete",
+  "Le dernier stade est déjà achevé.": "The last stage is already complete.",
   "Relais": "Relay",
   "Un poteau qui ne fait que porter un nerf : relie-le comme une tourelle, et le réseau va 24 cases plus loin.": "A pole that only carries a nerve: wire it like a turret, and the network goes 24 cells further.",
   "Un nerf relie deux éléments parmi tourelles, radars, relais, feux et trieurs.": "A nerve links two of turrets, radars, relays, gates and sorters.",
@@ -3513,6 +3517,8 @@ function nestHp(b) {
   if (b.max == null) { b.max = Math.round(NEST.hp * (b.tough || 1)); b.hp = b.max; }
   return b;
 }
+// How fast creatures walk, in cells a second: on open ground, and across belts and bridges.
+const CREATURE = {pace:.65, through:.36};
 // Thrown out of the nest, a creature lands 2 to 5 cells away and only then walks.
 function spawn(b, gene) {
   playNear('throw', b, .3);
@@ -3620,13 +3626,13 @@ function menace(dt) {
     if (gnawing) continue;
     const dx = goal.x - e.x, dy = goal.y - e.y, distance = Math.hypot(dx, dy) || 1;
     const c = cellAt(Math.floor(e.x + dx / distance * .4), Math.floor(e.y + dy / distance * .4));
-    let pace = .4;
+    let pace = CREATURE.pace;
     if (c) {
       const passable = c !== prey && (!built(c) || isBelt(c) || c.type === 'bridge');
       c.hitAt = G.time;
       c.hp -= dt * (c.type === 'core' ? .6 : passable ? .4 : 3.5);
       if (c.type === 'core') playSound('core_hit', 1.2, heard(c) ? placeOf(c) : null); else playNear('damaged', c, .8);
-      pace = passable ? .22 : 0;
+      pace = passable ? CREATURE.through : 0;
       if (c.hp <= 0) {
         if (c.type === 'core') { G.over = true; c.hp = 0; playSound('game_over'); }
         else { playNear('destroyed', c, .2); dropRise(c); delete G.cells[key(c.x, c.y)]; forgetCells(); G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read, mk:c.mk, on:c.on, onRich:c.onRich}; tell(L('Ligne coupée : le bouton Reconstruire remet tout en place.'), {at:c, bad:true}); }
@@ -6843,6 +6849,12 @@ $('open-all').onclick = () => {
 };
 $('continue').onclick = () => { ui.grown = 0; $('growth').hidden = true; };
 $('free-play').onclick = () => { $('victory').hidden = true; };
+// Developer: the stage under way is completed as if its recipes were all delivered.
+$('next-stage').onclick = () => {
+  if (G.stage >= STAGES.length) return refuse(L('Le dernier stade est déjà achevé.'));
+  if (G.goals) for (const g of G.goals) g.fed = g.count;
+  showMenu(false); grow(); refresh();
+};
 $('won-planet').onclick = () => { $('victory').hidden = true; openPlanet(); };
 function addPip(i) {
   const b = document.createElement('button');
