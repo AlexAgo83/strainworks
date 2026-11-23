@@ -49,3 +49,20 @@ it("shows the goal once on a first game, made of the game's pictures, and again 
     await browser.close();
   }
 });
+
+it("starts a new game on the core alone, the view centred on it", async () => {
+  const browser = await launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, line: false });
+    await page.route("**/*", (route) => (route.request().url().startsWith("http://proto.test") ? route.fulfill({ body: pageHTML(), contentType: "text/html" }) : route.abort()));
+    await page.goto("http://proto.test/prototype/");
+    const start = await page.evaluate(() => {
+      begin();
+      const middle = screenAt(centreOf(G.cells[key(CORE.x, CORE.y)]));
+      return { built: Object.values(G.cells).map((c) => c.type), centred: Math.abs(middle.x - view.w / 2) < 2 && Math.abs(middle.y - view.h / 2) < 2 };
+    });
+    expect(start).toEqual({ built: ["core"], centred: true });
+  } finally {
+    await browser.close();
+  }
+});

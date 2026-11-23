@@ -73,7 +73,7 @@ it("shows each model alone and edits its state without saving", async () => {
       audio: Boolean(sfx.ctx),
       voices: sfx.voices <= 10,
       files: document.querySelectorAll("[data-file]").length === LAB_FILES.length && LAB_FILES.length > 0,
-      calm: music.force === "calm" && music.src.endsWith("_02.mp3"),
+      calm: music.force === "calm" && music.src === MUSIC.calm[music.calm],
     }));
     expect(sounds).toEqual({ shown: true, audio: true, voices: true, files: true, calm: true });
     expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => /game|save|planet/i.test(k)))).toEqual([]);

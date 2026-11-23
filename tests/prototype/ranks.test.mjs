@@ -174,16 +174,16 @@ it("sells ranks for ADN, one at a time or a whole row", async () => {
     });
     expect(out).toEqual({
       row: 5,
-      paid: [99, 1, 1],
+      paid: [98, 1, 1],
       risen: [2, 0],
-      rowPaid: 85,
+      rowPaid: 60,
       rowRisen: [3, 3, 3, 3, 3, 1],
       refused: [false, 5],
       cancelled: [100, 1],
-      back: [3, 0],
-      afterRemove: 3,
-      drawn: [5, true, 0],
-      rebuilt: [3, 80],
+      back: [4, 0],
+      afterRemove: 4,
+      drawn: [2, true, 1],
+      rebuilt: [3, 50],
     });
     expect(errors).toEqual([]);
   } finally {
@@ -262,7 +262,7 @@ it("lets cysts hold more by rank, at the same pace", async () => {
       cyst: [[60, true], [120, true], [240, true]],
       vault: [[360, true], [720, true], [1440, true]],
       before: false,
-      after: [3, true, 75, 25],
+      after: [3, true, 40, 30],
     });
     expect(errors).toEqual([]);
   } finally {
@@ -366,7 +366,7 @@ it("makes transformers faster and defences stronger by rank, and keeps older spl
       ligase: [10, 20, 30],
       turret: [[true, 180], [true, 270], [true, 360]],
       wall: [260, 520, 780],
-      costs: [["split", 2, 6], ["sort", 3, 8], ["ligase", 15, 40], ["pack", 30, 80], ["turret", 20, 50], ["wall", 5, 15]],
+      costs: [["split", 5, 15], ["sort", 8, 20], ["ligase", 40, 100], ["pack", 75, 200], ["turret", 50, 125], ["wall", 12, 40]],
       older: [3, 12, true, true],
     });
     expect(errors).toEqual([]);

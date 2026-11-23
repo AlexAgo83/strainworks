@@ -2182,8 +2182,14 @@ function generate(sx, sy, id) {
 // The fog has three states: never seen, seen before (saved), seen now. A tile is two cells,
 // a block sixteen tiles each way and one number a row of tiles.
 const SIGHT = {core:56, built:18, moving:8, nest:6, radar:36};
-// A radar pulses every 3 s across what it sees.
+// A radar pulses every 3 s across what it sees: twice once built, and while selected. Otherwise it stays still.
 const RADAR = {range:36, pulse:3};
+function radarWave(c, t) {
+  if (!built(c)) return null;
+  if (selected === key(c.x, c.y)) return (t / RADAR.pulse) % 1;
+  const since = G.time - (c.shownAt ?? -1e9);
+  return since < RADAR.pulse * 2 ? (since / RADAR.pulse) % 1 : null;
+}
 let live = new Map(), passingBy = new Map(), standing = new Map(), movedFrom = '', fogTick = 0;
 function bitAt(get, x, y) {
   const tx = Math.floor(x / 2), ty = Math.floor(y / 2), rows = get(Math.floor(tx / 16) + ',' + Math.floor(ty / 16));
@@ -2320,10 +2326,13 @@ const gunPrice = type => n => GUNS[type].cost + 10 * n;
 const PRICE = {radar:n => 30 + 15 * n, turret:gunPrice('turret'), sting:gunPrice('sting'), maw:gunPrice('maw'), wall:n => 5 + Math.floor(n / 5), worm:n => 20 + 10 * n};
 const owned = type => type === 'worm' ? G.worms.length : allCells().filter(c => GUNS[type] ? GUNS[c.type] : c.type === type).length;
 const price = type => PRICE[type] ? PRICE[type](owned(type)) : 0;
-// Taking one down returns what the last one cost, less its damage: building and removing never earns.
+// Taking a finished one down returns half of what the last one cost, less its damage: building and removing
+// never earns. A site given up before it was finished returns all of it.
 const refund = c => {
   const worth = (PRICE[c.type] ? PRICE[c.type](owned(c.type) - 1) : 0) + rankCost(c.type, c.mk);
-  return worth ? Math.floor(worth * Math.max(0, c.hp) / TYPES[c.type].hp) : 0;
+  // Read when the dismantling was asked: a building being taken down no longer counts as built.
+  const finished = c.unfinished == null ? (c.left || 0) <= 0 : !c.unfinished;
+  return worth ? Math.floor(worth * (finished ? .5 : 1) * Math.max(0, c.hp) / TYPES[c.type].hp) : 0;
 };
 // Work only advances with the simulation and only with a drone at the site: one drone a site, oldest site first.
 const BUILDERS = 3;
@@ -2337,26 +2346,26 @@ const fullHp = c => (TYPES[c.type]?.hp ?? 100) * (GUNS[c.type] ? GUN_RANK : c.ty
 const healing = c => !c.cut && c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt ?? -99) >= REPAIR.quiet;
 const unlocked = stage => G.open || G.stage >= stage;
 const richCap = () => unlocked(3) ? 8 : unlocked(2) ? 2 : 1;
-// Three ranks of belts and harvesters, paid in ADN. cost is from the first rank, time is a drone's.
+// Three ranks of belts and harvesters, paid in ADN: a rank is earned, not given. cost is from the first rank, time is a drone's.
 const RANKS = {
-  belt:{cost:[0, 1, 3], time:.15},
-  mine:{cost:[0, 15, 40], time:2},
-  borer:{cost:[0, 60, 160], time:4},
-  cyst:{cost:[0, 10, 25], time:2},
-  vault:{cost:[0, 30, 80], time:5},
+  belt:{cost:[0, 2, 8], time:.15},
+  mine:{cost:[0, 40, 100], time:2},
+  borer:{cost:[0, 150, 400], time:4},
+  cyst:{cost:[0, 25, 60], time:2},
+  vault:{cost:[0, 75, 200], time:5},
   // Splitters and sorters pass at most the pace of their rank, as a belt of that rank.
-  split2:{cost:[0, 2, 6], time:.5},
-  split:{cost:[0, 2, 6], time:.5},
-  sort:{cost:[0, 3, 8], time:.5},
+  split2:{cost:[0, 5, 15], time:.5},
+  split:{cost:[0, 5, 15], time:.5},
+  sort:{cost:[0, 8, 20], time:.5},
   // Transformers make 1, 2 or 3 objects a second.
-  ligase:{cost:[0, 15, 40], time:2.5},
-  join:{cost:[0, 15, 40], time:2.5},
-  pack:{cost:[0, 30, 80], time:2.5},
+  ligase:{cost:[0, 40, 100], time:2.5},
+  join:{cost:[0, 40, 100], time:2.5},
+  pack:{cost:[0, 75, 200], time:2.5},
   // Defences: turrets fire faster and hold more, walls hold more.
-  turret:{cost:[0, 20, 50], time:3},
-  sting:{cost:[0, 40, 100], time:4},
-  maw:{cost:[0, 30, 75], time:3},
-  wall:{cost:[0, 5, 15], time:2}
+  turret:{cost:[0, 50, 125], time:3},
+  sting:{cost:[0, 100, 250], time:4},
+  maw:{cost:[0, 75, 190], time:3},
+  wall:{cost:[0, 12, 40], time:2}
 };
 const CAPPED = new Set(['split2', 'split', 'sort']);
 // The ones whose drawing does not show their rank itself: one ring a rank above the first.
@@ -2518,6 +2527,7 @@ const woven = c => Math.max(0, Math.min(1, c.cut ? c.out / workTime(c) : 1 - (c.
 // Asks for a drone. A site nobody started has nothing to take down: it goes at once.
 function scrap(c, now) {
   if (c.out != null || c.type === 'core') return;
+  c.unfinished = (c.left || 0) > 0;
   dropRise(c);
   const total = workTime(c);
   if (c.left >= total - 1e-9) return now();
@@ -2537,7 +2547,7 @@ function scrapVein(c) {
 function keepIt(c) {
   if (c.out == null) return;
   if (c.cut) { c.left = Math.max(0, workTime(c) - c.out); c.order = G.seq = (G.seq || 0) + 1; }
-  delete c.out; delete c.cut; delete c.outOrder;
+  delete c.out; delete c.cut; delete c.outOrder; delete c.unfinished;
 }
 function keepVein(c) {
   if (c.veinOut == null) return;
@@ -2551,6 +2561,7 @@ function unlink(c) {
 }
 function finishJob({c, field}) {
   if (field === 'veinOut') return unlink(c);
+  if (field === 'left' && c.type === 'radar') c.shownAt = G.time;
   if (field === 'up') {
     c.mk = c.upTo;
     playNear('rank', c);
@@ -2712,16 +2723,11 @@ function recipe(item) {
 function fresh() {
   G = {time:0, ranked:true, capsules:true, world:2, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0,
     woken:0, breaches:[], families:['SFN','SSC','FNN'], over:false};
+  // The core alone: the guide has the player build the first line, on open ground.
   put('core', CORE.x, CORE.y, 0);
   survey();
-  // First line, three arms that never cross: chitine south-west, nerve south-east, fibre east: one base per entry.
-  const run = (x0, y0, x1, y1, dir) => {
-    for (let x = x0, y = y0; ; x += DX[dir], y += DY[dir]) { put('belt',x,y,dir); if (x === x1 && y === y1) break; }
-  };
-  put('mine',38,56,1); run(39,56,40,56,1); run(41,56,41,45,0); run(41,44,47,44,1);
-  put('mine',59,44,3); run(58,44,49,44,3);
-  put('mine',57,57,3); run(56,57,55,57,3); run(54,57,54,49,0); run(54,48,49,48,3); run(48,48,48,45,0);
-  put('ligase',48,44,0); run(48,43,48,40,0); put('cyst',48,39,0); run(48,38,48,35,0); put('turret',48,34,0);
+  // Tests replaying games recorded on the first line older versions gave lay it again here.
+  window.startLine?.();
   nest();
   hatchDrones();
   selected = null; chain = []; paused = false; NET = new Map();
@@ -3668,7 +3674,9 @@ function zoomAt(factor, sx = view.w / 2, sy = view.h / 2) {
   cam.y = Math.max(-LIMIT, Math.min(LIMIT, cam.y + before.y - after.y));
 }
 function home() {
-  cam.x = CORE.x + 2; cam.y = OY + 6;
+  // Centred on the core: a new game starts from it alone.
+  const c = centreOf(G.cells[key(CORE.x, CORE.y)] || {x:CORE.x, y:CORE.y, type:'core'});
+  cam.x = c.x; cam.y = c.y;
   cam.zoom = Math.max(11, Math.min(44, Math.min(view.w / 28, view.h / (28 * flat()))));
 }
 function circle(g, x, y, r, fill, stroke, width = .04) {
@@ -3972,8 +3980,8 @@ function draw() {
   drawTracks();
   for (const w of Object.values(G.ruins)) if (!buried(w)) rect(ctx,w.x + .15,w.y + .15,sizeOf(w) - .3,sizeOf(w) - .3,'#321820','#FF6B6B');
   // Radar waves: one every 3 s from the pylon to the edge of what it sees, fading as they go.
-  for (const c of allCells()) if (c.type === 'radar' && built(c)) {
-    const k = ((motionTime() || G.time) / RADAR.pulse + (c.x * 7 + c.y * 3) % 10 / 10) % 1;
+  for (const c of allCells()) if (c.type === 'radar' && radarWave(c, motionTime() || G.time) != null) {
+    const k = radarWave(c, motionTime() || G.time);
     ctx.globalAlpha = .55 * (1 - k);
     circle(ctx,c.x + .5,c.y + .5,.6 + k * RADAR.range,null,'#66D9EA',Math.max(.05,1.5 / cam.zoom));
     ctx.globalAlpha = .08;
@@ -4796,7 +4804,7 @@ function preview() {
     if (!free()) return no(hive);
     const track = G.tracks[id];
     if (!track) return to('build', {type:'track', dir:heading});
-    return drawing ? to('select') : to('turn', {type:'track', dir:(track.dir + 1) % 4, label:L('Tourner')});
+    return drawing ? to('select') : to('turn', {type:'track', dir:track.dir, label:L('Tourner')});
   }
   if (tool === 'hand') {
     if (old) return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
@@ -4809,7 +4817,8 @@ function preview() {
   }
   if (old) {
     if (drawing) return to('select');
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:L('Tourner')});
+    // The ghost shows the way it faces now; a tap turns it.
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:old.dir, label:L('Tourner')});
     if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
     return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
   }
@@ -7570,6 +7579,15 @@ const MUSIC = {
   calm:['music/strainworks_music_02.mp3', 'music/strainworks_calm_a_1.mp3', 'music/strainworks_calm_b_1.mp3', 'music/strainworks_music_04.mp3', 'music/strainworks_calm_c_1.mp3', 'music/strainworks_calm_a_2.mp3', 'music/strainworks_calm_b_2.mp3', 'music/strainworks_calm_c_2.mp3'],
   fight:['music/strainworks_music_03.mp3', 'music/strainworks_fight_a_1.mp3', 'music/strainworks_fight_b_1.mp3', 'music/strainworks_fight_a_2.mp3', 'music/strainworks_fight_b_2.mp3'],
 };
+// The music draws its own chance, so the game's seeded Math.random is left alone.
+const musicRandom = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+// A new order on every visit and after every round, never the same piece twice in a row.
+function shuffleCalm() {
+  const last = MUSIC.calm.at(-1);
+  for (let i = MUSIC.calm.length - 1; i > 0; i--) { const j = musicRandom(i + 1); [MUSIC.calm[i], MUSIC.calm[j]] = [MUSIC.calm[j], MUSIC.calm[i]]; }
+  if (MUSIC.calm[0] === last) MUSIC.calm.push(MUSIC.calm.shift());
+}
+shuffleCalm();
 const music = {volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, fight:0, fightUntil:0, force:null};
 try {
   const saved = JSON.parse(localStorage.getItem(MUSIC_KEY));
@@ -7578,7 +7596,12 @@ try {
 for (const a of music.players) {
   a.preload = 'auto';
   // A calm piece played to its end hands over to the other.
-  a.addEventListener('ended', () => { if (MUSIC.calm.includes(music.src)) { music.calm = (music.calm + 1) % MUSIC.calm.length; musicTick(); } });
+  a.addEventListener('ended', () => {
+    if (!MUSIC.calm.includes(music.src)) return;
+    music.calm++;
+    if (music.calm >= MUSIC.calm.length) { music.calm = 0; shuffleCalm(); }
+    musicTick();
+  });
 }
 function musicWant(now) {
   // The lab plays what it is asked: a moment of the game, a piece, or nothing.
@@ -7586,7 +7609,7 @@ function musicWant(now) {
   if (orbit.on || !G) return MUSIC.theme;
   // An assault, or creatures on the map: a fight piece, drawn as the fight starts and held 8 s after so it does not flicker.
   if (!G.over && $('app').classList.contains('hot')) {
-    if (now >= music.fightUntil) music.fight = Math.floor(Math.random() * MUSIC.fight.length);
+    if (now >= music.fightUntil) music.fight = musicRandom(MUSIC.fight.length);
     music.fightUntil = now + 8000;
   }
   return now < music.fightUntil ? MUSIC.fight[music.fight] : MUSIC.calm[music.calm];
@@ -7662,7 +7685,7 @@ $('sfx-volume').oninput = () => { sfx.volume = Number($('sfx-volume').value) / 1
 $('sfx-on').onclick = () => { sfx.on = !sfx.on; keepSfx(); paintSfx(); };
 paintSfx();
 // Each effect's generated takes, by the name of their files; the game picks one at random each time.
-const SOUND_FILE = {click:'ui_click', open:'ui_open', refuse:'ui_refuse', step:'ui_step', dna:'ui_dna', place:'build_place', belt:'build_belt', bridge:'build_bridge', rotate:'build_rotate', done:'build_done', dismantle:'build_dismantle', rank:'build_rank', gene:'prod_gene', eat:'prod_eat', turret:'turret_fire', sting:'fight_sting', maw:'fight_maw', hit:'fight_hit', kill:'fight_kill', throw:'fight_throw', damaged:'fight_damaged', destroyed:'fight_destroyed', core_hit:'fight_core_hit', hex:'planet_hex', zoom:'planet_zoom', stage_up:'stage_up', game_over:'game_over', nest_down:'nest_down', mutation:'mutation', assault_alarm:'assault_alarm', station_loop:'station_loop'};
+const SOUND_FILE = {click:'ui_click', open:'ui_open', refuse:'ui_refuse', step:'ui_step', place:'build_place', belt:'build_belt', bridge:'build_bridge', rotate:'build_rotate', done:'build_done', dismantle:'build_dismantle', rank:'build_rank', gene:'prod_gene', eat:'prod_eat', turret:'turret_fire', sting:'fight_sting', maw:'fight_maw', hit:'fight_hit', kill:'fight_kill', throw:'fight_throw', damaged:'fight_damaged', destroyed:'fight_destroyed', core_hit:'fight_core_hit', hex:'planet_hex', zoom:'planet_zoom', stage_up:'stage_up', game_over:'game_over', nest_down:'nest_down', mutation:'mutation', assault_alarm:'assault_alarm', station_loop:'station_loop'};
 function loadSounds() {
   for (const [id, base] of Object.entries(SOUND_FILE)) {
     const take = new RegExp(`/${base}_\\d`);
@@ -7707,7 +7730,8 @@ function blip(t, {wave = 'sine', from = 440, to = from, dur = .12, gain = .3, no
   }
   g.connect(dest); src.start(t); src.stop(t + dur + .02);
 }
-const SOUND_LEVEL = {gene:.22, eat:.45, dna:.45, click:.6, rotate:.6, hit:.55, turret:.7, sting:.7, maw:.8, damaged:.6, throw:.7};
+// What repeats while a factory runs or a fight goes on stays well under the one-off sounds.
+const SOUND_LEVEL = {gene:.1, eat:.22, dna:.3, click:.6, rotate:.6, hit:.3, turret:.4, sting:.4, maw:.45, damaged:.35, throw:.5, done:.6};
 // 3. Where a sound comes from, as the player looks: full near the middle of the screen, fading past its edges,
 // quieter as the view zooms out, and heard from its side.
 function placeOf(c) {
@@ -7715,8 +7739,8 @@ function placeOf(c) {
   const off = Math.hypot((p.x - cx) / cx, (p.y - cy) / cy);
   // Full in the middle, about half at the edge of the screen, gone a little past it.
   const near = off <= 1 ? 1 - .55 * off : Math.max(0, .45 * (1.6 - off) / .6);
-  // From nearly silent zoomed all the way out (4) to full from a close view (36) on.
-  const zoom = Math.max(.08, Math.min(1, (cam.zoom - 4) / 32)) ** .8;
+  // About half at the default view, almost nothing zoomed far out, full only from a close view (40) on.
+  const zoom = Math.max(.03, Math.min(1, (cam.zoom - 6) / 34)) ** 1.5;
   return {gain:near * zoom, pan:Math.max(-1, Math.min(1, (p.x - cx) / cx)) * .9};
 }
 // Each effect: its family for the lab, its name, and how it is drawn (b = blip at an offset in seconds).
@@ -7725,7 +7749,7 @@ const SOUNDS = {
   open:{group:'Interface', name:'Family or menu opens', play:b => { b(0, {from:300, to:620, dur:.18, gain:.18}); b(0, {noise:true, from:800, to:2400, dur:.18, gain:.06, band:2}); }},
   refuse:{group:'Interface', name:'Refused', play:b => { b(0, {wave:'square', from:220, to:180, dur:.1, gain:.1}); b(.11, {wave:'square', from:180, to:140, dur:.14, gain:.1}); }},
   step:{group:'Interface', name:'Guide step done', play:b => { b(0, {from:880, dur:.18, gain:.16}); b(.09, {from:1320, dur:.3, gain:.14}); }},
-  dna:{group:'Interface', name:'DNA earned', play:b => { b(0, {from:1500, to:2200, dur:.08, gain:.1}); b(.06, {from:2000, to:2900, dur:.1, gain:.08}); }},
+  dna:{group:'Interface', name:'DNA earned', play:b => { b(0, {from:320, to:190, dur:.14, gain:.16}); b(0, {noise:true, from:500, to:260, dur:.1, gain:.04, band:3}); }},
   place:{group:'Building', name:'Building placed', play:b => { b(0, {noise:true, from:900, to:300, dur:.18, gain:.22, band:1.5}); b(0, {from:180, to:90, dur:.16, gain:.25}); }},
   belt:{group:'Building', name:'Belt laid', play:b => b(0, {noise:true, from:2500, to:1100, dur:.25, gain:.12, band:3})},
   bridge:{group:'Building', name:'Bridge laid', play:b => { b(0, {wave:'triangle', from:400, to:380, dur:.3, gain:.16}); b(.02, {wave:'triangle', from:600, to:590, dur:.25, gain:.1}); }},

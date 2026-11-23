@@ -338,7 +338,8 @@ window.createModels3D = (B, scene) => {
       add('bead', 'cyan', x, y, 2.3, 0.12);
       if (!built(c)) return;
       // One wave every 3 s, from the pylon to the edge of what it sees.
-      const k = (clock / RADAR.pulse + ((c.x * 7 + c.y * 3) % 10) / 10) % 1;
+      const k = radarWave(c, clock);
+      if (k == null) return;
       const d = 1.6 + k * RADAR.range * 2;
       add('wave', 'cyan', x, y, 0.05, d, 1, d);
     },

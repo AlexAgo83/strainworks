@@ -15,7 +15,14 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
     await page.evaluate(() => { begin(); paused = true; });
     const before = await page.evaluate(() => [music.started, music.src]);
     await page.keyboard.press("Shift");
-    const calm = await page.evaluate(() => [music.started, music.src.endsWith("_02.mp3"), Boolean(music.gains)]);
+    const calm = await page.evaluate(() => [music.started, music.src === MUSIC.calm[0], Boolean(music.gains)]);
+    // A round ends: every calm piece was heard once, in a new order next time, never the same one twice in a row.
+    const rounds = await page.evaluate(() => {
+      const heard = [];
+      for (let i = 0; i < MUSIC.calm.length * 3; i++) { heard.push(music.src); music.players[music.live].dispatchEvent(new Event("ended")); }
+      const first = heard.slice(0, MUSIC.calm.length);
+      return [new Set(first).size === MUSIC.calm.length, heard.every((s, i) => i === 0 || s !== heard[i - 1])];
+    });
     const fight = await page.evaluate(() => {
       document.querySelector("#app").classList.add("hot");
       musicTick();
@@ -55,6 +62,7 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
 
     expect(before).toEqual([false, ""]);
     expect(calm).toEqual([true, true, true]);
+    expect(rounds).toEqual([true, true]);
     expect(fight).toEqual([true, true, true]);
     expect(menu).toEqual([0.2, false, "Coupée", { volume: 0.2, on: false }]);
     expect(kept).toEqual(["20", "false"]);

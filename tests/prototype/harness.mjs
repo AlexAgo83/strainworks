@@ -18,6 +18,19 @@ function seedRandom() {
   };
 }
 
+// A new game is the core alone. Games recorded before began on a first line; tests replaying them lay it again.
+function startLine() {
+  window.startLine = () => {
+    const run = (x0, y0, x1, y1, dir) => {
+      for (let x = x0, y = y0; ; x += DX[dir], y += DY[dir]) { put("belt", x, y, dir); if (x === x1 && y === y1) break; }
+    };
+    put("mine", 38, 56, 1); run(39, 56, 40, 56, 1); run(41, 56, 41, 45, 0); run(41, 44, 47, 44, 1);
+    put("mine", 59, 44, 3); run(58, 44, 49, 44, 3);
+    put("mine", 57, 57, 3); run(56, 57, 55, 57, 3); run(54, 57, 54, 49, 0); run(54, 48, 49, 48, 3); run(48, 48, 48, 45, 0);
+    put("ligase", 48, 44, 0); run(48, 43, 48, 40, 0); put("cyst", 48, 39, 0); run(48, 38, 48, 35, 0); put("turret", 48, 34, 0);
+  };
+}
+
 // The tools live in folded families: each is opened before its names are measured.
 function layoutProbe() {
   // Where a large harvester fits in a patch, the last one to the south east.
@@ -91,7 +104,7 @@ export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
     close: () => browser.close(),
-    async newContext({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, ...options } = {}) {
+    async newContext({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, line = true, ...options } = {}) {
       const context = await browser.newContext(options);
       if (!fog) await context.addInitScript(seenEverywhere);
       if (!planet) await context.addInitScript(pastThePlanet);
@@ -99,11 +112,12 @@ export async function launch() {
       if (lang) await context.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
       if (!intro) await context.addInitScript(() => localStorage.setItem("strainworks-intro", "1"));
+      if (line) await context.addInitScript(startLine);
       await context.addInitScript(seedRandom);
       await context.addInitScript(layoutProbe);
       return context;
     },
-    async newPage({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, ...options } = {}) {
+    async newPage({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, line = true, ...options } = {}) {
       const page = await browser.newPage(options);
       if (!fog) await page.addInitScript(seenEverywhere);
       if (!planet) await page.addInitScript(pastThePlanet);
@@ -111,6 +125,7 @@ export async function launch() {
       if (lang) await page.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
       if (!intro) await page.addInitScript(() => localStorage.setItem("strainworks-intro", "1"));
+      if (line) await page.addInitScript(startLine);
       await page.addInitScript(seedRandom);
       await page.addInitScript(layoutProbe);
       return page;
