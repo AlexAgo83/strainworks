@@ -1,64 +1,74 @@
-<img src="site/icon-192.png" alt="Strainworks icon" width="64" align="left" />
+<p align="center"><img src="site/icon-192.png" alt="Strainworks icon" width="96" /></p>
 
-# Strainworks
+<h1 align="center">Strainworks</h1>
 
-<br clear="left"/>
+<p align="center"><b>Write the living. Make it a factory. Survive its mutations.</b></p>
 
-![Version](https://img.shields.io/badge/version-0.1.0-B7F34A)
-![License](https://img.shields.io/badge/license-MIT-2E8B57)
-![Babylon.js](https://img.shields.io/badge/Babylon.js-9-BB464B)
-![Status](https://img.shields.io/badge/status-prototype-66D9EA)
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-B7F34A" alt="Version" />
+  <img src="https://img.shields.io/badge/license-MIT-2E8B57" alt="License" />
+  <img src="https://img.shields.io/badge/Babylon.js-9-BB464B" alt="Babylon.js" />
+  <img src="https://img.shields.io/badge/status-prototype-66D9EA" alt="Status" />
+</p>
 
-**Write the living. Make it a factory. Survive its mutations.**
+<p align="center"><img src="docs/media/strainworks-factory.gif" alt="A living factory running in 3D" /></p>
 
-A factory game crossed with tower defense, for the browser and the phone. The interface is in French.
+You run a station that industrializes life. You mine organic bases, splice them into genes, weave the genes
+into DNA and feed it to a hungry core. Out in the fog, the breaches you woke send creatures built from the
+very code you manufacture. Your only real weapon is their exact opposite.
 
-Version `0.1.0`, a playable prototype. See the [concept](docs/concept.md) and the [changelogs](changelogs/README.md).
+Zoom out and the belts start to pulse like veins. **It was never a factory. It was a creature.**
 
-![The starting base in 3D: harvesters, belts and a ligase feeding the core](docs/media/strainworks.png)
+A factory game crossed with tower defense, in the browser and on the phone. Version `0.1.0`, a playable
+prototype, interface in French.
 
 ---
 
-## A factory that writes DNA
+## Why it is different
 
-Four organic bases lie in deposits around a hungry core: Spore, Fibre, Chitine and Nerf. Harvesters pull
-them out, belts carry them, and a Ligase joins three of them, in order, into a gene. Assemblers join genes
-into strands, the Encapsulator packs them with carbon into capsules and magazines.
-
-The core asks for one product at a time. Feed it and the organism grows through five stages, from Cellule to
-Noyau, each one opening new machines, richer deposits and longer logistics.
-
-![The factory running in 3D](docs/media/strainworks-factory.gif)
-
-## Fight a gene with its opposite
-
-Breaches sleep in the fog. Build near one and it wakes; every wave carries a gene, and only the opposite
-gene hurts it. Turrets fire whatever they are fed, so the factory has to make the right ammunition at the
-right time: sorters and gates, wired by nerves to turrets and radar pylons, switch the lines to the antidote
-the moment a wave shows up. Nests have hit points: destroy them, or their wave comes back.
-
-From stage 4 the creatures mutate: a new family is born every five minutes, and the lines built for the
-old ones still have to hold.
+- **Your ammunition is a recipe.** Every wave carries a gene, and only the opposite gene hurts it. Turrets
+  fire whatever you feed them, so winning means building the right line, not the biggest gun.
+- **The factory has a nervous system.** Radar pylons sense what is coming, nerves carry it, and sorters and
+  gates switch your lines to the antidote the moment a wave shows up.
+- **The enemy evolves.** From stage 4 a new family is born every five minutes. The lines you built for the
+  old ones still have to hold.
+- **The core grows.** Five stages, from Cellule to Noyau, each opening new machines, richer deposits and longer
+  logistics: worms that haul like trains, veins that pump, isotope far out in the dark.
+- **Nothing appears by magic.** Drones fly to every site, build it, dismantle it, repair it. You watch them work.
 
 ![An assault on the starting base](docs/media/strainworks-assault.gif)
 
-## What is in the prototype
+## A small planet of games
 
-- **Build** with drones: harvesters, belts, bridges, splitters, sorters, gates, ligases, assemblers,
-  encapsulators, cysts and vaults, pumps and veins, trails, pockets and worms, turrets, stings, maws and
-  walls, each with MK ranks.
-- **Command**: nerves link turrets, radar pylons, gates and sorters into one net that follows the threat.
-- **Read it**: a Statistics sheet with production, ADN, defense, threat and what slows the factory; touch a
-  problem and the camera goes there.
-- **Explore**: an endless map in levels, fog that lifts around what you build, isotope far out.
-- **See it** in 2D or 3D, with a small-planet curvature, on a desktop or a phone, offline once installed.
-- **Keep it**: games live on a planet of hexagons, saved in the browser, exported and imported as files.
+Every game is a hexagon on a living planet that fills up as you play. Pick one up where you left it, export it,
+copy it, share it as a file. The game installs as an app and plays offline, in 2D or in 3D with a
+small-planet curvature, on a desktop or a phone.
 
-![The Statistics sheet](docs/media/strainworks-stats.png)
+<p align="center">
+  <img src="docs/media/strainworks-planet.png" alt="The planet of saved games" width="49%" />
+  <img src="docs/media/strainworks-stats.png" alt="The Statistics sheet" width="49%" />
+</p>
 
-![The planet of saved games](docs/media/strainworks-planet.png)
+<p align="center"><img src="docs/media/strainworks.png" alt="The starting base in 3D" /></p>
 
-## Run the prototype
+## Play it locally
+
+```sh
+npm install
+npm run dev
+```
+
+The browser opens the prototype. That is all it takes.
+
+The full design, every decision and its reasons, is in the [concept](docs/concept.md). What changed, version by
+version, is in the [changelogs](changelogs/README.md).
+
+---
+
+<details>
+<summary><b>For developers</b>: running, performance, build, tests and layout</summary>
+
+### Run the prototype
 
 ```sh
 npm install
@@ -69,7 +79,7 @@ The browser opens `/prototype/`. The transport mockup is at `/prototype/transpor
 
 A game opens in 3D, drawn with Babylon.js, unless the player picked 2D in the settings. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
 
-## Performance
+### Performance
 
 Settings > **Graphe de performance** shows 30 s of what each frame costs on the main thread, by kind
 (simulation, fog, 2D drawing, 3D view, interface, save), with the real time between frames and the
@@ -77,7 +87,7 @@ Settings > **Graphe de performance** shows 30 s of what each frame costs on the 
 time it, and says so where it cannot. Hidden, nothing is measured. Settings > **Qualité 3D** > Rapide
 draws the 3D view in screen pixels with smaller shadows and a lighter glow.
 
-## Build the site
+### Build the site
 
 ```sh
 npm run build
@@ -86,7 +96,7 @@ npm run preview   # http://127.0.0.1:4173
 
 An installable static site that plays offline. Deployment follows a published release: see [static site and releases](docs/static-site.md).
 
-## Check
+### Check
 
 ```sh
 npx playwright install chromium   # once
@@ -97,7 +107,7 @@ npm run check
 
 When a rule changes on purpose, rerun with `npm test -- -u` and read the snapshot diff before committing it: that diff is the gameplay change.
 
-## Layout
+### Layout
 
 | Path | Content |
 |---|---|
@@ -110,6 +120,8 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 | `site/`, `scripts/` | The static site: service worker, manifest, icons, build |
 | `src/` | The product. Empty until the simulation is ported |
 | `logics/` | Workflow corpus |
+
+</details>
 
 ## License
 
