@@ -317,6 +317,7 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 | 1. Cell (Cellule) | 100 Motor (SFS), loose | three-way splitter, sorter, Encapsulator |
 | 2. Tissue (Tissu) | capsules of Shell (CCF): 2 genes per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
 | 3. Organ (Organe) | 10 capsules of 6 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
+| 4. System (Système, 2026-11-23) | 30 magazines (6 genes, 1 carbon) of the antidote of the family born on entering | a mutation every 5 minutes, up to 8 families |
 
 - A stage gives 40 ADN and restores the core's hit points.
 - **ADN (2026-11-23)**: what the core demands moves the stage and pays no ADN. What it does not demand pays a third

@@ -1020,7 +1020,9 @@ const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 const STAGES = [
   {name:'Cellule', item:'SFS', count:100, gives:'Diviseur 3, Trieur et Encapsuleur'},
   {name:'Tissu', item:'T:CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2, Assembleur, Grand récolteur et Grand kyste'},
-  {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4 à ×8'}
+  {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4 à ×8'},
+  // The magazine asked follows the family born on entering the stage.
+  {name:'Système', count:30, get item() { return `A:${opposite(G.mutant || G.families[G.families.length - 1])}`; }, gives:'une mutation toutes les 5 minutes, jusqu’à 8 familles'}
 ];
 // A container is a string too, so whatever carries items carries it: 'A:CNF' is a magazine, 'T:CCF' a capsule.
 // K is carbon: matter, never a base, so it has no pair and never enters a gene.
@@ -1820,6 +1822,7 @@ function grow() {
   G.cells[key(CORE.x, CORE.y)].hp = 100;
   select(null);
   tell(`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
+  if (G.stage === 3) { G.mutant = mutation(); G.mutateAt = G.time + MUTATION.every; }
 }
 function recipe(item) {
   const box = boxOf(item), genes = contentOf(item).match(/.{3}/g).map(geneName).join(' + ');
@@ -2295,7 +2298,25 @@ function flow(dt) {
   }
 }
 
-const MAX_FAMILIES = 6;
+// Stage 4 lets the families grow to eight. MAX_FAMILIES is what a saved game may hold.
+const MAX_FAMILIES = 8, MUTATION = {every:300};
+const familyCap = () => G.stage >= 3 ? 8 : 6;
+// A family one base away from an old one, never a palindrome: swapping entries 1 and 3 must always matter.
+function breed(b) {
+  if (G.families.length >= familyCap()) return '';
+  let born;
+  do { born = mutate(G.families[Math.floor(Math.random() * G.families.length)]); } while (G.families.includes(born) || born[0] === born[2]);
+  G.families.push(born);
+  if (b) b.genes.push(born);
+  return born;
+}
+// Stage 4 on: a mutation now and then, on the nearest breach still alive.
+function mutation() {
+  const b = G.breaches.filter(o => o.state !== 'spent').sort((a, c) => span(a, CORE) - span(c, CORE))[0];
+  const born = breed(b);
+  if (born) tell(`Mutation${b ? ` au ${bearing(b)}` : ''} : une nouvelle famille, son antidote est ${opposite(born)}.`, {at:b, gene:born, bad:true});
+  return born;
+}
 function mutate(gene) {
   const at = Math.floor(Math.random() * 3), choices = Object.keys(BASE).filter(b => b !== gene[at]);
   return gene.slice(0, at) + choices[Math.floor(Math.random() * choices.length)] + gene.slice(at + 1);
@@ -2325,12 +2346,7 @@ function wake(found, cause) {
   Object.assign(b, {state:'wake', next:G.time + 30, wander:G.time + 10, spit:G.time});
   G.woken++;
   // A mutation adds a family: every line already built keeps an enemy to kill.
-  if (G.woken % 2 === 0 && G.families.length < MAX_FAMILIES) {
-    let born;
-    // Never a palindrome: swapping entries 1 and 3 must always matter.
-    do { born = mutate(G.families[Math.floor(Math.random() * G.families.length)]); } while (G.families.includes(born) || born[0] === born[2]);
-    G.families.push(born); b.genes.push(born); b.born = born;
-  }
+  if (G.woken % 2 === 0) { const born = breed(b); if (born) b.born = born; }
   tell(`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? ', avec une nouvelle famille' : ''}.${b.id ? ' Elle vise l’avant-poste qui l’a réveillée.' : ''}`, {at:b, gene:b.born, bad:true});
 }
 function disturb() {
@@ -2378,6 +2394,7 @@ function menace(dt) {
   const awake = G.breaches.filter(b => b.state === 'wake');
   const spent = G.breaches.filter(b => b.state === 'spent').length;
   G.threat = Math.min(10, awake.length + spent * .5 + G.made / 1000);
+  if (G.stage >= 3 && !G.over && G.time >= (G.mutateAt ?? Infinity)) { G.mutateAt = G.time + MUTATION.every; mutation(); }
   if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) disturb();
   for (const b of awake) {
     if (b.pending && b.left && G.time >= b.spit) { spawn(b, b.gene); b.pending--; b.spit = G.time + 1.4; }
@@ -2591,9 +2608,10 @@ function diagnose(c) {
   if (c.type === 'gate') return c.open ? 'Feu vert : ça passe. Touche-le pour couper la ligne.' : 'Feu rouge : la ligne attend derrière. Touche-le pour rouvrir.';
   if (c.type === 'core') {
     const want = STAGES[G.stage];
-    if (!want) return `Organisme au stade 3, ${G.kills} créatures tuées. Tout ce que tu livres devient de l’ADN.`;
+    if (!want) return `Organisme au stade ${STAGES.length}, ${G.kills} créatures tuées. Tout ce que tu livres devient de l’ADN.`;
     const how = want.rate ? `${want.rate} par seconde pendant ${want.hold} s, il faut deux lignes en parallèle` : `${want.count} au total`;
-    const pack = boxOf(want.item) ? ' Ça sort d’un Encapsuleur : 6 derrière, 2 carbones sur le côté. Le carbone est juste à l’est du cœur.' : '';
+    const carbon = BOX[boxOf(want.item)]?.carbon;
+    const pack = carbon ? ` Ça sort d’un Encapsuleur réglé sur ${BOX[boxOf(want.item)].name} : ${PACK.size} derrière, ${carbon} carbone${carbon > 1 ? 's' : ''} sur le côté. Le carbone est juste à l’est du cœur.` : '';
     return `Il veut ${recipe(want.item)} : ${how}. Entrées 1, 2, 3 dans cet ordre.${pack} En échange : ${want.gives}. Les autres gènes deviennent de l’ADN.`;
   }
   if (isGun(c)) {
@@ -3530,7 +3548,7 @@ function orderHTML() {
   const want = STAGES[G.stage];
   if (!want) return '<b>Organisme né</b><span class="unit">les stades suivants restent à écrire</span>';
   const done = want.rate ? `${mealRate().toFixed(1).replace('.', ',')} / ${want.rate}` : `${G.fed} / ${want.count}`;
-  const unit = [boxOf(want.item) ? `capsule de ${PACK.size}` : '', want.rate ? `gènes/s, tenus ${Math.floor(G.held)} sur ${want.hold} s` : ''].filter(Boolean).join(' · ');
+  const unit = [boxOf(want.item) ? `${BOX[boxOf(want.item)].name.toLowerCase()} de ${PACK.size}` : '', want.rate ? `gènes/s, tenus ${Math.floor(G.held)} sur ${want.hold} s` : ''].filter(Boolean).join(' · ');
   const gene = geneMark(contentOf(want.item)), asked = boxOf(want.item) ? `<span class="crate">${gene}</span>` : gene;
   return `<b>Stade ${G.stage + 1} · ${want.name}</b><div class="wanted">${asked}<output>${done}</output></div>${unit ? `<span class="unit">${unit}</span>` : ''}`;
 }
@@ -4694,7 +4712,7 @@ function coreSheet() {
   if (want.rate) hints.push('<p><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h12M2 11h12" stroke="#F0A03C" stroke-width="2.2"/></svg>2 lignes en parallèle</p>');
   if (box) hints.push(`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`);
   const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
-  if (G.stage + 1 > 1) gives.push(['mine', `Gisements ×${G.stage + 1 === 2 ? '2' : '4 à ×8'}`]);
+  if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', `Gisements ×${G.stage + 1 === 2 ? '2' : '4 à ×8'}`]);
   return `<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
     + `<h3>Recette</h3>${steps.join('')}${hints.length ? `<div class="hints">${hints.join('')}</div>` : ''}`
     + (gives.length ? `<h3>Débloque</h3><div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : '');
@@ -4837,7 +4855,7 @@ function paintMoments() {
   if (ui.stage != null && G.stage === ui.stage + 1 && G.time - (G.grownAt ?? -1e9) < 3) {
     $('growth').querySelector('.stage').textContent = `Stade ${G.stage} achevé · +${GROWTH_BONUS} ADN`;
     const got = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage).map(type => [type, TYPES[type].name]);
-    if (G.stage > 1) got.push(['mine', `Gisements ×${G.stage === 2 ? '2' : '4 à ×8'}`]);
+    if (G.stage > 1 && G.stage <= 3) got.push(['mine', `Gisements ×${G.stage === 2 ? '2' : '4 à ×8'}`]);
     $('rewards').replaceChildren(...got.map(([type, name]) => {
       const item = document.createElement('div'), hole = document.createElement('span'), words = document.createElement('span');
       item.className = 'pod'; hole.className = 'porthole model'; words.className = 'name'; words.textContent = name;
