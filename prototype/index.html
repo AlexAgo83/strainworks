@@ -2204,10 +2204,23 @@ function disturb() {
     if (cause) wake(b, cause);
   }
 }
+// A nest's health: 3000 at level 1, up to three times that far out: two fed turrets take about 45 s. It heals when left alone.
+const NEST = {hp:3000, quiet:8, heal:.02, refill:60, throw:.7};
+function nestHp(b) {
+  if (b.max == null) { b.max = Math.round(NEST.hp * (b.tough || 1)); b.hp = b.max; }
+  return b;
+}
+// Thrown out of the nest, a creature lands 2 to 5 cells away and only then walks.
 function spawn(b, gene) {
   const hp = Math.round((24 + Math.floor(G.threat) * 4) * (b.tough || 1));
   b.left--;
-  G.enemies.push({x:b.x + Math.random(), y:b.y + Math.random(), gene, hp, max:hp, home:G.breaches.indexOf(b)});
+  const a = Math.random() * Math.PI * 2, far = 2 + Math.random() * 3, x = b.x + .5, y = b.y + .5;
+  G.enemies.push({x, y, gene, hp, max:hp, home:G.breaches.indexOf(b), fly:{x, y, tx:x + Math.cos(a) * far, ty:y + Math.sin(a) * far, t:0}});
+}
+function destroyNest(b) {
+  b.state = 'spent'; b.ended = G.time; b.hp = 0;
+  earn('breaches', b.total);
+  tell(`Nid détruit au ${bearing(b)} : +${b.total} ADN, il s’estompe et le terrain est à toi.`, {at:b});
 }
 function waveGene(b) { return b.genes[(b.genes.length - 1 + Math.max(0, b.wave)) % b.genes.length]; }
 function menace(dt) {
@@ -2217,11 +2230,17 @@ function menace(dt) {
   if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) disturb();
   for (const b of awake) {
     if (b.pending && b.left && G.time >= b.spit) { spawn(b, b.gene); b.pending--; b.spit = G.time + 1.4; }
+    nestHp(b);
+    if (b.hp < b.max && G.time - (b.hitAt ?? -99) >= NEST.quiet) b.hp = Math.min(b.max, b.hp + b.max * NEST.heal * dt);
     if (!b.left) {
       b.pending = 0;
       if (G.enemies.some(e => e.home === G.breaches.indexOf(b))) continue;
-      b.state = 'spent'; b.ended = G.time; earn('breaches', b.total);
-      tell(`Brèche au ${bearing(b)} vidée : +${b.total} ADN, elle s’estompe et le terrain est à toi.`, {at:b});
+      // Standing, the nest grows its wave again: it has to be destroyed.
+      b.refillAt ??= G.time + NEST.refill;
+      if (G.time >= b.refillAt) {
+        b.left = b.total; b.refillAt = null; b.next = G.time + 30;
+        tell(`Le nid au ${bearing(b)} s’est régénéré : ${b.total} créatures. Détruis-le pour qu’il cesse.`, {at:b, bad:true});
+      }
       continue;
     }
     if (G.time >= b.wander) { spawn(b, b.genes[0]); b.wander = G.time + Math.max(3, 11 - G.threat * .7); }
@@ -2246,6 +2265,12 @@ function menace(dt) {
   const turrets = allCells().filter(c => isGun(c) && built(c));
   const veins = pumps().filter(p => p.veinHp > 0 && G.cells[p.to]).map(p => [p, G.cells[p.to]]);
   for (const e of G.enemies) {
+    if (e.fly) {
+      const k = Math.min(1, (e.fly.t += dt / NEST.throw));
+      e.x = e.fly.x + (e.fly.tx - e.fly.x) * k; e.y = e.fly.y + (e.fly.ty - e.fly.y) * k; e.z = Math.sin(Math.PI * k) * 1.6;
+      if (k >= 1) { delete e.fly; e.z = 0; }
+      continue;
+    }
     let goal = {x:CORE.x + .5, y:CORE.y + .5}, lure = 6, gnawing = false, prey = null, reach = Infinity;
     for (const c of outposts.get(G.breaches[e.home]) || []) {
       const mid = centreOf(c), d = Math.hypot(mid.x - e.x, mid.y - e.y);
@@ -2315,11 +2340,25 @@ function fire(dt) {
       if (!loaded.length) break;
       let target = null, best = gun.range;
       for (const e of G.enemies) {
+        if (e.fly) continue;
         const d = Math.hypot(e.x - c.x - .5, e.y - c.y - .5);
         // An economical turret skips what it cannot hurt well and takes the next one in range.
         if (e.hp > 0 && d < best && (!c.strict || loaded.some(g => damage(g, e.gene) >= 5))) { target = e; best = d; }
       }
-      if (!target) break;
+      if (!target) {
+        // Nothing alive in range: the nest itself, at its edge.
+        const nest = G.breaches.find(b => b.state === 'wake' && Math.hypot(b.x + .5 - c.x - .5, b.y + .5 - c.y - .5) - 1.5 <= gun.range
+          && (!c.strict || loaded.some(g => damage(g, b.genes[0]) >= 5)));
+        if (!nest) break;
+        nestHp(nest);
+        const shell = loaded.reduce((a, b) => damage(b, nest.genes[0]) > damage(a, nest.genes[0]) ? b : a), hurt = damage(shell, nest.genes[0]);
+        c.ammo[shell]--; c.clock = due;
+        if (!shot) c.aim = Math.atan2(nest.y - c.y, nest.x - c.x);
+        nest.hp -= hurt * gun.power; nest.hitAt = G.time;
+        G.shots.push({x:c.x + .5, y:c.y + .5, tx:nest.x + .5, ty:nest.y + .5, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
+        if (nest.hp <= 0) destroyNest(nest);
+        continue;
+      }
       const ammo = loaded.reduce((a, b) => damage(b, target.gene) > damage(a, target.gene) ? b : a);
       const hurt = damage(ammo, target.gene);
       c.ammo[ammo]--; c.clock = due;
@@ -2901,6 +2940,7 @@ function draw() {
     if (pack) pack.n++; else packs.push({e, n:1});
   }
   for (const {e, n} of packs) {
+    if (e.z) { ctx.save(); ctx.translate(0, -e.z); }
     if (n > 1) {
       ctx.save(); ctx.translate(e.x + .5,e.y - .34); ctx.scale(1/40,1/40);
       ctx.fillStyle = '#FFD0D0'; ctx.font = '700 14px Verdana'; ctx.fillText('×' + n,0,0); ctx.restore();
@@ -2912,6 +2952,7 @@ function draw() {
     ctx.strokeStyle = '#FF6B6B'; ctx.stroke();
     [...e.gene].forEach((b,i) => glyph(ctx,b,e.x+(i-1)*.22,e.y,.1));
     rect(ctx,e.x-.3,e.y-.38,.6*Math.max(0,e.hp/e.max),.07,'#FF6B6B');
+    if (e.z) ctx.restore();
   }
   drawFog(ctx);
   drawDrones();
@@ -2986,6 +3027,11 @@ function drawBreach(b) {
   circle(ctx,x,y,3.5,asleep ? '#171A1B' : '#241016');
   // The circle is the limit to build up to without waking it.
   if (asleep) { ctx.setLineDash([.6,.6]); circle(ctx,x,y,b.r + Math.sin(motionTime() * 1.1) * .08,null,'#6B5960',Math.max(.06,1 / cam.zoom)); ctx.setLineDash([]); }
+  if (!asleep && b.max) {
+    circle(ctx,x,y,3.75,null,'#3A1820',.16);
+    ctx.beginPath(); ctx.arc(x,y,3.75,-Math.PI / 2,-Math.PI / 2 + Math.PI * 2 * Math.max(0, b.hp / b.max));
+    ctx.strokeStyle = b.hp < b.max && G.time - (b.hitAt ?? -99) >= NEST.quiet ? '#B7F34A' : '#FF6B6B'; ctx.lineWidth = .16; ctx.stroke();
+  }
   const full = b.left / b.total, beat = asleep ? 0 : Math.sin(G.time * 5) * .1;
   const form = formOf(b), size = (.7 + full * .6 + beat) * (1 + (b.tier || 0) * .12);
   const body = asleep ? '#2A2527' : '#3A1820', edge = asleep ? '#8B989C' : '#FF6B6B';
@@ -5091,7 +5137,7 @@ function checkGame(game) {
   if (game.wires != null && !list(game.wires, w => plain(w) && where(w.a) && where(w.b) && count(w.hp))) return false;
   if (game.enemies != null && !list(game.enemies, e => spot(e) && code(e.gene) && Number.isFinite(e.hp) && count(e.max) && (!e.goal || spot(e.goal)))) return false;
   if (game.shots != null && !list(game.shots, s => spot(s) && [1, 2, 5, 12].includes(s.hurt) && Number.isFinite(s.tx) && Number.isFinite(s.ty))) return false;
-  if (game.breaches != null && !list(game.breaches, b => place(b) && count(b.r) && b.r < 40 && count(b.left) && count(b.total) && ['sleep', 'wake', 'spent'].includes(b.state) && list(b.genes, code) && b.genes.length > 0 && (b.form == null || side(b.form)) && (b.tier == null || (Number.isInteger(b.tier) && b.tier >= 0 && b.tier < LEVEL.total.length)) && (!b.post || spot(b.post)) && (!b.gene || code(b.gene)) && (!b.born || code(b.born)))) return false;
+  if (game.breaches != null && !list(game.breaches, b => (b.hp == null || Number.isFinite(b.hp)) && (b.max == null || count(b.max)) && place(b) && count(b.r) && b.r < 40 && count(b.left) && count(b.total) && ['sleep', 'wake', 'spent'].includes(b.state) && list(b.genes, code) && b.genes.length > 0 && (b.form == null || side(b.form)) && (b.tier == null || (Number.isInteger(b.tier) && b.tier >= 0 && b.tier < LEVEL.total.length)) && (!b.post || spot(b.post)) && (!b.gene || code(b.gene)) && (!b.born || code(b.born)))) return false;
   if (game.drones != null && !(game.drones.length === BUILDERS && list(game.drones, d => spot(d) && count(d.h) && count(d.w) && typeof d.job === 'string' && spot(d.was) && (!d.goal || spot(d.goal))))) return false;
   if (game.seen != null && !(plain(game.seen) && Object.entries(game.seen).every(([id, rows]) => where(id) && rows?.length === 16 && list(rows, n => Number.isInteger(n) && n >= 0 && n < 65536)))) return false;
   if (game.cleared != null && !list(game.cleared, id => typeof id === 'string')) return false;

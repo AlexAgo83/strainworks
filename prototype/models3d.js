@@ -1354,7 +1354,7 @@ window.createModels3D = (B, scene) => {
       const a = Math.atan2(goal.y - e.y, goal.x - e.x);
       const kind = silhouette(e.gene);
       const { long, wide, tall, legs, reach } = BODY[kind];
-      const h = (kind === 'N' ? 0.4 : 0.26) + Math.sin(clock * 10 + index) * 0.025;
+      const h = (kind === 'N' ? 0.4 : 0.26) + Math.sin(clock * 10 + index) * 0.025 + (e.z || 0);
       const rear = from(e.x, e.y, a, -long * 0.24);
       const head = from(e.x, e.y, a, long * 0.48);
       add('sac', kind === 'S' ? 'flesh' : 'gore', ...rear, h, long * 0.8, tall, wide, a);

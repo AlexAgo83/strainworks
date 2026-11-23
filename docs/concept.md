@@ -255,7 +255,13 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 - **Levels**: every 160 cells from the core, up to level 5 at 640: 70 to 260 creatures, 1 to 3 times as tough, guarding x4 to x8. Carbon far out goes from x2 to x6, unguarded.
 - **Fog**: the core sees 56 cells, a structure 18, a drone at work or a worm 8. What was seen stays, dimmed, as last seen, without creatures. A nest shows once ground in sight reaches its circle, so none wakes unseen. Its edge is a soft dark mist that breathes, never drawn lines.
 - **Few nests**: six on the landing square, a single one, to the north, within 30 cells of the core. Two x2 deposits are free, the other rich ones are guarded. Beyond, nests stand at least 30 cells apart, about one in 70 cells each way.
-- Once awake, a breach sends prowlers and assaults. **Emptied, it fades**, returns the ground and pays in ADN.
+- Once awake, a breach sends prowlers and assaults. **A nest has health and must be destroyed** (2026-11-23):
+  3000 hit points times its level's toughness (400 fell to two fed turrets in 4 s, before a creature came out). A turret with no creature in range shoots the nest, with the same
+  damage rule against the nest's family gene. Left 8 s without a hit, a nest heals 2 % of its health a second. Its
+  emptied wave comes back 60 s after the last creature dies, as long as it stands. **Destroyed, it fades**, returns
+  the ground and pays its creatures in ADN.
+- Creatures are thrown out of the nest and land 2 to 5 cells away, in an arc of 0.7 s; they neither walk nor can be
+  shot while flying.
 - Defense is prepared at the edge of the circle, then the player expands: each advance needs its outpost and its supply.
 - The threat rises with woken or emptied breaches and with production.
 - **A creature targets the nearest turret when that is closer than the core.**

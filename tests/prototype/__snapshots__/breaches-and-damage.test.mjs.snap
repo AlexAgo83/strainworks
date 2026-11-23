@@ -17,7 +17,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
       ],
       "far fed outpost": {
         "buildable": true,
-        "cleared": 164,
+        "cleared": 28,
         "over": false,
         "reward": true,
         "turretsLeft": 3,
@@ -57,7 +57,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
       ],
       "north fed": {
         "buildable": true,
-        "cleared": 123,
+        "cleared": 40,
         "over": false,
         "reward": true,
         "turretsLeft": 2,
@@ -65,7 +65,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
       "north starved": {
         "buildable": false,
         "cleared": null,
-        "over": 136,
+        "over": 137,
         "reward": false,
         "turretsLeft": 0,
       },
@@ -90,10 +90,10 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
         ],
       ],
       "startingLineAlone": {
-        "left": 0,
+        "left": 14,
         "middle": "SFN",
         "over": false,
-        "state": "spent",
+        "state": "wake",
       },
       "strictKept": true,
       "turretFirst": true,
