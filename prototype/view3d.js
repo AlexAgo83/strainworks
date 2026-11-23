@@ -58,6 +58,47 @@ window.createView3D = (glCanvas) => {
 
   const terrain = window.createTerrain3D(B, scene, glow);
 
+  // ---- A small planet: past the middle of the screen the ground falls away, more the further out.
+  // Pieces drop whole (their matrices, so glow and shadows follow); the ground meshes bend in their shader.
+  const CURVES = { none: 0, soft: 0.22, strong: 0.55 };
+  const bend = { cx: 0, cy: 0, hw: 1, hh: 1, k: 0 };
+  const dropAt = (x, y) => {
+    if (!bend.k) return 0;
+    const n = Math.max(0, Math.hypot((x - bend.cx) / bend.hw, (y - bend.cy) / bend.hh) - 0.45);
+    return bend.k * n * n * bend.hh;
+  };
+  class Bend extends B.MaterialPluginBase {
+    constructor(material) {
+      super(material, 'Bend', 200, { BEND: false });
+      this._enable(true);
+    }
+    prepareDefines(defines) { defines.BEND = true; }
+    getClassName() { return 'Bend'; }
+    getUniforms() {
+      return {
+        ubo: [{ name: 'bendView', size: 4, type: 'vec4' }, { name: 'bendK', size: 1, type: 'float' }],
+        vertex: '#ifdef BEND\nuniform vec4 bendView;\nuniform float bendK;\n#endif',
+      };
+    }
+    bindForSubMesh(ubo) {
+      ubo.updateFloat4('bendView', bend.cx, bend.cy, bend.hw, bend.hh);
+      ubo.updateFloat('bendK', bend.k);
+    }
+    getCustomCode(type) {
+      if (type !== 'vertex') return null;
+      return {
+        CUSTOM_VERTEX_UPDATE_WORLDPOS: `#ifdef BEND
+          float bendN = max(0.0, length(vec2((worldPos.x - bendView.x) / bendView.z, (-worldPos.z - bendView.y) / bendView.w)) - 0.45);
+          worldPos.y -= bendK * bendN * bendN * bendView.w;
+          #endif`,
+      };
+    }
+  }
+  for (const name of ['soil', 'iron', 'roots']) {
+    const m = scene.getMaterialByName(name);
+    if (m) new Bend(m);
+  }
+
   // ---- Each shape and paint pair of the models is one draw call.
   const models = window.createModels3D(B, scene);
   const { SHAPES, CASTERS } = models;
@@ -109,7 +150,7 @@ window.createView3D = (glCanvas) => {
     }
     B.Quaternion.RotationYawPitchRollToRef(angle, 0, roll, turn);
     // Everything rides the ground, which is at height 0 under what is built.
-    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, add.plane ? h : h + terrain.height(x, y), -y), matrix);
+    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, (add.plane ? h : h + terrain.height(x, y)) - dropAt(x, y), -y), matrix);
     matrix.copyToArray(batch.data, batch.count * 16);
     batch.count++;
   }
@@ -317,6 +358,7 @@ window.createView3D = (glCanvas) => {
     // A tap on the top of a tall object means that object, though the ground behind it is another cell.
     pick(point) {
       const p = worldAt(point.x, point.y);
+      for (let i = 0, y = p.y; i < 4; i++) p.y = y - dropAt(p.x, p.y) * lean;
       const x = Math.floor(p.x);
       for (const h of [0.75, 0.5, 0.3]) {
         const y = Math.floor(p.y + h * lean);
@@ -340,6 +382,7 @@ window.createView3D = (glCanvas) => {
       const back = 160;
       camera.position.copyFromFloats(cam.x, Math.sin(ELEVATION) * back, -cam.y - Math.cos(ELEVATION) * back);
       camera.setTarget(at(cam.x, 0, cam.y));
+      Object.assign(bend, { cx: cam.x, cy: cam.y, hw: halfW, hh: halfH / tilt, k: CURVES[window.curve3d] || 0 });
       // The shadow map follows what is on screen, so it stays sharp up close.
       const reach = Math.min(48, Math.max(halfW, halfH / tilt) + 4);
       sun.position.copyFromFloats(cam.x - 33, 60, -cam.y + 21);
@@ -351,7 +394,8 @@ window.createView3D = (glCanvas) => {
       const a = worldAt(0, 0);
       const b = worldAt(view.w, view.h);
       // Tall things just south of the screen still show their tops.
-      const area = { x0: Math.floor(a.x) - 1, y0: Math.floor(a.y) - 2, x1: Math.ceil(b.x) + 1, y1: Math.ceil(b.y) + 2 };
+      const above = Math.ceil(bend.k * bend.hh * 1.2);
+      const area = { x0: Math.floor(a.x) - 1, y0: Math.floor(a.y) - 2 - above, x1: Math.ceil(b.x) + 1, y1: Math.ceil(b.y) + 2 };
       heartbeat();
       terrain.update(area);
       terrain.draw(add, area, G.time + owed);
