@@ -28,7 +28,7 @@ it("shows the goal once on a first game, made of the game's pictures, and again 
     await page.click("#intro-next");
     const closed = await page.evaluate(() => [document.querySelector("#intro").hidden, paused, localStorage.getItem("strainworks-intro")]);
     await page.evaluate(() => showMenu(true));
-    await page.click('[data-go="help"]');
+    await page.click('[data-go="dev"]');
     await page.click("#intro-again");
     const again = await page.evaluate(() => !document.querySelector("#intro").hidden);
 
@@ -44,7 +44,7 @@ it("shows the goal once on a first game, made of the game's pictures, and again 
       refresh();
       return [...document.querySelectorAll("#sheet .frieze span")].map((s) => s.className);
     });
-    expect(frieze).toEqual(["now", "", "", "", ""]);
+    expect(frieze).toEqual(["now", "", "", "", "", ""]);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

@@ -26,13 +26,17 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #app *, #app *::before, #app *::after { box-sizing:border-box; }
 #app p, #app h1, #app h2 { margin:0; }
 #app button { font:inherit; color:inherit; cursor:pointer; touch-action:manipulation; pointer-events:auto; }
-#app button:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+*:focus, *:focus-visible { outline:none !important; }
+* { -webkit-tap-highlight-color:transparent; }
 #app button:disabled { opacity:.45; cursor:default; }
 .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 
 /* Scene */
 #board { position:absolute; inset:0; overflow:hidden; pointer-events:auto; }
 #gl { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+body { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
+#flip-corner { position:absolute; left:50%; bottom:calc(var(--dock-h, 150px) + 12px); transform:translateX(-50%); z-index:6; border-color:var(--acid)!important; color:var(--acid); }
 #game { position:absolute; inset:0; width:100%; height:100%; outline:none; touch-action:none; user-select:none; -webkit-user-select:none; }
 #board.switched { animation:appear .6s ease; }
 .edges, .edges i { position:absolute; inset:0; }
@@ -252,11 +256,11 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #dry i span { position:absolute; right:30px; padding:3px 8px; border:1px solid var(--alarm); border-radius:8px 3px; background:var(--membrane); color:var(--alarm); white-space:nowrap; }
 
 /* Moments */
-#growth, #over { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px; text-align:center; animation:appear .7s ease both; }
+#growth, #over, #victory { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px; text-align:center; animation:appear .7s ease both; }
 #growth { background:rgba(4,8,9,.55); }
 #growth svg { width:min(320px,42vh,80vw); height:min(320px,42vh,80vw); overflow:visible; }
 #growth .stage { color:var(--acid); font:700 14px var(--display); text-transform:uppercase; }
-#growth h1, #over h1 { font:700 clamp(28px,6vw,52px)/1 var(--display); text-wrap:balance; }
+#growth h1, #over h1, #victory h1 { font:700 clamp(28px,6vw,52px)/1 var(--display); text-wrap:balance; }
 #rewards { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
 #rewards .pod { display:flex; flex-direction:column; align-items:center; gap:4px; width:88px; animation:sprout .5s cubic-bezier(.2,1.5,.4,1) both; }
 #rewards .porthole { border-color:var(--acid); }
@@ -268,9 +272,16 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #over h1 { color:var(--alarm); }
 #over svg { width:min(560px,92vw); height:min(260px,34vh); }
 .dying { transform-box:fill-box; transform-origin:center; animation:dying 2.6s ease-in-out infinite; }
-#score { display:flex; flex-wrap:wrap; justify-content:center; gap:12px 40px; }
-#score span { color:var(--muted); }
-#score b { display:block; color:var(--ink); font:700 30px var(--display); }
+#score, #victory-score { display:flex; flex-wrap:wrap; justify-content:center; gap:12px 40px; }
+#score span, #victory-score span { color:var(--muted); }
+#score b, #victory-score b { display:block; color:var(--ink); font:700 30px var(--display); }
+#victory { background:rgba(4,14,8,.82); pointer-events:auto; }
+#victory h1 { color:var(--acid); }
+#victory svg { width:min(300px,36vh,80vw); height:min(300px,36vh,80vw); overflow:visible; }
+#victory .stage { color:var(--acid); font:700 14px var(--display); text-transform:uppercase; }
+#victory .said { max-width:44ch; color:var(--muted); }
+#victory .ways { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+#free-play { border-color:var(--acid)!important; color:var(--acid); }
 #loading { position:absolute; left:50%; top:50%; z-index:7; translate:-50% -50%; display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px; border-radius:30px 10px; background:var(--membrane); }
 #loading svg { width:110px; height:110px; overflow:visible; }
 #loading circle { transform-box:fill-box; transform-origin:center; animation:join 1.4s ease-in-out infinite alternate; }
@@ -775,7 +786,18 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   .ranking #info.holding #card { display:none; }
   .traying #info { display:none; }
   #hint { display:none; }
+  /* The side controls unroll right under the top buttons, and fold away under the chevron. */
+  #app { --rail:calc(100px + var(--t)); }
+  #app #side-toggle { display:grid; place-items:center; position:absolute; right:calc(8px + var(--r)); top:calc(64px + var(--t)); width:48px; height:28px; min-height:0; border-radius:0 0 14px 14px; z-index:5; }
+  #app.side-off { --rail:calc(100px + var(--t)); }
+  #app.on-planet #side-toggle { display:none; }
+  #side-toggle svg { transition:transform .2s; }
+  #app.side-off #side-toggle svg { transform:rotate(-90deg); }
+  #app.side-off #zoom, #app.side-off .dock .side, #app.side-off .dock #stats-pod { display:none; }
+  /* The drones are seen at work on the map: their panel would only take room. */
+  #crew { display:none; }
 }
+#side-toggle { display:none; }
 
 @media (max-height:520px) and (min-width:600px) {
   #app { --rail:66px; }
@@ -791,7 +813,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   .tray .name { padding-inline:1px; font-size:11px; }
   .tray .price { top:36px; }
   #info.docked { left:calc(144px + var(--l)); right:calc(66px + var(--r)); bottom:calc(90px + var(--b)); }
-  #growth svg, #over svg { max-height:26vh; }
+  #growth svg, #over svg, #victory svg { max-height:26vh; }
 }
 
 @keyframes appear { from { opacity:0; } }
@@ -1020,6 +1042,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <button id="speed" class="node" aria-label="Changer la vitesse">×1</button>
     <button id="menu-toggle" class="node" aria-label="Menu" aria-expanded="false" aria-controls="menu"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"/><circle cx="4" cy="15" r="2.4" fill="currentColor"/><circle cx="16" cy="15" r="2.4" fill="currentColor"/><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"/></svg></button>
   </nav>
+  <button id="side-toggle" class="node" aria-label="Afficher ou cacher les commandes" aria-expanded="true"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <div id="menu" hidden>
    <div class="page" data-page="root">
     <h2>Réglages</h2>
@@ -1029,7 +1052,6 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <button class="row go" data-go="audio"><span>Audio</span><b aria-hidden="true">›</b></button>
     <div class="row"><span>Commandes</span><button id="help" class="tip">Voir</button></div>
     <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip">Français</button><button id="lang-en" class="tip">English</button></span></div>
-    <button class="row go in-game" data-go="help"><span>Aide</span><b aria-hidden="true">›</b></button>
     <button class="row go" data-go="dev"><span>Développeur</span><b aria-hidden="true">›</b></button>
     <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.19</span></a>
    </div>
@@ -1051,13 +1073,10 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <div class="row auto"><span><b>Automatique</b><small id="playlist-note">Le jeu choisit selon le moment : planète, calme, combat.</small></span><button id="playlist-auto" class="switch" role="switch" aria-checked="true" aria-label="Automatique"></button></div>
     <div id="playlist"></div>
    </div>
-   <div class="page" data-page="help" hidden>
-    <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Aide</h2></div>
-    <div class="row in-game"><span>Objectif</span><button id="intro-again" class="tip">Revoir</button></div>
-    <div class="row in-game"><span>Guide de départ</span><button id="guide-again" class="tip">Revoir</button></div>
-   </div>
    <div class="page" data-page="dev" hidden>
     <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Développeur</h2></div>
+    <div class="row in-game"><span>Objectif</span><button id="intro-again" class="tip">Revoir</button></div>
+    <div class="row in-game"><span>Guide de départ</span><button id="guide-again" class="tip">Revoir</button></div>
     <div class="row in-game"><span>Graphe de performance</span><button id="perf-toggle" class="tip" aria-pressed="false" aria-controls="perf">Afficher</button></div>
     <div class="row in-game" id="open-row"><span>Tout débloquer (test)</span><button id="open-all" class="tip">Activer</button></div>
     <a class="row" href="?lab" target="_blank" rel="noopener"><span>Labo des modèles et des sons</span><span>↗</span></a>
@@ -1109,6 +1128,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
 
   <section id="stats" hidden aria-label="Statistiques"><div class="tabs" role="tablist"></div><button id="stats-close" class="tip" aria-label="Fermer les statistiques">×</button><div id="stats-body"></div></section>
   <nav id="tools" aria-label="Construction"><p id="hint" hidden></p></nav>
+  <button id="flip-corner" class="tip" hidden>Inverser le coin</button>
 
   <p id="refusal" role="alert" hidden></p>
   <div id="loading" role="status" hidden>
@@ -1127,6 +1147,14 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <h1>Le cœur grandit</h1>
     <div id="rewards"></div>
     <button id="continue" class="tip">Continuer</button>
+  </section>
+
+  <section id="victory" hidden aria-label="Victoire">
+    <p class="stage"></p>
+    <h1>Éclosion</h1>
+    <p class="said">L’organisme a éclos. La station tient, les brèches continuent : tu peux jouer encore.</p>
+    <div id="victory-score"></div>
+    <div class="ways"><button id="free-play" class="tip">Continuer en mode libre</button><button id="won-planet" class="tip">Retour à la planète</button></div>
   </section>
 
   <section id="over" hidden aria-label="Fin de partie">
@@ -1649,6 +1677,16 @@ const EN = {
   "rien, personne à portée": "nothing, nobody in range",
   "{} sur nerf, demande : {}. En stock : {}.": "{} on a nerve, asks for: {}. In stock: {}.",
   "Il réclame": "It asks for",
+  "Afficher ou cacher les commandes": "Show or hide the controls",
+  "Inverser le coin": "Flip the corner",
+  "Éclosion": "Hatching",
+  "la victoire, puis le mode libre": "victory, then free play",
+  "Victoire en {} min": "Won in {} min",
+  "familles affrontées": "families faced",
+  "L’organisme a éclos. La station tient, les brèches continuent : tu peux jouer encore.": "The organism has hatched. The station holds and the breaches go on: you can keep playing.",
+  "Continuer en mode libre": "Keep playing in free mode",
+  "<b>Éclosion réussie</b><span class=\"unit\">mode libre : tout ce que tu livres devient de l’ADN</span>": "<b>Hatched</b><span class=\"unit\">free mode: all you deliver becomes DNA</span>",
+  "Éclosion · victoire": "Hatched · won",
   "Toutes les recettes sont dans la fiche du cœur": "Every recipe is in the core's sheet",
   "Recette": "Recipe",
   "Il veut : {}. En échange : {}. Les autres gènes deviennent de l’ADN.": "It wants: {}. In exchange: {}. The other genes become DNA.",
@@ -1966,7 +2004,9 @@ const STAGES = [
   {name:L('Organe'), item:'T:SFSFFF', count:10, gives:L('Pistes, poches, vers et gisements ×4 à ×8')},
   // The magazine asked follows the family born on entering the stage.
   {name:L('Système'), count:30, get item() { return `A:${opposite(G.mutant || G.families[G.families.length - 1])}`; }, gives:L('une mutation toutes les 5 minutes, jusqu’à 8 familles')},
-  {name:L('Noyau'), item:'H:SFSFFF', count:6, gives:L('l’isotope, la capsule lourde et un quatrième drone')}
+  {name:L('Noyau'), item:'H:SFSFFF', count:6, gives:L('l’isotope, la capsule lourde et un quatrième drone')},
+  // The last: the organism hatches, the game is won, and it goes on in free mode.
+  {name:L('Éclosion'), item:'H:SFSFFF', count:10, gives:L('la victoire, puis le mode libre')}
 ];
 // A container is a string too, so whatever carries items carries it: 'A:CNF' is a magazine, 'T:CCF' a capsule.
 // K is carbon: matter, never a base, so it has no pair and never enters a gene.
@@ -2804,7 +2844,8 @@ const RECIPES = [
   [{box:'T', genes:1, count:25}, {box:'T', genes:1, count:25}],
   [{box:'T', genes:2, count:5}, {box:'T', genes:2, count:5}, {box:'T', genes:1, count:15}],
   [{anti:true, count:20}, {box:'T', genes:1, count:15}, {box:'T', genes:2, count:5}],
-  [{box:'H', genes:2, count:4}, {box:'T', genes:2, count:5}, {box:'T', genes:1, count:15}, {anti:true, count:15}]
+  [{box:'H', genes:2, count:4}, {box:'T', genes:2, count:5}, {box:'T', genes:1, count:15}, {anti:true, count:15}],
+  [{box:'H', genes:2, count:6}, {box:'T', genes:2, count:8}, {box:'T', genes:1, count:20}, {box:'T', genes:1, count:20}, {anti:true, count:20}]
 ];
 const RECIPES_KEY = 'strainworks-recipes';
 const drawsRecipes = () => stored(RECIPES_KEY) !== 'fixed';
@@ -2848,6 +2889,7 @@ function grow() {
   tell(L`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
   if (G.stage === 3) { G.mutant = mutation(); G.mutateAt = G.time + MUTATION.every; }
   if (G.goals) G.goals = drawGoals(G.stage);
+  if (G.stage === STAGES.length && G.won == null) G.won = G.time;
   if (G.stage === 4 && G.drones.length < BUILDERS + 1) {
     G.drones.push({x:0, y:0, a:0, h:.55, w:0, trip:'nest', speed:DRONE.speed, job:'', goal:null, was:{x:0, y:0, h:.55, w:0}});
     const d = G.drones[G.drones.length - 1], {x, y} = perch(G.drones.length - 1);
@@ -4651,7 +4693,7 @@ function choose(type) {
 }
 function orderHTML() {
   const want = STAGES[G.stage];
-  if (!want) return L('<b>Organisme né</b><span class="unit">les stades suivants restent à écrire</span>');
+  if (!want) return L('<b>Éclosion réussie</b><span class="unit">mode libre : tout ce que tu livres devient de l’ADN</span>');
   if (G.goals && G.goals.length > 1) {
     // The next recipe to make, and how many others wait: the whole list is in the core's sheet.
     const open = G.goals.filter(g => g.fed < g.count), next = open[0] || G.goals[0], gene = geneMark(contentOf(next.item));
@@ -4853,21 +4895,60 @@ function bridgeOver(c, dir) {
 }
 // Belts, trails and dismantling are drawn first: the line is only a path, shown as a ghost, built when let go.
 const TRACED = ['belt', 'track', 'erase'];
+// A line runs straight. It turns only once the pointer is TURN cells off its way, the corner level with the pointer:
+// a diagonal gives one L, never stairs. A turn really taken is kept and the next leg starts at its corner;
+// back on the line before a corner, that turn is taken up again. drag.flip lays the L the other leg first (R).
+const TURN = 2;
 function stretch(to) {
   if (!drag?.path) return extend(to);
-  const path = drag.path;
-  let last = path.at(-1), changed = false;
-  while (last.x !== to.x || last.y !== to.y) {
-    const horizontal = Math.abs(to.x - last.x) >= Math.abs(to.y - last.y);
-    const dir = horizontal ? (to.x > last.x ? 1 : 3) : (to.y > last.y ? 2 : 0);
-    const next = {x:last.x + DX[dir], y:last.y + DY[dir], dir};
-    if (!inside(next.x, next.y)) break;
-    // Back over its own way, the line is taken up again.
-    const back = path.at(-2);
-    if (back && back.x === next.x && back.y === next.y) path.pop(); else path.push(next);
-    last = path.at(-1); changed = true;
+  drag.to = to;
+  const path = drag.path, legs = drag.legs ||= [{start:0, axis:null}];
+  while (legs.length > 1) {
+    const corner = path[legs.at(-1).start], before = legs.at(-2).axis;
+    if ((before === 'x' ? to.y - corner.y : to.x - corner.x) !== 0) break;
+    const gone = legs.pop();
+    legs.at(-1).axis = gone.was; drag.flip = false;
   }
-  if (changed) sayPath();
+  const leg = legs.at(-1), a = path[leg.start], dx = to.x - a.x, dy = to.y - a.y;
+  if (leg.axis == null && (dx || dy)) leg.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+  const axis = leg.axis || 'x', other = axis === 'x' ? 'y' : 'x';
+  const along = axis === 'x' ? dx : dy, across = axis === 'x' ? dy : dx;
+  const turns = Math.abs(across) >= TURN, flip = turns && drag.flip;
+  const runs = !turns ? [[axis, along]] : flip ? [[other, across], [axis, along]] : [[axis, along], [other, across]];
+  const was = path.map(c => key(c.x, c.y)).join(';');
+  path.length = leg.start + 1;
+  let last = a, corner = -1;
+  runs.forEach(([ax, n], i) => {
+    const dir = ax === 'x' ? (n > 0 ? 1 : 3) : (n > 0 ? 2 : 0);
+    for (let k = 0; k < Math.abs(n); k++) {
+      const next = {x:last.x + DX[dir], y:last.y + DY[dir], dir};
+      if (!inside(next.x, next.y)) break;
+      path.push(next); last = next;
+    }
+    if (i === 0 && runs.length > 1) corner = path.length - 1;
+  });
+  // A real turn: the pointer goes on two more cells across while it no longer moves along. Moving both ways at
+  // once is a diagonal, and the L stays live.
+  if (!turns || flip) drag.turn = null;
+  else if (!drag.turn || Math.abs(along - drag.turn.along) > 1) drag.turn = {along, across};
+  else if (Math.abs(across) >= Math.abs(drag.turn.across) + 2 && corner > leg.start && path.length - 1 > corner) {
+    legs.push({start:corner, axis:runs[1][0], was:leg.axis, flipped:flip});
+    leg.axis = runs[0][0]; drag.flip = false; drag.turn = null;
+  }
+  if (path.map(c => key(c.x, c.y)).join(';') !== was) sayPath();
+  // The piece in hand turns with the line: it points the way the line now runs, and the next one starts so.
+  const way = path.at(-1).dir;
+  if (tool !== 'erase' && way != null && way !== heading) setHeading(way);
+}
+// R while drawing: the last L laid the other leg first, its two ends kept.
+function flipCorner() {
+  if (!drag?.path || tool === 'erase') return false;
+  const legs = drag.legs ||= [{start:0, axis:null}];
+  if (legs.length > 1) { const gone = legs.pop(); legs.at(-1).axis = gone.was; drag.flip = !gone.flipped; }
+  else drag.flip = !drag.flip;
+  stretch(drag.to || drag.path.at(-1));
+  playSound('rotate');
+  return true;
 }
 const freshOn = p => tool === 'track' ? !G.tracks[key(p.x, p.y)] : !cellAt(p.x, p.y);
 function sayPath() {
@@ -5033,6 +5114,8 @@ function preview() {
 const PREVIEW = {no:'#FF6B6B', scrap:'#FF6B6B', build:'#55D6E8', link:'#55D6E8', turn:'#F0A03C', use:'#F0A03C', select:'#B7F34A', none:'#D5FAFF'};
 // Both views use it: their canvas is in map units, squashed or not. It stays on the plane where things get built.
 function drawPreview(g, models) {
+  const flipping = Boolean(drag?.path && tool !== 'erase' && drag.path.length > 2);
+  if ($('flip-corner').hidden === flipping) $('flip-corner').hidden = !flipping;
   if (drag?.path && gesture?.mode === 'draw') { drawPath(g); drawPorts(g, null); return; }
   const p = preview();
   if (!p) { drawPorts(g, null); return; }
@@ -5663,8 +5746,11 @@ function rotate(back) {
 document.addEventListener('keydown', event => {
   if (actionOf(event) !== 'rotate' || modalOpen()) return;
   event.preventDefault();
+  if (flipCorner()) return;
   rotate(event.shiftKey);
 });
+// The same on a phone, while a finger draws.
+$('flip-corner').addEventListener('pointerdown', event => { event.preventDefault(); event.stopPropagation(); flipCorner(); });
 
 const SAVE = 'souche-proto-2', OLD_SAVE = 'souche-proto-1';
 // The bonus is gone: what it cost comes back.
@@ -5837,13 +5923,20 @@ function showMenu(open) {
   $('menu-toggle').classList.toggle('on', open);
 }
 // Where floating things may go without landing under the interface.
+// Phones fold the side controls away under the chevron; the choice is kept.
+const SIDE_KEY = 'strainworks-side';
+function foldSide(off) {
+  $('app').classList.toggle('side-off', off);
+  $('side-toggle').setAttribute('aria-expanded', String(!off));
+}
+$('side-toggle').onclick = () => { const off = !$('app').classList.contains('side-off'); foldSide(off); keep(SIDE_KEY, off ? 'off' : 'on'); };
+foldSide(stored(SIDE_KEY) === 'off');
 function layoutHud() {
   const narrow = NARROW.matches, speedButton = $('speed'), pauseButton = $('pause');
   const menuButton = $('menu-toggle');
   if (narrow) {
     if (menuButton.parentElement !== $('time')) $('time').append(menuButton);
-    const root = $('menu').querySelector('[data-page="root"]');
-    if (speedButton.parentElement !== root) root.insertBefore(speedButton, root.children[1]);
+    if (speedButton.parentElement !== $('zoom')) $('zoom').append(speedButton);
     if (pauseButton.parentElement !== $('time')) $('time').insertBefore(pauseButton, $('menu-toggle'));
   } else {
     for (const b of [pauseButton, speedButton]) if (b.parentElement !== $('zoom')) $('zoom').append(b);
@@ -6411,7 +6504,8 @@ function paintInfo() {
   ui.at = '';
 }
 function paintMoments() {
-  if (ui.stage != null && G.stage === ui.stage + 1 && G.time - (G.grownAt ?? -1e9) < 3) {
+  if (G.won != null && !G.wonShown) { G.wonShown = true; showVictory(); }
+  if (ui.stage != null && G.stage === ui.stage + 1 && G.stage < STAGES.length && G.time - (G.grownAt ?? -1e9) < 3) {
     $('growth').querySelector('.stage').textContent = L`Stade ${G.stage} achevé · +${GROWTH_BONUS} ADN`;
     const got = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage).map(type => [type, TYPES[type].name]);
     if (G.stage > 1 && G.stage <= 3) got.push(['mine', L`Gisements ×${G.stage === 2 ? '2' : L('4 à ×8')}`]);
@@ -6430,6 +6524,17 @@ function paintMoments() {
     const made = Math.floor(G.made).toLocaleString(LOCALE);
     paint('score', [[G.breaches.filter(b => b.state === 'spent').length, L('brèches vidées')], [G.kills, L('créatures tuées')], [made, L('gènes produits')]].map(([n, what]) => `<span><b>${n}</b>${what}</span>`).join(''));
   }
+}
+// The organism hatched: the tally of the game, then free play or the planet.
+function showVictory() {
+  const box = $('victory');
+  if (!box.querySelector('svg')) box.prepend($('growth').querySelector('svg').cloneNode(true));
+  const minutes = Math.max(1, Math.round(G.won / 60)), made = Math.floor(G.made).toLocaleString(LOCALE);
+  box.querySelector('.stage').textContent = L`Victoire en ${minutes} min`;
+  paint('victory-score', [[G.kills, L('créatures tuées')], [G.breaches.filter(b => b.state === 'spent').length, L('brèches vidées')], [made, L('gènes produits')], [G.families.length, L('familles affrontées')]].map(([n, what]) => `<span><b>${n}</b>${what}</span>`).join(''));
+  $('growth').hidden = true;
+  box.hidden = false;
+  playSound('stage_up');
 }
 function paintDry() {
   ui.dry = G.over || !G.enemies.length ? [] : allCells().filter(c => isGun(c) && built(c) && !Object.values(c.ammo).some(n => n) && G.enemies.some(e => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range * 2)).slice(0, 4);
@@ -6662,6 +6767,8 @@ $('open-all').onclick = () => {
   refresh();
 };
 $('continue').onclick = () => { ui.grown = 0; $('growth').hidden = true; };
+$('free-play').onclick = () => { $('victory').hidden = true; };
+$('won-planet').onclick = () => { $('victory').hidden = true; openPlanet(); };
 function addPip(i) {
   const b = document.createElement('button');
   b.className = 'pip';
@@ -6913,7 +7020,7 @@ function openSlot(id, key, name) { slotId = id; slotKey = key; slotName = name; 
 // All that belongs to the game being left.
 function settleIn() {
   ui.dna = ui.stage = null; ui.grown = 0; ui.travel = null;
-  $('growth').hidden = true; $('over').hidden = true;
+  $('growth').hidden = true; $('over').hidden = true; $('victory').hidden = true;
   forgetEvents();
   paused = false; owed = 0; hovered = null; gesture = null; drag = null;
   paces.clear(); NET = new Map();
@@ -7056,6 +7163,7 @@ function checkGame(game) {
   if (game.seen != null && !(plain(game.seen) && Object.entries(game.seen).every(([id, rows]) => where(id) && rows?.length === 16 && list(rows, n => Number.isInteger(n) && n >= 0 && n < 65536)))) return false;
   if (game.cleared != null && !list(game.cleared, id => typeof id === 'string')) return false;
   if (game.meals != null && !list(game.meals, count)) return false;
+  if (game.won != null && !count(game.won)) return false;
   if (game.goals != null && !(list(game.goals, g => plain(g) && thing(g.item) && count(g.count) && count(g.fed)) && game.goals.length <= 6)) return false;
   return true;
 }
@@ -7500,6 +7608,7 @@ function stageText(game) {
   const stage = within(Math.floor(Number(game.stage) || 0), 0, STAGES.length);
   if (game.over) return L`Le cœur est tombé au stade ${Math.min(STAGES.length, stage + 1)}`;
   const far = game.level > 1 ? L` · avant-postes au niveau ${game.level}` : '';
+  if (game.won != null) return L('Éclosion · victoire') + far;
   return (stage === STAGES.length ? L`Stade ${stage} achevé` : L`Stade ${stage + 1} · ${STAGES[stage].name}`) + far;
 }
 function projectSlot(note = '', bad = false) {
@@ -7860,7 +7969,8 @@ setQuality(stored(QUALITY_KEY) === 'fast', false);
 // The 3D view reads it on every frame, from 0 (flat) to 1. Choices kept from before become their nearest strength.
 const CURVE_KEY = 'strainworks-3d-curve';
 function setCurve(value) {
-  const named = {none:0, soft:.5, strong:1}[value], amount = named ?? Math.max(0, Math.min(1, Number(value) || 0));
+  // Never set: a quarter, the ground just rounding away.
+  const named = {none:0, soft:.5, strong:1}[value], amount = value == null ? .25 : named ?? Math.max(0, Math.min(1, Number(value) || 0));
   window.curve3d = amount;
   $('curve-amount').value = Math.round(amount * 100);
   $('curve-shown').textContent = `${Math.round(amount * 100)} %`;
@@ -7957,7 +8067,8 @@ function musicTick() {
   }
   // About 1.5 s of crossfade: the piece playing rises to the volume chosen, the other falls and stops.
   music.players.forEach((a, i) => {
-    const goal = want && i === music.live && music.on && !document.hidden ? music.volume : 0, was = music.level[i];
+    const ducked = performance.now() < (music.duckUntil || 0) ? .35 : 1;
+    const goal = want && i === music.live && music.on && !document.hidden ? music.volume * ducked : 0, was = music.level[i];
     const level = music.level[i] = Math.max(0, Math.min(1, was + Math.sign(goal - was) * Math.min(Math.abs(goal - was), .07)));
     // Through a gain where the browser has Web Audio: an iPhone ignores the volume of an audio element.
     if (music.gains) music.gains[i].gain.value = level; else a.volume = level;
@@ -8116,6 +8227,9 @@ const SOUNDS = {
 };
 // gap: the least time between two of the same, in seconds, so a fight does not pile one sound up.
 // where: its loudness and side from placeOf, for a sound that comes from a place on the map.
+// Moments, not noises: while one plays the music steps back to a third, then comes back with its fade.
+const DUCKED = new Set(['stage_up', 'mutation', 'nest_down', 'game_over', 'assault_alarm']);
+const duck = seconds => { music.duckUntil = Math.max(music.duckUntil || 0, performance.now() + seconds * 1000 + 250); };
 function playSound(id, gap = .06, where = null) {
   const ctx = sfx.ctx;
   if (!ctx || !sfx.on || sfx.voices >= 10) return false;
@@ -8131,12 +8245,14 @@ function playSound(id, gap = .06, where = null) {
     const src = ctx.createBufferSource();
     src.buffer = takes[Math.floor(Math.random() * takes.length)];
     src.connect(level); src.start();
+    if (DUCKED.has(id)) duck(src.buffer.duration);
     sfx.voices++; src.onended = () => { sfx.voices--; };
     return true;
   }
   const s = SOUNDS[id];
   if (!s) return false;
   sfx.voices++;
+  if (DUCKED.has(id)) duck(1.2);
   s.play((at, o) => blip(now + at, o, level));
   setTimeout(() => { sfx.voices--; }, 800);
   return true;

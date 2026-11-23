@@ -297,13 +297,21 @@ window.createView3D = (glCanvas) => {
         [...gene].forEach((kind, i) => glyph(g, kind, x + (i - 1) * 0.65, y + 2 + row * 0.65, 0.24));
       });
     }
-    const part = stagePart() ?? 0;
+    // The stage's progress rings the core: on top of the plinth round the dome for a 3x3 core, on the ground for an
+    // older one. Each step forward swells and lights it for a third of a second.
+    const part = stagePart() ?? 0, raised = coreCell()?.size === 3;
+    if (part > (ring.part ?? part)) ring.at = performance.now();
+    ring.part = part;
     if (part > 0) {
+      const beat = Math.max(0, 1 - (performance.now() - (ring.at ?? -1e9)) / 330);
+      const cy = raised ? up(CORE.y + 0.5, 0.62) : CORE.y + 0.5, r = (raised ? 1.18 : 1.05 + G.stage * 0.22) + beat * 0.12;
       g.beginPath();
-      g.arc(CORE.x + 0.5, CORE.y + 0.5, 1.05 + G.stage * 0.22, -Math.PI / 2, -Math.PI / 2 + part * Math.PI * 2);
+      g.arc(CORE.x + 0.5, cy, r, -Math.PI / 2, -Math.PI / 2 + part * Math.PI * 2);
       g.strokeStyle = '#B7F34A';
-      g.lineWidth = 0.14;
+      g.lineWidth = 0.14 + beat * 0.16;
+      if (beat) { g.shadowColor = '#B7F34A'; g.shadowBlur = 18 * beat; }
       g.stroke();
+      g.shadowBlur = 0;
     }
     for (const w of G.worms) {
       const [x, y] = w.path[0].split(',').map(Number);
@@ -386,6 +394,7 @@ window.createView3D = (glCanvas) => {
     marker(CORE.x + 0.5, CORE.y + 0.5, '#B7F34A');
     if (bend.k) layBent(s * tilt);
   }
+  const ring = {};
   const flat = { canvas: document.createElement('canvas'), lift: 0 };
   flat.ctx = flat.canvas.getContext('2d');
   // Every transform set on the flat drawing is moved down by the margin, the screen-space ones included.

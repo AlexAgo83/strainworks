@@ -34,19 +34,22 @@ it("draws more recipes each stage, counts each item for its own, and keeps them 
         for (const g of G.goals) while (g.fed < g.count) eat(g.item);
         stages[stages.length - 1].counted = counted;
       }
-      const after = { stage: G.stage, goals: G.goals.length };
+      paintMoments();
+      const shown = !document.querySelector("#victory").hidden;
+      document.querySelector("#free-play").click();
+      const after = { stage: G.stage, goals: G.goals.length, won: G.won != null, shown, free: document.querySelector("#victory").hidden };
       return { first, stages, after, antidote: stages[2].items.includes(`A:${opposite(G.mutant)}`), heavy: stages[3].items.some((i) => i.startsWith("H:")), valid: checkGame(JSON.parse(JSON.stringify(G))) };
     });
     expect(out.first).toMatchObject({ stage: 0, items: ["SFS"] });
-    expect(out.stages.map((s) => s.items.length)).toEqual([2, 3, 3, 4]);
+    expect(out.stages.map((s) => s.items.length)).toEqual([2, 3, 3, 4, 5]);
     expect(out.stages.every((s) => s.fair && s.distinct)).toBe(true);
-    expect(out.stages.map((s) => s.more)).toEqual(["+1", "+2", "+2", "+3"]);
+    expect(out.stages.map((s) => s.more)).toEqual(["+1", "+2", "+2", "+3", "+4"]);
     expect(out.stages.every((s) => s.counted[0] === 1 && s.counted[1] === 0)).toBe(true);
     // Stage 3 asks strands of two genes.
     expect(out.stages[1].items.filter((i) => i.length === 8).length).toBe(2);
     expect(out.antidote).toBe(true);
     expect(out.heavy).toBe(true);
-    expect(out.after).toEqual({ stage: 5, goals: 0 });
+    expect(out.after).toEqual({ stage: 6, goals: 0, won: true, shown: true, free: true });
     expect(out.valid).toBe(true);
     expect(errors).toEqual([]);
   } finally {

@@ -1469,44 +1469,78 @@ window.createModels3D = (B, scene) => {
       }
     }
   }
+  // Four bodies, one per leading base, each read at a glance even zoomed out: a pulsing bloat full of spores, a
+  // swaying centipede of six segments, a plated beetle with a horn, a spider high on four stilts. The gene glows
+  // as three spots on the back, in the colours of its bases; a cluster of red eyes leads; legs step in a real gait.
   function creatures(area) {
     G.enemies.map(creatureAt).forEach((e, index) => {
       if (e.x < area.x0 - 1 || e.x > area.x1 + 1 || e.y < area.y0 - 1 || e.y > area.y1 + 1 || !inSight(e.x, e.y)) return;
       const goal = e.goal || { x: CORE.x + 0.5, y: CORE.y + 0.5 };
       const a = Math.atan2(goal.y - e.y, goal.x - e.x);
       const kind = silhouette(e.gene);
-      // Hit, it flinches: a little bigger for a quarter of a second, with a pale flash.
-      const flinch = flinchOf(e), grow = 1 + flinch * 0.18;
-      const { legs, reach } = BODY[kind], long = BODY[kind].long * grow, wide = BODY[kind].wide * grow, tall = BODY[kind].tall * grow;
-      if (flinch > 0.2) add('bead', 'pale', e.x, e.y, 0.5, 0.3 * flinch);
-      const h = (kind === 'N' ? 0.4 : 0.26) + Math.sin(clock * 10 + index) * 0.025 + (e.z || 0);
-      const rear = from(e.x, e.y, a, -long * 0.24);
-      const head = from(e.x, e.y, a, long * 0.48);
-      add('sac', kind === 'S' ? 'flesh' : 'gore', ...rear, h, long * 0.8, tall, wide, a);
-      add('shell', 'chitin', ...from(e.x, e.y, a, long * 0.12), h + 0.03, long * 0.56, tall * 1.1, wide * 0.82, a);
-      add('sac', 'flesh', ...head, h, 0.24, 0.22, 0.26, a);
-      for (let i = 0; i < 3; i++) base(e.gene[i], ...from(e.x, e.y, a, (0.5 - i * 0.5) * long * 0.8), h + tall * 0.62, 0.065, a);
-      const bite = Math.sin(clock * 12 + index) * 0.04;
-      for (const s of [-1, 1]) {
-        add('bead', 'alarm', ...from(head[0], head[1], a, 0.08, s * 0.07), h + 0.09, 0.075);
-        limb('bone', ...from(head[0], head[1], a, 0.08, s * 0.09), h, ...from(head[0], head[1], a, 0.26, s * (0.05 + bite)), h - 0.06, 0.07, 'taper');
-        if (!fine) continue;
-        for (let leg = 0; leg < legs; leg++) {
-          const step3 = Math.sin(clock * 14 + leg * 2 + s + index);
-          const f = (leg / (legs - 1) - 0.5) * long * 0.8;
-          const hip = from(e.x, e.y, a, f, s * wide * 0.3);
-          const knee = from(e.x, e.y, a, f + step3 * 0.04, s * reach * 0.75);
-          const foot = from(e.x, e.y, a, f + step3 * 0.1, s * reach);
-          const lift = h + 0.16 + Math.max(0, step3) * 0.04;
-          limb('flesh', ...hip, h, ...knee, lift, 0.075, 'taper');
-          limb('chitin', ...knee, lift, ...foot, 0.02, 0.06, 'taper');
+      const flinch = flinchOf(e), grow = (1 + flinch * 0.18) * (1 + (e.tier || 0) * 0.12);
+      const t = clock * (kind === 'N' ? 1.5 : kind === 'C' ? 0.7 : 1) + index * 1.7, z = e.z || 0;
+      const at = (f, side = 0) => from(e.x, e.y, a, f * grow, side * grow);
+      const genes = (f0, step, h) => { for (let i = 0; i < 3; i++) add('bead', e.gene[i], ...at(f0 - i * step), h + z, 0.1 * grow); };
+      const eyes = (f, h, n, spread) => { for (let i = 0; i < n; i++) add('bead', 'alarm', ...at(f, (i - (n - 1) / 2) * spread), h + z + (i % 2) * 0.025, 0.05 * grow); };
+      const leg = (f, side, reach, hipH, kneeUp, phase, width, paint = 'chitin') => {
+        const swing = Math.sin(t * 9 + phase), lift = Math.max(0, Math.cos(t * 9 + phase)) * 0.06;
+        const hip = at(f, side * 0.12), knee = at(f + swing * 0.05, side * reach * 0.55), foot = at(f + swing * 0.13, side * reach);
+        limb(paint, ...hip, hipH + z, ...knee, hipH + kneeUp + lift + z, width, 'taper');
+        limb('chitin', ...knee, hipH + kneeUp + lift + z, ...foot, 0.02 + lift + z, width * 0.7, 'taper');
+      };
+      if (!z) add('stain', 'husk', e.x, e.y, 0.02, (kind === 'N' ? 0.55 : 0.9) * grow, 0.02, (kind === 'N' ? 0.45 : 0.6) * grow, a);
+      if (kind === 'S') {
+        const pulse = 1 + Math.sin(t * 4) * 0.07, h = 0.36 + Math.abs(Math.sin(t * 5)) * 0.06;
+        add('sac', 'membraneGlass', ...at(-0.05), h + z, 0.64 * pulse * grow, 0.54 * pulse * grow, 0.6 * pulse * grow, a);
+        for (let i = 0; i < 5; i++) {
+          const s = t * 1.3 + i * 1.26;
+          add('bead', i % 2 ? 'S2' : 'S', ...at(-0.05 + Math.cos(s) * 0.13, Math.sin(s) * 0.13), h + z + Math.sin(s * 1.7) * 0.08, 0.09 * grow);
+        }
+        add('sac', 'flesh', ...at(0.3), h - 0.06 + z, 0.26 * grow, 0.22 * grow, 0.3 * grow, a);
+        eyes(0.42, h - 0.02, 3, 0.07);
+        genes(0.1, 0.14, h + 0.29 * pulse * grow);
+        if (fine) for (const s of [-1, 1]) for (let i = 0; i < 3; i++) leg((i - 1) * 0.18, s, 0.36, h - 0.12, 0.05, i * 2 + (s > 0 ? Math.PI : 0), 0.065, 'flesh2');
+      } else if (kind === 'F') {
+        const h = 0.17;
+        for (let i = 0; i < 6; i++) {
+          const f = 0.42 - i * 0.17, c = at(f, Math.sin(t * 6 - i * 0.9) * 0.09 * (0.3 + i / 6));
+          add('shell', i % 2 ? 'F' : 'chitin', ...c, h + z, 0.22 * grow, 0.14 * grow, 0.26 * grow, a);
+          if (fine) for (const s of [-1, 1]) {
+            const ph = t * 12 - i * 1.1 + (s > 0 ? Math.PI : 0);
+            limb('chitin', ...c, h + z, ...from(c[0], c[1], a, Math.sin(ph) * 0.06, s * 0.26 * grow), 0.02 + Math.max(0, Math.cos(ph)) * 0.05 + z, 0.035, 'taper');
+          }
+        }
+        const head = at(0.6);
+        add('sac', 'gore', ...head, h + 0.02 + z, 0.2 * grow, 0.13 * grow, 0.22 * grow, a);
+        for (const s of [-1, 1]) limb('bone', ...from(head[0], head[1], a, 0.05, s * 0.06), h + z, ...from(head[0], head[1], a, 0.2, s * (0.02 + Math.sin(t * 10) * 0.035)), h - 0.02 + z, 0.04, 'taper');
+        eyes(0.66, h + 0.07, 2, 0.09);
+        genes(0.25, 0.17, h + 0.1);
+      } else if (kind === 'C') {
+        const h = 0.2, open = flinch * 0.3;
+        add('sac', 'gore', ...at(0), h + z, 0.62 * grow, 0.22 * grow, 0.5 * grow, a);
+        for (let i = 0; i < 3; i++) add('shell', i === 1 ? 'C' : 'chitin', ...at(0.16 - i * 0.18), h + 0.07 + i * 0.01 + z, (0.38 - i * 0.02) * grow, (0.26 + open) * grow, 0.56 * grow, a, open * (i - 1));
+        add('horn', 'C2', ...at(0.38), h + 0.08 + z, 0.28 * grow, 0.36 * grow, 0.28 * grow, a);
+        eyes(0.36, h + 0.04, 4, 0.06);
+        genes(0.2, 0.18, h + 0.25);
+        if (fine) for (const s of [-1, 1]) for (let i = 0; i < 3; i++) leg((i - 1) * 0.2, s, 0.44, h, 0.12, i * 2.1 + (s > 0 ? Math.PI : 0), 0.065);
+      } else {
+        const h = 0.62 + Math.sin(t * 8) * 0.03;
+        add('sac', 'gore', ...at(-0.04), h + z, 0.4 * grow, 0.28 * grow, 0.36 * grow, a);
+        add('shell', 'N', ...at(-0.02), h + 0.08 + z, 0.36 * grow, 0.16 * grow, 0.32 * grow, a);
+        add('sac', 'gore', ...at(0.2), h - 0.02 + z, 0.18 * grow, 0.16 * grow, 0.2 * grow, a);
+        eyes(0.16, h, 4, 0.05);
+        genes(0.09, 0.09, h + 0.15);
+        for (const s of [-1, 1]) limb('N2', ...at(0.14, s * 0.05), h + 0.08 + z, ...at(0.4, s * 0.22), h + 0.38 + z, 0.022);
+        for (const [f, s, ph] of [[0.12, -1, 0], [0.12, 1, Math.PI], [-0.12, -1, Math.PI], [-0.12, 1, 0]]) {
+          const swing = Math.sin(t * 10 + ph), lift = Math.max(0, Math.cos(t * 10 + ph)) * 0.1;
+          const hip = at(f, s * 0.14), knee = at(f * 1.8 + swing * 0.05, s * 0.42), foot = at(f * 2.6 + swing * 0.16, s * 0.6);
+          limb('chitin', ...hip, h + z, ...knee, h + 0.2 + z, 0.075, 'taper');
+          add('bead', 'N', ...knee, h + 0.2 + z, 0.07 * grow);
+          limb('chitin', ...knee, h + 0.2 + z, ...foot, 0.02 + lift + z, 0.05, 'taper');
         }
       }
-      if (!fine) return;
-      if (kind === 'S') for (let i = 0; i < 4; i++) add('bead', 'flesh2', ...from(rear[0], rear[1], i * 1.57 + 0.7, 0.18), h + 0.16, 0.14);
-      if (kind === 'F') for (let i = 0; i < 3; i++) add('ring', 'flesh', ...from(e.x, e.y, a, -0.3 + i * 0.22), h, 0.32, 0.32, 0.34, a, LYING);
-      if (kind === 'C') for (const s of [-1, 1]) add('horn', 'bone', ...from(head[0], head[1], a, -0.04, s * 0.14), h + 0.06, 0.3, 0.32, 0.3, a);
-      if (kind === 'N') for (const s of [-1, 1]) limb('N', ...head, h + 0.08, ...from(head[0], head[1], a, 0.3, s * 0.16), h + 0.3, 0.03);
+      if (flinch > 0.2) add('bead', 'pale', e.x, e.y, 0.5 + z, 0.3 * flinch);
     });
   }
 

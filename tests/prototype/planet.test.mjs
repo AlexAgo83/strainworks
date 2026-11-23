@@ -288,7 +288,7 @@ it("turns under the finger, and shares one menu with the game", async () => {
     expect(missed).toBe(0);
 
     await page.click("#planet-menu");
-    expect(await page.isVisible('[data-go="help"]')).toBe(false);
+    expect(await page.isVisible("#to-planet")).toBe(false);
     expect(await page.isVisible("#restart")).toBe(false);
     await page.click('[data-go="graphics"]');
     await page.click("#motion-less");
@@ -299,7 +299,7 @@ it("turns under the finger, and shares one menu with the game", async () => {
     await page.click("#menu-toggle");
     expect(await page.isVisible("#restart")).toBe(true);
     expect(await page.isVisible("#version-row")).toBe(true);
-    expect(await page.isVisible('[data-go="help"]')).toBe(true);
+    expect(await page.isVisible("#to-planet")).toBe(true);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();
