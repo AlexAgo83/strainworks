@@ -7892,8 +7892,8 @@ const heard = c => !orbit.on && c?.x != null && placeOf(c).gain > .03;
 const playNear = (id, c, gap) => heard(c) && playSound(id, gap, placeOf(c));
 // Under the theme on the planet, the station hums.
 function stationHum() {
-  // It sounds like music, so the music rules it: off, or a piece chosen or stopped in the playlist, and it goes quiet.
-  const ctx = sfx.ctx, want = Boolean(ctx && orbit.on && sfx.on && music.on && music.manual == null && !document.hidden && sfx.buffers.station_loop?.length);
+  // shortcut: never played; the station loop sounds like music and doubled the planet's theme. Kept to replay it as a quieter ambience later.
+  const ctx = sfx.ctx, want = false;
   if (want && !sfx.loop) {
     const src = ctx.createBufferSource(), gain = ctx.createGain();
     src.buffer = sfx.buffers.station_loop[0]; src.loop = true;
