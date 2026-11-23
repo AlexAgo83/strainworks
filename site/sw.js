@@ -54,7 +54,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") event.respondWith(font(request));
-  else if (url.origin !== self.location.origin || url.pathname.endsWith("/version.json")) return;
+  // The music goes to the network as the browser asks for it, by ranges, and is never kept.
+  else if (url.origin !== self.location.origin || url.pathname.endsWith("/version.json") || url.pathname.endsWith(".mp3")) return;
   else if (request.mode === "navigate") event.respondWith(page(request));
   else event.respondWith(kept(request));
 });

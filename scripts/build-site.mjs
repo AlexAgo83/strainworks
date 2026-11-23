@@ -57,6 +57,13 @@ for (const name of ["space", "station", "planet", "globe", "globe-glow"]) {
   const path = asset(`${name}.webp`, readFileSync(at(`prototype/planet/${name}.webp`)));
   app = replaceOnce(app, `'planet/${name}.webp'`, `'./${path}'`);
 }
+// The music is served with the site but left out of the offline cache: it is large, and the game runs without it.
+for (let n = 1; n <= 4; n++) {
+  const name = `strainworks_music_0${n}.mp3`, data = readFileSync(at(`prototype/music/${name}`));
+  const path = `assets/strainworks_music_0${n}-${digest(data)}.mp3`;
+  writeFileSync(resolve(out, path), data);
+  app = replaceOnce(app, `'music/${name}'`, `'./${path}'`);
+}
 // The engine comes with the site, so 3D works offline. The pinned hash still holds: it is the same file.
 const engineLink = /https:\/\/cdn\.jsdelivr\.net\/npm\/babylonjs@[\d.]+\/babylon\.js/.exec(app)?.[0];
 if (!engineLink) throw new Error("the engine's link was not found");

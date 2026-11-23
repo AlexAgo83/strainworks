@@ -278,6 +278,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #commands dl { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; margin:0 0 16px; }
 #commands dt { color:var(--cyan); }
 #commands dd { margin:0; }
+#music-volume { width:110px; accent-color:var(--cyan); }
 #commands .keys-head { margin:0 0 8px; color:var(--muted, #8B989C); font-size:13px; }
 #commands #keys { margin-bottom:6px; }
 #commands #keys button { min-width:64px; padding:3px 10px; border:1px solid var(--cyan); border-radius:6px; background:transparent; color:var(--cyan); font:inherit; cursor:pointer; }
@@ -906,6 +907,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div class="row"><span>Animations</span><span class="choice"><button id="motion-auto" class="tip">Auto</button><button id="motion-less" class="tip">Réduites</button></span></div>
     <div class="row"><span>Qualité 3D</span><span class="choice"><button id="quality-high" class="tip">Haute</button><button id="quality-fast" class="tip">Rapide</button></span></div>
     <div class="row"><span>Courbure 3D</span><span class="choice"><button id="curve-none" class="tip">Aucune</button><button id="curve-soft" class="tip">Douce</button><button id="curve-strong" class="tip">Forte</button></span></div>
+    <div class="row"><span>Musique</span><span class="choice"><input id="music-volume" type="range" min="0" max="100" step="5" aria-label="Volume de la musique"><button id="music-on" class="tip" aria-pressed="true">Activée</button></span></div>
     <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip">Français</button><button id="lang-en" class="tip">English</button></span></div>
     <div class="row in-game"><span>Graphe de performance</span><button id="perf-toggle" class="tip" aria-pressed="false" aria-controls="perf">Afficher</button></div>
     <div class="row"><span>Clavier et tactile</span><button id="help" class="tip">Voir</button></div>
@@ -1199,6 +1201,13 @@ const EN = {
   "Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.": "Two of one and one of the other: the Ligase never keeps a belt waiting.",
   "Un second récolteur sur": "A second harvester on",
   "Aller à l’étape du guide": "Go to the guide step",
+  "Musique": "Music",
+  "Volume de la musique": "Music volume",
+  "Activée": "On",
+  "Coupée": "Off",
+  "Démontage : {} cases. Lâche pour démonter, Échap pour annuler.": "Dismantling: {} cells. Let go to dismantle, Esc to cancel.",
+  "Tracé : {} cases, {} ADN. Lâche pour construire, Échap pour annuler.": "Line: {} cells, {} DNA. Let go to build, Esc to cancel.",
+  "Tracé annulé.": "Line cancelled.",
   "Prendre la Ligase": "Take the Ligase",
   "Prends la Ligase": "Take the Ligase",
   "Elle assemble trois bases en un gène, dans l’ordre : S, F, S. Le cœur mange ce gène.": "It joins three bases into a gene, in order: S, F, S. The core eats that gene.",
@@ -4508,6 +4517,52 @@ function bridgeOver(c, dir) {
   if (item) b.lanes[axis] = item;
   return b;
 }
+// Belts, trails and dismantling are drawn first: the line is only a path, shown as a ghost, built when let go.
+const TRACED = ['belt', 'track', 'erase'];
+function stretch(to) {
+  if (!drag?.path) return extend(to);
+  const path = drag.path;
+  let last = path.at(-1), changed = false;
+  while (last.x !== to.x || last.y !== to.y) {
+    const horizontal = Math.abs(to.x - last.x) >= Math.abs(to.y - last.y);
+    const dir = horizontal ? (to.x > last.x ? 1 : 3) : (to.y > last.y ? 2 : 0);
+    const next = {x:last.x + DX[dir], y:last.y + DY[dir], dir};
+    if (!inside(next.x, next.y)) break;
+    // Back over its own way, the line is taken up again.
+    const back = path.at(-2);
+    if (back && back.x === next.x && back.y === next.y) path.pop(); else path.push(next);
+    last = path.at(-1); changed = true;
+  }
+  if (changed) sayPath();
+}
+const freshOn = p => tool === 'track' ? !G.tracks[key(p.x, p.y)] : !cellAt(p.x, p.y);
+function sayPath() {
+  const path = drag.path;
+  if (tool === 'erase') { say(L`Démontage : ${path.length} cases. Lâche pour démonter, Échap pour annuler.`); return; }
+  const fresh = path.filter(freshOn).length;
+  say(L`Tracé : ${fresh} cases, ${fresh * costInHand(tool)} ADN. Lâche pour construire, Échap pour annuler.`);
+}
+// A belt met and left straight on the other side is crossed: that one gets a bridge.
+const crossing = (path, i) => i > 0 && path[i + 1]?.dir === path[i].dir && cellAt(path[i].x, path[i].y)?.type === 'belt' && cellAt(path[i].x, path[i].y).dir % 2 !== path[i].dir % 2;
+function commitPath() {
+  const path = drag.path, cross = new Set(path.filter((p, i) => crossing(path, i)).map(p => key(p.x, p.y))), s = path[0];
+  drag = {x:s.x, y:s.y, moved:false, existing:Boolean(cellAt(s.x, s.y)), cross};
+  if (tool === 'erase') wipe(s.x, s.y);
+  for (const p of path.slice(1)) { if (!drag) break; extend(p); }
+  drag = null;
+}
+function drawPath(g) {
+  const path = drag.path, erase = tool === 'erase';
+  let spent = 0;
+  path.forEach((p, i) => {
+    const fresh = !erase && freshOn(p), over = !erase && tool === 'belt' && crossing(path, i);
+    if (fresh) spent += costInHand(tool);
+    const color = erase ? PREVIEW.scrap : fresh && spent > G.dna ? PREVIEW.no : over ? PREVIEW.turn : PREVIEW.build;
+    g.beginPath(); g.rect(p.x + .04, p.y + .04, .92, .92);
+    g.fillStyle = color + '33'; g.fill(); g.strokeStyle = color + 'CC'; g.lineWidth = 1.5 / cam.zoom; g.stroke();
+    if (fresh || over) { g.save(); g.globalAlpha = .75; g.translate(p.x + .5, p.y + .5); arrow(g, path[i + 1]?.dir ?? p.dir ?? 0, .4, color); g.restore(); }
+  });
+}
 function extend(to) {
   if (drag?.vein || drag?.nerve) { drag.aim = to; return; }
   while (drag && (drag.x !== to.x || drag.y !== to.y)) {
@@ -4550,11 +4605,12 @@ function extend(to) {
       buildRanked('belt',drag.x,drag.y,dir);
     } else if (isBelt(from) || (!drag.moved && ['mine','cyst'].includes(from.type))) from.dir = dir;
     let next = cellAt(x,y);
-    if (next?.type === 'belt' && next.dir % 2 !== dir % 2) next = bridgeOver(next, dir);
+    // A bridge only where the line goes on across; ending or turning on the belt joins it.
+    if (next?.type === 'belt' && next.dir % 2 !== dir % 2 && (!drag.cross || drag.cross.has(key(x,y)))) next = bridgeOver(next, dir);
     // A belt drawn through a bridge takes that lane with it.
     for (const c of [from, next]) if (c?.type === 'bridge' && c.ways?.[dir % 2] != null) c.ways[dir % 2] = dir;
     if (!next) { if (!placeable(x,y)) { refuse(`${whyNot(x,y)}.`); drag = null; return; } if (short(1)) return; buildRanked('belt',x,y,dir); }
-    drag = {x, y, moved:true, existing:Boolean(next), heading:dir};
+    drag = {x, y, moved:true, existing:Boolean(next), heading:dir, cross:drag.cross};
     if (next && !isBelt(next) && next.type !== 'bridge') { drag = null; return; }
   }
 }
@@ -4642,6 +4698,7 @@ function preview() {
 const PREVIEW = {no:'#FF6B6B', scrap:'#FF6B6B', build:'#55D6E8', link:'#55D6E8', turn:'#F0A03C', use:'#F0A03C', select:'#B7F34A', none:'#D5FAFF'};
 // Both views use it: their canvas is in map units, squashed or not. It stays on the plane where things get built.
 function drawPreview(g, models) {
+  if (drag?.path && gesture?.mode === 'draw') { drawPath(g); drawPorts(g, null); return; }
   const p = preview();
   if (!p) { drawPorts(g, null); return; }
   const {x, y, act} = p, color = PREVIEW[act], size = p.size || (p.type && BIG[p.type] ? 2 : 1), mx = x + size / 2, my = y + size / 2;
@@ -4858,10 +4915,10 @@ canvas.addEventListener('pointermove', event => {
       if (!drag.existing && !placeable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
-    if (tool === 'erase') wipe(from.x,from.y);
+    if (TRACED.includes(tool)) { drag.path = [{...from}]; sayPath(); }
   }
   if (gesture.mode === 'pan') pan(p.x - last.x,p.y - last.y);
-  else if (drag) { const to = position(p); if (inside(to.x,to.y)) extend(to); }
+  else if (drag) { const to = position(p); if (inside(to.x,to.y)) stretch(to); }
 });
 function release(event) {
   if (!pointers.delete(event.pointerId) || pointers.size) return;
@@ -4870,6 +4927,7 @@ function release(event) {
     const p = view3d ? view3d.pick(gesture.start) : position(gesture.start);
     if (inside(p.x,p.y)) place(p.x,p.y);
   }
+  if (event.type === 'pointerup' && drag?.path && gesture?.mode === 'draw') commitPath();
   if (event.type === 'pointerup' && drag?.nerve && gesture?.mode === 'draw') {
     const a = drag.nerve, b = drag.aim;
     if (a.x !== b.x || a.y !== b.y) wireUp(G.cells[key(a.x,a.y)], G.cells[key(b.x,b.y)]);
@@ -4989,7 +5047,7 @@ function glide(elapsed) {
   // A line being drawn follows the pointer over the moving map.
   if (gesture?.mode === 'draw' && drag) {
     const to = position(gesture.now);
-    if (inside(to.x, to.y)) extend(to);
+    if (inside(to.x, to.y)) stretch(to);
   }
 }
 function followEdge(elapsed) {
@@ -4999,7 +5057,7 @@ function followEdge(elapsed) {
   if (!dx && !dy) return;
   pan(dx * 280 * elapsed,dy * 280 * elapsed);
   const to = position({x:Math.max(1,Math.min(view.w - 1,p.x)), y:Math.max(1,Math.min(view.h - 1,p.y))});
-  if (inside(to.x,to.y)) extend(to);
+  if (inside(to.x,to.y)) stretch(to);
 }
 // The buttons glide to the same place a jump would reach.
 const glideBy = jump => {
@@ -5199,6 +5257,8 @@ document.addEventListener('keyup', spacePauses);
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || modalOpen()) return;
   event.preventDefault();
+  // A line being drawn is given up, the tool kept.
+  if (drag?.path) { drag = null; gesture = null; say(L('Tracé annulé.')); return; }
   if (ui.stats) { showStats(false); return; }
   if (ui.menu) { showMenu(false); return; }
   // Nothing left to put down: Escape opens the menu.
@@ -7226,6 +7286,66 @@ setCurve(stored(CURVE_KEY));
 // A game in progress is saved and reopened after the page reloads.
 function keepForReload() {
   if (slotKey && !orbit.on) { save(); try { sessionStorage.setItem('strainworks-resume', '1'); } catch (_) {} }
+}
+// ---- Music: the main theme on the planet, two calm pieces in turn in a game, the fight piece while it is hot.
+// It starts with the first press, as browsers want, and is not kept for offline play: the game runs without it.
+const MUSIC_KEY = 'strainworks-music';
+const MUSIC = {theme:'music/strainworks_music_01.mp3', fight:'music/strainworks_music_03.mp3', calm:['music/strainworks_music_02.mp3', 'music/strainworks_music_04.mp3']};
+const music = {volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, fightUntil:0};
+try {
+  const saved = JSON.parse(localStorage.getItem(MUSIC_KEY));
+  if (saved) { music.volume = Math.max(0, Math.min(1, Number(saved.volume) || 0)); music.on = saved.on !== false; }
+} catch (_) {}
+for (const a of music.players) {
+  a.preload = 'auto';
+  // A calm piece played to its end hands over to the other.
+  a.addEventListener('ended', () => { if (MUSIC.calm.includes(music.src)) { music.calm ^= 1; musicTick(); } });
+}
+function musicWant(now) {
+  if (orbit.on || !G) return MUSIC.theme;
+  // An assault, or creatures on the map: the fight piece, held 8 s after so it does not flicker.
+  if (!G.over && $('app').classList.contains('hot')) music.fightUntil = now + 8000;
+  return now < music.fightUntil ? MUSIC.fight : MUSIC.calm[music.calm];
+}
+function musicTick() {
+  if (!music.started) return;
+  const want = musicWant(performance.now());
+  if (want !== music.src) {
+    music.src = want; music.live ^= 1;
+    const a = music.players[music.live];
+    a.src = want; a.loop = !MUSIC.calm.includes(want); music.level[music.live] = 0;
+  }
+  // About 1.5 s of crossfade: the piece playing rises to the volume chosen, the other falls and stops.
+  music.players.forEach((a, i) => {
+    const goal = i === music.live && music.on && !document.hidden ? music.volume : 0, was = music.level[i];
+    const level = music.level[i] = Math.max(0, Math.min(1, was + Math.sign(goal - was) * Math.min(Math.abs(goal - was), .07)));
+    // Through a gain where the browser has Web Audio: an iPhone ignores the volume of an audio element.
+    if (music.gains) music.gains[i].gain.value = level; else a.volume = level;
+    if (goal > 0 && a.paused) a.play().catch(() => {});
+    else if (goal === 0 && level === 0 && !a.paused) a.pause();
+  });
+}
+function paintMusic() {
+  $('music-volume').value = Math.round(music.volume * 100);
+  $('music-on').setAttribute('aria-pressed', music.on);
+  $('music-on').textContent = music.on ? L('Activée') : L('Coupée');
+}
+function keepMusic() { try { localStorage.setItem(MUSIC_KEY, JSON.stringify({volume:music.volume, on:music.on})); } catch (_) {} }
+$('music-volume').oninput = () => { music.volume = Number($('music-volume').value) / 100; if (music.volume > 0) music.on = true; keepMusic(); paintMusic(); musicTick(); };
+$('music-on').onclick = () => { music.on = !music.on; keepMusic(); paintMusic(); musicTick(); };
+paintMusic();
+if (!LAB.on) {
+  const startMusic = () => {
+    if (music.started) return;
+    try {
+      const Context = window.AudioContext || window.webkitAudioContext, ctx = new Context();
+      music.gains = music.players.map(a => { const gain = ctx.createGain(); gain.gain.value = 0; ctx.createMediaElementSource(a).connect(gain).connect(ctx.destination); return gain; });
+      ctx.resume?.();
+    } catch (_) { music.gains = null; }
+    music.started = true; musicTick();
+  };
+  for (const kind of ['pointerdown', 'keydown']) addEventListener(kind, startMusic, {once:true, capture:true});
+  setInterval(musicTick, 100);
 }
 function setLang(id) {
   keep(LANG_KEY, id);
