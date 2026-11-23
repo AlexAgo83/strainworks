@@ -149,8 +149,9 @@ it("exports, imports beside what exists, and copies", async () => {
     expect((await games(page)).some((game) => game.name.endsWith(" bis"))).toBe(true);
 
     // A whole planet goes out and comes back beside itself.
-    await page.click("#planet-menu");
-    const [all] = await Promise.all([page.waitForEvent("download"), page.click("#export-all")]);
+    // From the planet itself, on a free hexagon.
+    await page.evaluate(() => pickHex(freeHex(readList())));
+    const [all] = await Promise.all([page.waitForEvent("download"), act(page, "Tout exporter").click()]);
     await give(page, readFileSync(await all.path(), "utf8"));
     await act(page, "Greffer les 3").click();
     const six = await games(page);
@@ -287,8 +288,9 @@ it("turns under the finger, and shares one menu with the game", async () => {
     expect(missed).toBe(0);
 
     await page.click("#planet-menu");
-    expect(await page.isVisible("#import")).toBe(true);
+    expect(await page.isVisible('[data-go="help"]')).toBe(false);
     expect(await page.isVisible("#restart")).toBe(false);
+    await page.click('[data-go="graphics"]');
     await page.click("#motion-less");
     expect(await page.evaluate(() => [STILL.wanted, localStorage.getItem("strainworks-motion")])).toEqual([true, "less"]);
     await page.click("#planet-menu");
@@ -297,7 +299,7 @@ it("turns under the finger, and shares one menu with the game", async () => {
     await page.click("#menu-toggle");
     expect(await page.isVisible("#restart")).toBe(true);
     expect(await page.isVisible("#version-row")).toBe(true);
-    expect(await page.isVisible("#import")).toBe(false);
+    expect(await page.isVisible('[data-go="help"]')).toBe(true);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

@@ -35,6 +35,7 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
       return [MUSIC.fight.includes(hot), after === hot, music.src === MUSIC.calm[music.calm]];
     });
     await page.evaluate(() => showMenu(true));
+    await page.click('[data-go="audio"]');
     await page.fill("#music-volume", "20");
     await page.click("#music-on");
     const menu = await page.evaluate(() => [music.volume, music.on, document.querySelector("#music-on").textContent, JSON.parse(localStorage.getItem("strainworks-music"))]);

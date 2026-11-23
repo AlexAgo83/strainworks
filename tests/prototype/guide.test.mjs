@@ -56,7 +56,10 @@ it("guides a new game to its first line into the core", async () => {
       const lig = put("ligase", Math.floor(l.x), Math.floor(l.y), 0);
       paintGuide();
       placeGuideSpot();
-      seen.push({ ...read(), trace: !document.querySelector("#guide-trace").hidden, ports: !document.querySelector("#guide-ports").hidden });
+      // The trace is a way a belt can be laid: every cell after the harvester is free, a belt at most at its end.
+      const way = ui.guideTrace.slice(1).map((n) => cellAt(Math.floor(n.x), Math.floor(n.y)));
+      const followable = way.length > 1 && way.every((c, i) => !c || (i === way.length - 1 && isBelt(c)));
+      seen.push({ ...read(), trace: !document.querySelector("#guide-trace").hidden, ports: !document.querySelector("#guide-ports").hidden, followable });
       // Off screen, an arrow points at the spot and takes the view there.
       const was = { x: cam.x, y: cam.y };
       cam.x += 60;
@@ -90,7 +93,7 @@ it("guides a new game to its first line into the core", async () => {
     expect(out.seen[2]).toMatchObject({ step: 3, called: ["fab"], spot: false });
     expect(out.lit).toEqual([true, true, true, true]);
     expect(out.seen[3]).toMatchObject({ step: 4, called: [], spot: true });
-    expect(out.seen[4]).toMatchObject({ step: 5, called: ["tra"], spot: true, trace: true, ports: true });
+    expect(out.seen[4]).toMatchObject({ step: 5, called: ["tra"], spot: true, trace: true, ports: true, followable: true });
     expect(out.arrow).toEqual([true, true]);
     expect(out.travels).toBe(true);
     expect(out.wrong).toEqual([5, true]);

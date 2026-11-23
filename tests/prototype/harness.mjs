@@ -69,6 +69,8 @@ export async function pickTool(page, type) {
 
 export async function fromMenu(page, id) {
   if (!(await page.locator("#menu").isVisible())) await page.click("#menu-toggle");
+  // The settings are in pages: the one holding the control is opened first.
+  await page.evaluate((id) => { const where = document.getElementById(id)?.closest(".page"); if (where) menuPage(where.dataset.page); }, id);
   await page.click(`#${id}`);
 }
 
