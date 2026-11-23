@@ -460,11 +460,13 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #slot-facts { justify-content:flex-start; flex-wrap:wrap; gap:6px; margin-top:8px; }
 #slot-facts p { display:inline-flex; align-items:baseline; gap:5px; padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.05); font-size:12px; }
 #slot-facts b { display:inline; font-size:15px; }
-#app #slot-actions { grid-template-columns:minmax(0,1.6fr) repeat(3, minmax(0,1fr)); gap:6px; margin-top:4px; }
+#app #slot-actions { display:flex; gap:6px; margin-top:4px; }
+#app #slot-actions > * { flex:1 1 0; min-width:0; }
+#app #slot-actions > .go { flex-grow:1.6; }
 #app #slot-actions .act.go { grid-column:auto; }
 #app #slot-actions .act { min-height:40px; padding:4px 10px; font-size:13px; }
 @media (max-width:759px), (max-height:520px), (max-aspect-ratio:11/10) {
-  #app #slot-actions { grid-template-columns:repeat(3, minmax(0,1fr)); }
+  #app #slot-actions { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); }
   #app #slot-actions .act.go { grid-column:1 / -1; }
 }
 
