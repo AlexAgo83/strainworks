@@ -1349,6 +1349,8 @@ const EN = {
   "Aller à l’étape du guide": "Go to the guide step",
   "Ton objectif": "Your goal",
   "Aucun chemin libre jusque-là : fais de la place, ou déplace la Ligase.": "No free way there: make room, or move the Ligase.",
+  "Aucune sortie de récolteur ne mène librement à cette entrée : touche un récolteur et Tourner pour que sa flèche regarde la Ligase, fais de la place, ou déplace la Ligase.": "No harvester's way out leads freely to this input: tap a harvester and Turn it so its arrow faces the Ligase, make room, or move the Ligase.",
+  "Sa flèche est sa seule sortie : le guide la tourne vers le cœur, R pour la changer.": "Its arrow is its only way out: the guide turns it toward the core, R to change it.",
   "Graphismes": "Graphics",
   "Audio": "Audio",
   "Aide": "Help",
@@ -5032,7 +5034,8 @@ function portsOf(c) {
     case 'pump': return round.filter(d => !c.to || ahead(c, d)?.type !== 'pump').map(d => c.to ? into(d) : out(d));
     case 'pocket': return round.filter(d => !G.tracks[key(c.x + DX[d], c.y + DY[d])]).map(d => c.unload ? out(d) : into(d));
     case 'track': return [out(c.dir)];
-    case 'turret': case 'sting': case 'maw': case 'core': return round.map(d => into(d));
+    case 'core': if (sizeOf(c) > 1) return edgesOf(c).map(d => ({...d, out:false})); return round.map(d => into(d));
+    case 'turret': case 'sting': case 'maw': return round.map(d => into(d));
   }
   return [];
 }
@@ -5952,9 +5955,12 @@ function startGuide() {
 // The goal cell itself may hold a belt already; every other cell of the way must be free and buildable.
 function guideRoute(from, done, goal = null, limit = 1600) {
   const id = (x, y) => `${x},${y}`, back = new Map(), queue = [], size = sizeOf(from);
+  // A harvester or a Ligase gives only by its arrow: the way starts there.
+  const exit = (from.type === 'mine' || from.type === 'ligase') && size === 1 ? {x:from.x + DX[from.dir], y:from.y + DY[from.dir]} : null;
   for (let i = -1; i <= size; i++) for (let j = -1; j <= size; j++) {
     if ((i < 0 || i >= size) === (j < 0 || j >= size)) continue;
     const x = from.x + i, y = from.y + j;
+    if (exit && (x !== exit.x || y !== exit.y)) continue;
     if (cellAt(x, y) || !placeable(x, y)) continue;
     back.set(id(x, y), null); queue.push({x, y});
   }
@@ -5994,6 +6000,7 @@ const GUIDE_GENE = ['S', 'F', 'S'];
 function guideHint(want) {
   const lig = guideLigase();
   if (!lig) return '';
+  if (ui.guideNoRoute === 'mine') return L('Aucune sortie de récolteur ne mène librement à cette entrée : touche un récolteur et Tourner pour que sa flèche regarde la Ligase, fais de la place, ou déplace la Ligase.');
   if (ui.guideNoRoute) return L('Aucun chemin libre jusque-là : fais de la place, ou déplace la Ligase.');
   if (want.port != null) {
     const wrong = lig.ports[want.port].find(b => b !== GUIDE_GENE[want.port]);
@@ -6040,6 +6047,7 @@ function guideSpot(step) {
     if (want.core) {
       const out = {x:m.x + DX[lig.dir], y:m.y + DY[lig.dir]}, core = coreCell();
       const touches = n => [0, 1, 2, 3].some(d => cellAt(n.x + DX[d], n.y + DY[d]) === core);
+      if (cellAt(Math.floor(out.x), Math.floor(out.y)) === core) return out;
       const route = guideRoute(lig, touches);
       ui.guideNoRoute = !route;
       if (route) ui.guideTrace = [m, ...route.map(n => ({x:n.x + .5, y:n.y + .5})), centreOf(core)];
@@ -6050,7 +6058,7 @@ function guideSpot(step) {
     const goal = {x:Math.floor(at.x), y:Math.floor(at.y)}, free = c => !isBelt(cellAt(c.x + DX[c.dir], c.y + DY[c.dir]));
     const mines = [...allCells()].filter(c => c.type === 'mine' && matterUnder(c) === want.base)
       .sort((a, b) => (free(b) - free(a)) || Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y));
-    ui.guideNoRoute = mines.length > 0;
+    ui.guideNoRoute = mines.length > 0 && 'mine';
     for (const c of mines) {
       const route = guideRoute(c, n => n.x === goal.x && n.y === goal.y, goal);
       if (route) { ui.guideTrace = [centreOf(c), ...route.map(n => ({x:n.x + .5, y:n.y + .5}))]; ui.guideNoRoute = false; break; }
@@ -6100,7 +6108,13 @@ function paintGuide() {
   $('guide-no').textContent = L`étape ${g.step + 1} sur ${GUIDE.length}`;
   const title = `${step.title}${base}`;
   if ($('guide-title').innerHTML !== title) $('guide-title').innerHTML = title;
-  write($('guide-why'), [step.why, howTo(step), guideHint(step)].filter(Boolean).join(' '));
+  if ((step.pick === 'mine' || step.place) && tool === step.pick && ui.guideTurned !== g.step) {
+    // Its arrow is its one way out: turned toward the core as it is taken, the player can still turn it with R.
+    const from = guideSpot(g.step), core = centreOf(coreCell() || CORE), dx = core.x - (from?.x ?? core.x), dy = core.y - (from?.y ?? core.y);
+    if (from) { ui.guideTurned = g.step; setHeading(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0)); }
+  }
+  const arrow = step.pick === 'mine' ? L('Sa flèche est sa seule sortie : le guide la tourne vers le cœur, R pour la changer.') : '';
+  write($('guide-why'), [step.why, arrow, howTo(step), guideHint(step)].filter(Boolean).join(' '));
   showModel($('guide-model'), step.model);
   const list = GUIDE.map((s, i) => `<li class="${i < g.step ? 'done' : i === g.step ? 'now' : ''}"><i>${i < g.step ? '✓' : i + 1}</i><span>${s.list}</span>${s.base ? markOf(s.base) : ''}</li>`).join('');
   if ($('guide-steps').innerHTML !== list) $('guide-steps').innerHTML = list;
@@ -6221,7 +6235,6 @@ function showIntro(open) {
   } else if (!box.hidden) {
     box.hidden = true; clearTimeout(intro.timer);
     paused = intro.was;
-    keep(INTRO_KEY, '1');
     paintGuide();
   }
 }
@@ -6789,7 +6802,8 @@ function foundGame(wanted) {
   }
   openSlot(id, key, newName(list));
   settleIn(); begin(); startGuide(); paintGuide();
-  if (!stored(INTRO_KEY)) showIntro(true);
+  // Every new game opens on its goal; 'off' is only for tests and captures.
+  if (stored(INTRO_KEY) !== 'off') showIntro(true);
   return true;
 }
 function openGame(id) {

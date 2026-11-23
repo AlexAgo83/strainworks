@@ -58,14 +58,21 @@ window.createView3D = (glCanvas) => {
 
   const terrain = window.createTerrain3D(B, scene, glow);
 
-  // ---- A small planet: past the middle of the screen the ground falls away, more the further out.
-  // Pieces drop whole (their matrices, so glow and shadows follow); the ground meshes bend in their shader.
-  const CURVES = { none: 0, soft: 0.22, strong: 0.55 };
+  // ---- A small planet: past the middle of the screen the ground falls away toward the horizon, more the further.
+  // It bends with depth alone, smoothly from the middle: the near half stays flat, every row bends alike, and what
+  // is drawn flat over it (grid, previews) can follow it row by row. The ground meshes bend in their shader; pieces
+  // lean with the slope under their foot and drop with it (their matrices, so glow and shadows follow), so a run
+  // of belts stays joined. A strength under a quarter over lean keeps the horizon past the top of the screen.
+  const CURVES = { none: 0, soft: 0.12 / lean, strong: 0.22 / lean };
   const bend = { cx: 0, cy: 0, hw: 1, hh: 1, k: 0 };
-  const dropAt = (x, y) => {
-    if (!bend.k) return 0;
-    const n = Math.max(0, Math.hypot((x - bend.cx) / bend.hw, (y - bend.cy) / bend.hh) - 0.45);
-    return bend.k * n * n * bend.hh;
+  const depthOf = (y) => Math.max(0, (bend.cy - y) / bend.hh);
+  const dropAt = (x, y) => (bend.k ? bend.k * depthOf(y) ** 2 * bend.hh : 0);
+  const slopeAt = (y) => Math.atan(2 * bend.k * depthOf(y));
+  // The ground cell under a point of the flat screen: where it shows, it was lowered by its drop.
+  const groundRow = (flatY) => {
+    let y = flatY;
+    for (let i = 0; i < 8; i++) y = flatY - dropAt(0, y) * lean;
+    return y;
   };
   class Bend extends B.MaterialPluginBase {
     constructor(material) {
@@ -88,8 +95,8 @@ window.createView3D = (glCanvas) => {
       if (type !== 'vertex') return null;
       return {
         CUSTOM_VERTEX_UPDATE_WORLDPOS: `#ifdef BEND
-          float bendN = max(0.0, length(vec2((worldPos.x - bendView.x) / bendView.z, (-worldPos.z - bendView.y) / bendView.w)) - 0.45);
-          worldPos.y -= bendK * bendN * bendN * bendView.w;
+          float bendT = max(0.0, (bendView.y + worldPos.z) / bendView.w);
+          worldPos.y -= bendK * bendT * bendT * bendView.w;
           #endif`,
       };
     }
@@ -123,6 +130,9 @@ window.createView3D = (glCanvas) => {
   const matrix = new B.Matrix();
   const turn = new B.Quaternion();
   const size = new B.Vector3();
+  const foot = new B.Matrix();
+  const lean2 = new B.Matrix();
+  const bent = new B.Matrix();
   const spot = new B.Vector3();
   // angle is a game angle (0 east, clockwise). roll lays an upright shape along that angle.
   function add(shape, paint, x, y, h, sx, sy = sx, sz = sx, angle = 0, roll = 0) {
@@ -150,7 +160,18 @@ window.createView3D = (glCanvas) => {
     }
     B.Quaternion.RotationYawPitchRollToRef(angle, 0, roll, turn);
     // Everything rides the ground, which is at height 0 under what is built.
-    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, (add.plane ? h : h + terrain.height(x, y)) - dropAt(x, y), -y), matrix);
+    B.Matrix.ComposeToRef(size.set(sx, sy, sz), turn, spot.set(x, add.plane ? h : h + terrain.height(x, y), -y), matrix);
+    const drop = dropAt(x, y);
+    if (drop) {
+      // Turned about its foot by the slope there, then lowered with the ground.
+      B.Matrix.TranslationToRef(-x, 0, y, foot);
+      B.Matrix.RotationXToRef(slopeAt(y), lean2);
+      foot.multiplyToRef(lean2, foot);
+      B.Matrix.TranslationToRef(x, -drop, -y, lean2);
+      foot.multiplyToRef(lean2, foot);
+      matrix.multiplyToRef(foot, bent);
+      matrix.copyFrom(bent);
+    }
     matrix.copyToArray(batch.data, batch.count * 16);
     batch.count++;
   }
@@ -175,7 +196,9 @@ window.createView3D = (glCanvas) => {
   // ---- Read-outs stay on the 2D canvas, flattened on the ground and lifted to their object's height.
   function drawOverlay(area) {
     const s = cam.zoom * view.dpr;
-    const g = ctx;
+    // Bent, the read-outs are drawn flat apart, then laid on the screen row by row where the ground shows.
+    if (bend.k && (flat.canvas.width !== canvas.width || flat.canvas.height !== canvas.height)) Object.assign(flat.canvas, { width: canvas.width, height: canvas.height });
+    const g = bend.k ? flat.ctx : ctx;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, canvas.width, canvas.height);
     g.setTransform(s, 0, 0, s * tilt, canvas.width / 2 - cam.x * s, canvas.height / 2 - cam.y * s * tilt);
@@ -346,6 +369,20 @@ window.createView3D = (glCanvas) => {
     for (const e of G.enemies) if (inSight(e.x, e.y)) marker(e.x, e.y, '#FF6B6B');
     for (const b of G.breaches) if (b.state === 'wake' && known(b.x, b.y)) marker(b.x + 0.5, b.y + 0.5, '#F0A03C');
     marker(CORE.x + 0.5, CORE.y + 0.5, '#B7F34A');
+    if (bend.k) layBent(s * tilt);
+  }
+  const flat = { canvas: document.createElement('canvas') };
+  flat.ctx = flat.canvas.getContext('2d');
+  function layBent(S) {
+    const W = canvas.width, H = canvas.height, mid = Math.floor(H / 2), step = 3;
+    const source = (r) => mid + (groundRow(cam.y + (r - H / 2) / S) - cam.y) * S + (H / 2 - mid);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(flat.canvas, 0, mid, W, H - mid, 0, mid, W, H - mid);
+    for (let r = 0; r < mid; r += step) {
+      const end = Math.min(mid, r + step), a = source(r), b = source(end);
+      if (b > a && b > 0) ctx.drawImage(flat.canvas, 0, Math.max(0, a), W, b - Math.max(0, a), 0, r + (Math.max(0, a) - a) * ((end - r) / (b - a)), W, (end - r) * ((b - Math.max(0, a)) / (b - a)));
+    }
   }
 
   let width = 0;
@@ -358,7 +395,7 @@ window.createView3D = (glCanvas) => {
     // A tap on the top of a tall object means that object, though the ground behind it is another cell.
     pick(point) {
       const p = worldAt(point.x, point.y);
-      for (let i = 0, y = p.y; i < 4; i++) p.y = y - dropAt(p.x, p.y) * lean;
+      p.y = groundRow(p.y);
       const x = Math.floor(p.x);
       for (const h of [0.75, 0.5, 0.3]) {
         const y = Math.floor(p.y + h * lean);
@@ -394,7 +431,8 @@ window.createView3D = (glCanvas) => {
       const a = worldAt(0, 0);
       const b = worldAt(view.w, view.h);
       // Tall things just south of the screen still show their tops.
-      const above = Math.ceil(bend.k * bend.hh * 1.2);
+      const kl = bend.k * lean;
+      const above = kl ? Math.ceil(((1 - Math.sqrt(1 - 4 * kl)) / (2 * kl) - 1) * bend.hh) + 1 : 0;
       const area = { x0: Math.floor(a.x) - 1, y0: Math.floor(a.y) - 2 - above, x1: Math.ceil(b.x) + 1, y1: Math.ceil(b.y) + 2 };
       heartbeat();
       terrain.update(area);

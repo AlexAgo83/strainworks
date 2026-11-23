@@ -35,7 +35,7 @@ it("shows the goal once on a first game, made of the game's pictures, and again 
     expect(first).toMatchObject({ open: true, paused: true, marks: true, creatures: 2, letters: false, kicker: "Ton objectif · 1 sur 3" });
     expect(first.models).toEqual(expect.arrayContaining(["core", "mine", "ligase", "turret"]));
     expect(last).toEqual(["Ton objectif · 3 sur 3", "Commencer"]);
-    expect(closed).toEqual([true, false, "1"]);
+    expect(closed).toEqual([true, false, null]);
     expect(again).toBe(true);
     // The core sheet opens on its five stages, the first one under way.
     const frieze = await page.evaluate(() => {

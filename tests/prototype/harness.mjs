@@ -115,7 +115,7 @@ export async function launch() {
       if (!view3d) await context.addInitScript(flatUnlessPicked);
       if (lang) await context.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
-      if (!intro) await context.addInitScript(() => localStorage.setItem("strainworks-intro", "1"));
+      if (!intro) await context.addInitScript(() => localStorage.setItem("strainworks-intro", "off"));
       if (line) await context.addInitScript(startLine);
       await context.addInitScript(seedRandom);
       await context.addInitScript(layoutProbe);
@@ -128,7 +128,7 @@ export async function launch() {
       if (!view3d) await page.addInitScript(flatUnlessPicked);
       if (lang) await page.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
-      if (!intro) await page.addInitScript(() => localStorage.setItem("strainworks-intro", "1"));
+      if (!intro) await page.addInitScript(() => localStorage.setItem("strainworks-intro", "off"));
       if (line) await page.addInitScript(startLine);
       await page.addInitScript(seedRandom);
       await page.addInitScript(layoutProbe);

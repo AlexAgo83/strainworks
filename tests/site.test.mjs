@@ -21,7 +21,7 @@ it("builds a site that plays in 3D and offline under its own policy", async () =
   try {
     const context = await browser.newContext({ viewport: { width: 375, height: 700 }, reducedMotion: "reduce" });
     // The language is asked on first opening: this run picks French, the language it reads.
-    await context.addInitScript(() => { localStorage.setItem("strainworks-lang", "fr"); localStorage.setItem("strainworks-intro", "1"); });
+    await context.addInitScript(() => { localStorage.setItem("strainworks-lang", "fr"); localStorage.setItem("strainworks-intro", "off"); });
     // Only this site: nothing may be needed from anywhere else.
     await context.route(/^https:/, (route) => route.abort());
     const page = await context.newPage();
