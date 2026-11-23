@@ -73,6 +73,13 @@ function flatUnlessPicked() {
   } catch (_) {}
 }
 
+// The rules are tested in French, the language they were written in, unless a test picks one.
+function frenchUnlessPicked() {
+  try {
+    if (!localStorage.getItem("strainworks-lang")) localStorage.setItem("strainworks-lang", "fr");
+  } catch (_) {}
+}
+
 // Tests of the game step past the opening screen into the last game played, or a first one.
 function pastThePlanet() {
   document.addEventListener("DOMContentLoaded", () => {
@@ -84,20 +91,22 @@ export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
     close: () => browser.close(),
-    async newContext({ fog = false, planet = false, view3d = false, ...options } = {}) {
+    async newContext({ fog = false, planet = false, view3d = false, lang = "fr", ...options } = {}) {
       const context = await browser.newContext(options);
       if (!fog) await context.addInitScript(seenEverywhere);
       if (!planet) await context.addInitScript(pastThePlanet);
       if (!view3d) await context.addInitScript(flatUnlessPicked);
+      if (lang) await context.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       await context.addInitScript(seedRandom);
       await context.addInitScript(layoutProbe);
       return context;
     },
-    async newPage({ fog = false, planet = false, view3d = false, ...options } = {}) {
+    async newPage({ fog = false, planet = false, view3d = false, lang = "fr", ...options } = {}) {
       const page = await browser.newPage(options);
       if (!fog) await page.addInitScript(seenEverywhere);
       if (!planet) await page.addInitScript(pastThePlanet);
       if (!view3d) await page.addInitScript(flatUnlessPicked);
+      if (lang) await page.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       await page.addInitScript(seedRandom);
       await page.addInitScript(layoutProbe);
       return page;

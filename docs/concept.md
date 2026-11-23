@@ -1,6 +1,6 @@
 # Strainworks: game concept
 
-The reference for the game and its decisions. French names shown by the prototype are given in brackets on first use. The working name was SOUCHE. The availability of the name Strainworks has not been checked.
+The reference for the game and its decisions. The game speaks English and French; French names are given in brackets on first use, and the English ones are in section 15. The working name was SOUCHE. The availability of the name Strainworks has not been checked.
 
 **Write the living. Make it a factory. Survive its mutations.**
 
@@ -398,3 +398,32 @@ overshoots counts toward the next shot.
 - The Encapsulator's third recipe, Capsule lourde: 12 strands or genes behind, 2 carbon and 1 isotope on the side.
   The side takes exactly what the recipe needs.
 - Entering stage 5 hatches a fourth drone.
+
+## 15. Languages
+
+The game asks for its language on first opening, keeps it in the browser, and changes it from the menu
+(**Langue** / **Language**). A change saves the game in progress and reopens it in the other language.
+
+The French text in the code is the key: `L('…')`, or a template tagged `L`, gives it in the chosen
+language, and the `EN` table in `prototype/index.html` holds the English line of every key. The markup
+is written in French and translated on load. `tests/prototype/language.test.mjs` fails on a key with no
+English line, or on French left on screen in English. The rule tests run in French.
+
+| French | English |
+|---|---|
+| ADN | DNA |
+| Spore, Fibre, Chitine, Nerf | Spore, Fiber, Chitin, Nerve |
+| Gène, brin, base | Gene, strand, base |
+| Cœur, brèche, nid | Core, breach, nest |
+| Tapis, Feu, Pont, Diviseur, Trieur | Belt, Gate, Bridge, Splitter, Sorter |
+| Récolteur, Grand récolteur | Harvester, Large harvester |
+| Ligase, Assembleur, Encapsuleur | Ligase, Assembler, Encapsulator |
+| Kyste, Grand kyste | Cyst, Large cyst |
+| Veine, pompe, Piste, Poche, Ver, soute | Vein, pump, Trail, Pocket, Worm, hold |
+| Nerf (outil), Pylône radar | Nerve, Radar pylon |
+| Tourelle, Dard, Gueule, Mur | Turret, Sting, Maw, Wall |
+| Chargeur, Capsule, Capsule lourde | Magazine, Capsule, Heavy capsule |
+| Carbone, Isotope | Carbon, Isotope |
+| Cellule, Tissu, Organe, Système, Noyau | Cell, Tissue, Organ, System, Nucleus |
+| Récolter, Acheminer, Transformer, Défendre, Commander | Harvest, Convey, Transform, Defend, Command |
+| Démonter, Inspecter, Reconstruire | Dismantle, Inspect, Rebuild |

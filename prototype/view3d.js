@@ -232,7 +232,7 @@ window.createView3D = (glCanvas) => {
         }
         g.fillStyle = '#AEB9BF14';
         g.fill();
-        if (cam.zoom >= 8) label('carbone', patch.cx, patch.top - 0.42, Math.min(40, Math.max(14, 440 / cam.zoom)), '#D3DCE0');
+        if (cam.zoom >= 8) label(typeof L === 'function' ? L('carbone') : 'carbone', patch.cx, patch.top - 0.42, Math.min(40, Math.max(14, 440 / cam.zoom)), '#D3DCE0');
         continue;
       }
       const rich = richAt(patch.list[0].x, patch.list[0].y);

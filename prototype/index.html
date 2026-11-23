@@ -269,12 +269,14 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #loading { position:absolute; left:50%; top:50%; z-index:7; translate:-50% -50%; display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px; border-radius:30px 10px; background:var(--membrane); }
 #loading svg { width:110px; height:110px; overflow:visible; }
 #loading circle { transform-box:fill-box; transform-origin:center; animation:join 1.4s ease-in-out infinite alternate; }
-#commands { max-width:min(480px,92vw); max-height:86vh; overflow:auto; padding:20px 24px; color:var(--ink); background:#0A1315; border:1.5px solid #46636B; border-radius:28px 10px; pointer-events:auto; }
-#commands::backdrop { background:rgba(4,8,9,.6); }
-#commands h2 { margin-bottom:10px; font:700 18px var(--display); }
+#commands, #lang-pick { max-width:min(480px,92vw); max-height:86vh; overflow:auto; padding:20px 24px; color:var(--ink); background:#0A1315; border:1.5px solid #46636B; border-radius:28px 10px; pointer-events:auto; }
+#commands::backdrop, #lang-pick::backdrop { background:rgba(4,8,9,.6); }
+#commands h2, #lang-pick h2 { margin-bottom:10px; font:700 18px var(--display); }
 #commands dl { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; margin:0 0 16px; }
 #commands dt { color:var(--cyan); }
 #commands dd { margin:0; }
+#lang-pick p { margin:0 0 16px; }
+#lang-pick .choice { display:flex; gap:10px; }
 
 
 /* ---- Approved style, docs/design/interface board 20: bio-tech glass, the organism in a console frame. */
@@ -353,7 +355,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #stats .tab { display:flex; align-items:center; gap:8px; min-height:44px; padding:8px 14px 10px; border:1px solid transparent; border-bottom:0; border-radius:12px 12px 0 0; background:none; color:var(--muted); font:600 13px var(--body); }
 #stats .tab[aria-selected="true"] { color:var(--ink, #E9F3EF); background:rgba(255,255,255,.05); border-color:var(--glass-edge); }
 #stats .tab svg { width:16px; height:16px; }
-#app #stats-close { position:absolute; right:12px; top:12px; width:44px; height:44px; padding:0; font-size:22px; }
+#app #stats-close { position:absolute; right:12px; top:12px; width:44px; height:44px; padding:0; justify-content:center; font-size:22px; }
 #stats-body { flex:1; overflow-y:auto; padding:14px 20px 18px; border-top:1px solid var(--glass-edge); }
 #stats .head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:0 0 8px; }
 #stats .label { font:700 11px var(--display); letter-spacing:.14em; text-transform:uppercase; color:#8FB8BF; }
@@ -365,7 +367,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #stats .issue { grid-template-columns:34px 1fr 90px 130px; width:100%; border:0; border-bottom:1px solid rgba(255,255,255,.06); background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
 #stats .issue:hover { background:rgba(255,255,255,.04); }
 #stats .what { display:flex; align-items:center; gap:10px; min-width:0; }
-#stats .what .porthole { flex:none; width:30px; height:30px; }
+#stats .porthole { flex:none; width:30px; height:30px; border-width:1px; }
 #stats .gene svg, #stats .base svg { width:15px; height:15px; }
 #stats .base { display:inline-flex; }
 #stats .crate { padding:2px 6px; border-width:1px; border-radius:7px; }
@@ -863,6 +865,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div class="row"><span>Animations</span><span class="choice"><button id="motion-auto" class="tip">Auto</button><button id="motion-less" class="tip">Réduites</button></span></div>
     <div class="row"><span>Qualité 3D</span><span class="choice"><button id="quality-high" class="tip">Haute</button><button id="quality-fast" class="tip">Rapide</button></span></div>
     <div class="row"><span>Courbure 3D</span><span class="choice"><button id="curve-none" class="tip">Aucune</button><button id="curve-soft" class="tip">Douce</button><button id="curve-strong" class="tip">Forte</button></span></div>
+    <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip">Français</button><button id="lang-en" class="tip">English</button></span></div>
     <div class="row in-game"><span>Graphe de performance</span><button id="perf-toggle" class="tip" aria-pressed="false" aria-controls="perf">Afficher</button></div>
     <div class="row"><span>Clavier et tactile</span><button id="help" class="tip">Voir</button></div>
     <div class="row at-planet"><span>Importer une partie</span><button id="import" class="tip">Choisir</button></div>
@@ -979,57 +982,708 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     </dl>
     <button id="help-close" class="tip">Fermer</button>
   </dialog>
+
+  <dialog id="lang-pick" aria-labelledby="lang-title">
+    <h2 id="lang-title">Langue · Language</h2>
+    <p>Choisis la langue du jeu. Choose the language of the game.</p>
+    <div class="choice"><button id="pick-fr" class="tip">Français</button><button id="pick-en" class="tip">English</button></div>
+  </dialog>
 </main>
 
 <script>
+// ---- Languages. The French text is the key: L called on it, or a template tagged L, gives it in the chosen language,
+// with EN's {} filled in order, or {0}, {1} when English turns the sentence around.
+// The language holds for the whole page: changing it saves the game and reloads.
+const LANG_KEY = 'strainworks-lang';
+const LANG_SET = (() => { try { return localStorage.getItem(LANG_KEY); } catch (_) { return 'fr'; } })();
+const LANG = LANG_SET === 'en' ? 'en' : 'fr';
+const DEC = LANG === 'en' ? '.' : ',', LOCALE = LANG === 'en' ? 'en-US' : 'fr-FR';
+function L(s, ...v) {
+  const fr = typeof s === 'string' ? s : s.join('{}');
+  let text = fr;
+  if (LANG === 'en') { if (EN[fr] == null) L.missing.add(fr); else text = EN[fr]; }
+  let i = 0;
+  return text.replace(/\{(\d?)\}/g, (_, n) => String(v[n === '' ? i++ : +n]));
+}
+L.missing = new Set();
+const EN = {
+  "Recommencer : maintenir": "Restart: hold",
+  "Carte graphique (trait)": "Graphics card (line)",
+  "Autre code de l’image": "Other code of the frame",
+  "Afficher": "Show",
+  "Masquer": "Hide",
+  "ADN / min : {}": "DNA / min: {}",
+  "en 3D seulement": "in 3D only",
+  "{} images/s · {} ms entre deux · CPU {} ms par image": "{} frames/s · {} ms between two · CPU {} ms a frame",
+  "pic {} ms": "peak {} ms",
+  "Sauvegarde": "Save",
+  "Interface": "Interface",
+  "Brouillard": "Fog",
+  "Simulation": "Simulation",
+  "Sauvegarde impossible, rien à exporter.": "Saving failed, nothing to export.",
+  "Cette partie est illisible. Elle n’a pas été modifiée : exporte-la ou efface-la.": "This game cannot be read. It was not changed: export it or erase it.",
+  "Pas assez d’hexagones libres.": "Not enough free hexagons.",
+  "Ce fichier n’a pas pu être lu.": "This file could not be read.",
+  "Ce fichier est trop gros pour être une partie Strainworks.": "This file is too big to be a Strainworks game.",
+  "Rien n’est écrit avant ta validation. Aucune partie n’est écrasée.": "Nothing is written before you confirm. No game is overwritten.",
+  "Effacer : maintenir": "Erase: hold",
+  "Copie faite.": "Copy made.",
+  "Copie impossible : partie illisible ou stockage plein.": "Copy failed: game unreadable or storage full.",
+  "{} bis": "{} bis",
+  "Dupliquer": "Duplicate",
+  "Exporter": "Export",
+  "Reprendre": "Resume",
+  "Refonder ici : maintenir": "Found again here: hold",
+  "Importer un fichier": "Import a file",
+  "Fonder une station": "Found a station",
+  "Annuler": "Cancel",
+  "Greffe réussie.": "Graft done.",
+  "Import impossible : le stockage du navigateur est plein, ou la planète l’est.": "Import failed: the browser's storage is full, or the planet is.",
+  "Greffer dans cet hexagone": "Graft into this hexagon",
+  "Greffer les {} parties": "Graft the {} games",
+  "Hexagone libéré.": "Hexagon freed.",
+  "Impossible d’effacer cette partie.": "This game could not be erased.",
+  "tuées": "killed",
+  "nids détruits": "nests destroyed",
+  "de jeu": "played",
+  "Fonde une station, ou greffes-y une partie exportée.": "Found a station, or graft an exported game here.",
+  "Elles prendront les hexagones libres autour de celui-ci.": "They will take the free hexagons around this one.",
+  "Terre vierge": "Virgin land",
+  "{} parties": "{} games",
+  "Partie en cours": "Game in progress",
+  "Station tombée": "Fallen station",
+  "Hexagone libre": "Free hexagon",
+  "Fichier reçu": "File received",
+  "Partie sans nom": "Unnamed game",
+  "Stade {} · {}": "Stage {} · {}",
+  "Stade {} achevé": "Stage {} complete",
+  " · avant-postes au niveau {}": " · outposts at level {}",
+  "Le cœur est tombé au stade {}": "The core fell at stage {}",
+  "Aucune partie à exporter.": "No game to export.",
+  "Cette partie est introuvable.": "This game cannot be found.",
+  "{} exporté.": "{} exported.",
+  "Export impossible ici, réessaie dans un instant.": "Export failed here, try again in a moment.",
+  "Export annulé.": "Export cancelled.",
+  "Cette vue ne permet pas de télécharger. Ouvre le jeu dans claude.ai.": "This view cannot download. Open the game in claude.ai.",
+  "Ce n’est pas une partie Strainworks valide. Rien n’a été modifié.": "This is not a valid Strainworks game. Nothing was changed.",
+  "Ce fichier est illisible. Rien n’a été modifié.": "This file cannot be read. Nothing was changed.",
+  "Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.": "Game resumed. Drag or use the arrow keys to move, pinch to zoom.",
+  "Le bonus de débit a disparu : {} ADN remboursés, pour des tapis et récolteurs MK2 ou MK3.": "The rate bonus is gone: {} DNA refunded, for MK2 or MK3 belts and harvesters.",
+  "La planète est pleine : efface ou exporte une partie.": "The planet is full: erase or export a game.",
+  "Sauvegarde impossible, le stockage du navigateur est plein ou bloqué. Exporte ta partie depuis le menu.": "Saving failed, the browser's storage is full or blocked. Export your game from the menu.",
+  "Souche {}": "Strain {}",
+  "Kératine": "Keratin",
+  "Germe": "Germ",
+  "Cilium": "Cilium",
+  "Tendon": "Tendon",
+  "Lymphe": "Lymph",
+  "Ganglion": "Ganglion",
+  "Spore": "Spore",
+  "Axone": "Axon",
+  "Plasmide": "Plasmid",
+  "Écorce": "Bark",
+  "Spirale": "Spiral",
+  "Mycélium": "Mycelium",
+  "Chitine": "Chitin",
+  "Moelle": "Marrow",
+  "Synapse": "Synapse",
+  "Rhizome": "Rhizome",
+  "<p class=\"empty\">Rien ne freine l’usine.</p>": "<p class=\"empty\">Nothing slows the factory.</p>",
+  "<div class=\"head\"><p class=\"label\">Ce qui freine l’usine · {} point{}</p><p class=\"note\">touche une ligne : la caméra y va</p></div>": "<div class=\"head\"><p class=\"label\">What slows the factory · {} issue{}</p><p class=\"note\">tap a row: the camera goes there</p></div>",
+  "<p class=\"empty\">Personne sur la carte.</p>": "<p class=\"empty\">Nobody on the map.</p>",
+  "<div class=\"row pair cols label\"><span>Sur la carte</span><span>créatures</span><span>antidote</span></div>": "<div class=\"row pair cols label\"><span>On the map</span><span>creatures</span><span>antidote</span></div>",
+  "<div class=\"tiles\"><p class=\"tile\"><b>{}</b><span>brèches éveillées</span></p><p class=\"tile\"><b>{}</b><span>dorment</span></p><p class=\"tile\"><b>{}</b><span>détruites</span></p><p class=\"tile\"><b>{} / 10</b><span>niveau de menace</span></p></div>": "<div class=\"tiles\"><p class=\"tile\"><b>{}</b><span>breaches awake</span></p><p class=\"tile\"><b>{}</b><span>asleep</span></p><p class=\"tile\"><b>{}</b><span>destroyed</span></p><p class=\"tile\"><b>{} / 10</b><span>threat level</span></p></div>",
+  "<p class=\"empty\">Aucune munition chargée.</p>": "<p class=\"empty\">No ammunition loaded.</p>",
+  "<div class=\"row pair cols label\" style=\"margin-top:14px\"><span>Munitions chargées</span><span>coups</span><span></span></div>": "<div class=\"row pair cols label\" style=\"margin-top:14px\"><span>Ammunition loaded</span><span>shots</span><span></span></div>",
+  "<div class=\"row pair cols label\"><span>Défense</span><span>posées</span><span>à sec</span></div>": "<div class=\"row pair cols label\"><span>Defense</span><span>placed</span><span>dry</span></div>",
+  "<div class=\"tiles\"><p class=\"tile\"><b>{}</b><span>défenses</span></p><p class=\"tile\"><b>{}</b><span>à sec</span></p><p class=\"tile\"><b>{}</b><span>créatures tuées</span></p></div>": "<div class=\"tiles\"><p class=\"tile\"><b>{}</b><span>defenses</span></p><p class=\"tile\"><b>{}</b><span>dry</span></p><p class=\"tile\"><b>{}</b><span>creatures killed</span></p></div>",
+  "<p class=\"empty\">Rien gagné depuis l’ouverture de la partie.</p>": "<p class=\"empty\">Nothing earned since the game was opened.</p>",
+  "<div class=\"row pair cols label\"><span>D’où vient l’ADN</span><span>dernière min</span><span>depuis l’ouverture</span></div>": "<div class=\"row pair cols label\"><span>Where the DNA comes from</span><span>last min</span><span>since opening</span></div>",
+  "<div class=\"tiles\"><p class=\"tile\"><b>{}</b><span>ADN en réserve</span></p><p class=\"tile\"><b>{}</b><span>ADN gagné la dernière minute</span></p></div>": "<div class=\"tiles\"><p class=\"tile\"><b>{}</b><span>DNA in reserve</span></p><p class=\"tile\"><b>{}</b><span>DNA earned in the last minute</span></p></div>",
+  "<div class=\"row prod cols label\"><span>Ce qui sort</span><span>Débit</span><span>/ min</span><span>Capacité</span><span>5 minutes</span></div>": "<div class=\"row prod cols label\"><span>Output</span><span>Rate</span><span>/ min</span><span>Capacity</span><span>5 minutes</span></div>",
+  "<div class=\"head\"><p class=\"label\">Production · par minute, sur les 10 dernières secondes</p>{}</div>": "<div class=\"head\"><p class=\"label\">Production · per minute, over the last 10 seconds</p>{}</div>",
+  "<p class=\"note\">Le cœur réclame {}</p>": "<p class=\"note\">The core asks for {}</p>",
+  "<p class=\"empty\">Aucune machine ne produit encore. Pose un récolteur sur un gisement.</p>": "<p class=\"empty\">No machine produces yet. Place a harvester on a deposit.</p>",
+  "{} à l’arrêt": "{} stopped",
+  "entrée {} vide": "input {} empty",
+  "carbone manquant": "carbon missing",
+  "gènes manquants": "genes missing",
+  "sortie pleine": "output full",
+  "{} bloqué": "{} blocked",
+  "plus de munitions": "out of ammunition",
+  "{} à sec": "{} dry",
+  "<span class=\"dim\">en attente</span>": "<span class=\"dim\">waiting</span>",
+  "Logistique": "Logistics",
+  "Menace": "Threat",
+  "Défense": "Defense",
+  "Économie": "Economy",
+  "Production": "Production",
+  "Tout est débloqué pour tester. Les stades continuent de compter.": "Everything is unlocked for testing. Stages keep counting.",
+  "<i><b></b><span>Tourelle à sec</span></i>": "<i><b></b><span>Turret dry</span></i>",
+  "gènes produits": "genes produced",
+  "créatures tuées": "creatures killed",
+  "brèches vidées": "breaches emptied",
+  "4 à ×8": "4 to ×8",
+  "Gisements ×{}": "Deposits ×{}",
+  "Stade {} achevé · +{} ADN": "Stage {} complete · +{} DNA",
+  "vers la gauche": "to the left",
+  "vers gauche": "to the left",
+  "vers la droite": "to the right",
+  "vers droite": "to the right",
+  "vers le bas": "downward",
+  "vers bas": "downward",
+  "vers le haut": "upward",
+  "vers haut": "upward",
+  "{} cases": "{} cells",
+  "vers MK{}": "to MK{}",
+  "étape {} sur {}": "step {} of {}",
+  "Premier atelier en marche : +5 ADN. Le guide se range dans le menu.": "First workshop running: +5 DNA. The guide moves into the menu.",
+  "Étape {} faite : +5 ADN.": "Step {} done: +5 DNA.",
+  "De chaque récolteur à son entrée, puis de la Ligase au cœur. Le premier gène valide l’étape.": "From each harvester to its input, then from the Ligase to the core. The first gene completes the step.",
+  "Relie tout jusqu’au cœur": "Link everything to the core",
+  "Des tapis jusqu’au cœur": "Belts to the core",
+  "Entrées 1, 2, 3 dans l’ordre du gène : SFS. Sa sortie regarde le cœur, R pour tourner.": "Inputs 1, 2, 3 in the order of the gene: SFS. Its output faces the core, R to rotate.",
+  "Pose la Ligase": "Place the Ligase",
+  "La Ligase": "The Ligase",
+  "Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.": "Two of one and one of the other: the Ligase never keeps a belt waiting.",
+  "Un second récolteur sur": "A second harvester on",
+  "Elle ira au milieu du gène, par l’arrière de la Ligase.": "It will go in the middle of the gene, through the back of the Ligase.",
+  "Puis un récolteur sur": "Then a harvester on",
+  "Un récolteur sur": "A harvester on",
+  "Le cœur veut ce gène : il faut deux fois cette base pour une de l’autre.": "The core wants this gene: it takes this base twice for one of the other.",
+  "Pose un récolteur sur": "Place a harvester on",
+  "<h3>Débloque</h3><div class=\"gives\">{}</div>": "<h3>Unlocks</h3><div class=\"gives\">{}</div>",
+  "<h3>Recette</h3>{}{}": "<h3>Recipe</h3>{}{}",
+  "<h3>Il réclame</h3><div class=\"want\">{}{}</div><div class=\"gauge{}\"><i style=\"width:{}%\"></i></div>{}": "<h3>It asks for</h3><div class=\"want\">{}{}</div><div class=\"gauge{}\"><i style=\"width:{}%\"></i></div>{}",
+  "<p>{}carbone à l’est du cœur<svg viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M1 5h12M9 1l5 4-5 4\" fill=\"none\" stroke=\"#A9BDB8\" stroke-width=\"1.5\"/></svg></p>": "<p>{}carbon east of the core<svg viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M1 5h12M9 1l5 4-5 4\" fill=\"none\" stroke=\"#A9BDB8\" stroke-width=\"1.5\"/></svg></p>",
+  "<p><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M2 5h12M2 11h12\" stroke=\"#F0A03C\" stroke-width=\"2.2\"/></svg>2 lignes en parallèle</p>": "<p><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M2 5h12M2 11h12\" stroke=\"#F0A03C\" stroke-width=\"2.2\"/></svg>2 lines in parallel</p>",
+  "Encapsuleur": "Encapsulator",
+  "Assembleur": "Assembler",
+  "Ligase": "Ligase",
+  "<div class=\"legend\"><span>débit <b>{} / s</b></span><span>tenu <b>{} / {} s</b></span></div>": "<div class=\"legend\"><span>rate <b>{} / s</b></span><span>held <b>{} / {} s</b></span></div>",
+  "<div class=\"goal\"><b>{}<small> / {}</small></b><span>livrés</span></div>": "<div class=\"goal\"><b>{}<small> / {}</small></b><span>delivered</span></div>",
+  "<span class=\"crate\" role=\"img\" aria-label=\"{} de {}\">{}<b>×{}</b></span>": "<span class=\"crate\" role=\"img\" aria-label=\"{} of {}\">{}<b>×{}</b></span>",
+  "Drone {} : {}. Aller le voir.": "Drone {}: {}. Go and see it.",
+  "Au nid": "At the nest",
+  "<span class=\"threat\">Personne sur la carte</span>": "<span class=\"threat\">Nobody on the map</span>",
+  "aucun antidote": "no antidote",
+  "{} en stock": "{} in stock",
+  "<div class=\"threat\"><b>{} sur la carte</b>{}<span>→</span>{}<span class=\"{}\">{}</span></div>": "<div class=\"threat\"><b>{} on the map</b>{}<span>→</span>{}<span class=\"{}\">{}</span></div>",
+  "le brouillard commence plus loin": "the fog starts further out",
+  "repérée": "spotted",
+  "Calme": "Calm",
+  "{} dorment": "{} asleep",
+  "Rien en vue": "Nothing in sight",
+  "{} brèche{} dormante{}": "Breaches asleep: {0}",
+  "Leur brèche est vide": "Their breach is empty",
+  "{} sur la carte": "{} on the map",
+  "+{} brèche{}": "+{0} more",
+  "Assaut": "Assault",
+  "Assaut dans {} s": "Assault in {} s",
+  "Assaut : {}": "Assault: {}",
+  "Cœur {}": "Core {}",
+  "Cœur": "Core",
+  "repérées": "spotted",
+  "carbone": "carbon",
+  "bloquant": "blocking",
+  "ralentit": "slows",
+  "{}, {} cases →": "{}, {} cells →",
+  "Piste": "Trail",
+  "Nerf": "Nerve",
+  "Ver": "Worm",
+  "Veine": "Vein",
+  "Retrait": "Removal",
+  "Fermer": "Close",
+  "Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.": "The core is hungry: make the gene asked for at the top and bring it to the core. The breaches are asleep.",
+  "Sens : {}. R pour tourner, Maj+R dans l’autre sens.": "Direction: {}. R to rotate, Shift+R the other way.",
+  "Sûr ? Encore une fois": "Sure? Once more",
+  "Statistiques": "Statistics",
+  "stade {}": "stage {}",
+  "Commander": "Command",
+  "Défendre": "Defend",
+  "Transformer": "Transform",
+  "Acheminer": "Convey",
+  "Récolter": "Harvest",
+  "Reconstruction lancée à l’identique.": "Rebuild started, exactly as it was.",
+  "{} débris en attente d’ADN, le reste est en chantier.": "{} wrecks waiting for DNA, the rest is under construction.",
+  "Passer en 3D": "Switch to 3D",
+  "Passer en 2D": "Switch to 2D",
+  "Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.": "3D view unavailable: it needs the network on first load, and WebGL. The game goes on in 2D.",
+  "Termine la veine sur une pompe ou un sol libre, juste à côté du bâtiment.": "End the vein on a pump or free ground, right next to the building.",
+  "Tire depuis une pompe ou un sol libre.": "Draw from a pump or free ground.",
+  "carbone K": "carbon K",
+  "gènes": "genes",
+  "Échap lâcher": "Esc drop",
+  "R tourner": "R rotate",
+  "Sur un gisement seulement": "On a deposit only",
+  "Il manque {} ADN": "{} DNA missing",
+  "Tourner": "Rotate",
+  "Gisement : {} ×{}": "Deposit: {} ×{}",
+  "Brèche niveau {} : {} créatures": "Breach level {}: {} creatures",
+  "Zone inconnue": "Unknown area",
+  "Case occupée": "Cell taken",
+  "Sur une piste seulement": "On a trail only",
+  "Passer au vert": "Switch to green",
+  "Passer au rouge": "Switch to red",
+  "Feu intelligent": "Smart gate",
+  "Démonter : {}{}": "Dismantle: {}{}",
+  "débris": "wreck",
+  "Déjà dans la file": "Already queued",
+  "Le cœur ne se démonte pas": "The core cannot be dismantled",
+  "Tourelle, feu ou trieur": "Turret, gate or sorter",
+  "Déjà reliés": "Already linked",
+  "Trop loin : {} cases au plus": "Too far: {} cells at most",
+  "Finit sur une pompe": "Ends on a pump",
+  "Il manque {} ADN pour continuer en MK{}.": "{} DNA missing to go on in MK{}.",
+  "Ce tapis existe déjà : la ligne s’y raccorde. Pour le traverser, pose un pont.": "This belt already exists: the line joins it. To cross it, place a bridge.",
+  "Boucle fermée. Pose des poches contre elle, puis un ver dessus.": "Loop closed. Place pockets against it, then a worm on it.",
+  "La piste rejoint la ligne existante. Une case n’a qu’une sortie.": "The trail joins the existing line. A cell has only one exit.",
+  " Payé {} ADN.": " Paid {} DNA.",
+  "Un récolteur se pose sur un gisement coloré.": "A harvester goes on a colored deposit.",
+  "Il manque {} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.": "{} DNA missing. Send genes to the core, 1 DNA each, or empty a breach.",
+  "Il manque {} ADN pour ce rang.": "{} DNA missing for this rank.",
+  "Réveiller": "Wake",
+  "Elle est réveillée. Vide-la pour qu’elle disparaisse.": "It is awake. Empty it to make it disappear.",
+  "Elle dort tant que rien n’est bâti dans son cercle.": "It sleeps while nothing is built inside its circle.",
+  "Brèche au {}, niveau {} sur 5 : {} créatures, gène faible {}, antidote {}. {}": "Breach to the {}, level {} of 5: {} creatures, weak gene {}, antidote {}. {}",
+  "Zone inconnue. Construis dans sa direction : tes structures y verront.": "Unknown area. Build toward it: your structures will see there.",
+  "Fin de piste : les vers s’arrêtent ici. Referme la boucle.": "End of the trail: worms stop here. Close the loop.",
+  "Piste de phéromones. Pose une poche contre elle, ou un ver dessus.": "Pheromone trail. Place a pocket against it, or a worm on it.",
+  "Touche maintenant l’élément à relier.": "Now tap the element to link.",
+  "Un nerf finit sur une tourelle, un feu ou un trieur.": "A nerve ends on a turret, a gate or a sorter.",
+  "Reconstruire ({}){}": "Rebuild ({}){}",
+  "Mettre en pause": "Pause",
+  "réparation dans {} s sans coup": "repair in {} s without a hit",
+  "en réparation": "repairing",
+  " {} PV sur {}, {}.": " {} HP of {}, {}.",
+  " en pause": " paused",
+  "{} chantier{}{}": "{} site{}{}",
+  "gènes/s, tenus {} sur {} s": "genes/s, held {} of {} s",
+  "{} de {}": "{} of {}",
+  "<b>Organisme né</b><span class=\"unit\">les stades suivants restent à écrire</span>": "<b>Organism born</b><span class=\"unit\">the next stages are still to be written</span>",
+  "{} s’ouvre quand le stade {}, {}, est achevé. Touche le cœur pour voir ce qu’il réclame.": "{} opens when stage {}, {}, is complete. Tap the core to see what it asks for.",
+  "Ver {}, de la tête à la queue : {}.{} {} PV sur {}.": "Worm {}, from head to tail: {}.{} {} HP of {}.",
+  " Il attend que tout soit plein ou vide.": " It waits until everything is full or empty.",
+  "en route": "on its way",
+  "arrêté, {}": "stopped, {}",
+  "à quai": "docked",
+  "Ver en incubation : {} s de jeu.": "Worm hatching: {} s of play.",
+  "Ver à retirer : un drone le rejoint, il roule en attendant.": "Worm to remove: a drone is coming, it keeps rolling meanwhile.",
+  "Ver en retrait : {} s de jeu.": "Worm being removed: {} s of play.",
+  "Démonter": "Dismantle",
+  "Démonter +{}": "Dismantle +{}",
+  "Annuler le démontage": "Cancel the dismantling",
+  "Vider": "Empty",
+  "Ligne en MK{} ({}) · {} ADN": "Line to MK{} ({}) · {} DNA",
+  "Passer en MK{} · {} ADN": "Upgrade to MK{} · {} DNA",
+  "Annuler l’amélioration": "Cancel the upgrade",
+  "Couper ses nerfs": "Cut its nerves",
+  "Garder ses nerfs": "Keep its nerves",
+  "Si coupé : {}": "If cut: {}",
+  "Lit : gène entier": "Reads: whole gene",
+  "Lit : position {}": "Reads: position {}",
+  "Rien n’est encore passé dans ce trieur.": "Nothing has gone through this sorter yet.",
+  "= dernier passé": "= last passed",
+  "Filtre, position {} : {}. Toucher pour changer.": "Filter, position {}: {}. Tap to change.",
+  "Brin": "Strand",
+  "Gène": "Gene",
+  "Base": "Base",
+  "Sort à droite": "Out to the right",
+  "Sort à gauche": "Out to the left",
+  "Tir : sur tout": "Fire: at everything",
+  "Tir : 2 justes min.": "Fire: 2 right min.",
+  "à gauche": "to the left",
+  "à droite": "to the right",
+  "Carbone : {}": "Carbon: {}",
+  "Recette : {}": "Recipe: {}",
+  "Poche : charge": "Pocket: loads",
+  "Poche : vide": "Pocket: unloads",
+  "Couper la veine": "Cut the vein",
+  "Annuler la coupe": "Cancel the cut",
+  "Touche la pompe d’arrivée, ou un sol libre pour en poser une. 24 cases au plus.": "Tap the arrival pump, or free ground to place one. 24 cells at most.",
+  "Tirer une veine": "Draw a vein",
+  "Sens : {}": "Direction: {}",
+  "Retirer": "Remove",
+  "Annuler le retrait": "Cancel the removal",
+  "Partir": "Leave",
+  "plein ou vide": "full or empty",
+  "Départ : {}": "Departure: {}",
+  "n’importe laquelle": "any",
+  "700 {}px Verdana": "700 {}px Verdana",
+  "{} Elle tourne.": "{} It runs.",
+  "suis la ligne rouge": "follow the red line",
+  "un feu rouge coupe sa ligne": "a red gate cuts its line",
+  "{} L’entrée {} manque de matière : {}.": "{} Input {} lacks matter: {}.",
+  "{} L’entrée {} n’est pas branchée.": "{} Input {} is not connected.",
+  "la ligne ne mène nulle part.": "the line leads nowhere.",
+  "suis la ligne rouge, le bout refuse ou est plein.": "follow the red line, the end refuses or is full.",
+  "{} Sortie bloquée : {}": "{} Output blocked: {}",
+  "{} Arrêt au feu rouge : touche-le pour rouvrir.": "{} Stopped at a red gate: tap it to reopen.",
+  "{} Un feu intelligent attend autre chose que {}.": "{} A smart gate waits for something other than {}.",
+  " Ce gisement est ×{}, exploitable ainsi au stade {}.": " This deposit is ×{}, workable as such at stage {}.",
+  "Récolteur de ": "Harvester of ",
+  "{} : {} sur {}/s.{}{}": "{}: {} of {}/s.{}{}",
+  " Entrées : ": " Inputs: ",
+  "Il tourne": "It runs",
+  "Elle tourne": "It runs",
+  "{} L’entrée {} manque de gènes : suis la ligne rouge.": "{} Input {} lacks genes: follow the red line.",
+  "{} L’entrée {} n’est pas branchée : le gène 1 arrive à gauche, le 2 à droite.": "{} Input {} is not connected: gene 1 comes in on the left, gene 2 on the right.",
+  "{} Sa sortie est fermée ou pleine.": "{} Its output is closed or full.",
+  "Assembleur{} : {} sur 1,0/s.": "Assembler{}: {} of 1.0/s.",
+  "{} Il tourne.": "{} It runs.",
+  "il faut un gène ou un brin en vrac": "it needs a loose gene or strand",
+  "un chargeur ne prend que des gènes de 3 bases": "a magazine takes only genes of 3 bases",
+  "la boîte se remplit de {}, vide-la pour changer": "the box is filling with {}, empty it to change",
+  "{} {} attend dehors : {}.": "{} {} waits outside: {}.",
+  "les gènes": "the genes",
+  "derrière": "at the back",
+  "le carbone": "the carbon",
+  "{} Branche {} {}.": "{} Connect {} {}.",
+  " : un chargeur va dans une tourelle": ": a magazine goes into a turret",
+  "{} Sa sortie est fermée ou pleine{}.": "{} Its output is closed or full{}.",
+  ", isotope {} sur {}": ", isotope {} of {}",
+  "Encapsuleur, {}{} : {} sur {}{}, carbone {} sur {}.": "Encapsulator, {}{}: {} of {}{}, carbon {} of {}.",
+  "{} Sans veine au départ, elle se vide sur ses quatre côtés, au rythme de chaque tapis.": "{} With no vein at the start, it empties on its four sides, at each belt's pace.",
+  "Pousse jusqu’à 16/s.": "Pushes up to 16/s.",
+  "La pompe d’arrivée est pleine : branche plus de tapis en sortie.": "The arrival pump is full: connect more belts at its output.",
+  "{} Veine percée : 7/s, et elle attire les créatures.": "{} Vein pierced: 7/s, and it draws the creatures.",
+  "{} Veine rompue, plus rien ne passe.": "{} Vein broken, nothing gets through.",
+  "{} La pompe d’arrivée est détruite.": "{} The arrival pump is destroyed.",
+  "{} Une autre matière attend : une veine n’en porte qu’une. Trie avant, ou vide la veine.": "{} Another matter is waiting: a vein carries only one. Sort before, or empty the vein.",
+  "Pompe, {} : {} sur {}.": "Pump, {}: {} of {}.",
+  "charge le ver": "loads the worm",
+  "vide le ver et sort sur ses côtés libres": "empties the worm and outputs on its free sides",
+  "Poche qui {}, {} : {} sur {}. Une seule matière par poche, 16/s.": "Pocket that {}, {}: {} of {}. One matter a pocket, 16/s.",
+  "Poche sans piste : elle doit toucher une piste.": "Pocket without a trail: it must touch a trail.",
+  "Pont : deux voies indépendantes. Auto suit les tapis voisins, sinon le sens choisi est imposé.": "Bridge: two independent lanes. Auto follows the nearby belts, otherwise the chosen direction is forced.",
+  "la gauche": "the left",
+  "le bas": "the bottom",
+  "la droite": "the right",
+  "le haut": "the top",
+  "Pont bloqué vers {} : sortie absente, à contresens ou pleine.": "Bridge blocked toward {}: output missing, backward or full.",
+  "tout droit": "straight on",
+  "Trieur bloqué : {} doit sortir {}, et cette sortie est fermée ou pleine.": "Sorter blocked: {} must go out {}, and that output is closed or full.",
+  "Trieur : {}{} sortent {}, le reste va tout droit.": "Sorter: {}{} go out {}, the rest goes straight on.",
+  "les brins": "the strands",
+  "les bases": "the bases",
+  "Grand récolteur de {} : {} sur {}/s.{}{}": "Large harvester of {}: {} of {}/s.{}{}",
+  " Il déborde : il lui faut {} tapis MK{}, 8 bords au plus.": " It overflows: it needs {} MK{} belts, 8 edges at most.",
+  "Grand kyste : {} sur {} objets.": "Large cyst: {} of {} items.",
+  "Kyste : {} sur {} objets.": "Cyst: {} of {} items.",
+  " : rien à tirer. Amène-lui des gènes de trois bases.": ": nothing to fire. Bring it genes of three bases.",
+  "Elle tire sur tout.": "It fires at everything.",
+  "Économe, elle ne tire qu’à 2 justes ou plus.": "Thrifty, it fires only at 2 right or more.",
+  ", deux coups à la fois": ", two shots at once",
+  "{} : {}. 3, 2, 1 ou 0 bases justes : {} ou {} dégâts{}, à {} cases. {}": "{}: {}. 3, 2, 1 or 0 right bases: {} or {} damage{}, at {} cells. {}",
+  "rien, personne à portée": "nothing, nobody in range",
+  "{} sur nerf, demande : {}. En stock : {}.": "{} on a nerve, asks for: {}. In stock: {}.",
+  "Il veut {} : {}. Entrées 1, 2, 3 dans cet ordre.{} En échange : {}. Les autres gènes deviennent de l’ADN.": "It wants {}: {}. Inputs 1, 2, 3 in this order.{} In exchange: {}. The other genes become DNA.",
+  ", l’isotope loin dehors, au niveau 3": ", the isotope far out, at level 3",
+  " et {} isotope": " and {} isotope",
+  " Ça sort d’un Encapsuleur réglé sur {} : {} derrière, {} carbone{}{} sur le côté. Le carbone est juste à l’est du cœur{}.": " It comes out of an Encapsulator set to {}: {} at the back, {} carbon{}{} on the side. The carbon is just east of the core{}.",
+  "{} au total": "{} in total",
+  "{} par seconde pendant {} s, il faut deux lignes en parallèle": "{} a second for {} s, it takes two lines in parallel",
+  "Organisme au stade {}, {} créatures tuées. Tout ce que tu livres devient de l’ADN.": "Organism at stage {}, {} creatures killed. Everything you deliver becomes DNA.",
+  "Feu rouge : la ligne attend derrière. Touche-le pour rouvrir.": "Red gate: the line waits behind. Tap it to reopen.",
+  "Feu vert : ça passe. Touche-le pour couper la ligne.": "Green gate: it goes through. Tap it to cut the line.",
+  "Le reste continue tout droit.": "The rest goes straight on.",
+  "Le reste, et le trop-plein, continue tout droit.": "The rest, and the overflow, goes straight on.",
+  "Le reste attend derrière.": "The rest waits behind.",
+  "{}, lit {} : {}. {}": "{}, reads {}: {}. {}",
+  "{}, position {} de {}": "{}, position {} of {}",
+  "tout va tout droit": "everything goes straight on",
+  "il reste rouge": "it stays red",
+  "{}, lit {} : rien n’est demandé, {}.": "{}, reads {}: nothing is asked, {}.",
+  "{} : nerf en chantier, coupé ou sans tourelle. Réglage manuel appliqué : {}.": "{}: nerve under construction, cut or without a turret. Manual setting applied: {}.",
+  "filtre {}": "filter {}",
+  "le gène entier": "the whole gene",
+  "la position {}": "position {}",
+  "{} en attente, position {} dans la file. Trois drones, un par chantier, dans l’ordre de pose.": "{} waiting, position {} in the queue. Three drones, one a site, in the order placed.",
+  ", en attente de la reprise": ", waiting for the game to resume",
+  "{} en chantier : {} s de jeu{}.": "{} under construction: {} s of play{}.",
+  "{} : drone en route, à {} cases. Le chantier commence quand il arrive.": "{}: drone on its way, {} cells off. The work starts when it arrives.",
+  "en file, {}e{}": "queued, #{}{}",
+  "un drone arrive": "a drone is coming",
+  "{} à démonter : {}. Il fonctionne jusqu’à ce que le drone commence.": "{} to dismantle: {}. It works until the drone starts.",
+  " +{} ADN à la fin.": " +{} DNA at the end.",
+  "{} en démontage : {} s de jeu{}.{}": "{} being dismantled: {} s of play{}.{}",
+  "Ligne coupée : le bouton Reconstruire remet tout en place.": "Line cut: the Rebuild button puts everything back.",
+  "Nerf coupé : feux et trieurs reprennent leur réglage manuel. Reconstruire le répare.": "Nerve cut: gates and sorters go back to their manual setting. Rebuild repairs it.",
+  "Ver dévoré : sa cargaison est perdue.": "Worm devoured: its cargo is lost.",
+  "Veine rompue : le bouton Reconstruire la répare.": "Vein broken: the Rebuild button repairs it.",
+  "Le nid au {} s’est régénéré : {} créatures. Détruis-le pour qu’il cesse.": "The nest to the {} regenerated: {} creatures. Destroy it to make it stop.",
+  "Nid détruit au {} : +{} ADN, il s’estompe et le terrain est à toi.": "Nest destroyed to the {}: +{} DNA, it fades and the ground is yours.",
+  " Elle vise l’avant-poste qui l’a réveillée.": " It targets the outpost that woke it.",
+  ", avec une nouvelle famille": ", with a new family",
+  "Brèche réveillée au {} : {} créatures dedans. Premier assaut dans 30 s{}.{}": "Breach woken to the {}: {} creatures inside. First assault in 30 s{}.{}",
+  " au {}": " to the {}",
+  "Mutation{} : une nouvelle famille, son antidote est {}.": "Mutation{}: a new family, its antidote is {}.",
+  "Nerf en chantier. Touche le feu ou le trieur pour choisir ce qu’il lit : gène entier, position 1, 2 ou 3.": "Nerve under construction. Tap the gate or the sorter to choose what it reads: whole gene, position 1, 2 or 3.",
+  "Ils sont déjà reliés.": "They are already linked.",
+  "Trop loin : {} cases, 24 au plus. Un nerf peut passer par un autre feu ou trieur.": "Too far: {} cells, 24 at most. A nerve can go through another gate or sorter.",
+  "Un nerf relie deux éléments parmi tourelles, radars, feux et trieurs.": "A nerve links two elements among turrets, radars, gates and sorters.",
+  "boucle trop courte, il lui faut plus de 5 cases": "loop too short, it needs more than 5 cells",
+  "un autre ver occupe la piste": "another worm holds the trail",
+  "la piste s’arrête ici": "the trail ends here",
+  "Ver en incubation, {} ADN. Il ne part qu’une fois éclos.": "Worm hatching, {} DNA. It only leaves once hatched.",
+  "Il manque {} ADN pour ce ver.": "{} DNA missing for this worm.",
+  "Un ver occupe déjà cette case.": "A worm already holds this cell.",
+  "Un ver s’incube sur une piste : trace-la d’abord avec l’outil Piste.": "A worm hatches on a trail: draw one first with the Trail tool.",
+  "Veine reliée. Tire depuis la dernière pompe pour continuer.": "Vein linked. Draw from the last pump to go on.",
+  "Ces deux veines portent des matières différentes : vide l’une des deux.": "These two veins carry different matters: empty one of them.",
+  "Une veine ne peut pas boucler.": "A vein cannot loop.",
+  "Trop loin : {} cases. Pose une pompe relais, 24 au plus entre deux.": "Too far: {} cells. Place a relay pump, 24 at most between two.",
+  "Une veine va d’une pompe à une autre.": "A vein goes from one pump to another.",
+  "{} de {} {}": "{} of {} {}",
+  "{} achevé : le cœur grandit. {}, +{} ADN.": "{} complete: the core grows. {}, +{} DNA.",
+  "Guide": "Guide",
+  "Stades": "Stages",
+  "Brèches vidées": "Breaches emptied",
+  "Combats": "Fights",
+  "Surplus du cœur": "Core surplus",
+  "ça": "that",
+  "cette ligne": "this line",
+  "Il manque {} ADN pour passer {} en MK{}.": "{} DNA missing to upgrade {} to MK{}.",
+  "gène ": "gene ",
+  "brin ": "strand ",
+  "Isotope": "Isotope",
+  "Carbone": "Carbon",
+  "Zone de ruche": "Hive zone",
+  "Zone inconnue : approche tes structures": "Unknown area: bring your structures closer",
+  "4 cases d’un même gisement": "4 cells of one same deposit",
+  "Il faut 2 × 2 cases libres": "It needs 2 × 2 free cells",
+  "Capsule lourde": "Heavy capsule",
+  "Capsule": "Capsule",
+  "Chargeur": "Magazine",
+  "l’isotope, la capsule lourde et un quatrième drone": "the isotope, the heavy capsule and a fourth drone",
+  "Noyau": "Nucleus",
+  "une mutation toutes les 5 minutes, jusqu’à 8 familles": "a mutation every 5 minutes, up to 8 families",
+  "Système": "System",
+  "Pistes, poches, vers et gisements ×4 à ×8": "Trails, pockets, worms and deposits ×4 to ×8",
+  "Organe": "Organ",
+  "Veines, Nerfs, gisements ×2, Assembleur, Grand récolteur et Grand kyste": "Veins, Nerves, deposits ×2, Assembler, Large harvester and Large cyst",
+  "Tissu": "Tissue",
+  "Diviseur 3, Trieur et Encapsuleur": "Splitter 3, Sorter and Encapsulator",
+  "Cellule": "Cell",
+  "Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.": "Tap or sweep what you want to remove: a drone comes to undo it, as long as it took to place. Turrets and walls give back their DNA at the end, minus the damage.",
+  "Bloque et encaisse. Les créatures doivent le casser pour passer.": "Blocks and takes hits. Creatures must break it to get through.",
+  "Mur": "Wall",
+  "Courte portée : 4 cases. Deux coups à la fois, 2,5 fois par seconde. Elle encaisse, mais elle dévore les gènes.": "Short range: 4 cells. Two shots at once, 2.5 times a second. It takes hits, but it devours genes.",
+  "Gueule": "Maw",
+  "Longue portée : 13 cases. Un tir par seconde, qui fait deux fois les dégâts. Fragile, garde-le derrière.": "Long range: 13 cells. One shot a second, doing double damage. Fragile, keep it behind.",
+  "Dard": "Sting",
+  "Tire entre une tourelle (Dard et Gueule compris), un feu ou un trieur, 24 cases au plus. La tourelle dit ce qu’il lui faut, les autres écoutent.": "Draw between a turret (Sting and Maw included), a gate or a sorter, 24 cells at most. The turret says what it needs, the others listen.",
+  "Entrée derrière. Ce qui correspond au filtre sort du côté choisi, le reste va tout droit.": "Input at the back. What matches the filter goes out on the chosen side, the rest goes straight on.",
+  "Trieur": "Sorter",
+  "Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.": "Input at the back. Shares out in turn to the three other connected sides.",
+  "Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.": "Input at the back. Shares out in turn between left and right. Straight on is closed.",
+  "4 cases, 360 objets, 720 en MK2, 1440 en MK3. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.": "4 cells, 360 items, 720 in MK2, 1440 in MK3. Comes in by its three other faces, goes out by two mouths side by side, in front.",
+  "Grand kyste": "Large cyst",
+  "4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.": "4 cells of one same deposit. Pulls like 6 harvesters and outputs by its 8 edges: connect several belts.",
+  "Grand récolteur": "Large harvester",
+  "Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.": "Two flows cross without mixing. Tap it to set the direction of each lane. It runs at the pace of the slowest belt touching it.",
+  "Pont": "Bridge",
+  "Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut.": "Stores 60 items, 120 in MK2, 240 in MK3, and puts them out by the arrow. Fill it before an assault.",
+  "Kyste": "Cyst",
+  "Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.": "Fires the genes delivered. The strand opposite to the creature's hurts most.",
+  "Tourelle": "Turret",
+  "Gène 1 à gauche, gène 2 à droite : un brin de deux gènes sort devant, le premier en tête.": "Gene 1 on the left, gene 2 on the right: a strand of two genes comes out in front, the first one leading.",
+  "Gènes derrière, carbone sur le côté. Règle sa recette : capsule pour le cœur (2 carbones) ou chargeur pour les tourelles (1 carbone), avec 6 objets identiques.": "Genes at the back, carbon on the side. Set its recipe: capsule for the core (2 carbon) or magazine for the turrets (1 carbon), with 6 identical items.",
+  "Trois entrées : 1 à gauche, 2 derrière, 3 à droite. Leur ordre écrit le gène.": "Three inputs: 1 on the left, 2 at the back, 3 on the right. Their order writes the gene.",
+  "Touche une piste pour l’incuber : 3 soutes de 40, 12 cases par seconde.": "Tap a trail to hatch it: 3 holds of 40, 12 cells a second.",
+  "À poser contre une piste. Trois poches côte à côte s’alignent sur les trois soutes. Touche-la pour charger ou vider.": "To place against a trail. Three pockets side by side line up with the three holds. Tap it to load or unload.",
+  "Poche": "Pocket",
+  "Glisse pour tracer la boucle des vers. Elle passe sous tout et se referme sur son départ.": "Drag to draw the worms' loop. It runs under everything and closes on its start.",
+  "Touche pour poser une pompe. Tire d’une pompe à une autre, 24 cases au plus : 16 objets/s d’une seule matière, sous tout.": "Tap to place a pump. Draw from one pump to another, 24 cells at most: 16 items/s of a single matter, under everything.",
+  "À poser sur un gisement. Il donne 1 base par seconde, 2 en MK2, 3 en MK3. Touche-le pour l’améliorer.": "To place on a deposit. It gives 1 base a second, 2 in MK2, 3 in MK3. Tap it to upgrade it.",
+  "Récolteur": "Harvester",
+  "Garde visible une grande zone autour de lui. Relié par un nerf, il annonce au réseau les créatures qui la traversent.": "Keeps a large area around it visible. Linked by a nerve, it tells the network about the creatures crossing it.",
+  "Pylône radar": "Radar pylon",
+  "Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière.": "Rail with a switch. Tap it: green, it goes through, red, the line waits behind.",
+  "Feu": "Gate",
+  "Glisse de la sortie vers l’entrée, la vue suit au bord. Deux doigts pour te déplacer. Pour croiser, pose un pont. Touche-le pour le passer, ou toute sa ligne, en MK2 (8/s) ou MK3 (12/s).": "Drag from the output to the input, the view follows at the edge. Two fingers to move. To cross, place a bridge. Tap it to upgrade it, or its whole line, to MK2 (8/s) or MK3 (12/s).",
+  "Tapis": "Belt",
+  "Glisse ou utilise les flèches pour te déplacer, pince pour zoomer, touche une machine pour l’inspecter.": "Drag or use the arrow keys to move, pinch to zoom, tap a machine to inspect it.",
+  "Inspecter": "Inspect",
+  "Instinct": "Instinct",
+  "Mutation": "Mutation",
+  "Commande": "Command",
+  "Mémoire": "Memory",
+  "Pulsation": "Pulse",
+  "Flair": "Scent",
+  "Soin": "Heal",
+  "Acide": "Acid",
+  "Lame": "Blade",
+  "Carapace": "Shell",
+  "Racine": "Root",
+  "Bouche": "Mouth",
+  "Soute": "Hold",
+  "Moteur": "Motor",
+  "Fibre": "Fiber",
+  "Strainworks Prototype": "Strainworks Prototype",
+  "Plateau : gisements, machines, tapis et créatures": "Board: deposits, machines, belts and creatures",
+  "Organisme": "Organism",
+  "ADN disponible": "DNA available",
+  "Temps et menu": "Time and menu",
+  "Espace": "Space",
+  "II": "II",
+  "Changer la vitesse": "Change the speed",
+  "×1": "×1",
+  "Menu": "Menu",
+  "Réglages": "Settings",
+  "Vue": "View",
+  "2D": "2D",
+  "3D": "3D",
+  "Animations": "Animations",
+  "Auto": "Auto",
+  "Réduites": "Reduced",
+  "Qualité 3D": "3D quality",
+  "Haute": "High",
+  "Rapide": "Fast",
+  "Courbure 3D": "3D curvature",
+  "Aucune": "None",
+  "Douce": "Soft",
+  "Forte": "Strong",
+  "Graphe de performance": "Performance graph",
+  "Clavier et tactile": "Keyboard and touch",
+  "Voir": "See",
+  "Importer une partie": "Import a game",
+  "Choisir": "Choose",
+  "Sauvegarder la planète": "Save the planet",
+  "Tout exporter": "Export all",
+  "Cette partie": "This game",
+  "Guide de départ": "Starting guide",
+  "Revoir": "Replay",
+  "Tout débloquer (test)": "Unlock everything (test)",
+  "Activer": "Enable",
+  "Retour à la planète": "Back to the planet",
+  "Performance": "Performance",
+  "Mesure en cours…": "Measuring…",
+  "Caméra": "Camera",
+  "Zoomer": "Zoom in",
+  "Dézoomer": "Zoom out",
+  "Revenir au cœur": "Back to the core",
+  "Changer de vue": "Change the view",
+  "Premier atelier": "First workshop",
+  "Premier atelier ·": "First workshop ·",
+  "+5 ADN par étape": "+5 DNA a step",
+  "Passer": "Skip",
+  "Passer le guide": "Skip the guide",
+  "×": "×",
+  "Drones": "Drones",
+  "Reconstruire": "Rebuild",
+  "Sélection": "Selection",
+  "Fermer les statistiques": "Close the statistics",
+  "Construction": "Construction",
+  "La 3D s’assemble": "The 3D is assembling",
+  "Stade atteint": "Stage reached",
+  "Le cœur grandit": "The core grows",
+  "Continuer": "Continue",
+  "Fin de partie": "Game over",
+  "Le cœur est tombé": "The core has fallen",
+  "Fonder une autre station": "Found another station",
+  "Choix de la partie": "Choice of game",
+  "STRAINWORKS": "STRAINWORKS",
+  "Projection de la station": "Projection of the station",
+  "Commandes": "Controls",
+  "Glisser": "Drag",
+  "se déplacer, ou tracer avec Tapis, Piste, Veine, Nerf et Démonter": "move, or draw with Belt, Trail, Vein, Nerve and Dismantle",
+  "Deux doigts": "Two fingers",
+  "se déplacer et zoomer": "move and zoom",
+  "Molette": "Wheel",
+  "zoomer": "zoom",
+  "Clic droit": "Right click",
+  "se déplacer, outil en main": "move, tool in hand",
+  "Flèches": "Arrows",
+  "déplacer la vue, plus vite avec Maj": "move the view, faster with Shift",
+  "1 à 7": "1 to 7",
+  "choisir une famille": "choose a family",
+  "R, Maj+R": "R, Shift+R",
+  "tourner dans un sens ou dans l’autre": "rotate one way or the other",
+  "pause et reprise": "pause and resume",
+  "Échap": "Esc",
+  "tout lâcher et revenir sur Inspecter": "drop everything and go back to Inspect",
+  "Langue": "Language",
+  "haut": "up",
+  "droite": "right",
+  "bas": "down",
+  "gauche": "left",
+  "est": "east",
+  "sud-est": "south-east",
+  "sud": "south",
+  "sud-ouest": "south-west",
+  "ouest": "west",
+  "nord-ouest": "north-west",
+  "nord": "north",
+  "nord-est": "north-east",
+  "Œil": "Eye",
+  "Diviseur 2": "Splitter 2",
+  "Diviseur 3": "Splitter 3",
+  "gratuit": "free",
+  "ADN": "DNA",
+  "{} ADN": "{} DNA",
+  " · {} ADN": " · {} DNA",
+  " · +{} ADN": " · +{} DNA",
+};
+// The markup is written in French too.
+if (LANG === 'en') {
+  document.documentElement.lang = 'en';
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n; (n = walker.nextNode());) {
+    const text = n.nodeValue.trim();
+    if (text && EN[text] != null && n.parentNode.nodeName !== 'STYLE') n.nodeValue = n.nodeValue.replace(text, EN[text]);
+  }
+  for (const a of ['title', 'aria-label', 'placeholder', 'alt'])
+    for (const el of document.querySelectorAll(`[${a}]`)) if (EN[el.getAttribute(a)] != null) el.setAttribute(a, EN[el.getAttribute(a)]);
+}
 const W = 96, H = 96, STEP = .05; // W and H: the landing square, where every game starts the same
 const SECTOR = 32, LIMIT = 1e5, OUTPOST = 24;
 // The starting scenario is written around its own origin, in the middle of the map.
 const OX = 43, OY = 40;
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const PAIR = {S:'C', C:'S', F:'N', N:'F'};
-const BASE = {S:'Spore', F:'Fibre', C:'Chitine', N:'Nerf'};
-const GENES = {SFS:'Moteur', FFF:'Soute', FSF:'Bouche', SSS:'Racine', CCF:'Carapace', CFC:'Dard', CCC:'Lame', CSC:'Acide', NFN:'Œil', SSN:'Soin', NSN:'Flair', FNF:'Pulsation', NNN:'Mémoire', NCN:'Commande', CNS:'Mutation', SNS:'Instinct'};
+const BASE = {S:L('Spore'), F:L('Fibre'), C:L('Chitine'), N:L('Nerf')};
+const GENES = {SFS:L('Moteur'), FFF:L('Soute'), FSF:L('Bouche'), SSS:L('Racine'), CCF:L('Carapace'), CFC:L('Dard'), CCC:L('Lame'), CSC:L('Acide'), NFN:L('Œil'), SSN:L('Soin'), NSN:L('Flair'), FNF:L('Pulsation'), NNN:L('Mémoire'), NCN:L('Commande'), CNS:L('Mutation'), SNS:L('Instinct')};
 const TYPES = {
-  hand:{name:'Inspecter', help:'Glisse ou utilise les flèches pour te déplacer, pince pour zoomer, touche une machine pour l’inspecter.'},
-  belt:{name:'Tapis', help:'Glisse de la sortie vers l’entrée, la vue suit au bord. Deux doigts pour te déplacer. Pour croiser, pose un pont. Touche-le pour le passer, ou toute sa ligne, en MK2 (8/s) ou MK3 (12/s).', hp:30},
-  gate:{name:'Feu', help:'Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière.', hp:30},
-  radar:{name:'Pylône radar', help:'Garde visible une grande zone autour de lui. Relié par un nerf, il annonce au réseau les créatures qui la traversent.', hp:120},
-  mine:{name:'Récolteur', help:'À poser sur un gisement. Il donne 1 base par seconde, 2 en MK2, 3 en MK3. Touche-le pour l’améliorer.', hp:60},
-  pump:{name:'Veine', help:'Touche pour poser une pompe. Tire d’une pompe à une autre, 24 cases au plus : 16 objets/s d’une seule matière, sous tout.', hp:90},
-  track:{name:'Piste', help:'Glisse pour tracer la boucle des vers. Elle passe sous tout et se referme sur son départ.', hp:30},
-  pocket:{name:'Poche', help:'À poser contre une piste. Trois poches côte à côte s’alignent sur les trois soutes. Touche-la pour charger ou vider.', hp:90},
-  worm:{name:'Ver', help:'Touche une piste pour l’incuber : 3 soutes de 40, 12 cases par seconde.', hp:150},
-  ligase:{name:'Ligase', help:'Trois entrées : 1 à gauche, 2 derrière, 3 à droite. Leur ordre écrit le gène.', hp:60},
-  pack:{name:'Encapsuleur', help:'Gènes derrière, carbone sur le côté. Règle sa recette : capsule pour le cœur (2 carbones) ou chargeur pour les tourelles (1 carbone), avec 6 objets identiques.', hp:60},
-  join:{name:'Assembleur', help:'Gène 1 à gauche, gène 2 à droite : un brin de deux gènes sort devant, le premier en tête.', hp:60},
-  turret:{name:'Tourelle', help:'Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.', hp:180},
-  cyst:{name:'Kyste', help:'Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut.', hp:80},
-  bridge:{name:'Pont', help:'Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.', hp:40},
-  borer:{name:'Grand récolteur', help:'4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.', hp:180},
-  vault:{name:'Grand kyste', help:'4 cases, 360 objets, 720 en MK2, 1440 en MK3. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.', hp:200},
-  split2:{name:'Diviseur 2', help:'Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.', hp:40},
-  split:{name:'Diviseur 3', help:'Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.', hp:40},
-  sort:{name:'Trieur', help:'Entrée derrière. Ce qui correspond au filtre sort du côté choisi, le reste va tout droit.', hp:40},
-  wire:{name:'Nerf', help:'Tire entre une tourelle (Dard et Gueule compris), un feu ou un trieur, 24 cases au plus. La tourelle dit ce qu’il lui faut, les autres écoutent.', hp:30},
-  sting:{name:'Dard', help:'Longue portée : 13 cases. Un tir par seconde, qui fait deux fois les dégâts. Fragile, garde-le derrière.', hp:120},
-  maw:{name:'Gueule', help:'Courte portée : 4 cases. Deux coups à la fois, 2,5 fois par seconde. Elle encaisse, mais elle dévore les gènes.', hp:260},
-  wall:{name:'Mur', help:'Bloque et encaisse. Les créatures doivent le casser pour passer.', hp:260},
-  erase:{name:'Démonter', help:'Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.'}
+  hand:{name:L('Inspecter'), help:L('Glisse ou utilise les flèches pour te déplacer, pince pour zoomer, touche une machine pour l’inspecter.')},
+  belt:{name:L('Tapis'), help:L('Glisse de la sortie vers l’entrée, la vue suit au bord. Deux doigts pour te déplacer. Pour croiser, pose un pont. Touche-le pour le passer, ou toute sa ligne, en MK2 (8/s) ou MK3 (12/s).'), hp:30},
+  gate:{name:L('Feu'), help:L('Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière.'), hp:30},
+  radar:{name:L('Pylône radar'), help:L('Garde visible une grande zone autour de lui. Relié par un nerf, il annonce au réseau les créatures qui la traversent.'), hp:120},
+  mine:{name:L('Récolteur'), help:L('À poser sur un gisement. Il donne 1 base par seconde, 2 en MK2, 3 en MK3. Touche-le pour l’améliorer.'), hp:60},
+  pump:{name:L('Veine'), help:L('Touche pour poser une pompe. Tire d’une pompe à une autre, 24 cases au plus : 16 objets/s d’une seule matière, sous tout.'), hp:90},
+  track:{name:L('Piste'), help:L('Glisse pour tracer la boucle des vers. Elle passe sous tout et se referme sur son départ.'), hp:30},
+  pocket:{name:L('Poche'), help:L('À poser contre une piste. Trois poches côte à côte s’alignent sur les trois soutes. Touche-la pour charger ou vider.'), hp:90},
+  worm:{name:L('Ver'), help:L('Touche une piste pour l’incuber : 3 soutes de 40, 12 cases par seconde.'), hp:150},
+  ligase:{name:L('Ligase'), help:L('Trois entrées : 1 à gauche, 2 derrière, 3 à droite. Leur ordre écrit le gène.'), hp:60},
+  pack:{name:L('Encapsuleur'), help:L('Gènes derrière, carbone sur le côté. Règle sa recette : capsule pour le cœur (2 carbones) ou chargeur pour les tourelles (1 carbone), avec 6 objets identiques.'), hp:60},
+  join:{name:L('Assembleur'), help:L('Gène 1 à gauche, gène 2 à droite : un brin de deux gènes sort devant, le premier en tête.'), hp:60},
+  turret:{name:L('Tourelle'), help:L('Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.'), hp:180},
+  cyst:{name:L('Kyste'), help:L('Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut.'), hp:80},
+  bridge:{name:L('Pont'), help:L('Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.'), hp:40},
+  borer:{name:L('Grand récolteur'), help:L('4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.'), hp:180},
+  vault:{name:L('Grand kyste'), help:L('4 cases, 360 objets, 720 en MK2, 1440 en MK3. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.'), hp:200},
+  split2:{name:L('Diviseur 2'), help:L('Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.'), hp:40},
+  split:{name:L('Diviseur 3'), help:L('Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.'), hp:40},
+  sort:{name:L('Trieur'), help:L('Entrée derrière. Ce qui correspond au filtre sort du côté choisi, le reste va tout droit.'), hp:40},
+  wire:{name:L('Nerf'), help:L('Tire entre une tourelle (Dard et Gueule compris), un feu ou un trieur, 24 cases au plus. La tourelle dit ce qu’il lui faut, les autres écoutent.'), hp:30},
+  sting:{name:L('Dard'), help:L('Longue portée : 13 cases. Un tir par seconde, qui fait deux fois les dégâts. Fragile, garde-le derrière.'), hp:120},
+  maw:{name:L('Gueule'), help:L('Courte portée : 4 cases. Deux coups à la fois, 2,5 fois par seconde. Elle encaisse, mais elle dévore les gènes.'), hp:260},
+  wall:{name:L('Mur'), help:L('Bloque et encaisse. Les créatures doivent le casser pour passer.'), hp:260},
+  erase:{name:L('Démonter'), help:L('Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.')}
 };
 const VEIN = {reach:24, speed:16, pulse:.5, load:8, cap:48, hp:50};
 const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 const STAGES = [
-  {name:'Cellule', item:'SFS', count:100, gives:'Diviseur 3, Trieur et Encapsuleur'},
-  {name:'Tissu', item:'T:CCF', rate:2, hold:60, gives:'Veines, Nerfs, gisements ×2, Assembleur, Grand récolteur et Grand kyste'},
-  {name:'Organe', item:'T:SFSFFF', count:10, gives:'Pistes, poches, vers et gisements ×4 à ×8'},
+  {name:L('Cellule'), item:'SFS', count:100, gives:L('Diviseur 3, Trieur et Encapsuleur')},
+  {name:L('Tissu'), item:'T:CCF', rate:2, hold:60, gives:L('Veines, Nerfs, gisements ×2, Assembleur, Grand récolteur et Grand kyste')},
+  {name:L('Organe'), item:'T:SFSFFF', count:10, gives:L('Pistes, poches, vers et gisements ×4 à ×8')},
   // The magazine asked follows the family born on entering the stage.
-  {name:'Système', count:30, get item() { return `A:${opposite(G.mutant || G.families[G.families.length - 1])}`; }, gives:'une mutation toutes les 5 minutes, jusqu’à 8 familles'},
-  {name:'Noyau', item:'H:SFSFFF', count:6, gives:'l’isotope, la capsule lourde et un quatrième drone'}
+  {name:L('Système'), count:30, get item() { return `A:${opposite(G.mutant || G.families[G.families.length - 1])}`; }, gives:L('une mutation toutes les 5 minutes, jusqu’à 8 familles')},
+  {name:L('Noyau'), item:'H:SFSFFF', count:6, gives:L('l’isotope, la capsule lourde et un quatrième drone')}
 ];
 // A container is a string too, so whatever carries items carries it: 'A:CNF' is a magazine, 'T:CCF' a capsule.
 // K is carbon: matter, never a base, so it has no pair and never enters a gene.
-const BOX = {A:{name:'Chargeur', carbon:1}, T:{name:'Capsule', carbon:2}, H:{name:'Capsule lourde', carbon:2, isotope:1, size:12}};
+const BOX = {A:{name:L('Chargeur'), carbon:1}, T:{name:L('Capsule'), carbon:2}, H:{name:L('Capsule lourde'), carbon:2, isotope:1, size:12}};
 // How many genes or strands a box holds.
 const fill = box => BOX[box]?.size || PACK.size;
 const PACK = {size:6, genes:12, carbon:4, magazines:24};
@@ -1083,10 +1737,10 @@ function siteFor(type, x, y) {
     const site = {type, x:x - i, y:y - j}, cells = footprint(site);
     const bare = cells.find(p => !placeable(p.x, p.y));
     if (bare) site.why = whyNot(bare.x, bare.y);
-    else if (cells.some(p => cellAt(p.x, p.y))) site.why = 'Il faut 2 × 2 cases libres';
+    else if (cells.some(p => cellAt(p.x, p.y))) site.why = L('Il faut 2 × 2 cases libres');
     else if (type === 'borer') {
       const kind = depositAt(site.x, site.y);
-      if (!kind || cells.some(p => depositAt(p.x, p.y) !== kind)) site.why = '4 cases d’un même gisement';
+      if (!kind || cells.some(p => depositAt(p.x, p.y) !== kind)) site.why = L('4 cases d’un même gisement');
     }
     if (!site.why) return site;
     first ||= site;
@@ -1388,7 +2042,7 @@ function shownNests(x0, y0, x1, y1) {
   }
   return shown;
 }
-const whyNot = (x, y) => !known(x, y) ? 'Zone inconnue : approche tes structures' : !buildable(x, y) ? 'Zone de ruche' : '';
+const whyNot = (x, y) => !known(x, y) ? L('Zone inconnue : approche tes structures') : !buildable(x, y) ? L('Zone de ruche') : '';
 const placeable = (x, y) => !whyNot(x, y);
 function eachSector(x0, y0, x1, y1, visit) {
   for (let sx = Math.floor(x0 / SECTOR); sx <= Math.floor(x1 / SECTOR); sx++)
@@ -1422,7 +2076,7 @@ let wormId = null;
 // The way the next piece faces is the player's, kept from one piece, one game and one visit to the next.
 const HEADING_KEY = 'strainworks-heading';
 const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','vault','split2','split','sort'];
-const WAYS = ['haut','droite','bas','gauche'];
+const WAYS = [L('haut'), L('droite'), L('bas'), L('gauche')];
 let heading = 0;
 try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) {}
 function setHeading(dir) {
@@ -1437,7 +2091,7 @@ const isBelt = c => c?.type === 'belt' || c?.type === 'gate';
 const key = (x, y) => x + ',' + y;
 const buildable = (x, y) => inside(x, y) && !breachesIn(x, y, x, y).some(h => h.state !== 'spent' && Math.hypot(x - h.x, y - h.y) < 3.5);
 const inside = (x, y) => Math.abs(x) < LIMIT && Math.abs(y) < LIMIT;
-const MATTER = {...BASE, K:'Carbone', I:'Isotope'};
+const MATTER = {...BASE, K:L('Carbone'), I:L('Isotope')};
 // Isotope lies only far out, and is harvested from stage 5 on.
 const minable = kind => kind !== 'I' || unlocked(4);
 // A base in a sentence has its name and its drawing.
@@ -1445,7 +2099,7 @@ const named = base => MATTER[base] ? `${MATTER[base].toLowerCase()} ${base}` : '
 function itemName(item) {
   const box = boxOf(item);
   if (box) return `${BOX[box].name.toLowerCase()} ${contentOf(item)}`;
-  return MATTER[item] ? named(item) : (item.length === 6 ? 'brin ' : 'gène ') + item;
+  return MATTER[item] ? named(item) : (item.length === 6 ? L('brin ') : L('gène ')) + item;
 }
 const opposite = gene => [...gene].map(b => PAIR[b]).join('');
 const geneName = gene => GENES[gene] ? `${GENES[gene]} (${gene})` : gene;
@@ -1513,7 +2167,7 @@ function perSecond(c) {
 function raise(list, mk) {
   const todo = list.filter(c => canRise(c, mk)), cost = todo.reduce((sum, c) => sum + upCost(c, mk), 0);
   if (!todo.length) return false;
-  if (cost > G.dna) { refuse(`Il manque ${cost - G.dna} ADN pour passer ${todo.length > 1 ? 'cette ligne' : 'ça'} en MK${mk}.`); return false; }
+  if (cost > G.dna) { refuse(L`Il manque ${cost - G.dna} ADN pour passer ${todo.length > 1 ? L('cette ligne') : L('ça')} en MK${mk}.`); return false; }
   G.dna -= cost;
   for (const c of todo) {
     const paid = upCost(c, mk);
@@ -1794,7 +2448,7 @@ function repair(dt) {
   }
 }
 // Every gain of ADN, by source: fractions wait in G.dnaBits until they make a whole one.
-const EARN = {core:'Surplus du cœur', kills:'Combats', breaches:'Brèches vidées', stage:'Stades', guide:'Guide'};
+const EARN = {core:L('Surplus du cœur'), kills:L('Combats'), breaches:L('Brèches vidées'), stage:L('Stades'), guide:L('Guide')};
 function earn(source, amount) {
   G.dnaBits = (G.dnaBits || 0) + amount;
   const whole = Math.floor(G.dnaBits + 1e-9);
@@ -1828,7 +2482,7 @@ function grow() {
   earn('stage', GROWTH_BONUS);
   G.cells[key(CORE.x, CORE.y)].hp = 100;
   select(null);
-  tell(`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
+  tell(L`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
   if (G.stage === 3) { G.mutant = mutation(); G.mutateAt = G.time + MUTATION.every; }
   if (G.stage === 4 && G.drones.length < BUILDERS + 1) {
     G.drones.push({x:0, y:0, a:0, h:.55, w:0, trip:'nest', speed:DRONE.speed, job:'', goal:null, was:{x:0, y:0, h:.55, w:0}});
@@ -1838,7 +2492,7 @@ function grow() {
 }
 function recipe(item) {
   const box = boxOf(item), genes = contentOf(item).match(/.{3}/g).map(geneName).join(' + ');
-  return box ? `${BOX[box].name.toLowerCase()} de ${fill(box)} ${genes}` : genes;
+  return box ? L`${BOX[box].name.toLowerCase()} de ${fill(box)} ${genes}` : genes;
 }
 function fresh() {
   G = {time:0, ranked:true, capsules:true, world:2, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0,
@@ -1911,16 +2565,16 @@ function veinKind(c) {
   return '';
 }
 function link(a, b) {
-  if (!a || !b || a === b || b.type !== 'pump') return refuse('Une veine va d’une pompe à une autre.');
-  if (span(a, b) > VEIN.reach) return refuse(`Trop loin : ${Math.ceil(span(a, b))} cases. Pose une pompe relais, 24 au plus entre deux.`);
-  for (let p = b, i = 0; p && i < 999; p = G.cells[p.to], i++) if (p === a) return refuse('Une veine ne peut pas boucler.');
+  if (!a || !b || a === b || b.type !== 'pump') return refuse(L('Une veine va d’une pompe à une autre.'));
+  if (span(a, b) > VEIN.reach) return refuse(L`Trop loin : ${Math.ceil(span(a, b))} cases. Pose une pompe relais, 24 au plus entre deux.`);
+  for (let p = b, i = 0; p && i < 999; p = G.cells[p.to], i++) if (p === a) return refuse(L('Une veine ne peut pas boucler.'));
   const one = veinKind(a), other = veinKind(b);
-  if (one && other && one !== other) return refuse('Ces deux veines portent des matières différentes : vide l’une des deux.');
+  if (one && other && one !== other) return refuse(L('Ces deux veines portent des matières différentes : vide l’une des deux.'));
   for (const p of a.packets) for (let i = 0; i < p.n; i++) a.stock.push(p.item);
   a.packets = []; a.to = key(b.x, b.y); a.veinHp = VEIN.hp;
   delete a.veinOut; delete a.veinCut;
   a.veinLeft = .5 + span(a, b) / 12; a.veinOrder = G.seq = (G.seq || 0) + 1;
-  say('Veine reliée. Tire depuis la dernière pompe pour continuer.');
+  say(L('Veine reliée. Tire depuis la dernière pompe pour continuer.'));
   return true;
 }
 function pulse(dt) {
@@ -1971,15 +2625,15 @@ function stationHead(id) {
 }
 function incubate(x, y) {
   const cost = price('worm'), id = key(x, y);
-  if (!G.tracks[id]) return refuse('Un ver s’incube sur une piste : trace-la d’abord avec l’outil Piste.');
-  if (G.worms.some(w => w.path.includes(id))) return refuse('Un ver occupe déjà cette case.');
-  if (cost > G.dna) return refuse(`Il manque ${cost - G.dna} ADN pour ce ver.`);
+  if (!G.tracks[id]) return refuse(L('Un ver s’incube sur une piste : trace-la d’abord avec l’outil Piste.'));
+  if (G.worms.some(w => w.path.includes(id))) return refuse(L('Un ver occupe déjà cette case.'));
+  if (cost > G.dna) return refuse(L`Il manque ${cost - G.dna} ADN pour ce ver.`);
   G.dna -= cost;
   const w = {id:G.seq = (G.seq || 0) + 1, path:[id], t:0, hp:WORM.hp, left:BUILD.worm, docked:false, rule:'auto',
     holds:[0,1,2].map(() => ({kind:'', n:0, part:0}))};
   w.order = w.id;
   G.worms.push(w);
-  say(`Ver en incubation, ${cost} ADN. Il ne part qu’une fois éclos.`);
+  say(L`Ver en incubation, ${cost} ADN. Il ne part qu’une fois éclos.`);
   selectWorm(w);
 }
 function dropWorm(w, paidBack) {
@@ -2031,10 +2685,10 @@ function crawl(dt) {
     w.t += dt * WORM.speed;
     while (w.t >= 1 - 1e-6) {
       const next = trackAfter(w.path[0]);
-      if (!next) { w.t = 1; w.stuck = 'la piste s’arrête ici'; break; }
+      if (!next) { w.t = 1; w.stuck = L('la piste s’arrête ici'); break; }
       const id = key(next.x, next.y);
-      if (G.worms.some(o => o !== w && o.path.includes(id))) { w.t = 1; w.stuck = 'un autre ver occupe la piste'; break; }
-      if (w.path.slice(0, 4).includes(id)) { w.t = 1; w.stuck = 'boucle trop courte, il lui faut plus de 5 cases'; break; }
+      if (G.worms.some(o => o !== w && o.path.includes(id))) { w.t = 1; w.stuck = L('un autre ver occupe la piste'); break; }
+      if (w.path.slice(0, 4).includes(id)) { w.t = 1; w.stuck = L('boucle trop courte, il lui faut plus de 5 cases'); break; }
       w.was = w.path.slice();
       w.path.unshift(id); w.path.length = Math.min(5, w.path.length);
       w.t = Math.max(0, w.t - 1); w.stuck = '';
@@ -2121,12 +2775,12 @@ function asked(c, item) {
 }
 function wireUp(a, b) {
   const ok = c => c && NERVE.ends.includes(c.type);
-  if (!ok(a) || !ok(b) || a === b) return refuse('Un nerf relie deux éléments parmi tourelles, radars, feux et trieurs.');
-  if (span(a, b) > NERVE.reach) return refuse(`Trop loin : ${Math.ceil(span(a, b))} cases, 24 au plus. Un nerf peut passer par un autre feu ou trieur.`);
+  if (!ok(a) || !ok(b) || a === b) return refuse(L('Un nerf relie deux éléments parmi tourelles, radars, feux et trieurs.'));
+  if (span(a, b) > NERVE.reach) return refuse(L`Trop loin : ${Math.ceil(span(a, b))} cases, 24 au plus. Un nerf peut passer par un autre feu ou trieur.`);
   const ka = key(a.x, a.y), kb = key(b.x, b.y);
-  if (G.wires.some(w => (w.a === ka && w.b === kb) || (w.a === kb && w.b === ka))) return refuse('Ils sont déjà reliés.');
+  if (G.wires.some(w => (w.a === ka && w.b === kb) || (w.a === kb && w.b === ka))) return refuse(L('Ils sont déjà reliés.'));
   G.wires.push({a:ka, b:kb, hp:NERVE.hp, left:.4 + span(a, b) / 16, order:G.seq = (G.seq || 0) + 1});
-  say('Nerf en chantier. Touche le feu ou le trieur pour choisir ce qu’il lit : gène entier, position 1, 2 ou 3.');
+  say(L('Nerf en chantier. Touche le feu ou le trieur pour choisir ce qu’il lit : gène entier, position 1, 2 ou 3.'));
   return true;
 }
 function connects(c, travel) {
@@ -2331,7 +2985,7 @@ function breed(b) {
 function mutation() {
   const b = G.breaches.filter(o => o.state !== 'spent').sort((a, c) => span(a, CORE) - span(c, CORE))[0];
   const born = breed(b);
-  if (born) tell(`Mutation${b ? ` au ${bearing(b)}` : ''} : une nouvelle famille, son antidote est ${opposite(born)}.`, {at:b, gene:born, bad:true});
+  if (born) tell(L`Mutation${b ? L` au ${bearing(b)}` : ''} : une nouvelle famille, son antidote est ${opposite(born)}.`, {at:b, gene:born, bad:true});
   return born;
 }
 function mutate(gene) {
@@ -2340,7 +2994,7 @@ function mutate(gene) {
 }
 function bearing(b) {
   const a = Math.atan2(b.y - CORE.y, b.x - CORE.x);
-  return ['est','sud-est','sud','sud-ouest','ouest','nord-ouest','nord','nord-est'][(Math.round(a / (Math.PI / 4)) + 8) % 8];
+  return L(['est','sud-est','sud','sud-ouest','ouest','nord-ouest','nord','nord-est'][(Math.round(a / (Math.PI / 4)) + 8) % 8]);
 }
 function nearestBuilding(at) {
   let best = null, close = Infinity;
@@ -2364,7 +3018,7 @@ function wake(found, cause) {
   G.woken++;
   // A mutation adds a family: every line already built keeps an enemy to kill.
   if (G.woken % 2 === 0) { const born = breed(b); if (born) b.born = born; }
-  tell(`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? ', avec une nouvelle famille' : ''}.${b.id ? ' Elle vise l’avant-poste qui l’a réveillée.' : ''}`, {at:b, gene:b.born, bad:true});
+  tell(L`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? L(', avec une nouvelle famille') : ''}.${b.id ? L(' Elle vise l’avant-poste qui l’a réveillée.') : ''}`, {at:b, gene:b.born, bad:true});
 }
 function disturb() {
   const cells = allCells().filter(c => c.type !== 'core');
@@ -2404,7 +3058,7 @@ function spawn(b, gene) {
 function destroyNest(b) {
   b.state = 'spent'; b.ended = G.time; b.hp = 0;
   earn('breaches', b.total);
-  tell(`Nid détruit au ${bearing(b)} : +${b.total} ADN, il s’estompe et le terrain est à toi.`, {at:b});
+  tell(L`Nid détruit au ${bearing(b)} : +${b.total} ADN, il s’estompe et le terrain est à toi.`, {at:b});
 }
 function waveGene(b) { return b.genes[(b.genes.length - 1 + Math.max(0, b.wave)) % b.genes.length]; }
 function menace(dt) {
@@ -2424,7 +3078,7 @@ function menace(dt) {
       b.refillAt ??= G.time + NEST.refill;
       if (G.time >= b.refillAt) {
         b.left = b.total; b.refillAt = null; b.next = G.time + 30;
-        tell(`Le nid au ${bearing(b)} s’est régénéré : ${b.total} créatures. Détruis-le pour qu’il cesse.`, {at:b, bad:true});
+        tell(L`Le nid au ${bearing(b)} s’est régénéré : ${b.total} créatures. Détruis-le pour qu’il cesse.`, {at:b, bad:true});
       }
       continue;
     }
@@ -2465,7 +3119,7 @@ function menace(dt) {
       if (from.veinHp <= 0) continue;
       const at = nearest(from, to, e.x, e.y), d = Math.hypot(at.x - e.x, at.y - e.y);
       const leak = leaking(from);
-      if (d < .6) { from.veinHp -= dt * 2; from.veinHitAt = G.time; if (from.veinHp <= 0) { from.veinHp = 0; tell('Veine rompue : le bouton Reconstruire la répare.', {at:from, bad:true}); } }
+      if (d < .6) { from.veinHp -= dt * 2; from.veinHitAt = G.time; if (from.veinHp <= 0) { from.veinHp = 0; tell(L('Veine rompue : le bouton Reconstruire la répare.'), {at:from, bad:true}); } }
       // A leak draws them in until the vein breaks, then they resume.
       if (leak && d < lure) { goal = at; lure = d; gnawing = d < .6; }
     }
@@ -2478,7 +3132,7 @@ function menace(dt) {
     for (const w of [...G.worms]) {
       if (!w.path.some(id => { const [x,y] = id.split(',').map(Number); return Math.abs(x + .5 - e.x) < .6 && Math.abs(y + .5 - e.y) < .6; })) continue;
       w.hp -= dt * 2; w.hitAt = G.time;
-      if (w.hp <= 0) { dropWorm(w, false); tell('Ver dévoré : sa cargaison est perdue.', {at:{x:e.x - .5, y:e.y - .5}, bad:true}); }
+      if (w.hp <= 0) { dropWorm(w, false); tell(L('Ver dévoré : sa cargaison est perdue.'), {at:{x:e.x - .5, y:e.y - .5}, bad:true}); }
     }
     for (const w of G.wires) {
       const a = G.cells[w.a], b = G.cells[w.b];
@@ -2486,7 +3140,7 @@ function menace(dt) {
       const at = nearest(a, b, e.x, e.y);
       if (Math.hypot(at.x - e.x, at.y - e.y) >= .5) continue;
       w.hp -= dt * 2; w.hitAt = G.time;
-      if (w.hp <= 0) { w.hp = 0; tell('Nerf coupé : feux et trieurs reprennent leur réglage manuel. Reconstruire le répare.', {at:a, bad:true}); }
+      if (w.hp <= 0) { w.hp = 0; tell(L('Nerf coupé : feux et trieurs reprennent leur réglage manuel. Reconstruire le répare.'), {at:a, bad:true}); }
     }
     if (gnawing) continue;
     const dx = goal.x - e.x, dy = goal.y - e.y, distance = Math.hypot(dx, dy) || 1;
@@ -2499,7 +3153,7 @@ function menace(dt) {
       pace = passable ? .22 : 0;
       if (c.hp <= 0) {
         if (c.type === 'core') { G.over = true; c.hp = 0; }
-        else { dropRise(c); delete G.cells[key(c.x, c.y)]; forgetCells(); G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read, mk:c.mk, on:c.on, onRich:c.onRich}; tell('Ligne coupée : le bouton Reconstruire remet tout en place.', {at:c, bad:true}); }
+        else { dropRise(c); delete G.cells[key(c.x, c.y)]; forgetCells(); G.ruins[key(c.x, c.y)] = {type:c.type, x:c.x, y:c.y, dir:c.dir, flip:c.flip, to:c.to, strict:c.strict, unload:c.unload, want:c.want, side:c.side, ways:c.ways, box:c.box, open:c.open, read:c.read, mk:c.mk, on:c.on, onRich:c.onRich}; tell(L('Ligne coupée : le bouton Reconstruire remet tout en place.'), {at:c, bad:true}); }
       }
     }
     e.x += dx / distance * pace * dt; e.y += dy / distance * pace * dt;
@@ -2599,61 +3253,61 @@ function upstream(c, side) {
 function diagnose(c) {
   chain = [];
   if (c.out != null) {
-    const name = TYPES[c.type].name, waits = paused ? ', en attente de la reprise' : '';
-    if (c.cut) return `${name} en démontage : ${Math.max(0, c.out).toFixed(1).replace('.', ',')} s de jeu${waits}.${refund(c) ? ` +${refund(c)} ADN à la fin.` : ''}`;
+    const name = TYPES[c.type].name, waits = paused ? L(', en attente de la reprise') : '';
+    if (c.cut) return L`${name} en démontage : ${Math.max(0, c.out).toFixed(1).replace('.', DEC)} s de jeu${waits}.${refund(c) ? L` +${refund(c)} ADN à la fin.` : ''}`;
     const id = jobId({order:c.outOrder, field:'out'}), drone = G.drones.find(d => d.job === id);
-    return `${name} à démonter : ${drone ? 'un drone arrive' : `en file, ${sites().findIndex(job => jobId(job) === id) + 1}e${waits}`}. Il fonctionne jusqu’à ce que le drone commence.`;
+    return L`${name} à démonter : ${drone ? L('un drone arrive') : L`en file, ${sites().findIndex(job => jobId(job) === id) + 1}e${waits}`}. Il fonctionne jusqu’à ce que le drone commence.`;
   }
   if (!built(c)) {
     const place = sites().findIndex(job => job.c === c && job.field === 'left');
     const drone = G.drones.find(d => d.job === jobId({order:c.order, field:'left'}));
     if (drone) {
       const away = Math.hypot(drone.x - c.x - .5, drone.y - c.y - .5);
-      if (away > DRONE.reach + 1e-6) return `${TYPES[c.type].name} : drone en route, à ${Math.ceil(away)} cases. Le chantier commence quand il arrive.`;
+      if (away > DRONE.reach + 1e-6) return L`${TYPES[c.type].name} : drone en route, à ${Math.ceil(away)} cases. Le chantier commence quand il arrive.`;
     }
-    return place < BUILDERS ? `${TYPES[c.type].name} en chantier : ${c.left.toFixed(1).replace('.', ',')} s de jeu${paused ? ', en attente de la reprise' : ''}.` : `${TYPES[c.type].name} en attente, position ${place - BUILDERS + 1} dans la file. Trois drones, un par chantier, dans l’ordre de pose.`;
+    return place < BUILDERS ? L`${TYPES[c.type].name} en chantier : ${c.left.toFixed(1).replace('.', DEC)} s de jeu${paused ? L(', en attente de la reprise') : ''}.` : L`${TYPES[c.type].name} en attente, position ${place - BUILDERS + 1} dans la file. Trois drones, un par chantier, dans l’ordre de pose.`;
   }
   if ((c.type === 'gate' || c.type === 'sort') && G.wires.some(w => w.a === key(c.x, c.y) || w.b === key(c.x, c.y))) {
-    const what = c.read ? `la position ${c.read}` : 'le gène entier', name = TYPES[c.type].name;
-    const spare = c.type === 'gate' ? (c.open ? 'vert' : 'rouge') : `filtre ${c.want === '?' ? 'tout' : c.want}`;
-    if (!listens(c)) return `${name} : nerf en chantier, coupé ou sans tourelle. Réglage manuel appliqué : ${spare}.`;
+    const what = c.read ? L`la position ${c.read}` : L('le gène entier'), name = TYPES[c.type].name;
+    const spare = c.type === 'gate' ? (c.open ? 'vert' : 'rouge') : L`filtre ${c.want === '?' ? 'tout' : c.want}`;
+    if (!listens(c)) return L`${name} : nerf en chantier, coupé ou sans tourelle. Réglage manuel appliqué : ${spare}.`;
     const net = netOf(c);
-    if (!net.focus) return `${name}, lit ${what} : rien n’est demandé, ${c.type === 'gate' ? 'il reste rouge' : 'tout va tout droit'}.`;
-    const now = c.read ? `${named(net.focus[c.read - 1])}, position ${c.read} de ${net.focus}` : net.list.join(', ');
-    return `${name}, lit ${what} : ${now}. ${c.type === 'gate' ? 'Le reste attend derrière.' : c.read ? 'Le reste, et le trop-plein, continue tout droit.' : 'Le reste continue tout droit.'}`;
+    if (!net.focus) return L`${name}, lit ${what} : rien n’est demandé, ${c.type === 'gate' ? L('il reste rouge') : L('tout va tout droit')}.`;
+    const now = c.read ? L`${named(net.focus[c.read - 1])}, position ${c.read} de ${net.focus}` : net.list.join(', ');
+    return L`${name}, lit ${what} : ${now}. ${c.type === 'gate' ? L('Le reste attend derrière.') : c.read ? L('Le reste, et le trop-plein, continue tout droit.') : L('Le reste continue tout droit.')}`;
   }
-  if (c.type === 'gate') return c.open ? 'Feu vert : ça passe. Touche-le pour couper la ligne.' : 'Feu rouge : la ligne attend derrière. Touche-le pour rouvrir.';
+  if (c.type === 'gate') return c.open ? L('Feu vert : ça passe. Touche-le pour couper la ligne.') : L('Feu rouge : la ligne attend derrière. Touche-le pour rouvrir.');
   if (c.type === 'core') {
     const want = STAGES[G.stage];
-    if (!want) return `Organisme au stade ${STAGES.length}, ${G.kills} créatures tuées. Tout ce que tu livres devient de l’ADN.`;
-    const how = want.rate ? `${want.rate} par seconde pendant ${want.hold} s, il faut deux lignes en parallèle` : `${want.count} au total`;
+    if (!want) return L`Organisme au stade ${STAGES.length}, ${G.kills} créatures tuées. Tout ce que tu livres devient de l’ADN.`;
+    const how = want.rate ? L`${want.rate} par seconde pendant ${want.hold} s, il faut deux lignes en parallèle` : L`${want.count} au total`;
     const carbon = BOX[boxOf(want.item)]?.carbon, isotope = BOX[boxOf(want.item)]?.isotope;
-    const pack = carbon ? ` Ça sort d’un Encapsuleur réglé sur ${BOX[boxOf(want.item)].name} : ${fill(boxOf(want.item))} derrière, ${carbon} carbone${carbon > 1 ? 's' : ''}${isotope ? ` et ${isotope} isotope` : ''} sur le côté. Le carbone est juste à l’est du cœur${isotope ? ', l’isotope loin dehors, au niveau 3' : ''}.` : '';
-    return `Il veut ${recipe(want.item)} : ${how}. Entrées 1, 2, 3 dans cet ordre.${pack} En échange : ${want.gives}. Les autres gènes deviennent de l’ADN.`;
+    const pack = carbon ? L` Ça sort d’un Encapsuleur réglé sur ${BOX[boxOf(want.item)].name} : ${fill(boxOf(want.item))} derrière, ${carbon} carbone${carbon > 1 ? 's' : ''}${isotope ? L` et ${isotope} isotope` : ''} sur le côté. Le carbone est juste à l’est du cœur${isotope ? L(', l’isotope loin dehors, au niveau 3') : ''}.` : '';
+    return L`Il veut ${recipe(want.item)} : ${how}. Entrées 1, 2, 3 dans cet ordre.${pack} En échange : ${want.gives}. Les autres gènes deviennent de l’ADN.`;
   }
   if (isGun(c)) {
     const gun = GUNS[c.type], name = TYPES[c.type].name;
     const load = Object.entries(c.ammo).filter(([, n]) => n).map(([g, n]) => `${n} ${g}`).join(', ');
     chain = upstream(c);
     const net = netOf(c);
-    if (net) return `${name} sur nerf, demande : ${net.list.join(', ') || 'rien, personne à portée'}. En stock : ${load || 'rien'}.`;
-    return load ? `${name} : ${load}. 3, 2, 1 ou 0 bases justes : ${[12, 5, 2, 1].map(n => n * gun.power).slice(0, 3).join(', ')} ou ${gun.power} dégâts${gun.volley > 1 ? ', deux coups à la fois' : ''}, à ${String(gun.range).replace('.', ',')} cases. ${c.strict ? 'Économe, elle ne tire qu’à 2 justes ou plus.' : 'Elle tire sur tout.'}` : name + ' : rien à tirer. Amène-lui des gènes de trois bases.';
+    if (net) return L`${name} sur nerf, demande : ${net.list.join(', ') || L('rien, personne à portée')}. En stock : ${load || 'rien'}.`;
+    return load ? L`${name} : ${load}. 3, 2, 1 ou 0 bases justes : ${[12, 5, 2, 1].map(n => n * gun.power).slice(0, 3).join(', ')} ou ${gun.power} dégâts${gun.volley > 1 ? L(', deux coups à la fois') : ''}, à ${String(gun.range).replace('.', DEC)} cases. ${c.strict ? L('Économe, elle ne tire qu’à 2 justes ou plus.') : L('Elle tire sur tout.')}` : name + L(' : rien à tirer. Amène-lui des gènes de trois bases.');
   }
-  if (c.type === 'cyst') { chain = upstream(c); return `Kyste : ${c.stock.length} sur ${capOf(c)} objets.`; }
-  if (c.type === 'vault') { chain = upstream(c); return `Grand kyste : ${c.stock.length} sur ${capOf(c)} objets.`; }
+  if (c.type === 'cyst') { chain = upstream(c); return L`Kyste : ${c.stock.length} sur ${capOf(c)} objets.`; }
+  if (c.type === 'vault') { chain = upstream(c); return L`Grand kyste : ${c.stock.length} sur ${capOf(c)} objets.`; }
   if (c.type === 'borer') {
-    const figure = n => n.toFixed(1).replace('.', ','), per = figure(c.made.length / Math.max(1, Math.min(10, G.time)));
-    const rich = richUnder(c), later = rich > richCap() ? ` Ce gisement est ×${rich}, exploitable ainsi au stade ${rich === 2 ? 2 : 3}.` : '';
+    const figure = n => n.toFixed(1).replace('.', DEC), per = figure(c.made.length / Math.max(1, Math.min(10, G.time)));
+    const rich = richUnder(c), later = rich > richCap() ? L` Ce gisement est ×${rich}, exploitable ainsi au stade ${rich === 2 ? 2 : 3}.` : '';
     const fastest = Math.max(BELT_SPEED, ...edgesOf(c).map(door => mouthPace(door, door.dir))), belts = Math.ceil(perSecond(c) / fastest - 1e-6);
-    const full = c.stock.length >= BORER.hold ? ` Il déborde : il lui faut ${belts} tapis MK${fastest / BELT_SPEED}, 8 bords au plus.` : '';
-    return `Grand récolteur de ${named(matterUnder(c))} : ${per} sur ${figure(perSecond(c))}/s.${full}${later}`;
+    const full = c.stock.length >= BORER.hold ? L` Il déborde : il lui faut ${belts} tapis MK${fastest / BELT_SPEED}, 8 bords au plus.` : '';
+    return L`Grand récolteur de ${named(matterUnder(c))} : ${per} sur ${figure(perSecond(c))}/s.${full}${later}`;
   }
   if (c.type === 'sort') {
-    const left = c.side === 3 ? 'à gauche' : 'à droite', what = {1:'les bases', 3:'les gènes', 6:'les brins'}[c.want.length];
-    let state = `Trieur : ${what}${c.want === '?' ? '' : ` ${c.want}`} sortent ${left}, le reste va tout droit.`;
+    const left = c.side === 3 ? L('à gauche') : L('à droite'), what = {1:L('les bases'), 3:L('les gènes'), 6:L('les brins')}[c.want.length];
+    let state = L`Trieur : ${what}${c.want === '?' ? '' : ` ${c.want}`} sortent ${left}, le reste va tout droit.`;
     if (c.item && c.t >= .999) {
       const dir = exitOf(c), to = ahead(c, dir);
-      if (!to || !accepts(to, c.item, dir)) state = `Trieur bloqué : ${itemName(c.item)} doit sortir ${dir === c.dir ? 'tout droit' : left}, et cette sortie est fermée ou pleine.`;
+      if (!to || !accepts(to, c.item, dir)) state = L`Trieur bloqué : ${itemName(c.item)} doit sortir ${dir === c.dir ? L('tout droit') : left}, et cette sortie est fermée ou pleine.`;
       if (to) chain = [to];
     }
     return state;
@@ -2664,97 +3318,97 @@ function diagnose(c) {
       const to = ahead(c, lane.dir);
       if (to && accepts(to, lane.item, lane.dir)) continue;
       if (to) chain = [to];
-      return `Pont bloqué vers ${['le haut','la droite','le bas','la gauche'][lane.dir]} : sortie absente, à contresens ou pleine.`;
+      return L`Pont bloqué vers ${[L('le haut'),L('la droite'),L('le bas'),L('la gauche')][lane.dir]} : sortie absente, à contresens ou pleine.`;
     }
-    return 'Pont : deux voies indépendantes. Auto suit les tapis voisins, sinon le sens choisi est imposé.';
+    return L('Pont : deux voies indépendantes. Auto suit les tapis voisins, sinon le sens choisi est imposé.');
   }
   if (c.type === 'pocket') {
     const kind = c.stock[0], what = kind ? itemName(kind) : 'vide';
-    if (![0,1,2,3].some(d => G.tracks[key(c.x + DX[d], c.y + DY[d])])) return 'Poche sans piste : elle doit toucher une piste.';
-    return `Poche qui ${c.unload ? 'vide le ver et sort sur ses côtés libres' : 'charge le ver'}, ${what} : ${c.stock.length} sur ${WORM.pocket}. Une seule matière par poche, 16/s.`;
+    if (![0,1,2,3].some(d => G.tracks[key(c.x + DX[d], c.y + DY[d])])) return L('Poche sans piste : elle doit toucher une piste.');
+    return L`Poche qui ${c.unload ? L('vide le ver et sort sur ses côtés libres') : L('charge le ver')}, ${what} : ${c.stock.length} sur ${WORM.pocket}. Une seule matière par poche, 16/s.`;
   }
   if (c.type === 'pump') {
     const kind = veinKind(c), what = kind ? itemName(kind) : 'vide';
-    const head = `Pompe, ${what} : ${c.stock.length} sur ${VEIN.cap}.`;
+    const head = L`Pompe, ${what} : ${c.stock.length} sur ${VEIN.cap}.`;
     for (const side of [0,1,2,3]) {
       const from = ahead(c, side);
       if (kind && from && isBelt(from) && from.dir === (side + 2) % 4 && from.item && from.item !== kind) {
         chain = [from];
-        return `${head} Une autre matière attend : une veine n’en porte qu’une. Trie avant, ou vide la veine.`;
+        return L`${head} Une autre matière attend : une veine n’en porte qu’une. Trie avant, ou vide la veine.`;
       }
     }
     if (c.to) {
       const to = G.cells[c.to];
-      if (!to) return `${head} La pompe d’arrivée est détruite.`;
-      if (c.veinHp <= 0) return `${head} Veine rompue, plus rien ne passe.`;
+      if (!to) return L`${head} La pompe d’arrivée est détruite.`;
+      if (c.veinHp <= 0) return L`${head} Veine rompue, plus rien ne passe.`;
       chain = [to];
-      if (leaking(c)) return `${head} Veine percée : 7/s, et elle attire les créatures.`;
-      return `${head} ${to.stock.length >= VEIN.cap - 3 ? 'La pompe d’arrivée est pleine : branche plus de tapis en sortie.' : 'Pousse jusqu’à 16/s.'}`;
+      if (leaking(c)) return L`${head} Veine percée : 7/s, et elle attire les créatures.`;
+      return `${head} ${to.stock.length >= VEIN.cap - 3 ? L('La pompe d’arrivée est pleine : branche plus de tapis en sortie.') : L('Pousse jusqu’à 16/s.')}`;
     }
-    return `${head} Sans veine au départ, elle se vide sur ses quatre côtés, au rythme de chaque tapis.`;
+    return L`${head} Sans veine au départ, elle se vide sur ses quatre côtés, au rythme de chaque tapis.`;
   }
   if (c.type === 'pack') {
     const [goods, carbon] = c.ports, box = BOX[c.box];
-    const head = `Encapsuleur, ${box.name.toLowerCase()}${goods.length ? ' de ' + goods[0] : ''} : ${Math.min(goods.length, fill(c.box))} sur ${fill(c.box)}${box.isotope ? `, isotope ${carbon.filter(k => k === 'I').length} sur ${box.isotope}` : ''}, carbone ${Math.min(carbon.length, box.carbon)} sur ${box.carbon}.`;
+    const head = L`Encapsuleur, ${box.name.toLowerCase()}${goods.length ? ' de ' + goods[0] : ''} : ${Math.min(goods.length, fill(c.box))} sur ${fill(c.box)}${box.isotope ? L`, isotope ${carbon.filter(k => k === 'I').length} sur ${box.isotope}` : ''}, carbone ${Math.min(carbon.length, box.carbon)} sur ${box.carbon}.`;
     if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
       if (ahead(c)) chain = [ahead(c)];
-      return `${head} Sa sortie est fermée ou pleine${boxOf(c.item) === 'A' ? ' : un chargeur va dans une tourelle' : ''}.`;
+      return L`${head} Sa sortie est fermée ou pleine${boxOf(c.item) === 'A' ? L(' : un chargeur va dans une tourelle') : ''}.`;
     }
-    for (const [lacks, side, what] of [[goods.length < fill(c.box), (c.dir + 2) % 4, 'les gènes'], [carbon.length < box.carbon, carbonSide(c), 'le carbone']]) {
+    for (const [lacks, side, what] of [[goods.length < fill(c.box), (c.dir + 2) % 4, L('les gènes')], [carbon.length < box.carbon, carbonSide(c), L('le carbone')]]) {
       if (!lacks) continue;
       const from = feeders(c, side)[0];
-      if (!from) return `${head} Branche ${what} ${what === 'le carbone' ? (c.flip ? 'à droite' : 'à gauche') : 'derrière'}.`;
+      if (!from) return L`${head} Branche ${what} ${what === L('le carbone') ? (c.flip ? L('à droite') : L('à gauche')) : L('derrière')}.`;
       const waiting = from.c.item;
-      if (what === 'les gènes' && waiting && !packTakes(c, waiting, 0)) {
+      if (what === L('les gènes') && waiting && !packTakes(c, waiting, 0)) {
         chain = [from.c];
-        return `${head} ${itemName(waiting)} attend dehors : ${goods.length ? `la boîte se remplit de ${goods[0]}, vide-la pour changer` : c.box === 'A' ? 'un chargeur ne prend que des gènes de 3 bases' : 'il faut un gène ou un brin en vrac'}.`;
+        return L`${head} ${itemName(waiting)} attend dehors : ${goods.length ? L`la boîte se remplit de ${goods[0]}, vide-la pour changer` : c.box === 'A' ? L('un chargeur ne prend que des gènes de 3 bases') : L('il faut un gène ou un brin en vrac')}.`;
       }
     }
-    return `${head} Il tourne.`;
+    return L`${head} Il tourne.`;
   }
   if (c.type === 'join') {
-    const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', ',');
-    const head = `Assembleur${c.last ? ' ' + recipe(c.last) : ''} : ${per} sur 1,0/s.`;
+    const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', DEC);
+    const head = L`Assembleur${c.last ? ' ' + recipe(c.last) : ''} : ${per} sur 1,0/s.`;
     if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
       if (ahead(c)) chain = [ahead(c)];
-      return `${head} Sa sortie est fermée ou pleine.`;
+      return L`${head} Sa sortie est fermée ou pleine.`;
     }
     const empty = [0, 1].find(port => !c.ports[port].length);
     if (empty != null) {
       const side = joinSide(c, empty);
-      if (!feeders(c, side).length) return `${head} L’entrée ${empty + 1} n’est pas branchée : le gène 1 arrive à gauche, le 2 à droite.`;
-      if (c.clock >= .999) { chain = upstream(c, side); return `${head} L’entrée ${empty + 1} manque de gènes : suis la ligne rouge.`; }
+      if (!feeders(c, side).length) return L`${head} L’entrée ${empty + 1} n’est pas branchée : le gène 1 arrive à gauche, le 2 à droite.`;
+      if (c.clock >= .999) { chain = upstream(c, side); return L`${head} L’entrée ${empty + 1} manque de gènes : suis la ligne rouge.`; }
     }
-    return `${head} Elle tourne.`.replace('Elle tourne', 'Il tourne');
+    return L`${head} Elle tourne.`.replace(L('Elle tourne'), L('Il tourne'));
   }
   if (c.type !== 'mine' && c.type !== 'ligase') return TYPES[c.type].help;
 
-  const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', ',');
-  const entries = c.type === 'ligase' ? ' Entrées : ' + c.ports.map((p, i) => `${i + 1} ${p.length ? named(p[0]) : 'vide'}`).join(', ') + '.' : '';
-  const head = `${c.type === 'mine' ? 'Récolteur de ' + named(matterUnder(c)) : 'Ligase' + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', ',')}/s.${entries}${c.type === 'mine' && richUnder(c) > richCap() ? ` Ce gisement est ×${richUnder(c)}, exploitable ainsi au stade ${richUnder(c) === 2 ? 2 : 3}.` : ''}`;
+  const per = (c.made.length / Math.max(1, Math.min(10, G.time))).toFixed(1).replace('.', DEC);
+  const entries = c.type === 'ligase' ? L(' Entrées : ') + c.ports.map((p, i) => `${i + 1} ${p.length ? named(p[0]) : 'vide'}`).join(', ') + '.' : '';
+  const head = L`${c.type === 'mine' ? L('Récolteur de ') + named(matterUnder(c)) : L('Ligase') + (c.last ? ' ' + geneName(c.last) : '')} : ${per} sur ${perSecond(c).toFixed(1).replace('.', DEC)}/s.${entries}${c.type === 'mine' && richUnder(c) > richCap() ? L` Ce gisement est ×${richUnder(c)}, exploitable ainsi au stade ${richUnder(c) === 2 ? 2 : 3}.` : ''}`;
   if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
     let to = c, dir = c.dir;
     for (let i = 0; i < W * H; i++) {
       to = ahead(to, dir);
       if (!to || chain.includes(to)) break;
       chain.push(to);
-      if (to.type === 'gate' && listens(to) && !asked(to, c.item)) return `${head} Un feu intelligent attend autre chose que ${itemName(c.item)}.`;
-      if (to.type === 'gate' && !listens(to) && !to.open) return `${head} Arrêt au feu rouge : touche-le pour rouvrir.`;
+      if (to.type === 'gate' && listens(to) && !asked(to, c.item)) return L`${head} Un feu intelligent attend autre chose que ${itemName(c.item)}.`;
+      if (to.type === 'gate' && !listens(to) && !to.open) return L`${head} Arrêt au feu rouge : touche-le pour rouvrir.`;
       if (isBelt(to)) dir = to.dir; else if (to.type !== 'bridge') break;
     }
-    return `${head} Sortie bloquée : ${to ? 'suis la ligne rouge, le bout refuse ou est plein.' : 'la ligne ne mène nulle part.'}`;
+    return L`${head} Sortie bloquée : ${to ? L('suis la ligne rouge, le bout refuse ou est plein.') : L('la ligne ne mène nulle part.')}`;
   }
   if (c.type === 'ligase') {
     const empty = c.ports.findIndex(p => !p.length);
     if (empty >= 0) {
       const side = portSide(c, empty);
-      if (!feeders(c, side).length) return `${head} L’entrée ${empty + 1} n’est pas branchée.`;
+      if (!feeders(c, side).length) return L`${head} L’entrée ${empty + 1} n’est pas branchée.`;
       chain = upstream(c, side);
-      if (c.clock >= .999) return `${head} L’entrée ${empty + 1} manque de matière : ${chain.some(p => p.type === 'gate' && (listens(p) ? !netOf(p).focus : !p.open)) ? 'un feu rouge coupe sa ligne' : 'suis la ligne rouge'}.`;
+      if (c.clock >= .999) return L`${head} L’entrée ${empty + 1} manque de matière : ${chain.some(p => p.type === 'gate' && (listens(p) ? !netOf(p).focus : !p.open)) ? L('un feu rouge coupe sa ligne') : L('suis la ligne rouge')}.`;
       chain = [];
     }
   }
-  return `${head} Elle tourne.`;
+  return L`${head} Elle tourne.`;
 }
 
 // Drawing and camera: cam is the world point at the middle of the canvas, zoom is pixels per cell.
@@ -3068,7 +3722,7 @@ function draw() {
     const rich = richAt(patch.list[0].x,patch.list[0].y);
     if (rich > 1) {
       ctx.save(); ctx.translate(patch.cx - .5,patch.top); ctx.scale(1/40,1/40);
-      ctx.fillStyle = rich > richCap() ? '#8B989C' : '#B7F34A'; ctx.font = `700 ${Math.min(90,Math.max(18,13 * 40 / cam.zoom))}px Verdana`; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = rich > richCap() ? '#8B989C' : '#B7F34A'; ctx.font = L`700 ${Math.min(90,Math.max(18,13 * 40 / cam.zoom))}px Verdana`; ctx.textBaseline = 'bottom';
       ctx.fillText(`×${rich}`,0,-3); ctx.restore();
     }
     if (cam.zoom < 14) { glyph(ctx,base,x + w / 2,y + h / 2,Math.min(w,h) * .32); continue; }
@@ -3371,7 +4025,7 @@ function write(el, text) {
     const mark = document.createElement('span'), letters = document.createElement('span');
     mark.className = 'gene inline';
     mark.setAttribute('role', 'img');
-    mark.setAttribute('aria-label', [...part].map(base => MATTER[base] || 'n’importe laquelle').join(', '));
+    mark.setAttribute('aria-label', [...part].map(base => MATTER[base] || L('n’importe laquelle')).join(', '));
     mark.innerHTML = [...part].map((base, i) => `${i === 3 ? '<i class="cut"></i>' : ''}${markOf(base) || JOKER}`).join('');
     letters.hidden = true; letters.textContent = part;
     mark.append(letters);
@@ -3445,51 +4099,51 @@ function showActions() {
   const c = selected && G.cells[selected];
   const w = pickedWorm();
   if (!c && w) {
-    button(`Départ : ${{auto:'auto', full:'plein ou vide', timer:'5 s'}[w.rule]}`, () => { w.rule = {auto:'full', full:'timer', timer:'auto'}[w.rule]; showActions(); });
-    if (w.docked) button('Partir', () => { w.docked = false; w.t = 0; });
-    button('Vider', () => { for (const h of w.holds) { h.n = 0; h.kind = ''; } });
-    if (w.out != null) button('Annuler le retrait', () => { keepIt(w); showActions(); });
-    else button('Retirer', () => { scrap(w, () => { dropWorm(w, true); wormId = null; }); showActions(); });
+    button(L`Départ : ${{auto:'auto', full:L('plein ou vide'), timer:'5 s'}[w.rule]}`, () => { w.rule = {auto:'full', full:'timer', timer:'auto'}[w.rule]; showActions(); });
+    if (w.docked) button(L('Partir'), () => { w.docked = false; w.t = 0; });
+    button(L('Vider'), () => { for (const h of w.holds) { h.n = 0; h.kind = ''; } });
+    if (w.out != null) button(L('Annuler le retrait'), () => { keepIt(w); showActions(); });
+    else button(L('Retirer'), () => { scrap(w, () => { dropWorm(w, true); wormId = null; }); showActions(); });
     return;
   }
   if (!c) {
     if (!['hand','erase','belt','wall','bridge','turret','sting','maw','track','worm','pocket','pump','wire'].includes(tool))
-      button(`Sens : ${WAYS[heading]}`, () => { setHeading((heading + 1) % 4); showActions(); });
+      button(L`Sens : ${WAYS[heading]}`, () => { setHeading((heading + 1) % 4); showActions(); });
     return;
   }
   if (c.type === 'core') {
     return;
   }
-  if (TURNS.includes(c.type)) button('Tourner', () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
+  if (TURNS.includes(c.type)) button(L('Tourner'), () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
   if (c.type === 'ligase') button('Inverser 1↔3', () => { c.flip = !c.flip; c.ports.reverse(); c.portDue?.reverse(); c.last = [...c.last].reverse().join(''); });
   if (c.type === 'bridge') [0, 1].forEach(axis => {
     const set = c.ways?.[axis] ?? null, name = axis ? 'Voie ↔' : 'Voie ↕';
     button(`${name} : ${set == null ? 'auto' : ['↑','→','↓','←'][set]}`, () => { turnWay(c, axis); showActions(); });
   });
   if (c.type === 'pump') {
-    button('Tirer une veine', () => { linking = key(c.x, c.y); say('Touche la pompe d’arrivée, ou un sol libre pour en poser une. 24 cases au plus.'); const hint = note; select(null); say(hint); });
-    if (c.to) button(c.veinOut != null ? 'Annuler la coupe' : 'Couper la veine', () => { if (c.veinOut != null) keepVein(c); else scrapVein(c); showActions(); });
-    button('Vider', () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
+    button(L('Tirer une veine'), () => { linking = key(c.x, c.y); say(L('Touche la pompe d’arrivée, ou un sol libre pour en poser une. 24 cases au plus.')); const hint = note; select(null); say(hint); });
+    if (c.to) button(c.veinOut != null ? L('Annuler la coupe') : L('Couper la veine'), () => { if (c.veinOut != null) keepVein(c); else scrapVein(c); showActions(); });
+    button(L('Vider'), () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
   }
-  if (c.type === 'pocket') button(c.unload ? 'Poche : vide' : 'Poche : charge', () => { c.unload = !c.unload; showActions(); });
+  if (c.type === 'pocket') button(c.unload ? L('Poche : vide') : L('Poche : charge'), () => { c.unload = !c.unload; showActions(); });
   if (c.type === 'pack') {
-    button(`Recette : ${BOX[c.box].name}`, () => { const order = unlocked(4) ? ['T', 'A', 'H'] : ['T', 'A']; setRecipe(c, order[(order.indexOf(c.box) + 1) % order.length]); showActions(); });
-    button(`Carbone : ${c.flip ? 'à droite' : 'à gauche'}`, () => { c.flip = !c.flip; showActions(); });
-    button('Vider', () => { c.ports = [[], [], []]; c.item = null; c.last = ''; });
+    button(L`Recette : ${BOX[c.box].name}`, () => { const order = unlocked(4) ? ['T', 'A', 'H'] : ['T', 'A']; setRecipe(c, order[(order.indexOf(c.box) + 1) % order.length]); showActions(); });
+    button(L`Carbone : ${c.flip ? L('à droite') : L('à gauche')}`, () => { c.flip = !c.flip; showActions(); });
+    button(L('Vider'), () => { c.ports = [[], [], []]; c.item = null; c.last = ''; });
   }
   if (c.type === 'join') button('Inverser 1↔2', () => {
     c.flip = !c.flip; c.ports = [c.ports[1], c.ports[0], []];
     if (c.portDue) c.portDue = [c.portDue[1], c.portDue[0], []];
     c.last = c.last ? c.last.slice(3) + c.last.slice(0, 3) : '';
   });
-  if (isGun(c)) button(c.strict ? 'Tir : 2 justes min.' : 'Tir : sur tout', () => { c.strict = !c.strict; showActions(); });
+  if (isGun(c)) button(c.strict ? L('Tir : 2 justes min.') : L('Tir : sur tout'), () => { c.strict = !c.strict; showActions(); });
   if (c.type === 'sort') {
     const change = work => () => { work(); showActions(); };
-    button(c.side === 3 ? 'Sort à gauche' : 'Sort à droite', change(() => { c.side = c.side === 3 ? 1 : 3; }));
+    button(c.side === 3 ? L('Sort à gauche') : L('Sort à droite'), change(() => { c.side = c.side === 3 ? 1 : 3; }));
     // On a nerve the manual filter is only the fallback: its controls would cover the board on a phone.
     const onNerve = G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y));
     if (!onNerve) {
-    button({1:'Base', 3:'Gène', 6:'Brin'}[c.want.length], change(() => { c.want = c.want.length === 1 ? (c.want === 'K' ? '?' : c.want) + '??' : c.want.length === 3 && unlocked(2) ? c.want + '???' : c.want[0]; }));
+    button({1:L('Base'), 3:L('Gène'), 6:L('Brin')}[c.want.length], change(() => { c.want = c.want.length === 1 ? (c.want === 'K' ? '?' : c.want) + '??' : c.want.length === 3 && unlocked(2) ? c.want + '???' : c.want[0]; }));
     const row = document.createElement('span');
     row.className = 'slots';
     [...c.want].forEach((base, i) => {
@@ -3498,51 +4152,51 @@ function showActions() {
         c.want = c.want.slice(0, i) + order[(order.indexOf(base) + 1) % order.length] + c.want.slice(i + 1);
       }));
       b.classList.add('slot');
-      b.setAttribute('aria-label', `Filtre, position ${i + 1} : ${MATTER[base] || 'joker'}. Toucher pour changer.`);
+      b.setAttribute('aria-label', L`Filtre, position ${i + 1} : ${MATTER[base] || 'joker'}. Toucher pour changer.`);
       b.innerHTML = SHAPE[base] ? `<svg viewBox="0 0 18 18" width="20" height="20">${SHAPE[base]}</svg>` : JOKER.replace('<svg', '<svg width="20" height="20"');
       row.append(b);
     });
     $('actions').append(row);
-      button('= dernier passé', change(() => { if (c.seen) c.want = c.seen; else refuse('Rien n’est encore passé dans ce trieur.'); })).disabled = !c.seen;
+      button(L('= dernier passé'), change(() => { if (c.seen) c.want = c.seen; else refuse(L('Rien n’est encore passé dans ce trieur.')); })).disabled = !c.seen;
     }
   }
   if (NERVE.ends.includes(c.type) && G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y))) {
     if (!isGun(c)) {
-      button(c.read ? `Lit : position ${c.read}` : 'Lit : gène entier', () => { c.read = ((c.read || 0) + 1) % 4; showActions(); });
-      if (c.type === 'gate') button(`Si coupé : ${c.open ? 'vert' : 'rouge'}`, () => { c.open = !c.open; showActions(); });
+      button(c.read ? L`Lit : position ${c.read}` : L('Lit : gène entier'), () => { c.read = ((c.read || 0) + 1) % 4; showActions(); });
+      if (c.type === 'gate') button(L`Si coupé : ${c.open ? 'vert' : 'rouge'}`, () => { c.open = !c.open; showActions(); });
     }
     const mine = () => G.wires.filter(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y));
     const cutting = mine().every(w => w.out != null);
-    button(cutting ? 'Garder ses nerfs' : 'Couper ses nerfs', () => {
+    button(cutting ? L('Garder ses nerfs') : L('Couper ses nerfs'), () => {
       for (const w of mine()) { if (cutting) keepIt(w); else scrap(w, () => { G.wires = G.wires.filter(o => o !== w); }); }
       sense(); showActions();
     });
   }
   if (RANKS[c.type] || c.type === 'gate') {
-    if (c.up != null) button('Annuler l’amélioration', () => { dropRise(c); showActions(); });
-    else if (RANKS[c.type]) for (const mk of [2, 3]) if (canRise(c, mk)) button(`Passer en MK${mk} · ${upCost(c, mk)} ADN`, () => { raise([c], mk); showActions(); });
+    if (c.up != null) button(L('Annuler l’amélioration'), () => { dropRise(c); showActions(); });
+    else if (RANKS[c.type]) for (const mk of [2, 3]) if (canRise(c, mk)) button(L`Passer en MK${mk} · ${upCost(c, mk)} ADN`, () => { raise([c], mk); showActions(); });
     const row = isBelt(c) ? rowOf(c) : [];
     if (row.length > 1) for (const mk of [2, 3]) {
       const todo = row.filter(o => canRise(o, mk));
-      if (todo.length > (todo[0] === c ? 1 : 0)) button(`Ligne en MK${mk} (${todo.length}) · ${todo.reduce((sum, o) => sum + upCost(o, mk), 0)} ADN`, () => { raise(rowOf(c), mk); showActions(); });
+      if (todo.length > (todo[0] === c ? 1 : 0)) button(L`Ligne en MK${mk} (${todo.length}) · ${todo.reduce((sum, o) => sum + upCost(o, mk), 0)} ADN`, () => { raise(rowOf(c), mk); showActions(); });
     }
   }
-  if (c.type === 'vault') button('Vider', () => { c.stock = []; });
-  if (c.type === 'ligase') button('Vider', () => { c.ports = [[],[],[]]; c.item = null; });
-  if (c.out != null) button('Annuler le démontage', () => { keepIt(c); showActions(); });
-  else button(refund(c) ? `Démonter +${refund(c)}` : 'Démonter', () => {
+  if (c.type === 'vault') button(L('Vider'), () => { c.stock = []; });
+  if (c.type === 'ligase') button(L('Vider'), () => { c.ports = [[],[],[]]; c.item = null; });
+  if (c.out != null) button(L('Annuler le démontage'), () => { keepIt(c); showActions(); });
+  else button(refund(c) ? L`Démonter +${refund(c)}` : L('Démonter'), () => {
     scrap(c, () => { remove(c.x,c.y); selected = null; });
     showActions();
   });
 }
 function pickedWorm() { return G.worms.find(w => w.id === wormId); }
 function wormState(w) {
-  if (w.out != null) return w.cut ? `Ver en retrait : ${Math.max(0, w.out).toFixed(1).replace('.', ',')} s de jeu.` : 'Ver à retirer : un drone le rejoint, il roule en attendant.';
-  if (!built(w)) return `Ver en incubation : ${w.left.toFixed(1).replace('.', ',')} s de jeu.`;
+  if (w.out != null) return w.cut ? L`Ver en retrait : ${Math.max(0, w.out).toFixed(1).replace('.', DEC)} s de jeu.` : L('Ver à retirer : un drone le rejoint, il roule en attendant.');
+  if (!built(w)) return L`Ver en incubation : ${w.left.toFixed(1).replace('.', DEC)} s de jeu.`;
   const cargo = w.holds.map(h => h.n ? `${h.n} ${itemName(h.kind)}` : 'vide').join(', ');
-  const doing = w.docked ? 'à quai' : w.stuck ? `arrêté, ${w.stuck}` : 'en route';
-  const why = w.docked && w.rule === 'full' ? ' Il attend que tout soit plein ou vide.' : '';
-  return `Ver ${doing}, de la tête à la queue : ${cargo}.${why} ${Math.ceil(w.hp)} PV sur ${WORM.hp}.`;
+  const doing = w.docked ? L('à quai') : w.stuck ? L`arrêté, ${w.stuck}` : L('en route');
+  const why = w.docked && w.rule === 'full' ? L(' Il attend que tout soit plein ou vide.') : '';
+  return L`Ver ${doing}, de la tête à la queue : ${cargo}.${why} ${Math.ceil(w.hp)} PV sur ${WORM.hp}.`;
 }
 function selectWorm(w) {
   selected = null; chain = []; wormId = w.id;
@@ -3556,7 +4210,7 @@ function select(id) {
 function choose(type) {
   if (!unlocked(NEEDS[type] || 0)) {
     const want = STAGES[NEEDS[type] - 1];
-    return refuse(`${TYPES[type].name} s’ouvre quand le stade ${NEEDS[type]}, ${want.name}, est achevé. Touche le cœur pour voir ce qu’il réclame.`);
+    return refuse(L`${TYPES[type].name} s’ouvre quand le stade ${NEEDS[type]}, ${want.name}, est achevé. Touche le cœur pour voir ce qu’il réclame.`);
   }
   tool = type; linking = null; wiring = null; select(null); say(TYPES[type].help);
   if (FAMILY_OF[type]) (ui.lastOf ||= {})[FAMILY_OF[type]] = type;
@@ -3568,11 +4222,11 @@ function choose(type) {
 }
 function orderHTML() {
   const want = STAGES[G.stage];
-  if (!want) return '<b>Organisme né</b><span class="unit">les stades suivants restent à écrire</span>';
-  const done = want.rate ? `${mealRate().toFixed(1).replace('.', ',')} / ${want.rate}` : `${G.fed} / ${want.count}`;
-  const unit = [boxOf(want.item) ? `${BOX[boxOf(want.item)].name.toLowerCase()} de ${fill(boxOf(want.item))}` : '', want.rate ? `gènes/s, tenus ${Math.floor(G.held)} sur ${want.hold} s` : ''].filter(Boolean).join(' · ');
+  if (!want) return L('<b>Organisme né</b><span class="unit">les stades suivants restent à écrire</span>');
+  const done = want.rate ? `${mealRate().toFixed(1).replace('.', DEC)} / ${want.rate}` : `${G.fed} / ${want.count}`;
+  const unit = [boxOf(want.item) ? L`${BOX[boxOf(want.item)].name.toLowerCase()} de ${fill(boxOf(want.item))}` : '', want.rate ? L`gènes/s, tenus ${Math.floor(G.held)} sur ${want.hold} s` : ''].filter(Boolean).join(' · ');
   const gene = geneMark(contentOf(want.item)), asked = boxOf(want.item) ? `<span class="crate">${gene}</span>` : gene;
-  return `<b>Stade ${G.stage + 1} · ${want.name}</b><div class="wanted">${asked}<output>${done}</output></div>${unit ? `<span class="unit">${unit}</span>` : ''}`;
+  return `<b>${L`Stade ${G.stage + 1} · ${want.name}`}</b><div class="wanted">${asked}<output>${done}</output></div>${unit ? `<span class="unit">${unit}</span>` : ''}`;
 }
 function stockOf(gene) {
   let n = 0;
@@ -3586,8 +4240,8 @@ function refresh() {
   forgetCells();
   const jobs = sites().length;
   $('works').hidden = !jobs || G.over;
-  $('works').textContent = `${jobs} chantier${jobs > 1 ? 's' : ''}${paused ? ' en pause' : ''}`;
-  $('dna').textContent = `${G.dna} ADN`;
+  $('works').textContent = L`${jobs} chantier${jobs > 1 ? 's' : ''}${paused ? L(' en pause') : ''}`;
+  $('dna').textContent = L`${G.dna} ADN`;
   for (const [type, stage] of Object.entries(NEEDS)) {
     const b = $('tools').querySelector(`[data-type="${type}"]`);
     if (!b) continue;
@@ -3607,14 +4261,14 @@ function refresh() {
   if (copy) copy.disabled = false;
   if (selected && G.cells[selected]) {
     const c = G.cells[selected], hurt = c.hp < fullHp(c) - .5;
-    const state = hurt ? ` ${Math.floor(c.hp)} PV sur ${fullHp(c)}, ${healing(c) ? 'en réparation' : `réparation dans ${Math.ceil(REPAIR.quiet - (G.time - c.hitAt))} s sans coup`}.` : '';
+    const state = hurt ? L` ${Math.floor(c.hp)} PV sur ${fullHp(c)}, ${healing(c) ? L('en réparation') : L`réparation dans ${Math.ceil(REPAIR.quiet - (G.time - c.hitAt))} s sans coup`}.` : '';
     write($('message'), diagnose(c) + state);
   }
   else if (selected) { selected = null; chain = []; showActions(); }
   else if (pickedWorm()) write($('message'), wormState(pickedWorm()));
   else write($('message'), note);
   $('pause').textContent = paused ? '▶' : 'II';
-  $('pause').setAttribute('aria-label', paused ? 'Reprendre' : 'Mettre en pause');
+  $('pause').setAttribute('aria-label', paused ? L('Reprendre') : L('Mettre en pause'));
   const lost = Object.values(G.ruins).filter(w => !buried(w)).length;
   const torn = pumps().filter(c => c.to && c.veinHp < VEIN.hp / 2).length + G.wires.filter(w => !w.hp).length;
   $('rebuild').hidden = !(lost + torn) || G.over;
@@ -3630,7 +4284,7 @@ function refresh() {
       }
       bill.total = (bill.total || 0) + Math.ceil(worth / 2);
     }
-    $('rebuild').textContent = `Reconstruire (${lost + torn})${bill.total ? ` · ${bill.total} ADN` : ''}`;
+    $('rebuild').textContent = L`Reconstruire (${lost + torn})${bill.total ? L` · ${bill.total} ADN` : ''}`;
   }
   $('over').hidden = !G.over;
   paintHud();
@@ -3674,14 +4328,14 @@ function place(x,y) {
     if (from && old === from) { wiring = null; return say(TYPES.wire.help); }
     if (from) {
       wiring = null;
-      if (!old) return refuse('Un nerf finit sur une tourelle, un feu ou un trieur.');
+      if (!old) return refuse(L('Un nerf finit sur une tourelle, un feu ou un trieur.'));
       if (wireUp(from, old)) { const message = note; select(id); say(message); }
       return;
     }
     wiring = null;
     if (!NERVE.ends.includes(old?.type)) return say(TYPES.wire.help);
     select(null); wiring = id;
-    return say('Touche maintenant l’élément à relier.');
+    return say(L('Touche maintenant l’élément à relier.'));
   }
   // A gate on a nerve is not a switch any more.
   if (old?.type === 'gate' && tool !== 'erase' && G.wires.some(w => w.a === id || w.b === id)) return select(id);
@@ -3698,12 +4352,12 @@ function place(x,y) {
   if (tool === 'hand') {
     if (old) return select(key(old.x,old.y));
     select(null); say(TYPES.hand.help);
-    if (G.tracks[id]) return say(trackAfter(id) || !built(G.tracks[id]) ? 'Piste de phéromones. Pose une poche contre elle, ou un ver dessus.' : 'Fin de piste : les vers s’arrêtent ici. Referme la boucle.');
-    if (!known(x,y)) return say('Zone inconnue. Construis dans sa direction : tes structures y verront.');
+    if (G.tracks[id]) return say(trackAfter(id) || !built(G.tracks[id]) ? L('Piste de phéromones. Pose une poche contre elle, ou un ver dessus.') : L('Fin de piste : les vers s’arrêtent ici. Referme la boucle.'));
+    if (!known(x,y)) return say(L('Zone inconnue. Construis dans sa direction : tes structures y verront.'));
     const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && known(h.x,h.y) && Math.hypot(h.x - x, h.y - y) < 3);
     if (!b) return;
-    say(`Brèche au ${bearing(b)}, niveau ${levelOf(b)} sur 5 : ${b.left} créatures, gène faible ${b.genes.join(' et ')}, antidote ${b.genes.map(opposite).join(' et ')}. ${b.state === 'sleep' ? 'Elle dort tant que rien n’est bâti dans son cercle.' : 'Elle est réveillée. Vide-la pour qu’elle disparaisse.'}`);
-    if (b.state === 'sleep') button('Réveiller', () => { wake(b); $('actions').replaceChildren(); });
+    say(L`Brèche au ${bearing(b)}, niveau ${levelOf(b)} sur 5 : ${b.left} créatures, gène faible ${b.genes.join(' et ')}, antidote ${b.genes.map(opposite).join(' et ')}. ${b.state === 'sleep' ? L('Elle dort tant que rien n’est bâti dans son cercle.') : L('Elle est réveillée. Vide-la pour qu’elle disparaisse.')}`);
+    if (b.state === 'sleep') button(L('Réveiller'), () => { wake(b); $('actions').replaceChildren(); });
     return;
   }
   if (tool === 'erase') return wipe(x,y);
@@ -3718,15 +4372,15 @@ function place(x,y) {
     const site = siteFor(tool,x,y);
     if (site.why) return refuse(`${site.why}.`);
     const due = costInHand(tool);
-    if (due > G.dna) return refuse(`Il manque ${due - G.dna} ADN pour ce rang.`);
+    if (due > G.dna) return refuse(L`Il manque ${due - G.dna} ADN pour ce rang.`);
     buildRanked(tool,site.x,site.y,heading); select(key(site.x,site.y)); return say(TYPES[tool].help);
   }
   if (!placeable(x,y)) return refuse(`${whyNot(x,y)}.`);
   const cost = costInHand(tool);
-  if (cost > G.dna) return refuse(`Il manque ${cost - G.dna} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.`);
-  if (tool === 'mine' && !depositAt(x,y)) return refuse('Un récolteur se pose sur un gisement coloré.');
+  if (cost > G.dna) return refuse(L`Il manque ${cost - G.dna} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.`);
+  if (tool === 'mine' && !depositAt(x,y)) return refuse(L('Un récolteur se pose sur un gisement coloré.'));
   G.dna -= price(tool);
-  buildRanked(tool,x,y,heading); select(id); say(TYPES[tool].help + (cost ? ` Payé ${cost} ADN.` : ''));
+  buildRanked(tool,x,y,heading); select(id); say(TYPES[tool].help + (cost ? L` Payé ${cost} ADN.` : ''));
 }
 
 let drag = null, linking = null;
@@ -3773,9 +4427,9 @@ function extend(to) {
     if (tool === 'track') {
       if (!placeable(drag.x,drag.y) || !placeable(x,y)) { drag = null; return; }
       const here = G.tracks[key(drag.x,drag.y)], joins = G.tracks[key(x,y)];
-      if (drag.moved && drag.onTrack && here && here.dir !== dir) { refuse('La piste rejoint la ligne existante. Une case n’a qu’une sortie.'); drag = null; return; }
+      if (drag.moved && drag.onTrack && here && here.dir !== dir) { refuse(L('La piste rejoint la ligne existante. Une case n’a qu’une sortie.')); drag = null; return; }
       layTrack(drag.x,drag.y,dir);
-      if (drag.start && x === drag.start.x && y === drag.start.y) { say('Boucle fermée. Pose des poches contre elle, puis un ver dessus.'); drag = null; return; }
+      if (drag.start && x === drag.start.x && y === drag.start.y) { say(L('Boucle fermée. Pose des poches contre elle, puis un ver dessus.')); drag = null; return; }
       if (!joins) layTrack(x,y,dir);
       drag = {x, y, moved:true, onTrack:Boolean(joins), start:drag.start || {x:drag.x, y:drag.y}};
       continue;
@@ -3788,13 +4442,13 @@ function extend(to) {
     for (const c of [from, cellAt(x,y)]) if (isBelt(c)) keepIt(c);
     if (from && !isBelt(from) && from.type !== 'bridge' && drag.moved) { drag = null; return; }
     if (from && drag.existing && drag.moved && isBelt(from) && from.dir !== dir) {
-      refuse('Ce tapis existe déjà : la ligne s’y raccorde. Pour le traverser, pose un pont.');
+      refuse(L('Ce tapis existe déjà : la ligne s’y raccorde. Pour le traverser, pose un pont.'));
       drag = null; return;
     }
     const short = cells => {
       const due = rankCost('belt', inHand('belt')) * cells;
       if (due <= G.dna) return false;
-      refuse(`Il manque ${due - G.dna} ADN pour continuer en MK${inHand('belt')}.`);
+      refuse(L`Il manque ${due - G.dna} ADN pour continuer en MK${inHand('belt')}.`);
       drag = null;
       return true;
     };
@@ -3828,69 +4482,69 @@ function preview() {
   const hive = whyNot(x, y), free = () => !hive;
   const fromVein = (drawing && drag?.vein) || (linking && G.cells[linking]);
   if (fromVein) {
-    if (old && (old.type !== 'pump' || (old.x === fromVein.x && old.y === fromVein.y))) return no('Finit sur une pompe', {from:fromVein});
+    if (old && (old.type !== 'pump' || (old.x === fromVein.x && old.y === fromVein.y))) return no(L('Finit sur une pompe'), {from:fromVein});
     if (!old && !free()) return no(hive, {from:fromVein});
     const ghost = old ? {} : {type:'pump', dir:0};
-    return span(fromVein, {x, y}) > VEIN.reach ? no(`Trop loin : ${VEIN.reach} cases au plus`, {from:fromVein, ...ghost}) : to('link', {from:fromVein, ...ghost});
+    return span(fromVein, {x, y}) > VEIN.reach ? no(L`Trop loin : ${VEIN.reach} cases au plus`, {from:fromVein, ...ghost}) : to('link', {from:fromVein, ...ghost});
   }
   const fromWire = (drawing && drag?.nerve) || (wiring && G.cells[wiring]);
   if (fromWire) {
     if (x === fromWire.x && y === fromWire.y) return to('select');
-    if (!NERVE.ends.includes(old?.type)) return no('Tourelle, feu ou trieur', {from:fromWire});
-    if (span(fromWire, old) > NERVE.reach) return no(`Trop loin : ${NERVE.reach} cases au plus`, {from:fromWire});
+    if (!NERVE.ends.includes(old?.type)) return no(L('Tourelle, feu ou trieur'), {from:fromWire});
+    if (span(fromWire, old) > NERVE.reach) return no(L`Trop loin : ${NERVE.reach} cases au plus`, {from:fromWire});
     const a = key(fromWire.x, fromWire.y);
-    if (G.wires.some(w => (w.a === a && w.b === id) || (w.a === id && w.b === a))) return no('Déjà reliés', {from:fromWire});
+    if (G.wires.some(w => (w.a === a && w.b === id) || (w.a === id && w.b === a))) return no(L('Déjà reliés'), {from:fromWire});
     return to('link', {from:fromWire});
   }
-  if (tool === 'wire') return NERVE.ends.includes(old?.type) ? to('link') : no('Tourelle, feu ou trieur');
+  if (tool === 'wire') return NERVE.ends.includes(old?.type) ? to('link') : no(L('Tourelle, feu ou trieur'));
   const worm = G.worms.find(w => w.path.includes(id));
   if (tool === 'erase') {
     const ruin = ruinAt(x, y), track = G.tracks[id], top = worm || old || ruin || track;
     if (!top) return to('none');
-    if (top.type === 'core') return no('Le cœur ne se démonte pas');
-    if (top.out != null) return to('none', {label:'Déjà dans la file'});
-    const name = worm ? 'ver' : old ? TYPES[old.type].name.toLowerCase() : ruin ? 'débris' : 'piste';
+    if (top.type === 'core') return no(L('Le cœur ne se démonte pas'));
+    if (top.out != null) return to('none', {label:L('Déjà dans la file')});
+    const name = worm ? 'ver' : old ? TYPES[old.type].name.toLowerCase() : ruin ? L('débris') : 'piste';
     const back = !worm && old ? refund(old) : 0;
-    return to('scrap', {worm, label:`Démonter : ${name}${back ? ` · +${back} ADN` : ''}`});
+    return to('scrap', {worm, label:L`Démonter : ${name}${back ? L` · +${back} ADN` : ''}`});
   }
-  if (old?.type === 'gate') return G.wires.some(w => w.a === id || w.b === id) ? to('select', {label:'Feu intelligent'}) : to('use', {label:old.open ? 'Passer au rouge' : 'Passer au vert'});
-  if (worm && (tool === 'hand' || tool === 'worm')) return to('select', {worm, label:'Ver'});
+  if (old?.type === 'gate') return G.wires.some(w => w.a === id || w.b === id) ? to('select', {label:L('Feu intelligent')}) : to('use', {label:old.open ? L('Passer au rouge') : L('Passer au vert')});
+  if (worm && (tool === 'hand' || tool === 'worm')) return to('select', {worm, label:L('Ver')});
   if (tool === 'worm') {
     const cost = price('worm'), ghost = {type:'worm', cost};
-    if (!G.tracks[id]) return no('Sur une piste seulement', ghost);
-    if (worm) return no('Case occupée', ghost);
-    return cost > G.dna ? no(`Il manque ${cost - G.dna} ADN`, ghost) : to('build', ghost);
+    if (!G.tracks[id]) return no(L('Sur une piste seulement'), ghost);
+    if (worm) return no(L('Case occupée'), ghost);
+    return cost > G.dna ? no(L`Il manque ${cost - G.dna} ADN`, ghost) : to('build', ghost);
   }
   if (tool === 'track') {
     if (!free()) return no(hive);
     const track = G.tracks[id];
     if (!track) return to('build', {type:'track', dir:heading});
-    return drawing ? to('select') : to('turn', {type:'track', dir:(track.dir + 1) % 4, label:'Tourner'});
+    return drawing ? to('select') : to('turn', {type:'track', dir:(track.dir + 1) % 4, label:L('Tourner')});
   }
   if (tool === 'hand') {
-    if (old) return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
-    if (G.tracks[id]) return to('select', {label:'Piste'});
-    if (!known(x, y)) return to('none', {label:'Zone inconnue'});
+    if (old) return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
+    if (G.tracks[id]) return to('select', {label:L('Piste')});
+    if (!known(x, y)) return to('none', {label:L('Zone inconnue')});
     const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && known(h.x, h.y) && Math.hypot(h.x - x, h.y - y) < 3);
-    if (b) return to('select', {label:`Brèche niveau ${levelOf(b)} : ${b.left} créatures`});
+    if (b) return to('select', {label:L`Brèche niveau ${levelOf(b)} : ${b.left} créatures`});
     const base = depositAt(x, y);
-    return to('none', base ? {label:`Gisement : ${named(base)} ×${richAt(x, y)}`} : {});
+    return to('none', base ? {label:L`Gisement : ${named(base)} ×${richAt(x, y)}`} : {});
   }
   if (old) {
     if (drawing) return to('select');
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:'Tourner'});
+    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:(old.dir + 1) % 4, label:L('Tourner')});
     if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
-    return to('select', {label:old.type === 'core' ? 'Cœur' : TYPES[old.type].name});
+    return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
   }
   const cost = costInHand(tool), ghost = {type:tool, mk:inHand(tool), dir:drawing && drag?.heading != null ? drag.heading : heading, cost};
   if (BIG[tool]) {
     const site = siteFor(tool, x, y), big = {...ghost, x:site.x, y:site.y, size:2};
     if (site.why) return no(site.why, big);
-    return cost > G.dna ? no(`Il manque ${cost - G.dna} ADN`, big) : to('build', big);
+    return cost > G.dna ? no(L`Il manque ${cost - G.dna} ADN`, big) : to('build', big);
   }
   if (!free()) return no(hive, ghost);
-  if (cost > G.dna) return no(`Il manque ${cost - G.dna} ADN`, ghost);
-  if (tool === 'mine' && !depositAt(x, y)) return no('Sur un gisement seulement', ghost);
+  if (cost > G.dna) return no(L`Il manque ${cost - G.dna} ADN`, ghost);
+  if (tool === 'mine' && !depositAt(x, y)) return no(L('Sur un gisement seulement'), ghost);
   return to('build', ghost);
 }
 const PREVIEW = {no:'#FF6B6B', scrap:'#FF6B6B', build:'#55D6E8', link:'#55D6E8', turn:'#F0A03C', use:'#F0A03C', select:'#B7F34A', none:'#D5FAFF'};
@@ -3936,8 +4590,8 @@ function drawPreview(g, models) {
     g.strokeStyle = color; g.lineWidth = 2 / cam.zoom; g.stroke();
   }
   const touched = gesture && !hovered, keys = act === 'build' && !touched && !NARROW.matches;
-  const piece = keys && p.type ? [TYPES[p.type]?.name + (p.mk > 1 ? ` MK${p.mk}` : ''), p.cost ? `${p.cost} ADN` : '', p.dir != null && TURNS.includes(p.type) ? 'R tourner' : '', 'Échap lâcher'].filter(Boolean).join(' · ') : '';
-  const text = p.why || p.label || piece || (p.cost ? `${p.cost} ADN` : '');
+  const piece = keys && p.type ? [TYPES[p.type]?.name + (p.mk > 1 ? ` MK${p.mk}` : ''), p.cost ? L`${p.cost} ADN` : '', p.dir != null && TURNS.includes(p.type) ? L('R tourner') : '', L('Échap lâcher')].filter(Boolean).join(' · ') : '';
+  const text = p.why || p.label || piece || (p.cost ? L`${p.cost} ADN` : '');
   if (!text) return;
   // The words keep one size at every zoom, and stay on the board.
   g.save(); g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
@@ -3965,7 +4619,7 @@ function portsOf(c) {
     case 'borer': return edgesOf(c).map(d => ({...d, out:true}));
     case 'ligase': return [out(c.dir), ...[0, 1, 2].map(port => into(portSide(c, port), {label:String(port + 1)}))];
     case 'join': return [out(c.dir), ...[0, 1].map(port => into(joinSide(c, port), {label:String(port + 1)}))];
-    case 'pack': return [out(c.dir), into(back, {label:'gènes'}), into(carbonSide(c), {label:'carbone K'})];
+    case 'pack': return [out(c.dir), into(back, {label:L('gènes')}), into(carbonSide(c), {label:L('carbone K')})];
     case 'split2': case 'split': return [into(back), ...splitExits(c).map(d => out(d))];
     case 'sort': return [into(back), out(c.dir, {label:'reste'}), out(sideExit(c), {label:c.want && c.want !== '?' ? c.want : 'filtre'})];
     case 'bridge': return [0, 1].flatMap(axis => {
@@ -4090,7 +4744,7 @@ canvas.addEventListener('pointermove', event => {
       drag.nerve = {...from}; drag.aim = {...from};
     }
     if (tool === 'pump') {
-      if (drag.existing && cellAt(from.x,from.y).type !== 'pump') { drag = null; refuse('Tire depuis une pompe ou un sol libre.'); return; }
+      if (drag.existing && cellAt(from.x,from.y).type !== 'pump') { drag = null; refuse(L('Tire depuis une pompe ou un sol libre.')); return; }
       if (!drag.existing && !placeable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
@@ -4114,7 +4768,7 @@ function release(event) {
     if (vein.x !== aim.x || vein.y !== aim.y) {
       // The first pump is only created when the vein can be made.
       if (Math.hypot(aim.x - vein.x,aim.y - vein.y) > VEIN.reach) link({...vein,type:'pump'},{...aim,type:'pump'});
-      else if (cellAt(aim.x,aim.y) && cellAt(aim.x,aim.y).type !== 'pump') refuse('Termine la veine sur une pompe ou un sol libre, juste à côté du bâtiment.');
+      else if (cellAt(aim.x,aim.y) && cellAt(aim.x,aim.y).type !== 'pump') refuse(L('Termine la veine sur une pompe ou un sol libre, juste à côté du bâtiment.'));
       else joinVein(G.cells[key(vein.x,vein.y)] || build('pump',vein.x,vein.y,0),aim.x,aim.y);
     }
   }
@@ -4210,7 +4864,7 @@ async function show3D(on) {
     try { localStorage.setItem(VIEW_KEY, on ? '3d' : '2d'); } catch (_) {}
   } catch (error) {
     view3d = null; $('gl').hidden = true;
-    tell('Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.');
+    tell(L('Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.'));
     console.warn('3D view unavailable:', error.message);
   }
   toggle.setAttribute('aria-pressed', Boolean(view3d));
@@ -4232,7 +4886,7 @@ function chooseView(three) {
 function markView(three) {
   for (const [id, on] of [['dimension', three], ['flat', !three]]) $(id).setAttribute('aria-pressed', on);
   $('view-toggle').textContent = three ? '2D' : '3D';
-  $('view-toggle').setAttribute('aria-label', three ? 'Passer en 2D' : 'Passer en 3D');
+  $('view-toggle').setAttribute('aria-label', three ? L('Passer en 2D') : L('Passer en 3D'));
 }
 $('view-toggle').onclick = () => chooseView(!view3d);
 $('dimension').onclick = () => chooseView(true);
@@ -4252,16 +4906,16 @@ $('rebuild').onclick = () => {
     delete G.ruins[id];
     Object.assign(build(w.type, w.x, w.y, w.dir), {flip:w.flip, want:w.want || 'C', side:w.side || 3, ways:w.ways || null, open:w.open !== false, to:w.to || null, strict:Boolean(w.strict), unload:Boolean(w.unload), box:w.box || 'T', read:w.read || 0, mk:w.mk, on:w.on, onRich:w.onRich});
   }
-  tell(unpaid ? `${unpaid} débris en attente d’ADN, le reste est en chantier.` : 'Reconstruction lancée à l’identique.'); refresh();
+  tell(unpaid ? L`${unpaid} débris en attente d’ADN, le reste est en chantier.` : L('Reconstruction lancée à l’identique.')); refresh();
 };
 
 // Every tool lives in one family. Within one, what is usable from the start comes first.
 const FAMILIES = [
-  ['rec', 'Récolter', 'mine', ['mine','cyst','borer','vault']],
-  ['tra', 'Acheminer', 'belt', ['belt','bridge','split2','split','pump','track','pocket','worm']],
-  ['fab', 'Transformer', 'ligase', ['ligase','pack','join']],
-  ['def', 'Défendre', 'turret', ['turret','sting','maw','wall']],
-  ['cmd', 'Commander', 'gate', ['gate','sort','wire','radar']]
+  ['rec', L('Récolter'), 'mine', ['mine','cyst','borer','vault']],
+  ['tra', L('Acheminer'), 'belt', ['belt','bridge','split2','split','pump','track','pocket','worm']],
+  ['fab', L('Transformer'), 'ligase', ['ligase','pack','join']],
+  ['def', L('Défendre'), 'turret', ['turret','sting','maw','wall']],
+  ['cmd', L('Commander'), 'gate', ['gate','sort','wire','radar']]
 ];
 const FAMILY_OF = Object.fromEntries(FAMILIES.flatMap(([id,,,types]) => types.map(type => [type, id])));
 const TOOLBAR = ['hand', ...FAMILIES.flatMap(f => f[3]), 'erase'];
@@ -4292,7 +4946,7 @@ function toolPod(type) {
   else if (type === 'erase') hole.innerHTML = '<svg width="28" height="28" viewBox="0 0 28 28"><path d="M5 5l18 18M23 5L5 23" stroke="#FF6B74" stroke-width="3.5" stroke-linecap="round"/></svg>';
   else { hole.classList.add('model'); showModel(hole, type); }
   if (BIG[type]) { const tag = document.createElement('span'); tag.className = 'size'; tag.textContent = '2×2'; b.append(tag); }
-  if (NEEDS[type]) { const tag = document.createElement('span'); tag.className = 'price lock'; tag.textContent = `stade ${NEEDS[type]}`; b.append(tag); }
+  if (NEEDS[type]) { const tag = document.createElement('span'); tag.className = 'price lock'; tag.textContent = L`stade ${NEEDS[type]}`; b.append(tag); }
   if (PRICE[type]) { const tag = document.createElement('span'); tag.className = 'price'; b.append(tag); }
   b.onclick = () => choose(type);
   b.addEventListener('pointerenter', event => {
@@ -4322,7 +4976,7 @@ function growDock() {
     dock.append(b);
   });
   side('erase', 7);
-  const stats = podOf('Statistiques');
+  const stats = podOf(L('Statistiques'));
   stats.id = 'stats-pod'; stats.classList.add('side'); stats.setAttribute('aria-pressed', 'false');
   stats.querySelector('.porthole').innerHTML = '<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22V14M11 22V8M17 22V12M23 22V5" stroke="#66D9EA" stroke-width="3" stroke-linecap="round"/></svg>';
   key(stats, 8);
@@ -4377,7 +5031,7 @@ let held = 0;
 function hold() {
   clearTimeout(held);
   $('restart').classList.add('holding');
-  held = setTimeout(() => { letGo(); armed = 0; restartText('Recommencer : maintenir'); showMenu(false); begin(); }, 1000);
+  held = setTimeout(() => { letGo(); armed = 0; restartText(L('Recommencer : maintenir')); showMenu(false); begin(); }, 1000);
 }
 function letGo() {
   clearTimeout(held);
@@ -4390,8 +5044,8 @@ $('restart').onkeyup = event => { if (event.key === 'Enter') letGo(); };
 // A screen reader cannot hold: it presses twice.
 $('restart').onclick = event => {
   if (event.detail) return;
-  if (Date.now() > armed) { armed = Date.now() + 3000; restartText('Sûr ? Encore une fois'); return; }
-  armed = 0; restartText('Recommencer : maintenir'); showMenu(false); begin();
+  if (Date.now() > armed) { armed = Date.now() + 3000; restartText(L('Sûr ? Encore une fois')); return; }
+  armed = 0; restartText(L('Recommencer : maintenir')); showMenu(false); begin();
 };
 $('again').onclick = () => {
   // The fallen one keeps its scar: the new one takes another hexagon.
@@ -4413,7 +5067,7 @@ function rotate(back) {
     setHeading((heading + by) % 4);
     if (building) {
       select(null);
-      say(`Sens : ${WAYS[heading]}. R pour tourner, Maj+R dans l’autre sens.`);
+      say(L`Sens : ${WAYS[heading]}. R pour tourner, Maj+R dans l’autre sens.`);
     }
   }
   showActions();
@@ -4466,7 +5120,7 @@ function begin() {
   $('growth').hidden = true;
   look(true);
   forgetEvents(); choose('hand'); home();
-  tell('Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.');
+  tell(L('Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.'));
   save(); refresh();
 }
 
@@ -4503,7 +5157,7 @@ function tell(text, {at, gene, bad} = {}) {
   body.append(dot, words);
   if (gene) body.insertAdjacentHTML('beforeend', geneMark(gene));
   if (at) { const there = {x:at.x + .5, y:at.y + .5}; body.onclick = () => travelTo(there); }
-  close.className = 'close'; close.setAttribute('aria-label', 'Fermer'); close.textContent = '×';
+  close.className = 'close'; close.setAttribute('aria-label', L('Fermer')); close.textContent = '×';
   const entry = {el, text};
   close.onclick = () => { el.remove(); ui.events.splice(ui.events.indexOf(entry), 1); };
   el.append(body, close);
@@ -4564,7 +5218,7 @@ function paintRanks() {
   if (!costs) return;
   [...box.children].forEach((b, i) => {
     b.setAttribute('aria-pressed', inHand(tool) === i + 1);
-    b.querySelector('small').textContent = costs[i] ? `${costs[i]} ADN` : 'gratuit';
+    b.querySelector('small').textContent = costs[i] ? L`${costs[i]} ADN` : L('gratuit');
     b.querySelector('small').classList.toggle('short', costs[i] > G.dna);
   });
 }
@@ -4605,17 +5259,17 @@ function layoutHud() {
 }
 
 function jobName({c, field}) {
-  if (field === 'out' || field === 'veinOut') return 'Retrait';
-  if (field === 'veinLeft') return 'Veine';
+  if (field === 'out' || field === 'veinOut') return L('Retrait');
+  if (field === 'veinLeft') return L('Veine');
   if (field === 'up') return `MK${c.upTo}`;
-  return TYPES[c.type]?.name || (c.path ? 'Ver' : c.a ? 'Nerf' : 'Piste');
+  return TYPES[c.type]?.name || (c.path ? L('Ver') : c.a ? L('Nerf') : L('Piste'));
 }
 function paintOrganism() {
   const want = STAGES[G.stage], part = !want ? 1 : want.rate ? G.held / want.hold : G.fed / want.count;
   $('stage-arc').setAttribute('stroke-dasharray', `${Math.round(Math.min(1, part) * 352)} 352`);
   const life = Math.max(0, Math.ceil(G.cells[key(CORE.x, CORE.y)].hp));
   $('life').setAttribute('stroke-dasharray', `${Math.round(life * 2.96)} 296`);
-  $('life-text').textContent = `Cœur ${life}`;
+  $('life-text').textContent = L`Cœur ${life}`;
   $('organism').classList.toggle('ailing', life < 40);
   paint('order', orderHTML());
   if (ui.dna != null && G.dna > ui.dna) { $('gain').textContent = `+${Math.round(G.dna - ui.dna)}`; replay($('gain'), 'up'); }
@@ -4631,30 +5285,30 @@ function paintThreat() {
   let title, short;
   if (first) {
     const where = bearing(first);
-    title = active ? `Assaut : ${where}` : `Assaut dans ${left} s`;
-    short = active ? 'Assaut' : `${left} s`;
+    title = active ? L`Assaut : ${where}` : L`Assaut dans ${left} s`;
+    short = active ? L('Assaut') : `${left} s`;
     if (!active) detail.push(where[0].toUpperCase() + where.slice(1));
-    if (first.id) detail.push(`${Math.round(span(first, CORE))} cases`);
-    if (G.enemies.length) detail.push(`${G.enemies.length} sur la carte`);
-    if (awake.length > 1) detail.push(`+${awake.length - 1} brèche${awake.length > 2 ? 's' : ''}`);
+    if (first.id) detail.push(L`${Math.round(span(first, CORE))} cases`);
+    if (G.enemies.length) detail.push(L`${G.enemies.length} sur la carte`);
+    if (awake.length > 1) detail.push(L`+${awake.length - 1} brèche${awake.length > 2 ? 's' : ''}`);
   } else if (here.length) {
-    title = `${G.enemies.length} sur la carte`; short = `${G.enemies.length}`;
-    detail.push('Leur brèche est vide');
+    title = L`${G.enemies.length} sur la carte`; short = `${G.enemies.length}`;
+    detail.push(L('Leur brèche est vide'));
   } else {
     const asleep = G.breaches.filter(b => b.state === 'sleep' && known(b.x, b.y)).length;
-    title = asleep ? `${asleep} brèche${asleep > 1 ? 's' : ''} dormante${asleep > 1 ? 's' : ''}` : 'Rien en vue';
-    short = asleep ? `${asleep} dorment` : 'Calme';
-    detail.push(asleep ? 'repérée' + (asleep > 1 ? 's' : '') : 'le brouillard commence plus loin');
+    title = asleep ? L`${asleep} brèche${asleep > 1 ? 's' : ''} dormante${asleep > 1 ? 's' : ''}` : L('Rien en vue');
+    short = asleep ? L`${asleep} dorment` : L('Calme');
+    detail.push(asleep ? (asleep > 1 ? L('repérées') : L('repérée')) : L('le brouillard commence plus loin'));
   }
   const box = $('brief'), stock = gene ? stockOf(opposite(gene)) : 0;
   paint('title', title, box.querySelector('.title'));
   paint('detail', detail.join(' · '), box.querySelector('.detail'));
   paint('short', short, box.querySelector('.short'));
-  paint('versus', gene ? `<span class="foe">${geneMark(gene)}</span><span class="to">→</span>${geneMark(opposite(gene))}<span class="${stock ? 'need' : 'none'}">${stock ? `${stock} en stock` : 'aucun antidote'}</span>` : '');
+  paint('versus', gene ? `<span class="foe">${geneMark(gene)}</span><span class="to">→</span>${geneMark(opposite(gene))}<span class="${stock ? 'need' : 'none'}">${stock ? L`${stock} en stock` : L('aucun antidote')}</span>` : '');
   paint('families', here.map(([kind, n]) => {
     const ready = stockOf(opposite(kind));
-    return `<div class="threat"><b>${n} sur la carte</b>${geneMark(kind)}<span>→</span>${geneMark(opposite(kind))}<span class="${ready ? 'need' : 'none'}">${ready ? `${ready} en stock` : 'aucun antidote'}</span></div>`;
-  }).join('') || '<span class="threat">Personne sur la carte</span>');
+    return L`<div class="threat"><b>${n} sur la carte</b>${geneMark(kind)}<span>→</span>${geneMark(opposite(kind))}<span class="${ready ? 'need' : 'none'}">${ready ? L`${ready} en stock` : L('aucun antidote')}</span></div>`;
+  }).join('') || L('<span class="threat">Personne sur la carte</span>'));
   box.classList.toggle('calm', !first && !here.length);
   box.style.setProperty('--pulse', `${(1.7 - Math.min(10, G.threat) * .11).toFixed(2)}s`);
   $('app').classList.toggle('hot', !G.over && (active || G.enemies.length > 0));
@@ -4667,7 +5321,7 @@ function paintDrones() {
     const b = $('drones').children[i];
     if (!b) return;
     const job = d.job ? jobs.get(d.job) : null;
-    let label = 'Au nid';
+    let label = L('Au nid');
     if (job) {
       const pose = dronePose(d), working = pose.goal && pose.w >= .5;
       label = `${jobName(job)}${working ? ` ${Math.ceil(job.c[job.field])} s` : ''}`;
@@ -4686,7 +5340,7 @@ function paintDrones() {
     heading.hidden = state !== 'fly';
     if (state === 'fly') heading.style.transform = `rotate(${(pose.a * 180 / Math.PI + 90).toFixed(0)}deg)`;
     const words = b.querySelector('.words');
-    if (words.textContent !== label) { words.textContent = label; b.setAttribute('aria-label', `Drone ${i + 1} : ${label}. Aller le voir.`); }
+    if (words.textContent !== label) { words.textContent = label; b.setAttribute('aria-label', L`Drone ${i + 1} : ${label}. Aller le voir.`); }
   });
 }
 function cellsOf(c, worm) {
@@ -4714,32 +5368,32 @@ function cellsOf(c, worm) {
 }
 // ---- The core's card as a diagram: what it wants, how to make it, what it gives.
 const ARROW = '<svg class="to" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#66D9EA" stroke-width="1.5"/></svg>';
-const CARBON = '<svg viewBox="0 0 18 18" role="img" aria-label="carbone"><path d="M9 2l6 3.5v7L9 16l-6-3.5v-7z" fill="#8C949A" stroke="#C9D2D0" stroke-width="1.2"/></svg>';
+const CARBON = '<svg viewBox="0 0 18 18" role="img" aria-label="' + L('carbone') + '"><path d="M9 2l6 3.5v7L9 16l-6-3.5v-7z" fill="#8C949A" stroke="#C9D2D0" stroke-width="1.2"/></svg>';
 const machineOf = (type, label) => `<span class="porthole model machine" data-model="${type}" role="img" aria-label="${label}"></span>`;
 function coreSheet() {
   const want = STAGES[G.stage];
   if (!want) return '';
   const box = boxOf(want.item), body = contentOf(want.item), genes = body.match(/.{3}/g);
-  const figure = n => n.toFixed(1).replace('.', ',');
-  const picture = box ? `<span class="crate" role="img" aria-label="${BOX[box].name} de ${fill(box)}">${geneMark(body)}<b>×${fill(box)}</b></span>` : geneMark(body);
+  const figure = n => n.toFixed(1).replace('.', DEC);
+  const picture = box ? L`<span class="crate" role="img" aria-label="${BOX[box].name} de ${fill(box)}">${geneMark(body)}<b>×${fill(box)}</b></span>` : geneMark(body);
   const rate = mealRate(), part = want.rate ? Math.min(1, G.held / want.hold) : Math.min(1, G.fed / want.count);
   const goal = want.rate
     ? `<div class="goal"><b>${want.rate}<small> / s</small></b><span>pendant ${want.hold} s</span></div>`
-    : `<div class="goal"><b>${G.fed}<small> / ${want.count}</small></b><span>livrés</span></div>`;
+    : L`<div class="goal"><b>${G.fed}<small> / ${want.count}</small></b><span>livrés</span></div>`;
   const legend = want.rate
-    ? `<div class="legend"><span>débit <b>${figure(rate)} / s</b></span><span>tenu <b>${Math.floor(G.held)} / ${want.hold} s</b></span></div>`
+    ? L`<div class="legend"><span>débit <b>${figure(rate)} / s</b></span><span>tenu <b>${Math.floor(G.held)} / ${want.hold} s</b></span></div>`
     : '';
-  const steps = [...new Set(genes)].map(gene => `<div class="step">${[...gene].map((b, i) => `<span class="in"><span class="num">${i + 1}</span>${markOf(b)}</span>`).join('')}${ARROW}${machineOf('ligase', 'Ligase')}${ARROW}${geneMark(gene)}</div>`);
-  if (genes.length === 2) steps.push(`<div class="step"><span class="in">${geneMark(genes[0])}</span><span class="side">+</span><span class="in">${geneMark(genes[1])}</span>${ARROW}${machineOf('join', 'Assembleur')}${ARROW}${geneMark(body)}</div>`);
-  if (box) steps.push(`<div class="step"><span class="in">${fill(box)}×${geneMark(body)}</span><span class="side">+</span><span class="in">${BOX[box].carbon}×${CARBON}</span>${BOX[box].isotope ? `<span class="side">+</span><span class="in">${BOX[box].isotope}×${markOf('I')}</span>` : ''}${ARROW}${machineOf('pack', 'Encapsuleur')}${ARROW}${picture.replace(`<b>×${fill(box)}</b>`, '')}</div>`);
+  const steps = [...new Set(genes)].map(gene => `<div class="step">${[...gene].map((b, i) => `<span class="in"><span class="num">${i + 1}</span>${markOf(b)}</span>`).join('')}${ARROW}${machineOf('ligase', L('Ligase'))}${ARROW}${geneMark(gene)}</div>`);
+  if (genes.length === 2) steps.push(`<div class="step"><span class="in">${geneMark(genes[0])}</span><span class="side">+</span><span class="in">${geneMark(genes[1])}</span>${ARROW}${machineOf('join', L('Assembleur'))}${ARROW}${geneMark(body)}</div>`);
+  if (box) steps.push(`<div class="step"><span class="in">${fill(box)}×${geneMark(body)}</span><span class="side">+</span><span class="in">${BOX[box].carbon}×${CARBON}</span>${BOX[box].isotope ? `<span class="side">+</span><span class="in">${BOX[box].isotope}×${markOf('I')}</span>` : ''}${ARROW}${machineOf('pack', L('Encapsuleur'))}${ARROW}${picture.replace(`<b>×${fill(box)}</b>`, '')}</div>`);
   const hints = [];
-  if (want.rate) hints.push('<p><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h12M2 11h12" stroke="#F0A03C" stroke-width="2.2"/></svg>2 lignes en parallèle</p>');
-  if (box) hints.push(`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`);
+  if (want.rate) hints.push(L('<p><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h12M2 11h12" stroke="#F0A03C" stroke-width="2.2"/></svg>2 lignes en parallèle</p>'));
+  if (box) hints.push(L`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`);
   const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
-  if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', `Gisements ×${G.stage + 1 === 2 ? '2' : '4 à ×8'}`]);
-  return `<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
-    + `<h3>Recette</h3>${steps.join('')}${hints.length ? `<div class="hints">${hints.join('')}</div>` : ''}`
-    + (gives.length ? `<h3>Débloque</h3><div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : '');
+  if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', L`Gisements ×${G.stage + 1 === 2 ? '2' : L('4 à ×8')}`]);
+  return L`<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
+    + L`<h3>Recette</h3>${steps.join('')}${hints.length ? `<div class="hints">${hints.join('')}</div>` : ''}`
+    + (gives.length ? L`<h3>Débloque</h3><div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : '');
 }
 function paintSheet(c) {
   const sheet = $('sheet'), on = c?.type === 'core' && Boolean(STAGES[G.stage]);
@@ -4754,11 +5408,11 @@ function paintSheet(c) {
 
 // ---- The guided start: five steps to a first line feeding the core, each checked on what is built.
 const GUIDE = [
-  {family:'rec', model:'mine', base:'S', list:'Un récolteur sur', title:'Pose un récolteur sur', why:'Le cœur veut ce gène : il faut deux fois cette base pour une de l’autre.'},
-  {family:'rec', model:'mine', base:'F', list:'Un récolteur sur', title:'Puis un récolteur sur', why:'Elle ira au milieu du gène, par l’arrière de la Ligase.'},
-  {family:'rec', model:'mine', base:'S', list:'Un second récolteur sur', title:'Un second récolteur sur', why:'Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.'},
-  {family:'fab', model:'ligase', list:'La Ligase', title:'Pose la Ligase', why:'Entrées 1, 2, 3 dans l’ordre du gène : SFS. Sa sortie regarde le cœur, R pour tourner.'},
-  {family:'tra', model:'belt', list:'Des tapis jusqu’au cœur', title:'Relie tout jusqu’au cœur', why:'De chaque récolteur à son entrée, puis de la Ligase au cœur. Le premier gène valide l’étape.'}
+  {family:'rec', model:'mine', base:'S', list:L('Un récolteur sur'), title:L('Pose un récolteur sur'), why:L('Le cœur veut ce gène : il faut deux fois cette base pour une de l’autre.')},
+  {family:'rec', model:'mine', base:'F', list:L('Un récolteur sur'), title:L('Puis un récolteur sur'), why:L('Elle ira au milieu du gène, par l’arrière de la Ligase.')},
+  {family:'rec', model:'mine', base:'S', list:L('Un second récolteur sur'), title:L('Un second récolteur sur'), why:L('Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.')},
+  {family:'fab', model:'ligase', list:L('La Ligase'), title:L('Pose la Ligase'), why:L('Entrées 1, 2, 3 dans l’ordre du gène : SFS. Sa sortie regarde le cœur, R pour tourner.')},
+  {family:'tra', model:'belt', list:L('Des tapis jusqu’au cœur'), title:L('Relie tout jusqu’au cœur'), why:L('De chaque récolteur à son entrée, puis de la Ligase au cœur. Le premier gène valide l’étape.')}
 ];
 function builtNow() {
   const n = {S:0, F:0, ligase:0};
@@ -4803,7 +5457,7 @@ function paintGuide() {
     while (g.step < GUIDE.length && guideDone(g.step, now)) {
       g.step++;
       earn('guide', 5);
-      tell(g.step < GUIDE.length ? `Étape ${g.step} faite : +5 ADN.` : 'Premier atelier en marche : +5 ADN. Le guide se range dans le menu.');
+      tell(g.step < GUIDE.length ? L`Étape ${g.step} faite : +5 ADN.` : L('Premier atelier en marche : +5 ADN. Le guide se range dans le menu.'));
     }
   }
   const on = live && g.step < GUIDE.length && !g.hidden;
@@ -4814,7 +5468,7 @@ function paintGuide() {
   for (const b of $('tools').querySelectorAll('.family')) b.classList.toggle('call', on && b.dataset.family === GUIDE[g.step]?.family);
   if (!on) { $('guide-spot').hidden = true; return; }
   const step = GUIDE[g.step], base = step.base ? markOf(step.base) : '';
-  $('guide-no').textContent = `étape ${g.step + 1} sur ${GUIDE.length}`;
+  $('guide-no').textContent = L`étape ${g.step + 1} sur ${GUIDE.length}`;
   const title = `${step.title}${base}`;
   if ($('guide-title').innerHTML !== title) $('guide-title').innerHTML = title;
   write($('guide-why'), step.why);
@@ -4849,13 +5503,13 @@ function paintInfo() {
   info.querySelector('.card-head').hidden = !any;
   if (any) {
     const type = worm ? 'worm' : c.type;
-    $('card-title').textContent = type === 'core' ? 'Cœur' : TYPES[type].name + (RANKS[type] ? ` MK${rankOf(c)}` : '');
+    $('card-title').textContent = type === 'core' ? L('Cœur') : TYPES[type].name + (RANKS[type] ? ` MK${rankOf(c)}` : '');
     const parts = [];
     if (c?.type === 'pack') parts.push(BOX[c.box].name);
     if (c?.type === 'belt' || follows(c)) parts.push(`${paceOf(c)}/s`);
-    if (c?.up != null) parts.push(`vers MK${c.upTo}`);
-    if (c && isGun(c)) parts.push(`${String(GUNS[c.type].range).replace('.', ',')} cases`);
-    if (c && TURNS.includes(c.type)) parts.push(`vers ${WAYS[c.dir]}`.replace('vers haut', 'vers le haut').replace('vers bas', 'vers le bas').replace('vers droite', 'vers la droite').replace('vers gauche', 'vers la gauche'));
+    if (c?.up != null) parts.push(L`vers MK${c.upTo}`);
+    if (c && isGun(c)) parts.push(L`${String(GUNS[c.type].range).replace('.', DEC)} cases`);
+    if (c && TURNS.includes(c.type)) parts.push(L(['vers le haut', 'vers la droite', 'vers le bas', 'vers la gauche'][c.dir]));
     const life = worm ? [worm.hp, WORM.hp] : [c.hp, fullHp(c)];
     parts.push(life[0] < life[1] - .5 ? `${Math.ceil(life[0])} / ${life[1]} PV` : `${life[1]} PV`);
     $('card-sub').textContent = parts.join(' · ');
@@ -4866,7 +5520,7 @@ function paintInfo() {
   paintGuide();
   const row = $('actions');
   row.classList.toggle('more', row.scrollWidth - row.clientWidth - row.scrollLeft > 8);
-  $('card').classList.toggle('alert', Boolean(c && ((!isGun(c) && chain.length) || /bloqué|manque|pas branchée|rien à tirer|déborde|rompue|fermée|percée|Branche/.test($('message').textContent))));
+  $('card').classList.toggle('alert', Boolean(c && ((!isGun(c) && chain.length) || /bloqué|manque|pas branchée|rien à tirer|déborde|rompue|fermée|percée|Branche|blocked|lacks|not connected|nothing to fire|overflows|broken|closed|pierced|Connect/.test($('message').textContent))));
   const picked = c ? `c${selected}` : worm ? `w${worm.id}` : '';
   if (picked !== ui.picked) {
     ui.picked = picked; ui.pickedAt = performance.now();
@@ -4877,9 +5531,9 @@ function paintInfo() {
 }
 function paintMoments() {
   if (ui.stage != null && G.stage === ui.stage + 1 && G.time - (G.grownAt ?? -1e9) < 3) {
-    $('growth').querySelector('.stage').textContent = `Stade ${G.stage} achevé · +${GROWTH_BONUS} ADN`;
+    $('growth').querySelector('.stage').textContent = L`Stade ${G.stage} achevé · +${GROWTH_BONUS} ADN`;
     const got = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage).map(type => [type, TYPES[type].name]);
-    if (G.stage > 1 && G.stage <= 3) got.push(['mine', `Gisements ×${G.stage === 2 ? '2' : '4 à ×8'}`]);
+    if (G.stage > 1 && G.stage <= 3) got.push(['mine', L`Gisements ×${G.stage === 2 ? '2' : L('4 à ×8')}`]);
     $('rewards').replaceChildren(...got.map(([type, name]) => {
       const item = document.createElement('div'), hole = document.createElement('span'), words = document.createElement('span');
       item.className = 'pod'; hole.className = 'porthole model'; words.className = 'name'; words.textContent = name;
@@ -4892,15 +5546,15 @@ function paintMoments() {
   ui.stage = G.stage;
   if (G.over) {
     $('growth').hidden = true;
-    const made = Math.floor(G.made).toLocaleString('fr-FR');
-    paint('score', [[G.breaches.filter(b => b.state === 'spent').length, 'brèches vidées'], [G.kills, 'créatures tuées'], [made, 'gènes produits']].map(([n, what]) => `<span><b>${n}</b>${what}</span>`).join(''));
+    const made = Math.floor(G.made).toLocaleString(LOCALE);
+    paint('score', [[G.breaches.filter(b => b.state === 'spent').length, L('brèches vidées')], [G.kills, L('créatures tuées')], [made, L('gènes produits')]].map(([n, what]) => `<span><b>${n}</b>${what}</span>`).join(''));
   }
 }
 function paintDry() {
   ui.dry = G.over || !G.enemies.length ? [] : allCells().filter(c => isGun(c) && built(c) && !Object.values(c.ammo).some(n => n) && G.enemies.some(e => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range * 2)).slice(0, 4);
   const box = $('dry');
   while (box.children.length > ui.dry.length) box.lastChild.remove();
-  while (box.children.length < ui.dry.length) box.insertAdjacentHTML('beforeend', '<i><b></b><span>Tourelle à sec</span></i>');
+  while (box.children.length < ui.dry.length) box.insertAdjacentHTML('beforeend', L('<i><b></b><span>Tourelle à sec</span></i>'));
 }
 function paintHud() {
   paintRanks();
@@ -5122,7 +5776,7 @@ $('help').onclick = () => { showMenu(false); $('commands').showModal(); };
 $('help-close').onclick = () => $('commands').close();
 $('open-all').onclick = () => {
   G.open = true; showMenu(false); showActions();
-  tell('Tout est débloqué pour tester. Les stades continuent de compter.');
+  tell(L('Tout est débloqué pour tester. Les stades continuent de compter.'));
   refresh();
 };
 $('continue').onclick = () => { ui.grown = 0; $('growth').hidden = true; };
@@ -5157,11 +5811,11 @@ NARROW.addEventListener('change', layoutHud);
 
 // ---- Statistics: read from the running factory, sampled every 10 s for five minutes of history.
 const STAT_TABS = [
-  ['prod', 'Production', '<path d="M2 13V7l3 2V7l3 2V4l6 4v5z"/>'],
-  ['eco', 'Économie', '<circle cx="8" cy="8" r="6"/><path d="M8 4v8"/>'],
-  ['def', 'Défense', '<path d="M8 1l6 2v5c0 3.5-2.6 6-6 7-3.4-1-6-3.5-6-7V3z"/>'],
-  ['threat', 'Menace', '<path d="M1 8h4l1.5-4 3 8 1.5-4h4"/>'],
-  ['logi', 'Logistique', '<path d="M1 5h10l-2-2M15 11H5l2 2"/>']
+  ['prod', L('Production'), '<path d="M2 13V7l3 2V7l3 2V4l6 4v5z"/>'],
+  ['eco', L('Économie'), '<circle cx="8" cy="8" r="6"/><path d="M8 4v8"/>'],
+  ['def', L('Défense'), '<path d="M8 1l6 2v5c0 3.5-2.6 6-6 7-3.4-1-6-3.5-6-7V3z"/>'],
+  ['threat', L('Menace'), '<path d="M1 8h4l1.5-4 3 8 1.5-4h4"/>'],
+  ['logi', L('Logistique'), '<path d="M1 5h10l-2-2M15 11H5l2 2"/>']
 ];
 const PRODUCERS = ['mine', 'borer', 'ligase', 'join', 'pack'];
 $('stats').querySelector('.tabs').innerHTML = STAT_TABS.map(([id, name, d]) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${d}</svg><span>${name}</span></button>`).join('');
@@ -5184,7 +5838,7 @@ function showStats(open) {
 }
 function outputOf(c) { return c.type === 'mine' || c.type === 'borer' ? matterUnder(c) : c.item || c.last || ''; }
 function itemMark(item) {
-  if (!item) return '<span class="dim">en attente</span>';
+  if (!item) return L('<span class="dim">en attente</span>');
   if (boxOf(item)) return `<span class="crate">${geneMark(contentOf(item))}</span>`;
   return item.length === 1 ? `<span class="base">${markOf(item)}</span>` : geneMark(item);
 }
@@ -5215,18 +5869,18 @@ function spark(values) {
   const top = Math.max(1, ...values), w = 120, step = w / Math.max(1, values.length - 1);
   return `<svg width="${w}" height="28" viewBox="0 0 ${w} 28" aria-hidden="true"><polyline points="${values.map((v, i) => `${(i * step).toFixed(1)},${(26 - v / top * 22).toFixed(1)}`).join(' ')}" fill="none" stroke="#66D9EA" stroke-width="1.6"/></svg>`;
 }
-const fr = n => (Math.round(n * 10) / 10).toLocaleString('fr-FR');
+const fr = n => (Math.round(n * 10) / 10).toLocaleString(LOCALE);
 function problems() {
   const out = [];
   for (const c of allCells()) {
     if (!built(c)) continue;
     const name = TYPES[c.type]?.name || '';
-    if (isGun(c) && !Object.values(c.ammo).some(n => n)) out.push([c, 'red', `${name} à sec`, 'plus de munitions']);
+    if (isGun(c) && !Object.values(c.ammo).some(n => n)) out.push([c, 'red', L`${name} à sec`, L('plus de munitions')]);
     else if (PRODUCERS.includes(c.type) && !c.made?.length) {
-      if (c.item) out.push([c, 'amber', `${name} bloqué`, 'sortie pleine']);
+      if (c.item) out.push([c, 'amber', L`${name} bloqué`, L('sortie pleine')]);
       else if (c.ports) {
-        const empty = c.type === 'pack' ? (readyPort(c, 0) < PACK.size ? 'gènes manquants' : 'carbone manquant') : `entrée ${c.ports.findIndex((p, i) => !readyPort(c, i)) + 1} vide`;
-        out.push([c, 'red', `${name} à l’arrêt`, empty]);
+        const empty = c.type === 'pack' ? (readyPort(c, 0) < PACK.size ? L('gènes manquants') : L('carbone manquant')) : L`entrée ${c.ports.findIndex((p, i) => !readyPort(c, i)) + 1} vide`;
+        out.push([c, 'red', L`${name} à l’arrêt`, empty]);
       }
     }
   }
@@ -5235,10 +5889,10 @@ function problems() {
 function statsHTML(tab) {
   if (tab === 'prod') {
     const lines = production(), want = STAGES[G.stage];
-    if (!lines.length) return '<p class="empty">Aucune machine ne produit encore. Pose un récolteur sur un gisement.</p>';
-    const asked = want ? `<p class="note">Le cœur réclame ${itemMark(want.item)}</p>` : '';
-    return `<div class="head"><p class="label">Production · par minute, sur les 10 dernières secondes</p>${asked}</div>`
-      + '<div class="row prod cols label"><span>Ce qui sort</span><span>Débit</span><span>/ min</span><span>Capacité</span><span>5 minutes</span></div>'
+    if (!lines.length) return L('<p class="empty">Aucune machine ne produit encore. Pose un récolteur sur un gisement.</p>');
+    const asked = want ? L`<p class="note">Le cœur réclame ${itemMark(want.item)}</p>` : '';
+    return L`<div class="head"><p class="label">Production · par minute, sur les 10 dernières secondes</p>${asked}</div>`
+      + L('<div class="row prod cols label"><span>Ce qui sort</span><span>Débit</span><span>/ min</span><span>Capacité</span><span>5 minutes</span></div>')
       + lines.map(([id, l]) => `<div class="row prod"><span class="what">${holeOf(l.type)}${itemMark(l.item)}${l.n > 1 ? `<span class="dim">×${l.n}</span>` : ''}</span>`
         + `<span class="bar"><i style="width:${Math.min(100, l.now / Math.max(1, l.max) * 100).toFixed(0)}%"></i></span><span class="n">${fr(l.now)}</span><span class="dim">${fr(l.max)}</span>`
         + `${spark((ui.history || []).map(h => h[id] || 0))}</div>`).join('');
@@ -5250,30 +5904,30 @@ function statsHTML(tab) {
       if (e.at > G.time - 60) recent[e.source] = (recent[e.source] || 0) + e.amount;
     }
     const rows = Object.keys(total).sort((a, b) => total[b] - total[a]);
-    return `<div class="tiles"><p class="tile"><b>${G.dna}</b><span>ADN en réserve</span></p><p class="tile"><b>${fr(Object.values(recent).reduce((s, n) => s + n, 0))}</b><span>ADN gagné la dernière minute</span></p></div>`
-      + '<div class="row pair cols label"><span>D’où vient l’ADN</span><span>dernière min</span><span>depuis l’ouverture</span></div>'
-      + (rows.map(s => `<div class="row pair"><span>${EARN[s] || s}</span><span class="n">${fr(recent[s] || 0)}</span><span class="dim">${fr(total[s])}</span></div>`).join('') || '<p class="empty">Rien gagné depuis l’ouverture de la partie.</p>');
+    return L`<div class="tiles"><p class="tile"><b>${G.dna}</b><span>ADN en réserve</span></p><p class="tile"><b>${fr(Object.values(recent).reduce((s, n) => s + n, 0))}</b><span>ADN gagné la dernière minute</span></p></div>`
+      + L('<div class="row pair cols label"><span>D’où vient l’ADN</span><span>dernière min</span><span>depuis l’ouverture</span></div>')
+      + (rows.map(s => `<div class="row pair"><span>${EARN[s] || s}</span><span class="n">${fr(recent[s] || 0)}</span><span class="dim">${fr(total[s])}</span></div>`).join('') || L('<p class="empty">Rien gagné depuis l’ouverture de la partie.</p>'));
   }
   if (tab === 'def') {
     const guns = allCells().filter(c => isGun(c) && built(c)), ammo = {};
     for (const c of guns) for (const [gene, n] of Object.entries(c.ammo)) if (n) ammo[gene] = (ammo[gene] || 0) + n;
     const types = [...new Set(guns.map(c => c.type))];
-    return `<div class="tiles"><p class="tile"><b>${guns.length}</b><span>défenses</span></p><p class="tile"><b>${guns.filter(c => !Object.values(c.ammo).some(n => n)).length}</b><span>à sec</span></p><p class="tile"><b>${G.kills}</b><span>créatures tuées</span></p></div>`
-      + '<div class="row pair cols label"><span>Défense</span><span>posées</span><span>à sec</span></div>'
+    return L`<div class="tiles"><p class="tile"><b>${guns.length}</b><span>défenses</span></p><p class="tile"><b>${guns.filter(c => !Object.values(c.ammo).some(n => n)).length}</b><span>à sec</span></p><p class="tile"><b>${G.kills}</b><span>créatures tuées</span></p></div>`
+      + L('<div class="row pair cols label"><span>Défense</span><span>posées</span><span>à sec</span></div>')
       + types.map(type => `<div class="row pair"><span class="what">${holeOf(type)}${TYPES[type].name}</span><span class="n">${guns.filter(c => c.type === type).length}</span><span class="dim">${guns.filter(c => c.type === type && !Object.values(c.ammo).some(n => n)).length}</span></div>`).join('')
-      + '<div class="row pair cols label" style="margin-top:14px"><span>Munitions chargées</span><span>coups</span><span></span></div>'
-      + (Object.entries(ammo).sort((a, b) => b[1] - a[1]).map(([gene, n]) => `<div class="row pair"><span>${geneMark(gene)}</span><span class="n">${n}</span><span></span></div>`).join('') || '<p class="empty">Aucune munition chargée.</p>');
+      + L('<div class="row pair cols label" style="margin-top:14px"><span>Munitions chargées</span><span>coups</span><span></span></div>')
+      + (Object.entries(ammo).sort((a, b) => b[1] - a[1]).map(([gene, n]) => `<div class="row pair"><span>${geneMark(gene)}</span><span class="n">${n}</span><span></span></div>`).join('') || L('<p class="empty">Aucune munition chargée.</p>'));
   }
   if (tab === 'threat') {
     const count = state => G.breaches.filter(b => b.state === state).length;
     const here = Object.entries(G.enemies.reduce((n, e) => (n[e.gene] = (n[e.gene] || 0) + 1, n), {})).sort((a, b) => b[1] - a[1]);
-    return `<div class="tiles"><p class="tile"><b>${count('wake')}</b><span>brèches éveillées</span></p><p class="tile"><b>${count('sleep')}</b><span>dorment</span></p><p class="tile"><b>${count('spent')}</b><span>détruites</span></p><p class="tile"><b>${fr(G.threat || 0)} / 10</b><span>niveau de menace</span></p></div>`
-      + '<div class="row pair cols label"><span>Sur la carte</span><span>créatures</span><span>antidote</span></div>'
-      + (here.map(([gene, n]) => `<div class="row pair"><span>${geneMark(gene)} → ${geneMark(opposite(gene))}</span><span class="n">${n}</span><span class="${stockOf(opposite(gene)) ? 'dim' : 'none'}">${stockOf(opposite(gene)) || 'aucun'}</span></div>`).join('') || '<p class="empty">Personne sur la carte.</p>');
+    return L`<div class="tiles"><p class="tile"><b>${count('wake')}</b><span>brèches éveillées</span></p><p class="tile"><b>${count('sleep')}</b><span>dorment</span></p><p class="tile"><b>${count('spent')}</b><span>détruites</span></p><p class="tile"><b>${fr(G.threat || 0)} / 10</b><span>niveau de menace</span></p></div>`
+      + L('<div class="row pair cols label"><span>Sur la carte</span><span>créatures</span><span>antidote</span></div>')
+      + (here.map(([gene, n]) => `<div class="row pair"><span>${geneMark(gene)} → ${geneMark(opposite(gene))}</span><span class="n">${n}</span><span class="${stockOf(opposite(gene)) ? 'dim' : 'none'}">${stockOf(opposite(gene)) || 'aucun'}</span></div>`).join('') || L('<p class="empty">Personne sur la carte.</p>'));
   }
   const list = problems();
-  return `<div class="head"><p class="label">Ce qui freine l’usine · ${list.length} point${list.length > 1 ? 's' : ''}</p><p class="note">touche une ligne : la caméra y va</p></div>`
-    + (list.slice(0, 14).map(([c, level, title, why]) => `<button class="row issue" data-at="${c.x},${c.y}">${holeOf(c.type)}<span><b>${title}</b><br><span class="dim">${why}</span></span><span class="badge ${level}">${level === 'red' ? 'bloquant' : 'ralentit'}</span><span class="go">${bearing(c)}, ${Math.round(span(c, CORE))} cases →</span></button>`).join('') || '<p class="empty">Rien ne freine l’usine.</p>');
+  return L`<div class="head"><p class="label">Ce qui freine l’usine · ${list.length} point${list.length > 1 ? 's' : ''}</p><p class="note">touche une ligne : la caméra y va</p></div>`
+    + (list.slice(0, 14).map(([c, level, title, why]) => `<button class="row issue" data-at="${c.x},${c.y}">${holeOf(c.type)}<span><b>${title}</b><br><span class="dim">${why}</span></span><span class="badge ${level}">${level === 'red' ? L('bloquant') : L('ralentit')}</span><span class="go">${L`${bearing(c)}, ${Math.round(span(c, CORE))} cases →`}</span></button>`).join('') || L('<p class="empty">Rien ne freine l’usine.</p>'));
 }
 function paintStats() {
   if (G.time - (ui.statsAt ?? -Infinity) < 1 && ui.statsAt <= G.time) return;
@@ -5285,7 +5939,7 @@ function paintStats() {
 // ---- Games: one a hexagon, each under its own key. The list can be rebuilt from the keys, never the reverse.
 // Nothing here writes over a game, except its own autosave and what a held press asked for.
 const LIST_KEY = 'strainworks-planet', GAME_KEY = 'strainworks-game:', MOTION_KEY = 'strainworks-motion';
-const NAMES = ['Rhizome', 'Synapse', 'Moelle', 'Chitine', 'Mycélium', 'Spirale', 'Écorce', 'Plasmide', 'Axone', 'Spore', 'Ganglion', 'Lymphe', 'Tendon', 'Cilium', 'Germe', 'Kératine'];
+const NAMES = [L('Rhizome'), L('Synapse'), L('Moelle'), L('Chitine'), L('Mycélium'), L('Spirale'), L('Écorce'), L('Plasmide'), L('Axone'), L('Spore'), L('Ganglion'), L('Lymphe'), L('Tendon'), L('Cilium'), L('Germe'), L('Kératine')];
 const FILE = {one:'strainworks', all:'strainworks-planet', bytes:16e6, cells:60000, values:3e6};
 let slotKey = null, slotId = null, saveFailed = false;
 
@@ -5320,7 +5974,7 @@ function freeHex(list, near) {
 }
 function newName(list) {
   const used = new Set(Object.values(list.games).map(g => g.name)), free = NAMES.find(name => !used.has(name));
-  return free || `Souche ${Object.keys(list.games).length + 1}`;
+  return free || L`Souche ${Object.keys(list.games).length + 1}`;
 }
 // What an older version left, and any game the list lost.
 function findGames() {
@@ -5355,7 +6009,7 @@ function save() {
   if (!entry && stored(slotKey) === null && slotSaved) return false;
   const ok = keep(slotKey, JSON.stringify(G));
   if (!ok) {
-    if (!saveFailed) tell('Sauvegarde impossible, le stockage du navigateur est plein ou bloqué. Exporte ta partie depuis le menu.', {bad:true});
+    if (!saveFailed) tell(L('Sauvegarde impossible, le stockage du navigateur est plein ou bloqué. Exporte ta partie depuis le menu.'), {bad:true});
     saveFailed = true;
     return false;
   }
@@ -5377,7 +6031,7 @@ function settleIn() {
 }
 function foundGame(wanted) {
   const list = readList(), id = wanted != null && !list.games[wanted] ? wanted : freeHex(list);
-  if (id == null) { noteOnPlanet('La planète est pleine : efface ou exporte une partie.', true); return false; }
+  if (id == null) { noteOnPlanet(L('La planète est pleine : efface ou exporte une partie.'), true); return false; }
   // The first one keeps the key every earlier version wrote.
   let key = SAVE;
   if (stored(key) !== null || Object.values(list.games).some(g => g.key === key)) {
@@ -5403,8 +6057,8 @@ function openGame(id) {
     return false;
   }
   slotSaved = true;
-  if (repaid) tell(`Le bonus de débit a disparu : ${repaid} ADN remboursés, pour des tapis et récolteurs MK2 ou MK3.`);
-  tell('Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.');
+  if (repaid) tell(L`Le bonus de débit a disparu : ${repaid} ADN remboursés, pour des tapis et récolteurs MK2 ou MK3.`);
+  tell(L('Partie reprise. Glisse ou utilise les flèches pour te déplacer, pince pour zoomer.'));
   return true;
 }
 function eraseGame(id) {
@@ -5515,46 +6169,46 @@ function checkGame(game) {
 }
 // Either one game, a whole planet, or a bare save.
 function readFileGames(text) {
-  if (text.length > FILE.bytes) return {error:'Ce fichier est trop gros pour être une partie Strainworks.'};
+  if (text.length > FILE.bytes) return {error:L('Ce fichier est trop gros pour être une partie Strainworks.')};
   const data = parsed(text);
-  if (!data || typeof data !== 'object') return {error:'Ce fichier est illisible. Rien n’a été modifié.'};
+  if (!data || typeof data !== 'object') return {error:L('Ce fichier est illisible. Rien n’a été modifié.')};
   const many = data.format === FILE.all && Array.isArray(data.games);
   const found = many ? data.games : data.format === FILE.one ? [{name:data.name, game:data.game}] : [{name:'', game:data}];
   const fine = found.length > 0 && found.length <= CELLS_OF_GLOBE.length && found.every(one => {
     if (one?.name != null && typeof one.name !== 'string') return false;
     try { return checkGame(one?.game); } catch (_) { return false; }
   });
-  return fine ? {found} : {error:'Ce n’est pas une partie Strainworks valide. Rien n’a été modifié.'};
+  return fine ? {found} : {error:L('Ce n’est pas une partie Strainworks valide. Rien n’a été modifié.')};
 }
 let downloads;
 async function handFile(name, data) {
   const filename = `${name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'partie'}.strainworks.json`;
   if (window.claude?.use) {
     downloads ??= await window.claude.use('downloads');
-    if (!downloads) return 'Cette vue ne permet pas de télécharger. Ouvre le jeu dans claude.ai.';
+    if (!downloads) return L('Cette vue ne permet pas de télécharger. Ouvre le jeu dans claude.ai.');
     try {
       await downloads.save({filename, data});
-      return `${filename} exporté.`;
+      return L`${filename} exporté.`;
     } catch (error) {
-      return error?.code === 'declined' ? 'Export annulé.' : 'Export impossible ici, réessaie dans un instant.';
+      return error?.code === 'declined' ? L('Export annulé.') : L('Export impossible ici, réessaie dans un instant.');
     }
   }
   const link = document.createElement('a'), href = URL.createObjectURL(new Blob([data], {type:'application/json'}));
   link.href = href; link.download = filename;
   document.body.append(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(href), 10000);
-  return `${filename} exporté.`;
+  return L`${filename} exporté.`;
 }
 async function exportGame(id) {
   const entry = readList().games[id], text = entry && stored(entry.key);
-  if (!text) return 'Cette partie est introuvable.';
+  if (!text) return L('Cette partie est introuvable.');
   const game = parsed(text);
   // Unreadable, it still leaves as it is.
   return handFile(entry.name, game ? JSON.stringify({format:FILE.one, v:1, name:entry.name, game}) : text);
 }
 async function exportAll() {
   const games = Object.values(readList().games).map(g => ({name:g.name, game:parsed(stored(g.key))})).filter(one => one.game);
-  if (!games.length) return 'Aucune partie à exporter.';
+  if (!games.length) return L('Aucune partie à exporter.');
   return handFile('planete', JSON.stringify({format:FILE.all, v:1, games}));
 }
 
@@ -5916,24 +6570,24 @@ function durationText(seconds) {
 }
 function stageText(game) {
   const stage = within(Math.floor(Number(game.stage) || 0), 0, STAGES.length);
-  if (game.over) return `Le cœur est tombé au stade ${Math.min(STAGES.length, stage + 1)}`;
-  const far = game.level > 1 ? ` · avant-postes au niveau ${game.level}` : '';
-  return (stage === STAGES.length ? `Stade ${stage} achevé` : `Stade ${stage + 1} · ${STAGES[stage].name}`) + far;
+  if (game.over) return L`Le cœur est tombé au stade ${Math.min(STAGES.length, stage + 1)}`;
+  const far = game.level > 1 ? L` · avant-postes au niveau ${game.level}` : '';
+  return (stage === STAGES.length ? L`Stade ${stage} achevé` : L`Stade ${stage + 1} · ${STAGES[stage].name}`) + far;
 }
 function projectSlot(note = '', bad = false) {
   const id = orbit.pick, game = orbit.list.games[id], incoming = !game && orbit.incoming;
-  const first = incoming && {name:incoming[0].name || 'Partie sans nom', ...summaryOf(incoming[0].game)};
+  const first = incoming && {name:incoming[0].name || L('Partie sans nom'), ...summaryOf(incoming[0].game)};
   const shown = game || first, box = $('projection');
   box.classList.toggle('free', !shown);
   box.classList.toggle('fallen', Boolean(shown?.over));
-  $('slot-kicker').textContent = incoming ? 'Fichier reçu' : !game ? 'Hexagone libre' : game.over ? 'Station tombée' : 'Partie en cours';
-  $('slot-name').textContent = incoming?.length > 1 ? `${incoming.length} parties` : shown ? shown.name : 'Terre vierge';
-  $('slot-sub').textContent = incoming?.length > 1 ? 'Elles prendront les hexagones libres autour de celui-ci.' : shown ? stageText(shown) : 'Fonde une station, ou greffes-y une partie exportée.';
+  $('slot-kicker').textContent = incoming ? L('Fichier reçu') : !game ? L('Hexagone libre') : game.over ? L('Station tombée') : L('Partie en cours');
+  $('slot-name').textContent = incoming?.length > 1 ? L`${incoming.length} parties` : shown ? shown.name : L('Terre vierge');
+  $('slot-sub').textContent = incoming?.length > 1 ? L('Elles prendront les hexagones libres autour de celui-ci.') : shown ? stageText(shown) : L('Fonde une station, ou greffes-y une partie exportée.');
   const six = dotsOf(Array.from({length:6}, (_, i) => [66 + Math.cos(i * Math.PI / 3) * 63, 66 + Math.sin(i * Math.PI / 3) * 63]));
   const color = !shown ? '#B7F34A' : shown.over ? '#FF6B74' : '#66D9EA';
   const inner = shown ? settlementSVG((u, v) => [66 + u * 55, 66 - v * 55], shown, id, .85) : '<path d="M52 66h28M66 52v28" stroke="#B7F34A" stroke-width="3"/>';
   $('slot-icon').innerHTML = `<polygon points="${six}" fill="#040A0C99" stroke="${color}" stroke-width="1.5"/>${inner}`;
-  const facts = game ? [[durationText(game.played), 'de jeu'], [Math.floor(Number(game.dna) || 0).toLocaleString('fr-FR'), 'ADN'], [Number(game.spent) || 0, 'nids détruits'], [(Number(game.kills) || 0).toLocaleString('fr-FR'), 'tuées']] : [];
+  const facts = game ? [[durationText(game.played), L('de jeu')], [Math.floor(Number(game.dna) || 0).toLocaleString(LOCALE), L('ADN')], [Number(game.spent) || 0, L('nids détruits')], [(Number(game.kills) || 0).toLocaleString(LOCALE), L('tuées')]] : [];
   $('slot-facts').replaceChildren(...facts.map(([value, label]) => {
     const p = document.createElement('p'), b = document.createElement('b');
     b.textContent = value; p.append(b, label);
@@ -5947,35 +6601,35 @@ function projectSlot(note = '', bad = false) {
     $('slot-actions').append(b);
   };
   const gone = () => {
-    if (!eraseGame(id)) return noteOnPlanet('Impossible d’effacer cette partie.', true);
-    orbit.list = readList(); nameGames(); projectSlot('Hexagone libéré.');
+    if (!eraseGame(id)) return noteOnPlanet(L('Impossible d’effacer cette partie.'), true);
+    orbit.list = readList(); nameGames(); projectSlot(L('Hexagone libéré.'));
   };
   if (incoming) {
-    act(incoming.length > 1 ? `Greffer les ${incoming.length} parties` : 'Greffer dans cet hexagone', 'go', () => {
+    act(incoming.length > 1 ? L`Greffer les ${incoming.length} parties` : L('Greffer dans cet hexagone'), 'go', () => {
       const made = graftGames(orbit.incoming, orbit.pick);
-      if (made == null) return noteOnPlanet('Import impossible : le stockage du navigateur est plein, ou la planète l’est.', true);
+      if (made == null) return noteOnPlanet(L('Import impossible : le stockage du navigateur est plein, ou la planète l’est.'), true);
       orbit.incoming = null; orbit.list = readList(); nameGames();
-      pickHex(Number(made), 'Greffe réussie.');
+      pickHex(Number(made), L('Greffe réussie.'));
     });
-    act('Annuler', '', () => { orbit.incoming = null; projectSlot(); });
+    act(L('Annuler'), '', () => { orbit.incoming = null; projectSlot(); });
   } else if (!game) {
-    act('Fonder une station', 'go', () => leavePlanet(() => foundGame(orbit.pick)));
-    act('Importer un fichier', '', () => $('file').click());
+    act(L('Fonder une station'), 'go', () => leavePlanet(() => foundGame(orbit.pick)));
+    act(L('Importer un fichier'), '', () => $('file').click());
   } else {
     if (game.over) {
-      act('Refonder ici : maintenir', 'go', () => { if (eraseGame(id)) leavePlanet(() => foundGame(id)); }, true);
-    } else act('Reprendre', 'go', () => playPicked());
-    act('Exporter', '', async () => noteOnPlanet(await exportGame(id)));
-    if (!game.over) act('Dupliquer', '', () => {
+      act(L('Refonder ici : maintenir'), 'go', () => { if (eraseGame(id)) leavePlanet(() => foundGame(id)); }, true);
+    } else act(L('Reprendre'), 'go', () => playPicked());
+    act(L('Exporter'), '', async () => noteOnPlanet(await exportGame(id)));
+    if (!game.over) act(L('Dupliquer'), '', () => {
       const copy = parsed(stored(game.key));
-      const made = copy && graftGames([{name:`${game.name} bis`, game:copy}], freeHex(orbit.list, id));
-      if (made == null) return noteOnPlanet('Copie impossible : partie illisible ou stockage plein.', true);
+      const made = copy && graftGames([{name:L`${game.name} bis`, game:copy}], freeHex(orbit.list, id));
+      if (made == null) return noteOnPlanet(L('Copie impossible : partie illisible ou stockage plein.'), true);
       orbit.list = readList(); nameGames();
-      pickHex(Number(made), 'Copie faite.');
+      pickHex(Number(made), L('Copie faite.'));
     });
-    act('Effacer : maintenir', 'bad', gone, true);
+    act(L('Effacer : maintenir'), 'bad', gone, true);
   }
-  noteOnPlanet(note || (incoming ? 'Rien n’est écrit avant ta validation. Aucune partie n’est écrasée.' : ''), bad);
+  noteOnPlanet(note || (incoming ? L('Rien n’est écrit avant ta validation. Aucune partie n’est écrasée.') : ''), bad);
 }
 // The drawn hexagons are for pointers, these for keyboards and screen readers.
 function nameGames() {
@@ -6000,21 +6654,21 @@ function pickHex(id, note) {
 async function takeFile(file) {
   if (!file) return;
   showMenu(false);
-  if (file.size > FILE.bytes) return noteOnPlanet('Ce fichier est trop gros pour être une partie Strainworks.', true);
+  if (file.size > FILE.bytes) return noteOnPlanet(L('Ce fichier est trop gros pour être une partie Strainworks.'), true);
   let text;
-  try { text = await file.text(); } catch (_) { return noteOnPlanet('Ce fichier n’a pas pu être lu.', true); }
+  try { text = await file.text(); } catch (_) { return noteOnPlanet(L('Ce fichier n’a pas pu être lu.'), true); }
   if (!orbit.on) return;
   const {found, error} = readFileGames(text);
   if (error) return noteOnPlanet(error, true);
   const id = orbit.list.games[orbit.pick] ? freeHex(orbit.list, orbit.pick) : orbit.pick;
-  if (id == null || Object.keys(orbit.list.games).length + found.length > CELLS_OF_GLOBE.length) return noteOnPlanet('Pas assez d’hexagones libres.', true);
+  if (id == null || Object.keys(orbit.list.games).length + found.length > CELLS_OF_GLOBE.length) return noteOnPlanet(L('Pas assez d’hexagones libres.'), true);
   orbit.incoming = found;
   pickHex(id);
 }
 
 // ---- In and out
 function backgroundInert(on) {
-  for (const el of $('app').children) if (!['planet', 'menu', 'commands', 'file'].includes(el.id)) el.inert = on;
+  for (const el of $('app').children) if (!['planet', 'menu', 'commands', 'file', 'lang-pick'].includes(el.id)) el.inert = on;
 }
 function openPlanet(intro) {
   if (slotKey) save();
@@ -6073,7 +6727,7 @@ function leavePlanet(enter, at) {
 }
 function playPicked(at) {
   const id = orbit.pick;
-  if (!leavePlanet(() => openGame(id), at)) projectSlot('Cette partie est illisible. Elle n’a pas été modifiée : exporte-la ou efface-la.', true);
+  if (!leavePlanet(() => openGame(id), at)) projectSlot(L('Cette partie est illisible. Elle n’a pas été modifiée : exporte-la ou efface-la.'), true);
 }
 // The last game played, or a first one.
 function resumeLast() {
@@ -6122,7 +6776,7 @@ $('planet-menu').onclick = () => showMenu(!ui.menu);
 $('import').onclick = () => $('file').click();
 $('export-all').onclick = async () => { const said = await exportAll(); showMenu(false); noteOnPlanet(said); };
 $('export-game').onclick = async () => {
-  if (!save()) return refuse('Sauvegarde impossible, rien à exporter.');
+  if (!save()) return refuse(L('Sauvegarde impossible, rien à exporter.'));
   const said = await exportGame(slotId);
   showMenu(false); tell(said);
 };
@@ -6152,8 +6806,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) save(
 // The live performance graph: 30 s of the CPU each drawn frame costs, by kind, with the real time between frames.
 // Off, the wrapped functions pay one test of PERF.on and nothing is timed, kept or drawn.
 const PERF_KEY = 'strainworks-perf';
-const PERF_KINDS = [['sim', 'Simulation', '#418EE8'], ['fog', 'Brouillard', '#9C8CF0'], ['draw', 'Dessin 2D', '#E6C94C'],
-  ['three', 'Vue 3D', '#E07CC8'], ['ui', 'Interface', '#45BFC9'], ['save', 'Sauvegarde', '#F49445']];
+const PERF_KINDS = [['sim', L('Simulation'), '#418EE8'], ['fog', L('Brouillard'), '#9C8CF0'], ['draw', 'Dessin 2D', '#E6C94C'],
+  ['three', 'Vue 3D', '#E07CC8'], ['ui', L('Interface'), '#45BFC9'], ['save', L('Sauvegarde'), '#F49445']];
 const PERF = {on:false, stack:[], cost:{}, frames:0, gaps:0, frameSum:0, framePeak:0, cpu:0, cpuPeak:0, since:0, lastFrame:0, history:[]};
 const perfZero = () => Object.fromEntries(PERF_KINDS.map(([id]) => [id, 0]));
 // Exclusive time: what a nested scope costs is taken off its parent.
@@ -6242,18 +6896,18 @@ function drawPerf() {
   g.stroke();
   g.restore();
   const peak = Math.max(0, ...list.map(s => Math.max(s.framePeak, s.cpuPeak)));
-  if (peak > ceiling) { g.fillStyle = '#F0A03C'; g.textAlign = 'right'; g.fillText(`pic ${peak.toFixed(0)} ms`, width - right, top + 9); }
+  if (peak > ceiling) { g.fillStyle = '#F0A03C'; g.textAlign = 'right'; g.fillText(L`pic ${peak.toFixed(0)} ms`, width - right, top + 9); }
   if (!last) return;
-  const fps = last.frame ? 1000 / last.frame : 0, figure = n => n.toFixed(1).replace('.', ',');
-  $('perf-sum').textContent = `${Math.round(fps)} images/s · ${figure(last.frame)} ms entre deux · CPU ${figure(last.cpu)} ms par image`;
+  const fps = last.frame ? 1000 / last.frame : 0, figure = n => n.toFixed(1).replace('.', DEC);
+  $('perf-sum').textContent = L`${Math.round(fps)} images/s · ${figure(last.frame)} ms entre deux · CPU ${figure(last.cpu)} ms par image`;
   for (const [id] of PERF_KINDS) $(`perf-${id}`).textContent = `${figure(last.costs[id])} ms`;
-  $('perf-gpu').textContent = last.gpu == null ? (view3d ? 'indisponible' : 'en 3D seulement') : `${figure(last.gpu)} ms`;
+  $('perf-gpu').textContent = last.gpu == null ? (view3d ? 'indisponible' : L('en 3D seulement')) : `${figure(last.gpu)} ms`;
   const minute = (ui.earned || []).filter(e => e.at > G.time - 60), by = {};
   ui.earned = minute;
   for (const e of minute) by[e.source] = (by[e.source] || 0) + e.amount;
   const span = Math.min(60, Math.max(1, G.time - (ui.perfFrom ?? 0)));
   const rate = n => Math.round(n * 60 / span);
-  $('perf-dna').textContent = `ADN / min : ${rate(Object.values(by).reduce((a, b) => a + b, 0))}` + Object.entries(EARN).filter(([id]) => by[id]).map(([id, name]) => ` · ${name.toLowerCase()} ${rate(by[id])}`).join('');
+  $('perf-dna').textContent = L`ADN / min : ${rate(Object.values(by).reduce((a, b) => a + b, 0))}` + Object.entries(EARN).filter(([id]) => by[id]).map(([id, name]) => ` · ${name.toLowerCase()} ${rate(by[id])}`).join('');
   $('perf-other').textContent = `${figure(Math.max(0, last.cpu - Object.values(last.costs).reduce((a, b) => a + b, 0)))} ms`;
 }
 function showPerf(on) {
@@ -6262,9 +6916,9 @@ function showPerf(on) {
   perfReset();
   $('perf').hidden = !on;
   $('perf-toggle').setAttribute('aria-pressed', on);
-  $('perf-toggle').textContent = on ? 'Masquer' : 'Afficher';
+  $('perf-toggle').textContent = on ? L('Masquer') : L('Afficher');
 }
-$('perf-legend').innerHTML = [...PERF_KINDS, ['other', 'Autre code de l’image', '#84909C'], ['gpu', 'Carte graphique (trait)', '#66D9EA']].map(([id, name, color]) =>
+$('perf-legend').innerHTML = [...PERF_KINDS, ['other', L('Autre code de l’image'), '#84909C'], ['gpu', L('Carte graphique (trait)'), '#66D9EA']].map(([id, name, color]) =>
   `<p><i style="background:${color}"></i><span>${name}</span><b id="perf-${id}">–</b></p>`).join('');
 // The 3D view reads it when it is made: a change remakes an open one.
 const QUALITY_KEY = 'strainworks-3d-quality';
@@ -6282,11 +6936,28 @@ setQuality(stored(QUALITY_KEY) === 'fast', false);
 // The 3D view reads it on every frame. shortcut: the flat overlay (bars, previews) does not follow the fall past the middle; bend it too if it bothers.
 const CURVE_KEY = 'strainworks-3d-curve';
 function setCurve(name) {
-  window.curve3d = ['none', 'soft', 'strong'].includes(name) ? name : 'soft';
+  window.curve3d = ['none', 'soft', 'strong'].includes(name) ? name : 'none';
   for (const id of ['none', 'soft', 'strong']) $(`curve-${id}`).setAttribute('aria-pressed', id === window.curve3d);
 }
 for (const id of ['none', 'soft', 'strong']) $(`curve-${id}`).onclick = () => { setCurve(id); keep(CURVE_KEY, id); };
 setCurve(stored(CURVE_KEY));
+function setLang(id) {
+  keep(LANG_KEY, id);
+  if (id === LANG) return;
+  // A game in progress is saved and reopened in the other language.
+  if (slotKey && !orbit.on) { save(); try { sessionStorage.setItem('strainworks-resume', '1'); } catch (_) {} }
+  location.reload();
+}
+for (const id of ['fr', 'en']) {
+  $(`lang-${id}`).setAttribute('aria-pressed', id === LANG);
+  $(`lang-${id}`).onclick = () => setLang(id);
+  $(`pick-${id}`).onclick = () => { $('lang-pick').close(); setLang(id); };
+}
+$('lang-pick').addEventListener('cancel', event => event.preventDefault());
+document.addEventListener('DOMContentLoaded', () => {
+  if (!LANG_SET) $('lang-pick').showModal();
+  try { if (sessionStorage.getItem('strainworks-resume')) { sessionStorage.removeItem('strainworks-resume'); resumeLast(); } } catch (_) {}
+});
 $('perf-toggle').onclick = () => { showPerf(!PERF.on); keep(PERF_KEY, PERF.on ? 'on' : 'off'); };
 // Time spent in the background is not a stall of the game.
 document.addEventListener('visibilitychange', () => { if (PERF.on && !document.hidden) perfReset(); });
@@ -6322,7 +6993,7 @@ function frame(now) {
     owed += elapsed*speed;
     while (owed >= STEP) { step(STEP); owed -= STEP; }
   }
-  if (armed && Date.now() > armed) { armed = 0; restartText('Recommencer : maintenir'); }
+  if (armed && Date.now() > armed) { armed = 0; restartText(L('Recommencer : maintenir')); }
   if (now-shownAt > 250) { refresh(); shownAt = now; }
   if (now-savedAt > 3000) { save(); savedAt = now; }
   paces.clear();

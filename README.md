@@ -20,7 +20,7 @@ very code you manufacture. Your only real weapon is their exact opposite.
 Zoom out and the belts start to pulse like veins. **It was never a factory. It was a creature.**
 
 A factory game crossed with tower defense, in the browser and on the phone. Version `0.1.0`, a playable
-prototype, interface in French.
+prototype, in English and French.
 
 ---
 
@@ -111,7 +111,7 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 
 | Path | Content |
 |---|---|
-| `prototype/` | The playable prototype, its 3D view (`view3d.js`, models in `models3d.js`, ground in `terrain3d.js`) and the transport mockup, French interface |
+| `prototype/` | The playable prototype, its 3D view (`view3d.js`, models in `models3d.js`, ground in `terrain3d.js`) and the transport mockup, in English and French |
 | `docs/design/interface/` | Approved mockup of the interface |
 | `docs/concept.md` | Game concept and decisions |
 | `docs/media/` | README images and clips |
