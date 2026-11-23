@@ -2672,7 +2672,7 @@ function eat(item) {
   if (!want || item !== want.item) { earn('core', holds * contentOf(item).length / 9); playSound('dna', .4); return; }
   if (want.rate) for (let i = 0; i < holds; i++) G.meals.push(G.time);
   else if (++G.fed >= want.count) grow();
-  playSound('eat', .25);
+  playNear('eat', G.cells[key(CORE.x, CORE.y)] || CORE, .25);
 }
 // Capsules come three seconds apart: a short window would see the rate jump between none and double.
 const mealWindow = () => boxOf(STAGES[G.stage]?.item || '') ? 10 : 5;
@@ -4997,7 +4997,7 @@ function holdToDismantle(event, p) {
   gesture.hold = setTimeout(() => {
     stopHold();
     const at = view3d ? view3d.pick(p) : position(p);
-    if (inside(at.x, at.y)) { wipe(at.x, at.y); playSound('dismantle'); refresh(); }
+    if (inside(at.x, at.y)) { wipe(at.x, at.y); playNear('dismantle', at); refresh(); }
   }, HOLD_MS);
 }
 function stopHold() {
@@ -5049,11 +5049,12 @@ function release(event) {
   stopHold();
   if (event.type === 'pointerup' && gesture?.mode === 'tap') {
     const p = view3d ? view3d.pick(gesture.start) : position(gesture.start);
-    if (inside(p.x,p.y)) { const before = G.dna, count = Object.keys(G.cells).length; place(p.x,p.y); if (G.dna !== before || Object.keys(G.cells).length !== count) playSound(tool === 'erase' ? 'dismantle' : 'place'); }
+    if (inside(p.x,p.y)) { const before = G.dna, count = Object.keys(G.cells).length; place(p.x,p.y); if (G.dna !== before || Object.keys(G.cells).length !== count) playNear(tool === 'erase' ? 'dismantle' : 'place', p); }
   }
   if (event.type === 'pointerup' && drag?.path && gesture?.mode === 'draw') {
     const bridged = tool === 'belt' && drag.path.some((p, i) => crossing(drag.path, i));
-    playSound(tool === 'erase' ? 'dismantle' : bridged ? 'bridge' : 'belt');
+    // Heard from where the line ends, where the pointer let go.
+    playNear(tool === 'erase' ? 'dismantle' : bridged ? 'bridge' : 'belt', drag.path.at(-1));
     commitPath();
   }
   if (event.type === 'pointerup' && drag?.nerve && gesture?.mode === 'draw') {
@@ -7707,8 +7708,11 @@ const SOUND_LEVEL = {gene:.22, eat:.45, dna:.45, click:.6, rotate:.6, hit:.55, t
 function placeOf(c) {
   const p = screenAt({x:c.x + .5, y:c.y + .5}), cx = view.w / 2, cy = view.h / 2;
   const off = Math.hypot((p.x - cx) / cx, (p.y - cy) / cy);
-  const near = Math.max(0, Math.min(1, (1.6 - off) / 1.1)), zoom = Math.max(.25, Math.min(1, cam.zoom / 40));
-  return {gain:near * zoom, pan:Math.max(-1, Math.min(1, (p.x - cx) / cx)) * .8};
+  // Full in the middle, about half at the edge of the screen, gone a little past it.
+  const near = off <= 1 ? 1 - .55 * off : Math.max(0, .45 * (1.6 - off) / .6);
+  // From nearly silent zoomed all the way out (4) to full from a close view (36) on.
+  const zoom = Math.max(.08, Math.min(1, (cam.zoom - 4) / 32)) ** .8;
+  return {gain:near * zoom, pan:Math.max(-1, Math.min(1, (p.x - cx) / cx)) * .9};
 }
 // Each effect: its family for the lab, its name, and how it is drawn (b = blip at an offset in seconds).
 const SOUNDS = {

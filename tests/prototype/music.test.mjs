@@ -41,7 +41,8 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
       cam.zoom = 12;
       const wide = placeOf({ x: cam.x - 0.5, y: cam.y - 0.5 });
       cam.zoom = 40;
-      const placed = [defaults, middle.gain === 1 && middle.pan === 0, left.pan < -0.5, wide.gain < middle.gain];
+      // Full in the middle, much quieter zoomed out, and from the left side at the left.
+      const placed = [defaults, middle.gain === 1 && middle.pan === 0, left.pan < -0.5, wide.gain < middle.gain * 0.5];
       const first = playSound("turret"), again = playSound("turret");
       const far = heard({ x: cam.x + 500, y: cam.y + 500 }), near = heard({ x: Math.floor(cam.x), y: Math.floor(cam.y) });
       return [...placed, first, again, far, near];
