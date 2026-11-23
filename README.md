@@ -85,6 +85,12 @@ The browser opens `/prototype/`. The transport mockup is at `/prototype/transpor
 
 A game opens in 3D, drawn with Babylon.js, unless the player picked 2D in the settings. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
 
+### The model lab
+
+`?lab` after the game's address (`/prototype/?lab` in development) opens a dev page: every 3D model alone on clean
+ground, buildings, creatures, nests and drones. A panel turns, ranks, mirrors or damages the one shown and shows its
+whole state as JSON, editable. The clock runs so models move, the rules stand still, and nothing is saved.
+
 ### Performance
 
 Settings > **Graphe de performance** shows 30 s of what each frame costs on the main thread, by kind

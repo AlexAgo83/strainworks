@@ -82,7 +82,7 @@ it("shows no French in English", async () => {
         put(type, 30 + 3 * i, 30, 1);
       });
       for (const [id] of FAMILIES) { openFamily(id); await frame(); grab(); }
-      for (const [i, type] of machines.entries()) { select(`${30 + 3 * i},30`); showActions(); refresh(); await frame(); grab(); }
+      for (const i of machines.keys()) { select(`${30 + 3 * i},30`); showActions(); refresh(); await frame(); grab(); }
       select(key(CORE.x, CORE.y)); showActions(); refresh(); await frame(); grab();
       showMenu(true); await frame(); grab(); showMenu(false);
       showStats(true);

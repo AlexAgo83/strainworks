@@ -1126,7 +1126,8 @@ window.createModels3D = (B, scene) => {
       // Stage 1 buds, stage 2 opens them, stage 3 lights neurons.
       const kind = i % G.stage;
       const size = 0.2 + G.stage * 0.05;
-      add('sac', ['S', 'pink', 'N'][kind], px, py, ph + 0.06, size, size * 1.2, size, a);
+      // Three bud colours, whatever the stage: from stage 4 the arms outnumber them.
+      add('sac', ['S', 'pink', 'N'][kind % 3], px, py, ph + 0.06, size, size * 1.2, size, a);
       if (!fine || G.stage < 2) continue;
       for (let k = 0; k < 4; k++) {
         const p = a + k * 1.57;

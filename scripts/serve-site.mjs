@@ -24,7 +24,14 @@ export function headerRules(yaml) {
   }));
 }
 
-export function serveSite({ dir, port = 4173, rules }) {
+// A host may let named pages embed the site (a dev dashboard showing the lab): space-separated https origins.
+// Anything else is ignored, and the site stays unframeable as render.yaml says.
+export function framedBy(value = "") {
+  const origins = value.trim().split(/\s+/).filter(Boolean);
+  return origins.length && origins.every((o) => /^https:\/\/[A-Za-z0-9.-]+(:\d{1,5})?$/.test(o)) ? origins : [];
+}
+
+export function serveSite({ dir, port = 4173, rules, frameAncestors = [] }) {
   const squeezed = new Map();
   const server = createServer((request, response) => {
     if (request.method !== "GET" && request.method !== "HEAD") {
@@ -48,6 +55,10 @@ export function serveSite({ dir, port = 4173, rules }) {
     for (const rule of rules) {
       if (rule.path === path || (rule.path.endsWith("*") && path.startsWith(rule.path.slice(0, -1)))) headers[rule.name] = rule.value;
     }
+    if (frameAncestors.length && headers["Content-Security-Policy"]) {
+      headers["Content-Security-Policy"] = headers["Content-Security-Policy"].replace("frame-ancestors 'none'", `frame-ancestors 'self' ${frameAncestors.join(" ")}`);
+      delete headers["X-Frame-Options"];
+    }
     let body = readFileSync(file);
     if (/text|json/.test(type) && /\bgzip\b/.test(request.headers["accept-encoding"] ?? "")) {
       const stamp = `${file}:${statSync(file).mtimeMs}`;
@@ -70,6 +81,11 @@ export function serveSite({ dir, port = 4173, rules }) {
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const root = new URL("..", import.meta.url);
   const dir = resolve(process.argv[2] ?? fileURLToPath(new URL("dist", root)));
-  const server = await serveSite({ dir, port: Number(process.argv[3] ?? 4173), rules: headerRules(readFileSync(new URL("render.yaml", root), "utf8")) });
+  const server = await serveSite({
+    dir,
+    port: Number(process.argv[3] ?? 4173),
+    rules: headerRules(readFileSync(new URL("render.yaml", root), "utf8")),
+    frameAncestors: framedBy(process.env.STRAINWORKS_FRAME_ANCESTORS),
+  });
   process.stdout.write(`serving ${dir} on http://127.0.0.1:${server.address().port}\n`);
 }

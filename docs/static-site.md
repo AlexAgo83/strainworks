@@ -6,6 +6,9 @@ serves it on `127.0.0.1:4173` with the headers of `render.yaml`.
 
 Games are kept by each browser for each address. Export them to move them.
 
+The site refuses to be framed. `STRAINWORKS_FRAME_ANCESTORS` (space-separated https origins) lets
+`scripts/serve-site.mjs` allow those pages to frame it, for a dev dashboard showing the model lab (`/?lab`).
+
 ## Render, once
 
 1. Create a Blueprint from this repository. `render.yaml` declares one free static
