@@ -808,7 +808,35 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #station { pointer-events:none; max-width:none; animation:float 7s ease-in-out infinite; }
 #station-live { pointer-events:none; }
 #brand { left:calc(44px + var(--l)); top:calc(34px + var(--t)); pointer-events:none; }
-#brand h1 { color:var(--acid); font:700 46px/1 var(--display); }
+#brand { display:inline-block; z-index:6; }
+/* The title is alive: each letter a cell that divides into place, a living gradient running through it, a glow,
+   now and then a mutation's red and cyan split, and a double helix under it. */
+#brand h1 { position:relative; margin:0; color:transparent; font:700 clamp(30px, 6vw, 72px)/1 var(--display); letter-spacing:.06em; }
+#brand h1 .l { display:inline-block; background:linear-gradient(100deg, #E2FFB0 0%, var(--acid) 30%, var(--cyan) 55%, var(--acid) 80%, #E2FFB0 100%); background-size:400% 100%;
+  -webkit-background-clip:text; background-clip:text; animation:cell .9s cubic-bezier(.2,1.6,.4,1) both, flow 6s linear infinite; animation-delay:calc(var(--i) * 70ms), 0s;
+  filter:drop-shadow(0 0 10px rgba(183,243,74,.45)) drop-shadow(0 0 26px rgba(85,214,232,.25)); }
+@keyframes cell { 0% { opacity:0; transform:scale(.2) translateY(14px); filter:blur(8px); } 60% { opacity:1; transform:scale(1.18); } 100% { transform:none; } }
+@keyframes flow { to { background-position:400% 0; } }
+#brand h1::before, #brand h1::after { content:"STRAINWORKS"; position:absolute; inset:0; letter-spacing:.06em; pointer-events:none; mix-blend-mode:screen; opacity:0; animation:mutate 5.5s steps(1) infinite 1.6s; }
+#brand h1::before { color:var(--alarm, #FF6B74); transform:translate(-3px, 0); }
+#brand h1::after { color:var(--cyan); transform:translate(3px, 0); animation-delay:1.65s; }
+@keyframes mutate { 0%, 92%, 100% { opacity:0; clip-path:inset(0); } 93% { opacity:.8; clip-path:inset(20% 0 55% 0); } 95% { opacity:.7; clip-path:inset(60% 0 10% 0); } 97% { opacity:.6; clip-path:inset(35% 0 40% 0); } }
+#brand .helix { position:static !important; display:block; width:100% !important; height:22px !important; margin-top:8px; overflow:visible; }
+#brand .helix path { fill:none; stroke-width:2.2; stroke-linecap:round; animation:twist 3s linear infinite; }
+#brand .helix .a { stroke:var(--acid); }
+#brand .helix .b { stroke:var(--cyan); animation-direction:reverse; }
+@keyframes twist { from { transform:translateX(0); } to { transform:translateX(-33.33%); } }
+/* The screen's finish: light bleeding from bright parts, a sweep across, drifting spores, a vignette and fine grain. */
+#planet > .fx { inset:0; width:100%; height:100%; pointer-events:none; }
+#planet > .fx.bloom { -webkit-backdrop-filter:blur(18px) brightness(1.7) saturate(1.5); backdrop-filter:blur(18px) brightness(1.7) saturate(1.5); mix-blend-mode:screen; opacity:.28; }
+#planet > .fx.vignette { background:radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(0,0,0,.7) 100%); }
+#planet > .fx.sweep { background:linear-gradient(115deg, transparent 40%, rgba(183,243,74,.10) 48%, rgba(85,214,232,.16) 50%, rgba(183,243,74,.10) 52%, transparent 60%); background-size:300% 100%; mix-blend-mode:screen; animation:sweep 7s ease-in-out infinite; }
+@keyframes sweep { 0% { background-position:120% 0; } 55%, 100% { background-position:-120% 0; } }
+#planet > .fx.grain { opacity:.07; mix-blend-mode:overlay; }
+@media (max-width:700px) { #planet > .fx.bloom, #planet > .fx.grain { display:none; } }
+@media (prefers-reduced-motion:reduce) { #brand h1 .l, #brand h1::before, #brand h1::after, #brand .helix path, #planet > .fx.sweep { animation:none !important; } #planet > .fx.sweep, #planet > .fx.spores { display:none; } }
+html.still #brand h1 .l, html.still #brand h1::before, html.still #brand h1::after, html.still #brand .helix path { animation:none !important; }
+html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; }
 #brand p { margin-top:4px!important; color:var(--muted); }
 #app #planet-menu { position:absolute; right:calc(24px + var(--r)); top:calc(26px + var(--t)); width:52px; height:52px; }
 #projection { display:flex; flex-direction:column; gap:12px; padding:26px; }
@@ -1056,7 +1084,12 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div id="games"></div>
     <img id="station" alt="" aria-hidden="true">
     <canvas id="station-live" aria-hidden="true" hidden></canvas>
-    <header id="brand"><h1>STRAINWORKS</h1></header>
+    <div class="fx sweep" aria-hidden="true"></div>
+    <div class="fx bloom" aria-hidden="true"></div>
+    <canvas class="fx spores" id="spores" aria-hidden="true"></canvas>
+    <canvas class="fx grain" id="grain" width="320" height="200" aria-hidden="true"></canvas>
+    <div class="fx vignette" aria-hidden="true"></div>
+    <header id="brand"><h1 aria-label="STRAINWORKS">STRAINWORKS</h1></header>
     <button id="planet-menu" class="node" aria-label="Réglages" aria-expanded="false" aria-controls="menu"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="3.5" r="2.4" fill="currentColor"/><circle cx="4" cy="15" r="2.4" fill="currentColor"/><circle cx="16" cy="15" r="2.4" fill="currentColor"/><path d="M10 4L4 15h12z" fill="none" stroke="currentColor"/></svg></button>
     <section id="projection" aria-label="Projection de la station">
       <svg class="skin" viewBox="0 0 590 330" preserveAspectRatio="none" aria-hidden="true"><path d="M18 1 H572 L589 18 V312 L572 329 H18 L1 312 V18 Z" vector-effect="non-scaling-stroke"/><path class="trim" d="M1 60 V18 L18 1 H90 M500 329 H572 L589 312 V270" vector-effect="non-scaling-stroke"/></svg>
@@ -6303,6 +6336,7 @@ $('menu-toggle').onclick = () => showMenu(!ui.menu);
 function setMotion(less) {
   STILL.wanted = less;
   $('app').classList.toggle('calm-motion', less);
+  document.documentElement.classList.toggle('still', less);
   $('motion-auto').setAttribute('aria-pressed', !less);
   $('motion-less').setAttribute('aria-pressed', less);
 }
@@ -7070,7 +7104,43 @@ function sleepStation() {
   $('station-live').hidden = true;
   $('station').hidden = false;
 }
+// The title's letters and helix, made once.
+(() => {
+  const h1 = $('brand').querySelector('h1');
+  h1.innerHTML = [...h1.textContent].map((c, i) => `<span class="l" aria-hidden="true" style="--i:${i}">${c}</span>`).join('');
+  // The strands drawn three periods wider than shown, so sliding one period loops without a seam.
+  const strand = k => { let d = ''; for (let x = 0; x <= 150; x += 1.5) d += `${x ? 'L' : 'M'}${x} ${(11 + Math.sin(x / 100 * Math.PI * 6 + k * Math.PI) * 8).toFixed(2)}`; return d; };
+  h1.insertAdjacentHTML('afterend', `<svg class="helix" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true"><clipPath id="helix-in"><rect width="100" height="22"/></clipPath><g clip-path="url(#helix-in)"><path class="a" d="${strand(0)}"/><path class="b" d="${strand(1)}"/></g></svg>`);
+})();
+// Spores and grain run only while the planet is on screen, fewer on a phone, none with reduced motion.
+const fx = {motes:null, last:0, grainAt:0, seed:12345};
+// The finish draws its own chance: the game's Math.random stays the game's, so a seeded game plays the same.
+const fxRandom = () => (fx.seed = fx.seed * 16807 % 2147483647) / 2147483647;
+function drawFx(now) {
+  if (!orbit.on || STILL.matches) return;
+  const sp = $('spores'), w = innerWidth, h = innerHeight;
+  if (sp.width !== w || sp.height !== h) { sp.width = w; sp.height = h; }
+  fx.motes ||= Array.from({length:NARROW.matches ? 30 : 70}, () => ({x:fxRandom() * w, y:fxRandom() * h, z:fxRandom() ** 2, p:fxRandom() * 6}));
+  const dt = Math.min(.1, (now - (fx.last || now)) / 1000), g = sp.getContext('2d');
+  fx.last = now;
+  g.clearRect(0, 0, w, h);
+  for (const m of fx.motes) {
+    m.y -= (8 + m.z * 40) * dt; m.x += Math.sin(now / 1400 + m.p) * (4 + m.z * 10) * dt;
+    if (m.y < -20) { m.y = h + 20; m.x = fxRandom() * w; }
+    const r = (1 + m.z * 4) * 4, a = .25 + .5 * (1 - m.z) * (.6 + .4 * Math.sin(now / 500 + m.p));
+    const glow = g.createRadialGradient(m.x, m.y, 0, m.x, m.y, r);
+    glow.addColorStop(0, m.p > 3 ? `rgba(183,243,74,${a})` : `rgba(85,214,232,${a})`); glow.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = glow; g.beginPath(); g.arc(m.x, m.y, r, 0, Math.PI * 2); g.fill();
+  }
+  if (!NARROW.matches && now - fx.grainAt > 83) {
+    fx.grainAt = now;
+    const gr = $('grain').getContext('2d'), img = fx.grain ||= gr.createImageData(320, 200);
+    for (let i = 0; i < img.data.length; i += 4) { const v = fxRandom() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+    gr.putImageData(img, 0, 0);
+  }
+}
 function drawPlanet(elapsed) {
+  drawFx(performance.now());
   if (station3d.st && orbit.box) {
     station3d.st.draw(elapsed);
     const [x, y] = station3d.st.lens(), b = orbit.box, lens = [b.sx + b.ss * x, b.sy + b.ss * y];
