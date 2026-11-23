@@ -328,6 +328,56 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 /* Time under the view switch, apart from the camera by a little gap. */
 #zoom #view-toggle { margin-bottom:10px; }
 
+/* ---- Boards 22 to 24: the Statistics sheet. */
+#stats { position:absolute; left:50%; top:calc(96px + var(--t)); bottom:calc(132px + var(--b)); z-index:7; width:min(1000px, calc(100% - 40px)); translate:-50% 0; display:flex; flex-direction:column; overflow:hidden;
+  background:var(--glass); -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3); border:1px solid var(--glass-edge); border-radius:18px; box-shadow:var(--glass-shadow); }
+#stats[hidden] { display:none; }
+#stats .tabs { display:flex; gap:6px; padding:12px 60px 0 14px; }
+#stats .tab { display:flex; align-items:center; gap:8px; min-height:44px; padding:8px 14px 10px; border:1px solid transparent; border-bottom:0; border-radius:12px 12px 0 0; background:none; color:var(--muted); font:600 13px var(--body); }
+#stats .tab[aria-selected="true"] { color:var(--ink, #E9F3EF); background:rgba(255,255,255,.05); border-color:var(--glass-edge); }
+#stats .tab svg { width:16px; height:16px; }
+#app #stats-close { position:absolute; right:12px; top:12px; width:44px; height:44px; padding:0; font-size:22px; }
+#stats-body { flex:1; overflow-y:auto; padding:14px 20px 18px; border-top:1px solid var(--glass-edge); }
+#stats .head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:0 0 8px; }
+#stats .label { font:700 11px var(--display); letter-spacing:.14em; text-transform:uppercase; color:#8FB8BF; }
+#stats .note { color:var(--muted); font-size:12px; }
+#stats .row { display:grid; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+#stats .row.cols { border-color:rgba(255,255,255,.12); }
+#stats .prod { grid-template-columns:170px 1fr 64px 64px 120px; }
+#stats .pair { grid-template-columns:1fr 90px 90px; }
+#stats .issue { grid-template-columns:34px 1fr 90px 130px; width:100%; border:0; border-bottom:1px solid rgba(255,255,255,.06); background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+#stats .issue:hover { background:rgba(255,255,255,.04); }
+#stats .what { display:flex; align-items:center; gap:10px; min-width:0; }
+#stats .what .porthole { flex:none; width:30px; height:30px; }
+#stats .gene svg, #stats .base svg { width:15px; height:15px; }
+#stats .base { display:inline-flex; }
+#stats .crate { padding:2px 6px; border-width:1px; border-radius:7px; }
+#stats .bar { position:relative; height:8px; border-radius:4px; background:rgba(255,255,255,.07); }
+#stats .bar i { position:absolute; inset:0 auto 0 0; border-radius:4px; background:linear-gradient(90deg, #66D9EA, #9FE6F0); }
+#stats .n { font:700 15px var(--display); font-variant-numeric:tabular-nums; }
+#stats .dim { color:var(--muted); }
+#stats .badge { justify-self:start; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; }
+#stats .badge.red { background:rgba(255,107,116,.15); color:var(--alarm); } #stats .badge.amber { background:rgba(240,160,60,.15); color:#F0A03C; }
+#stats .go { justify-self:end; color:var(--cyan); font-size:13px; white-space:nowrap; }
+#stats .empty { padding:18px 0; color:var(--muted); }
+#stats .tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin:0 0 14px; }
+#stats .tile { padding:10px 12px; border:1px solid var(--glass-edge); border-radius:12px; background:rgba(255,255,255,.03); }
+#stats .tile b { display:block; font:700 22px var(--display); }
+#stats .tile span { color:var(--muted); font-size:12px; }
+#stats-pod .porthole { display:grid; place-items:center; }
+@media (max-width:759px), (max-height:520px) {
+  #stats { left:calc(8px + var(--l)); right:calc(8px + var(--r)); top:calc(108px + var(--t)); bottom:calc(120px + var(--b)); width:auto; translate:none; }
+  #stats .note { display:none; }
+  #stats .tab { padding:8px 10px; }
+  #stats .tab span { display:none; }
+  #stats-body { padding:12px 14px; }
+  #stats .prod { grid-template-columns:96px 1fr 44px; }
+  #stats .prod > :nth-child(4), #stats .prod > :nth-child(5) { display:none; }
+  #stats .issue { grid-template-columns:30px 1fr 80px; }
+  #stats .issue .go { display:none; }
+  #app .dock #stats-pod { top:calc(var(--rail) + 168px); }
+}
+
 /* ---- Board 21: slim top strips on a desktop (phones keep their compact layout). */
 @media (min-width:760px) and (min-height:521px) {
   #app #organism { display:flex; align-items:center; gap:14px; width:auto; height:64px; padding:0 20px 0 10px; transform:none;
@@ -845,6 +895,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     <div id="actions"></div>
   </section>
 
+  <section id="stats" hidden aria-label="Statistiques"><div class="tabs" role="tablist"></div><button id="stats-close" class="tip" aria-label="Fermer les statistiques">×</button><div id="stats-body"></div></section>
   <nav id="tools" aria-label="Construction"><p id="hint" hidden></p></nav>
 
   <p id="refusal" role="alert" hidden></p>
@@ -4213,6 +4264,12 @@ function growDock() {
     dock.append(b);
   });
   side('erase', 7);
+  const stats = podOf('Statistiques');
+  stats.id = 'stats-pod'; stats.classList.add('side'); stats.setAttribute('aria-pressed', 'false');
+  stats.querySelector('.porthole').innerHTML = '<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22V14M11 22V8M17 22V12M23 22V5" stroke="#66D9EA" stroke-width="3" stroke-linecap="round"/></svg>';
+  key(stats, 8);
+  stats.onclick = () => showStats(!ui.stats);
+  dock.append(stats);
   const ranks = document.createElement('div');
   ranks.id = 'ranks'; ranks.hidden = true;
   for (const mk of [1, 2, 3]) {
@@ -4246,6 +4303,7 @@ document.addEventListener('keyup', spacePauses);
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || modalOpen()) return;
   event.preventDefault();
+  if (ui.stats) { showStats(false); return; }
   if (ui.menu) { showMenu(false); return; }
   // Nothing left to put down: Escape opens the menu.
   const idle = tool === 'hand' && !selected && !gesture && !drag && !linking && !wiring && !ui.family;
@@ -4775,6 +4833,7 @@ function paintDry() {
 function paintHud() {
   paintRanks();
   paintOrganism(); paintThreat(); paintDrones(); paintInfo(); paintMoments(); paintDry();
+  sampleStats(); if (ui.stats) paintStats();
   $('app').classList.toggle('paused', paused);
   $('app').classList.toggle('fast', speed > 1);
   $('speed').classList.toggle('on', speed > 1);
@@ -5012,15 +5071,142 @@ canvas.addEventListener('wheel', () => { ui.travel = null; }, {passive:true});
 document.addEventListener('keydown', event => {
   if (GLIDE[event.key]) ui.travel = null;
   if (modalOpen() || G.over || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
-  const n = /^(?:Digit|Numpad)([1-7])$/.exec(event.code)?.[1];
+  const n = /^(?:Digit|Numpad)([1-8])$/.exec(event.code)?.[1];
   if (!n) return;
   event.preventDefault();
-  const b = n === '1' || n === '7' ? $('tools').querySelector(`[data-type="${n === '1' ? 'hand' : 'erase'}"]`) : $('tools').querySelectorAll('.family')[n - 2];
+  const b = n === '8' ? $('stats-pod') : n === '1' || n === '7' ? $('tools').querySelector(`[data-type="${n === '1' ? 'hand' : 'erase'}"]`) : $('tools').querySelectorAll('.family')[n - 2];
   const box = b.getBoundingClientRect();
   ui.point = {x:box.x + box.width / 2, y:box.y};
   replay(b, 'pressed'); b.click();
 });
 NARROW.addEventListener('change', layoutHud);
+
+// ---- Statistics: read from the running factory, sampled every 10 s for five minutes of history.
+const STAT_TABS = [
+  ['prod', 'Production', '<path d="M2 13V7l3 2V7l3 2V4l6 4v5z"/>'],
+  ['eco', 'Économie', '<circle cx="8" cy="8" r="6"/><path d="M8 4v8"/>'],
+  ['def', 'Défense', '<path d="M8 1l6 2v5c0 3.5-2.6 6-6 7-3.4-1-6-3.5-6-7V3z"/>'],
+  ['threat', 'Menace', '<path d="M1 8h4l1.5-4 3 8 1.5-4h4"/>'],
+  ['logi', 'Logistique', '<path d="M1 5h10l-2-2M15 11H5l2 2"/>']
+];
+const PRODUCERS = ['mine', 'borer', 'ligase', 'join', 'pack'];
+$('stats').querySelector('.tabs').innerHTML = STAT_TABS.map(([id, name, d]) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${d}</svg><span>${name}</span></button>`).join('');
+$('stats').querySelector('.tabs').onclick = event => {
+  const tab = event.target.closest('[data-tab]');
+  if (tab) { ui.statsTab = ui.stats = tab.dataset.tab; ui.statsAt = -Infinity; paintStats(); }
+};
+$('stats-close').onclick = () => showStats(false);
+$('stats-body').onclick = event => {
+  const at = event.target.closest('[data-at]')?.dataset.at.split(',').map(Number);
+  if (!at) return;
+  showStats(false);
+  travelTo({x:at[0] + .5, y:at[1] + .5});
+};
+function showStats(open) {
+  ui.stats = open ? ui.statsTab || 'prod' : '';
+  $('stats').hidden = !open;
+  $('stats-pod').setAttribute('aria-pressed', open);
+  if (open) { if (ui.menu) showMenu(false); ui.statsAt = -Infinity; paintStats(); }
+}
+function outputOf(c) { return c.type === 'mine' || c.type === 'borer' ? matterUnder(c) : c.item || c.last || ''; }
+function itemMark(item) {
+  if (!item) return '<span class="dim">en attente</span>';
+  if (boxOf(item)) return `<span class="crate">${geneMark(contentOf(item))}</span>`;
+  return item.length === 1 ? `<span class="base">${markOf(item)}</span>` : geneMark(item);
+}
+function holeOf(type) {
+  const i = Math.max(0, MODELS.indexOf(type));
+  return `<span class="porthole model" style="background-position:${(i % 6) * 20}% ${Math.floor(i / 6) * 100 / 4}%" aria-hidden="true"></span>`;
+}
+// Per output: machines, what they made over the last 10 s as a rate per minute, and what they could make.
+function production() {
+  const lines = new Map();
+  for (const c of allCells()) {
+    if (!PRODUCERS.includes(c.type) || !built(c)) continue;
+    const item = outputOf(c), id = `${c.type}|${item}`;
+    const line = lines.get(id) || {type:c.type, item, n:0, now:0, max:0};
+    line.n++; line.now += (c.made?.length || 0) * 6; line.max += perSecond(c) * 60;
+    lines.set(id, line);
+  }
+  return [...lines.entries()].sort((a, b) => PRODUCERS.indexOf(a[1].type) - PRODUCERS.indexOf(b[1].type) || b[1].now - a[1].now);
+}
+function sampleStats() {
+  if (G.time < (ui.sampledAt ?? -Infinity) + 10 && ui.sampledAt <= G.time) return;
+  ui.sampledAt = G.time;
+  const rates = Object.fromEntries(production().map(([id, line]) => [id, line.now]));
+  (ui.history ||= []).push(rates);
+  if (ui.history.length > 30) ui.history.shift();
+}
+function spark(values) {
+  const top = Math.max(1, ...values), w = 120, step = w / Math.max(1, values.length - 1);
+  return `<svg width="${w}" height="28" viewBox="0 0 ${w} 28" aria-hidden="true"><polyline points="${values.map((v, i) => `${(i * step).toFixed(1)},${(26 - v / top * 22).toFixed(1)}`).join(' ')}" fill="none" stroke="#66D9EA" stroke-width="1.6"/></svg>`;
+}
+const fr = n => (Math.round(n * 10) / 10).toLocaleString('fr-FR');
+function problems() {
+  const out = [];
+  for (const c of allCells()) {
+    if (!built(c)) continue;
+    const name = TYPES[c.type]?.name || '';
+    if (isGun(c) && !Object.values(c.ammo).some(n => n)) out.push([c, 'red', `${name} à sec`, 'plus de munitions']);
+    else if (PRODUCERS.includes(c.type) && !c.made?.length) {
+      if (c.item) out.push([c, 'amber', `${name} bloqué`, 'sortie pleine']);
+      else if (c.ports) {
+        const empty = c.type === 'pack' ? (readyPort(c, 0) < PACK.size ? 'gènes manquants' : 'carbone manquant') : `entrée ${c.ports.findIndex((p, i) => !readyPort(c, i)) + 1} vide`;
+        out.push([c, 'red', `${name} à l’arrêt`, empty]);
+      }
+    }
+  }
+  return out.sort((a, b) => (a[1] === 'red' ? 0 : 1) - (b[1] === 'red' ? 0 : 1) || span(a[0], CORE) - span(b[0], CORE));
+}
+function statsHTML(tab) {
+  if (tab === 'prod') {
+    const lines = production(), want = STAGES[G.stage];
+    if (!lines.length) return '<p class="empty">Aucune machine ne produit encore. Pose un récolteur sur un gisement.</p>';
+    const asked = want ? `<p class="note">Le cœur réclame ${itemMark(want.item)}</p>` : '';
+    return `<div class="head"><p class="label">Production · par minute, sur les 10 dernières secondes</p>${asked}</div>`
+      + '<div class="row prod cols label"><span>Ce qui sort</span><span>Débit</span><span>/ min</span><span>Capacité</span><span>5 minutes</span></div>'
+      + lines.map(([id, l]) => `<div class="row prod"><span class="what">${holeOf(l.type)}${itemMark(l.item)}${l.n > 1 ? `<span class="dim">×${l.n}</span>` : ''}</span>`
+        + `<span class="bar"><i style="width:${Math.min(100, l.now / Math.max(1, l.max) * 100).toFixed(0)}%"></i></span><span class="n">${fr(l.now)}</span><span class="dim">${fr(l.max)}</span>`
+        + `${spark((ui.history || []).map(h => h[id] || 0))}</div>`).join('');
+  }
+  if (tab === 'eco') {
+    const SOURCES = {core:'Surplus livré au cœur', kills:'Créatures tuées', guide:'Guide de départ'}, recent = {}, total = {};
+    for (const e of ui.earned || []) {
+      total[e.source] = (total[e.source] || 0) + e.amount;
+      if (e.at > G.time - 60) recent[e.source] = (recent[e.source] || 0) + e.amount;
+    }
+    const rows = Object.keys(total).sort((a, b) => total[b] - total[a]);
+    return `<div class="tiles"><p class="tile"><b>${G.dna}</b><span>ADN en réserve</span></p><p class="tile"><b>${fr(Object.values(recent).reduce((s, n) => s + n, 0))}</b><span>ADN gagné la dernière minute</span></p></div>`
+      + '<div class="row pair cols label"><span>D’où vient l’ADN</span><span>dernière min</span><span>depuis l’ouverture</span></div>'
+      + (rows.map(s => `<div class="row pair"><span>${SOURCES[s] || s}</span><span class="n">${fr(recent[s] || 0)}</span><span class="dim">${fr(total[s])}</span></div>`).join('') || '<p class="empty">Rien gagné depuis l’ouverture de la partie.</p>');
+  }
+  if (tab === 'def') {
+    const guns = allCells().filter(c => isGun(c) && built(c)), ammo = {};
+    for (const c of guns) for (const [gene, n] of Object.entries(c.ammo)) if (n) ammo[gene] = (ammo[gene] || 0) + n;
+    const types = [...new Set(guns.map(c => c.type))];
+    return `<div class="tiles"><p class="tile"><b>${guns.length}</b><span>défenses</span></p><p class="tile"><b>${guns.filter(c => !Object.values(c.ammo).some(n => n)).length}</b><span>à sec</span></p><p class="tile"><b>${G.kills}</b><span>créatures tuées</span></p></div>`
+      + '<div class="row pair cols label"><span>Défense</span><span>posées</span><span>à sec</span></div>'
+      + types.map(type => `<div class="row pair"><span class="what">${holeOf(type)}${TYPES[type].name}</span><span class="n">${guns.filter(c => c.type === type).length}</span><span class="dim">${guns.filter(c => c.type === type && !Object.values(c.ammo).some(n => n)).length}</span></div>`).join('')
+      + '<div class="row pair cols label" style="margin-top:14px"><span>Munitions chargées</span><span>coups</span><span></span></div>'
+      + (Object.entries(ammo).sort((a, b) => b[1] - a[1]).map(([gene, n]) => `<div class="row pair"><span>${geneMark(gene)}</span><span class="n">${n}</span><span></span></div>`).join('') || '<p class="empty">Aucune munition chargée.</p>');
+  }
+  if (tab === 'threat') {
+    const count = state => G.breaches.filter(b => b.state === state).length;
+    const here = Object.entries(G.enemies.reduce((n, e) => (n[e.gene] = (n[e.gene] || 0) + 1, n), {})).sort((a, b) => b[1] - a[1]);
+    return `<div class="tiles"><p class="tile"><b>${count('wake')}</b><span>brèches éveillées</span></p><p class="tile"><b>${count('sleep')}</b><span>dorment</span></p><p class="tile"><b>${count('spent')}</b><span>détruites</span></p><p class="tile"><b>${fr(G.threat || 0)} / 10</b><span>niveau de menace</span></p></div>`
+      + '<div class="row pair cols label"><span>Sur la carte</span><span>créatures</span><span>antidote</span></div>'
+      + (here.map(([gene, n]) => `<div class="row pair"><span>${geneMark(gene)} → ${geneMark(opposite(gene))}</span><span class="n">${n}</span><span class="${stockOf(opposite(gene)) ? 'dim' : 'none'}">${stockOf(opposite(gene)) || 'aucun'}</span></div>`).join('') || '<p class="empty">Personne sur la carte.</p>');
+  }
+  const list = problems();
+  return `<div class="head"><p class="label">Ce qui freine l’usine · ${list.length} point${list.length > 1 ? 's' : ''}</p><p class="note">touche une ligne : la caméra y va</p></div>`
+    + (list.slice(0, 14).map(([c, level, title, why]) => `<button class="row issue" data-at="${c.x},${c.y}">${holeOf(c.type)}<span><b>${title}</b><br><span class="dim">${why}</span></span><span class="badge ${level}">${level === 'red' ? 'bloquant' : 'ralentit'}</span><span class="go">${bearing(c)}, ${Math.round(span(c, CORE))} cases →</span></button>`).join('') || '<p class="empty">Rien ne freine l’usine.</p>');
+}
+function paintStats() {
+  if (G.time - (ui.statsAt ?? -Infinity) < 1 && ui.statsAt <= G.time) return;
+  ui.statsAt = G.time;
+  for (const b of $('stats').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === ui.stats);
+  paint('stats-body', statsHTML(ui.stats));
+}
 
 // ---- Games: one a hexagon, each under its own key. The list can be rebuilt from the keys, never the reverse.
 // Nothing here writes over a game, except its own autosave and what a held press asked for.
