@@ -160,6 +160,11 @@ Continuous sinks: ammunition, research delivered to the core, and the upkeep of 
 
 ### The nervous system
 
+- **Radar pylon** (2026-11-23, stage 2, family Commander): keeps 36 cells around it in sight, pulses every 3 s
+  across that zone. Wired by a nerve, the creatures crossing its zone count for the net as those in range of its
+  turrets do, so gates and sorters get the right antidote ready before a wave reaches the guns. A net with only
+  a radar still steers its gates and sorters. 30 ADN plus 15 per radar, 4 s to build, 120 hit points.
+
 Nerves carry one kind of information only: what is needed. Routing stays with the player, machines do not change recipe.
 
 - The turret emits the antidotes of the creatures in range, the most numerous first.

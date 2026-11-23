@@ -316,6 +316,23 @@ window.createModels3D = (B, scene) => {
     },
 
     // A gantry with a two-lamp head, and an arm that drops on red.
+    // The radar pylon: three legs, a mast, a dish that turns, glowing rings, and a wave across the ground.
+    radar(c, x, y) {
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2;
+        limb('steel2', x + Math.cos(a) * 0.4, y + Math.sin(a) * 0.4, 0.02, x, y, 0.62, 0.06);
+      }
+      add('hull', 'dark', x, y, 0.08, 0.7, 0.16, 0.7);
+      add('tube', 'steel2', x, y, 0.75, 0.1, 1.2, 0.1);
+      const spin = clock * 1.6;
+      add('ring', 'cyan', x, y, 0.55 + Math.sin(clock * 3) * 0.04, 0.42, 1, 0.42);
+      add('ring', 'cyan', x, y, 0.95 + Math.sin(clock * 3 + 1.5) * 0.04, 0.3, 1, 0.3);
+      add('cone', 'steel', x, y, 1.42, 0.62, 0.22, 0.62, spin, 1.15);
+      add('bead', 'pale', ...from(x, y, spin, 0.12), 1.48, 0.12);
+      if (!built(c)) return;
+      const k = (clock / RADAR.pulse + ((c.x * 7 + c.y * 3) % 10) / 10) % 1;
+      add('ring', 'cyan', x, y, 0.04, 1.2 + k * RADAR.range * 2, Math.max(0.05, (1 - k) * 0.5), 1.2 + k * RADAR.range * 2);
+    },
     gate(c, x, y) {
       const sides = conveyor(c, x, y);
       const smart = listens(c);

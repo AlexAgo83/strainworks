@@ -880,6 +880,7 @@ const TYPES = {
   hand:{name:'Inspecter', help:'Glisse ou utilise les flèches pour te déplacer, pince pour zoomer, touche une machine pour l’inspecter.'},
   belt:{name:'Tapis', help:'Glisse de la sortie vers l’entrée, la vue suit au bord. Deux doigts pour te déplacer. Pour croiser, pose un pont. Touche-le pour le passer, ou toute sa ligne, en MK2 (8/s) ou MK3 (12/s).', hp:30},
   gate:{name:'Feu', help:'Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière.', hp:30},
+  radar:{name:'Pylône radar', help:'Garde visible une grande zone autour de lui. Relié par un nerf, il annonce au réseau les créatures qui la traversent.', hp:120},
   mine:{name:'Récolteur', help:'À poser sur un gisement. Il donne 1 base par seconde, 2 en MK2, 3 en MK3. Touche-le pour l’améliorer.', hp:60},
   pump:{name:'Veine', help:'Touche pour poser une pompe. Tire d’une pompe à une autre, 24 cases au plus : 16 objets/s d’une seule matière, sous tout.', hp:90},
   track:{name:'Piste', help:'Glisse pour tracer la boucle des vers. Elle passe sous tout et se referme sur son départ.', hp:30},
@@ -975,7 +976,7 @@ function siteFor(type, x, y) {
 }
 const boxOf = item => item[1] === ':' ? item[0] : '';
 const contentOf = item => boxOf(item) ? item.slice(2) : item;
-const NEEDS = {split:1, sort:1, pack:1, borer:2, vault:2, pump:2, join:2, wire:2, track:3, pocket:3, worm:3};
+const NEEDS = {radar:2, split:1, sort:1, pack:1, borer:2, vault:2, pump:2, join:2, wire:2, track:3, pocket:3, worm:3};
 const GROWTH_BONUS = 40;
 const CORE = {x:OX + 5, y:OY + 12};
 const NORTH = [{x:48,y:27}, {x:40,y:29}, {x:56,y:29}];
@@ -1197,7 +1198,9 @@ function generate(sx, sy, id) {
 }
 // The fog has three states: never seen, seen before (saved), seen now. A tile is two cells,
 // a block sixteen tiles each way and one number a row of tiles.
-const SIGHT = {core:56, built:18, moving:8, nest:6};
+const SIGHT = {core:56, built:18, moving:8, nest:6, radar:36};
+// A radar pulses every 3 s across what it sees.
+const RADAR = {range:36, pulse:3};
 let live = new Map(), passingBy = new Map(), standing = new Map(), movedFrom = '', fogTick = 0;
 function bitAt(get, x, y) {
   const tx = Math.floor(x / 2), ty = Math.floor(y / 2), rows = get(Math.floor(tx / 16) + ',' + Math.floor(ty / 16));
@@ -1227,7 +1230,7 @@ function look(force) {
     const ex = Math.floor(x / 4) * 4 + 2, ey = Math.floor(y / 4) * 4 + 2, id = ex + ',' + ey;
     if (!(into.get(id)?.r >= r)) into.set(id, {x:ex, y:ey, r});
   };
-  for (const c of allCells()) if (c.type === 'core' || built(c)) eye(c.x, c.y, c.type === 'core' ? SIGHT.core : SIGHT.built);
+  for (const c of allCells()) if (c.type === 'core' || built(c)) eye(c.x, c.y, c.type === 'core' ? SIGHT.core : c.type === 'radar' ? SIGHT.radar : SIGHT.built);
   for (const t of Object.values(G.tracks)) if (built(t)) eye(t.x, t.y, SIGHT.built);
   for (const d of G.drones || []) if (d.job) eye(d.x, d.y, SIGHT.moving, moving);
   for (const w of G.worms) if (built(w)) { const p = at(w.path[0]); eye(p.x, p.y, SIGHT.moving, moving); }
@@ -1329,7 +1332,7 @@ const geneName = gene => GENES[gene] ? `${GENES[gene]} (${gene})` : gene;
 const START_DNA = 80;
 const gunPrice = type => n => GUNS[type].cost + 10 * n;
 // The three turrets climb one scale, or taking turns between them would get round it.
-const PRICE = {turret:gunPrice('turret'), sting:gunPrice('sting'), maw:gunPrice('maw'), wall:n => 5 + Math.floor(n / 5), worm:n => 20 + 10 * n};
+const PRICE = {radar:n => 30 + 15 * n, turret:gunPrice('turret'), sting:gunPrice('sting'), maw:gunPrice('maw'), wall:n => 5 + Math.floor(n / 5), worm:n => 20 + 10 * n};
 const owned = type => type === 'worm' ? G.worms.length : allCells().filter(c => GUNS[type] ? GUNS[c.type] : c.type === type).length;
 const price = type => PRICE[type] ? PRICE[type](owned(type)) : 0;
 // Taking one down returns what the last one cost, less its damage: building and removing never earns.
@@ -1340,7 +1343,7 @@ const refund = c => {
 // Work only advances with the simulation and only with a drone at the site: one drone a site, oldest site first.
 const BUILDERS = 3;
 const DRONE = {speed:20, reach:2, longest:4}; // a flight never takes over 4 s, so far ones cruise faster
-const BUILD = {belt:.15, gate:.5, bridge:.5, split2:1, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5, pack:2.5, sting:7, maw:5, borer:6, vault:5};
+const BUILD = {radar:4, belt:.15, gate:.5, bridge:.5, split2:1, split:1, sort:1, pump:1.5, mine:2, cyst:2, ligase:2.5, wall:3, turret:6, join:2.5, track:.1, pocket:1.5, worm:5, pack:2.5, sting:7, maw:5, borer:6, vault:5};
 // cut: a drone has started taking it down. Until then it goes on working.
 const built = c => !(c?.left > 0) && !c?.cut;
 // Healing starts after some quiet, so a wall under attack still falls. The core heals more slowly.
@@ -1939,7 +1942,7 @@ function joinPort(c, travel) {
   const from = (travel + 2) % 4;
   return [0, 1].find(port => joinSide(c, port) === from) ?? -1;
 }
-const NERVE = {reach:24, hp:30, hold:4, ends:[...Object.keys(GUNS),'gate','sort']};
+const NERVE = {reach:24, hp:30, hold:4, ends:[...Object.keys(GUNS),'gate','sort','radar']};
 let NET = new Map(), wiring = null;
 function carries(w) {
   return w.hp > 0 && built(w) && [w.a, w.b].every(id => G.cells[id] && built(G.cells[id]));
@@ -1957,8 +1960,10 @@ function sense() {
     const group = new Set([start]);
     for (const id of group) for (const next of near.get(id)) group.add(next);
     const turrets = [...group].map(id => G.cells[id]).filter(isGun), count = {};
+    const radars = [...group].map(id => G.cells[id]).filter(c => c?.type === 'radar' && built(c));
     for (const e of G.enemies) {
-      if (!turrets.some(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range)) continue;
+      // What a radar of the net sees counts as much as what a turret has in range: the net gets ready early.
+      if (!turrets.some(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range) && !radars.some(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < RADAR.range)) continue;
       const gene = opposite(e.gene);
       count[gene] = (count[gene] || 0) + 1;
     }
@@ -1971,20 +1976,20 @@ function sense() {
       if (count[focus]) c.focusAt = G.time;
     }
     if (focus && !count[focus]) list.push(focus);
-    const net = {list, focus, turrets:turrets.length};
+    const net = {list, focus, turrets:turrets.length, radars:radars.length};
     for (const id of group) NET.set(id, net);
   }
 }
 function netOf(c) { return NET.get(key(c.x, c.y)); }
 // Unwired, cut or without a turret, the setting the player left applies.
-function listens(c) { return (c.type === 'gate' || c.type === 'sort') && netOf(c)?.turrets > 0; }
+function listens(c) { return (c.type === 'gate' || c.type === 'sort') && (netOf(c)?.turrets > 0 || netOf(c)?.radars > 0); }
 function asked(c, item) {
   const net = netOf(c), place = c.read || 0;
   return place ? item.length === 1 && Boolean(net.focus) && net.focus[place - 1] === item : boxOf(item) !== 'T' && net.list.includes(contentOf(item));
 }
 function wireUp(a, b) {
   const ok = c => c && NERVE.ends.includes(c.type);
-  if (!ok(a) || !ok(b) || a === b) return refuse('Un nerf relie deux éléments parmi tourelles, feux et trieurs.');
+  if (!ok(a) || !ok(b) || a === b) return refuse('Un nerf relie deux éléments parmi tourelles, radars, feux et trieurs.');
   if (span(a, b) > NERVE.reach) return refuse(`Trop loin : ${Math.ceil(span(a, b))} cases, 24 au plus. Un nerf peut passer par un autre feu ou trieur.`);
   const ka = key(a.x, a.y), kb = key(b.x, b.y);
   if (G.wires.some(w => (w.a === ka && w.b === kb) || (w.a === kb && w.b === ka))) return refuse('Ils sont déjà reliés.');
@@ -2777,6 +2782,14 @@ function reading(g, c, net) {
   for (let i = 0; i < place; i++) rect(g,.2 + i * .1,-.48,.06,.18,'#55D6E8');
 }
 function drawCell(g, c, inputs = []) {
+  if (c.type === 'radar') {
+    rect(g,-.42,-.42,.84,.84,'#0B1417','#3FC6DC');
+    circle(g,0,0,.26,'#141F23','#66D9EA',.05);
+    const a = motionTime() * 1.6;
+    g.beginPath(); g.moveTo(0,0); g.lineTo(Math.cos(a) * .4,Math.sin(a) * .4); g.strokeStyle = '#9FE6F0'; g.lineWidth = .08; g.stroke();
+    circle(g,0,0,.09,'#9FE6F0');
+    return;
+  }
   const type = c.type;
   if (type === 'belt' || type === 'gate') {
     // Half a segment towards the exit, one from each fed side: turns and junctions read as one line.
@@ -2923,6 +2936,15 @@ function draw() {
   drawVeins();
   drawTracks();
   for (const w of Object.values(G.ruins)) if (!buried(w)) rect(ctx,w.x + .15,w.y + .15,sizeOf(w) - .3,sizeOf(w) - .3,'#321820','#FF6B6B');
+  // Radar waves: one every 3 s from the pylon to the edge of what it sees, fading as they go.
+  for (const c of allCells()) if (c.type === 'radar' && built(c)) {
+    const k = ((motionTime() || G.time) / RADAR.pulse + (c.x * 7 + c.y * 3) % 10 / 10) % 1;
+    ctx.globalAlpha = .55 * (1 - k);
+    circle(ctx,c.x + .5,c.y + .5,.6 + k * RADAR.range,null,'#66D9EA',Math.max(.05,1.5 / cam.zoom));
+    ctx.globalAlpha = .08;
+    circle(ctx,c.x + .5,c.y + .5,2.2,'#66D9EA');
+    ctx.globalAlpha = 1;
+  }
   for (const c of cells) {
     const size = sizeOf(c);
     ctx.save(); ctx.translate(c.x + size / 2,c.y + size / 2); ctx.scale(size,size); if (!built(c)) ctx.globalAlpha = .4; drawCell(ctx,c,isBelt(c) ? feeders(c).map(f => (f.dir + 2) % 4) : []);
@@ -4087,7 +4109,7 @@ const FAMILIES = [
   ['tra', 'Acheminer', 'belt', ['belt','bridge','split2','split','pump','track','pocket','worm']],
   ['fab', 'Transformer', 'ligase', ['ligase','pack','join']],
   ['def', 'Défendre', 'turret', ['turret','sting','maw','wall']],
-  ['cmd', 'Commander', 'gate', ['gate','sort','wire']]
+  ['cmd', 'Commander', 'gate', ['gate','sort','wire','radar']]
 ];
 const FAMILY_OF = Object.fromEntries(FAMILIES.flatMap(([id,,,types]) => types.map(type => [type, id])));
 const TOOLBAR = ['hand', ...FAMILIES.flatMap(f => f[3]), 'erase'];
