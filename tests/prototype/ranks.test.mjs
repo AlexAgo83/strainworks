@@ -13,6 +13,8 @@ async function open(browser) {
   await page.evaluate(() => {
     window.lab = () => {
       begin();
+      // Every rank open: MK2 comes with the second stage, MK3 with the fourth.
+      G.stage = 3;
       paused = true;
       G.open = true;
       G.breaches = [];
@@ -156,7 +158,7 @@ it("sells ranks for ADN, one at a time or a whole row", async () => {
 
       // Drawn at a rank, each cell is paid, and the line stops with the ADN.
       lab();
-      G.dna = 5;
+      G.dna = 9;
       choose("belt");
       handRank.belt = 2;
       drag = { x: 20, y: 82, moved: false };
@@ -166,7 +168,7 @@ it("sells ranks for ADN, one at a time or a whole row", async () => {
 
       // Razed, it keeps its rank and is rebuilt for half.
       lab();
-      G.dna = 100;
+      G.dna = 200;
       G.ruins["30,80"] = { type: "mine", x: 30, y: 80, dir: 0, mk: 3 };
       document.querySelector("#rebuild").onclick();
       out.rebuilt = [G.cells["30,80"].mk, G.dna];
@@ -174,16 +176,16 @@ it("sells ranks for ADN, one at a time or a whole row", async () => {
     });
     expect(out).toEqual({
       row: 5,
-      paid: [98, 1, 1],
+      paid: [96, 1, 1],
       risen: [2, 0],
-      rowPaid: 60,
+      rowPaid: 20,
       rowRisen: [3, 3, 3, 3, 3, 1],
       refused: [false, 5],
       cancelled: [100, 1],
-      back: [4, 0],
-      afterRemove: 4,
+      back: [8, 0],
+      afterRemove: 8,
       drawn: [2, true, 1],
-      rebuilt: [3, 50],
+      rebuilt: [3, 100],
     });
     expect(errors).toEqual([]);
   } finally {
@@ -197,6 +199,8 @@ it("spreads deposits in patches and keeps older games harvesting", async () => {
     const { page, errors } = await open(browser);
     const out = await page.evaluate(() => {
       begin();
+      // Every rank open: MK2 comes with the second stage, MK3 with the fourth.
+      G.stage = 3;
       paused = true;
       const out = {};
       out.starters = Object.values(G.cells).filter((c) => c.type === "mine").map((c) => depositAt(c.x, c.y)).sort();
@@ -249,7 +253,7 @@ it("lets cysts hold more by rank, at the same pace", async () => {
         });
       }
       lab();
-      G.dna = 100;
+      G.dna = 200;
       const c = put("cyst", 20, 80, 1);
       c.stock = Array(60).fill("S");
       raise([c], 3);
@@ -262,7 +266,7 @@ it("lets cysts hold more by rank, at the same pace", async () => {
       cyst: [[60, true], [120, true], [240, true]],
       vault: [[360, true], [720, true], [1440, true]],
       before: false,
-      after: [3, true, 40, 30],
+      after: [3, true, 80, 60],
     });
     expect(errors).toEqual([]);
   } finally {
@@ -276,6 +280,8 @@ it("wakes nothing when an older game meets the spread-out world", async () => {
     const { page, errors } = await open(browser);
     const out = await page.evaluate(() => {
       begin();
+      // Every rank open: MK2 comes with the second stage, MK3 with the fourth.
+      G.stage = 3;
       paused = true;
       G.seed = 12345;
       const nests = [];
@@ -366,7 +372,7 @@ it("makes transformers faster and defences stronger by rank, and keeps older spl
       ligase: [10, 20, 30],
       turret: [[true, 180], [true, 270], [true, 360]],
       wall: [260, 520, 780],
-      costs: [["split", 5, 15], ["sort", 8, 20], ["ligase", 40, 100], ["pack", 75, 200], ["turret", 50, 125], ["wall", 12, 40]],
+      costs: [["split", 10, 30], ["sort", 16, 40], ["ligase", 80, 200], ["pack", 150, 400], ["turret", 100, 250], ["wall", 24, 80]],
       older: [3, 12, true, true],
     });
     expect(errors).toEqual([]);

@@ -534,6 +534,7 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #slot-head { gap:14px; align-items:center; }
 #slot-head > svg { width:72px; height:72px; }
 #slot-kicker { font-size:11px; letter-spacing:.12em; }
+#slot-kicker.fight { color:var(--alarm); }
 #slot-name { margin-top:1px!important; font-size:22px; }
 #slot-sub { margin-top:1px!important; font-size:13px; }
 #slot-facts { justify-content:flex-start; flex-wrap:wrap; gap:6px; margin-top:8px; }
@@ -658,9 +659,11 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #sheet[hidden] { display:none; }
 #sheet h3 { margin:0; color:#8FB8BF; font:700 11px var(--display); letter-spacing:.14em; text-transform:uppercase; }
 #sheet .want { display:flex; align-items:center; gap:14px; }
-#sheet .frieze { position:relative; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:4px; }
-#sheet .frieze::before { content:""; position:absolute; left:10%; right:10%; top:13px; height:2px; background:var(--glass-edge); }
-#sheet .frieze span { position:relative; display:grid; justify-items:center; gap:4px; min-width:0; font:700 10px var(--display); letter-spacing:.04em; color:#8FB8BF; text-align:center; }
+#sheet .frieze { position:relative; display:flex; align-items:center; justify-content:space-between; gap:4px; }
+#sheet .frieze::before { content:""; position:absolute; left:14px; right:14px; top:50%; height:2px; background:var(--glass-edge); }
+#sheet .frieze span { position:relative; display:flex; align-items:center; gap:6px; min-width:0; font:700 0/1 var(--display); letter-spacing:.04em; color:#8FB8BF; }
+#sheet .frieze i { font-size:12px; }
+#sheet .frieze .now { font-size:12px; padding-right:10px; border-radius:999px; background:#0B1417; z-index:1; white-space:nowrap; }
 #sheet .frieze i { width:28px; height:28px; display:grid; place-items:center; border:2px solid var(--glass-edge); border-radius:50%; background:#0B1417; font-style:normal; z-index:1; }
 #sheet .frieze .done i { border-color:var(--acid); background:var(--acid); color:#0B1417; }
 #sheet .frieze .now { color:var(--amber); }
@@ -674,9 +677,21 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #sheet .gauge { position:relative; height:9px; border-radius:5px; background:rgba(255,255,255,.08); overflow:hidden; }
 #sheet .gauge i { position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg, var(--amber), #F7C35C); }
 #sheet .gauge.done i { background:var(--acid); }
+#sheet .sheet-tabs { display:flex; gap:4px; border-bottom:1px solid var(--glass-edge); }
+#sheet .sheet-tabs button { flex:1; background:none; border:0; border-bottom:2px solid transparent; color:var(--muted); font:700 11px var(--display); letter-spacing:.12em; text-transform:uppercase; padding:8px 4px; cursor:pointer; }
+#sheet .sheet-tabs [aria-selected="true"] { color:var(--ink); border-bottom-color:var(--acid); }
+#sheet .asks { display:grid; gap:4px; }
+#sheet .ask { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:center; gap:10px; padding:5px 8px; border:1px solid transparent; border-radius:12px; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+#sheet .ask[aria-pressed="true"] { border-color:var(--acid); background:rgba(183,243,74,.06); }
+#sheet .ask.met { opacity:.5; }
+#sheet .ask .crate { padding:3px 6px; gap:3px; }
+#sheet .ask .crate b { font-size:12px; }
+#sheet .ask .gauge { height:5px; }
+#sheet .ask .count { font:700 15px var(--display); font-variant-numeric:tabular-nums; white-space:nowrap; }
+#sheet .ask .count small { color:var(--muted); font-size:12px; }
 #sheet .legend { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; }
 #sheet .legend b { color:var(--ink); }
-#sheet .step { display:flex; align-items:center; gap:5px; flex-wrap:wrap; row-gap:6px; }
+#sheet .step { display:flex; align-items:center; gap:5px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
 #sheet .in .gene svg, #sheet .step > .gene svg { width:13px; height:13px; }
 #sheet .step .crate { padding:3px 6px; }
 #sheet .step .crate svg { width:12px; height:12px; }
@@ -857,6 +872,9 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #hexes .grid { fill:none; stroke:#66D9EA; stroke-width:1; }
 #hexes .taken { fill:rgba(4,10,12,.5); stroke:var(--cyan); stroke-width:1.6; }
 #hexes .taken.fallen { stroke:#8A3040; }
+#hexes .taken.fight { fill:rgba(60,8,16,.5); stroke:var(--alarm); animation:fight 1.4s ease-in-out infinite; }
+@keyframes fight { 50% { stroke-opacity:.35; stroke-width:3px; } }
+@media (prefers-reduced-motion:reduce) { #hexes .taken.fight { animation:none; } }
 #hexes .lit { fill:rgba(183,243,74,.12); stroke:var(--acid); stroke-width:3; stroke-linejoin:round; }
 #hexes .beam { pointer-events:none; animation:beam 1.8s ease-in-out infinite; }
 #hexes .flow { pointer-events:none; stroke:var(--cyan); stroke-width:1.5; stroke-dasharray:7 11; animation:flow 1s linear infinite; }
@@ -1051,7 +1069,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <button class="row go" data-go="graphics"><span>Graphismes</span><b aria-hidden="true">›</b></button>
     <button class="row go" data-go="audio"><span>Audio</span><b aria-hidden="true">›</b></button>
     <div class="row"><span>Commandes</span><button id="help" class="tip">Voir</button></div>
-    <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip">Français</button><button id="lang-en" class="tip">English</button></span></div>
+    <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip" aria-label="Français" lang="fr">FR</button><button id="lang-en" class="tip" aria-label="English" lang="en">EN</button></span></div>
     <button class="row go" data-go="dev"><span>Développeur</span><b aria-hidden="true">›</b></button>
     <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.20</span></a>
    </div>
@@ -1677,6 +1695,11 @@ const EN = {
   "rien, personne à portée": "nothing, nobody in range",
   "{} sur nerf, demande : {}. En stock : {}.": "{} on a nerve, asks for: {}. In stock: {}.",
   "Il réclame": "It asks for",
+  "Débloque": "Unlocks",
+  "En combat": "Under attack",
+  "Rang MK{}": "Rank MK{}",
+  "MK{} : stade {}": "MK{}: stage {}",
+  "Le rang MK{} s’ouvre en achevant le stade {}.": "Rank MK{} opens when stage {} is complete.",
   "Afficher ou cacher les commandes": "Show or hide the controls",
   "Inverser le coin": "Flip the corner",
   "Éclosion": "Hatching",
@@ -2473,25 +2496,28 @@ const healing = c => !c.cut && c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt
 const unlocked = stage => G.open || G.stage >= stage;
 const richCap = () => unlocked(3) ? 8 : unlocked(2) ? 2 : 1;
 // Three ranks of belts and harvesters, paid in ADN: a rank is earned, not given. cost is from the first rank, time is a drone's.
+// MK2 opens with the second stage, MK3 with the fourth (the stage to complete first, as NEEDS counts).
+const RANK_NEED = [0, 1, 3];
+const rankOpen = mk => unlocked(RANK_NEED[mk - 1]);
 const RANKS = {
-  belt:{cost:[0, 2, 8], time:.15},
-  mine:{cost:[0, 40, 100], time:2},
-  borer:{cost:[0, 150, 400], time:4},
-  cyst:{cost:[0, 25, 60], time:2},
-  vault:{cost:[0, 75, 200], time:5},
+  belt:{cost:[0, 4, 16], time:.15},
+  mine:{cost:[0, 80, 200], time:2},
+  borer:{cost:[0, 300, 800], time:4},
+  cyst:{cost:[0, 50, 120], time:2},
+  vault:{cost:[0, 150, 400], time:5},
   // Splitters and sorters pass at most the pace of their rank, as a belt of that rank.
-  split2:{cost:[0, 5, 15], time:.5},
-  split:{cost:[0, 5, 15], time:.5},
-  sort:{cost:[0, 8, 20], time:.5},
+  split2:{cost:[0, 10, 30], time:.5},
+  split:{cost:[0, 10, 30], time:.5},
+  sort:{cost:[0, 16, 40], time:.5},
   // Transformers make 1, 2 or 3 objects a second.
-  ligase:{cost:[0, 40, 100], time:2.5},
-  join:{cost:[0, 40, 100], time:2.5},
-  pack:{cost:[0, 75, 200], time:2.5},
+  ligase:{cost:[0, 80, 200], time:2.5},
+  join:{cost:[0, 80, 200], time:2.5},
+  pack:{cost:[0, 150, 400], time:2.5},
   // Defences: turrets fire faster and hold more, walls hold more.
-  turret:{cost:[0, 50, 125], time:3},
-  sting:{cost:[0, 100, 250], time:4},
-  maw:{cost:[0, 75, 190], time:3},
-  wall:{cost:[0, 12, 40], time:2}
+  turret:{cost:[0, 100, 250], time:3},
+  sting:{cost:[0, 200, 500], time:4},
+  maw:{cost:[0, 150, 380], time:3},
+  wall:{cost:[0, 24, 80], time:2}
 };
 const CAPPED = new Set(['split2', 'split', 'sort']);
 // The ones whose drawing does not show their rank itself: one ring a rank above the first.
@@ -2503,7 +2529,7 @@ const BELT_SPEED = 4;
 const rankOf = c => c.mk || 1;
 const rankCost = (type, mk = 1) => RANKS[type]?.cost[mk - 1] || 0;
 const upCost = (c, mk) => rankCost(c.type, mk) - rankCost(c.type, rankOf(c));
-const canRise = (c, mk) => Boolean(RANKS[c.type]) && c.up == null && c.out == null && rankOf(c) < mk;
+const canRise = (c, mk) => Boolean(RANKS[c.type]) && c.up == null && c.out == null && rankOf(c) < mk && rankOpen(mk);
 function perSecond(c) {
   if (c.type === 'ligase' || c.type === 'join' || c.type === 'pack') return rankOf(c);
   if (c.type !== 'mine' && c.type !== 'borer') return 1;
@@ -4595,7 +4621,7 @@ function showActions() {
     button(L('Vider'), () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
   }
   // Any machine holding something can be emptied; pumps and encapsulators keep their own, which empty more.
-  if (!['core', 'pump', 'pack'].includes(c.type) && holdsAnything(c)) button(L('Vider'), () => { emptyOut(c); refresh(); showActions(); });
+  if (!['core', 'pump', 'pack', 'vault'].includes(c.type) && holdsAnything(c)) button(L('Vider'), () => { emptyOut(c); refresh(); showActions(); });
   if (c.type === 'pocket') button(c.unload ? L('Poche : vide') : L('Poche : charge'), () => { c.unload = !c.unload; showActions(); });
   if (c.type === 'pack') {
     button(L`Recette : ${BOX[c.box].name}`, () => { const order = unlocked(4) ? ['T', 'A', 'H'] : ['T', 'A']; setRecipe(c, order[(order.indexOf(c.box) + 1) % order.length]); showActions(); });
@@ -4645,7 +4671,10 @@ function showActions() {
   }
   if (RANKS[c.type] || c.type === 'gate') {
     if (c.up != null) button(L('Annuler l’amélioration'), () => { dropRise(c); showActions(); });
-    else if (RANKS[c.type]) for (const mk of [2, 3]) if (canRise(c, mk)) button(L`Passer en MK${mk} · ${upCost(c, mk)} ADN`, () => { raise([c], mk); showActions(); });
+    else if (RANKS[c.type]) for (const mk of [2, 3]) {
+      if (canRise(c, mk)) button(L`Passer en MK${mk} · ${upCost(c, mk)} ADN`, () => { raise([c], mk); showActions(); });
+      else if (!rankOpen(mk) && rankOf(c) < mk) button(L`MK${mk} : stade ${RANK_NEED[mk - 1]}`, () => refuse(L`Le rang MK${mk} s’ouvre en achevant le stade ${RANK_NEED[mk - 1]}.`));
+    }
     const row = isBelt(c) ? rowOf(c) : [];
     if (row.length > 1) for (const mk of [2, 3]) {
       const todo = row.filter(o => canRise(o, mk));
@@ -4784,7 +4813,7 @@ function wipe(x,y) {
   if (G.tracks[id]) scrap(G.tracks[id], () => { delete G.tracks[id]; });
 }
 const handRank = {};
-const inHand = type => RANKS[type] ? handRank[type] || 1 : 1;
+const inHand = type => RANKS[type] && rankOpen(handRank[type] || 1) ? handRank[type] || 1 : 1;
 const costInHand = type => price(type) + rankCost(type, inHand(type));
 // Put down at the rank in hand. Whoever calls has checked the price.
 function buildRanked(type, x, y, dir) {
@@ -5894,9 +5923,11 @@ function paintRanks() {
   $('app').classList.toggle('ranking', Boolean(costs));
   if (!costs) return;
   [...box.children].forEach((b, i) => {
+    const open = rankOpen(i + 1);
     b.setAttribute('aria-pressed', inHand(tool) === i + 1);
-    b.querySelector('small').textContent = costs[i] ? L`${costs[i]} ADN` : L('gratuit');
-    b.querySelector('small').classList.toggle('short', costs[i] > G.dna);
+    b.disabled = !open;
+    b.querySelector('small').textContent = !open ? L`stade ${RANK_NEED[i]}` : costs[i] ? L`${costs[i]} ADN` : L('gratuit');
+    b.querySelector('small').classList.toggle('short', open && costs[i] > G.dna);
   });
 }
 function toggleFamily(id) {
@@ -6092,6 +6123,7 @@ function coreSheet() {
   if (box) hints.push(L`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`);
   const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
   if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', L`Gisements ×${G.stage + 1 === 2 ? '2' : L('4 à ×8')}`]);
+  for (const mk of [2, 3]) if (RANK_NEED[mk - 1] === G.stage + 1) gives.push(['belt', L`Rang MK${mk}`]);
   const frieze = `<div class="frieze">${STAGES.map((s, i) => `<span class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"><i>${i < G.stage ? '✓' : i + 1}</i>${s.name}</span>`).join('')}</div>`;
   return `<h3>${L('Stades')}</h3>` + frieze + L`<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
     + L`<h3>Recette</h3>${steps.join('')}${hints.length ? `<div class="hints">${hints.join('')}</div>` : ''}`
@@ -6101,14 +6133,32 @@ function coreSheet() {
 function goalsSheet(want) {
   const frieze = `<div class="frieze">${STAGES.map((s, i) => `<span class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"><i>${i < G.stage ? '✓' : i + 1}</i>${s.name}</span>`).join('')}</div>`;
   const picture = item => { const box = boxOf(item), body = contentOf(item); return box ? L`<span class="crate" role="img" aria-label="${BOX[box].name} de ${fill(box)}">${geneMark(body)}<b>×${fill(box)}</b></span>` : geneMark(body); };
-  const wants = G.goals.map(g => {
-    const part = Math.min(1, g.fed / g.count);
-    return `<div class="want">${picture(g.item)}${L`<div class="goal"><b>${g.fed}<small> / ${g.count}</small></b><span>livrés</span></div>`}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>`;
+  // One row a recipe, its crate, a thin gauge and its count; the recipe shown is the row picked, else the first to make.
+  if (ui.goalStage !== G.stage) { ui.goalStage = G.stage; ui.goalPick = null; ui.sheetTab = 'asks'; }
+  const first = Math.max(0, G.goals.findIndex(g => g.fed < g.count)), pick = ui.goalPick ?? first, chosen = G.goals[pick] || G.goals[0];
+  const rows = G.goals.map((g, i) => {
+    const part = Math.min(1, g.fed / g.count), met = g.fed >= g.count;
+    return `<button class="ask${met ? ' met' : ''}" data-goal="${i}" aria-pressed="${i === pick}">${picture(g.item)}<span class="gauge${met ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></span><span class="count">${met ? '✓' : `${g.fed}<small> / ${g.count}</small>`}</span></button>`;
   }).join('');
-  const open = G.goals.filter(g => g.fed < g.count), steps = [...new Set(open.flatMap(g => stepsOf(g.item)))];
+  const open = [chosen];
   const hints = open.some(g => boxOf(g.item)) ? `<div class="hints">${L`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`}</div>` : '';
-  return `<h3>${L('Stades')}</h3>${frieze}<h3>${L('Il réclame')}</h3>${wants}<h3>${L('Recette')}</h3>${steps.join('')}${hints}`;
+  const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
+  if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', L`Gisements ×${G.stage + 1 === 2 ? '2' : L('4 à ×8')}`]);
+  for (const mk of [2, 3]) if (RANK_NEED[mk - 1] === G.stage + 1) gives.push(['belt', L`Rang MK${mk}`]);
+  const giving = gives.length ? `<div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : `<p class="unit">${want.gives}</p>`;
+  const tab = ui.sheetTab === 'gives' ? 'gives' : 'asks';
+  const tabs = `<div class="sheet-tabs" role="tablist"><button role="tab" data-sheet-tab="asks" aria-selected="${tab === 'asks'}">${L('Il réclame')}</button><button role="tab" data-sheet-tab="gives" aria-selected="${tab === 'gives'}">${L('Débloque')}</button></div>`;
+  const body = tab === 'gives' ? giving : `<div class="asks">${rows}</div><h3>${L('Recette')}</h3>${stepsOf(chosen.item).join('')}${hints}`;
+  return frieze + tabs + body;
 }
+// A row or a tab of the core's sheet, touched.
+$('sheet').addEventListener('click', event => {
+  const row = event.target.closest('[data-goal]'), tab = event.target.closest('[data-sheet-tab]');
+  if (row) ui.goalPick = Number(row.dataset.goal);
+  else if (tab) ui.sheetTab = tab.dataset.sheetTab;
+  else return;
+  paintSheet(G.cells[selected]);
+});
 function paintSheet(c) {
   const sheet = $('sheet'), on = c?.type === 'core' && Boolean(STAGES[G.stage]);
   sheet.hidden = !on;
@@ -6509,6 +6559,7 @@ function paintMoments() {
     $('growth').querySelector('.stage').textContent = L`Stade ${G.stage} achevé · +${GROWTH_BONUS} ADN`;
     const got = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage).map(type => [type, TYPES[type].name]);
     if (G.stage > 1 && G.stage <= 3) got.push(['mine', L`Gisements ×${G.stage === 2 ? '2' : L('4 à ×8')}`]);
+    for (const mk of [2, 3]) if (RANK_NEED[mk - 1] === G.stage) got.push(['belt', L`Rang MK${mk}`]);
     $('rewards').replaceChildren(...got.map(([type, name]) => {
       const item = document.createElement('div'), hole = document.createElement('span'), words = document.createElement('span');
       item.className = 'pod'; hole.className = 'porthole model'; words.className = 'name'; words.textContent = name;
@@ -6948,6 +6999,8 @@ function summaryOf(game) {
   for (const c of cells) { level = Math.max(level, tierAt(c.x, c.y) + 1); rank = Math.max(rank, c.mk || 1); }
   return {
     stage:game?.stage ?? 0, over:Boolean(game?.over), dna:Math.floor(game?.dna || 0), kills:game?.kills || 0,
+    // Creatures on the map or a breach awake when it was saved: the planet shows that station fighting.
+    fight:!game?.over && ((game?.enemies?.length || 0) > 0 || (Array.isArray(game?.breaches) && game.breaches.some(b => b?.state === 'wake'))),
     played:Math.floor(game?.played ?? game?.time ?? 0), built:cells.length, level, rank,
     spent:(Array.isArray(game?.breaches) ? game.breaches : []).filter(b => b?.state === 'spent').length
   };
@@ -7389,7 +7442,7 @@ function drawGrid() {
     if (game) {
       const e1 = unit3(cross3([0, 1, .001], c)), e2 = cross3(c, e1);
       const to = (u, w) => onScreen(turn(unit3([0, 1, 2].map(k => c[k] + e1[k] * u * size + e2[k] * w * size))));
-      taken += `<polygon class="taken${game.over ? ' fallen' : ''}" points="${shape}"/>${settlementSVG(to, game, id, r / 527.7)}`;
+      taken += `<polygon class="taken${game.over ? ' fallen' : game.fight ? ' fight' : ''}" points="${shape}"/>${settlementSVG(to, game, id, r / 527.7)}`;
     }
     if (id === orbit.hover && id !== orbit.pick) hovered = `<polygon class="hover" points="${shape}"/>`;
     if (id !== orbit.pick) return;
@@ -7617,7 +7670,8 @@ function projectSlot(note = '', bad = false) {
   const shown = game || first, box = $('projection');
   box.classList.toggle('free', !shown);
   box.classList.toggle('fallen', Boolean(shown?.over));
-  $('slot-kicker').textContent = incoming ? L('Fichier reçu') : !game ? L('Hexagone libre') : game.over ? L('Station tombée') : L('Partie en cours');
+  $('slot-kicker').textContent = incoming ? L('Fichier reçu') : !game ? L('Hexagone libre') : game.over ? L('Station tombée') : game.fight ? L('En combat') : L('Partie en cours');
+  $('slot-kicker').classList.toggle('fight', Boolean(game?.fight && !game.over));
   $('slot-name').textContent = incoming?.length > 1 ? L`${incoming.length} parties` : shown ? shown.name : L('Terre vierge');
   $('slot-sub').textContent = incoming?.length > 1 ? L('Elles prendront les hexagones libres autour de celui-ci.') : shown ? stageText(shown) : L('Fonde une station, ou greffes-y une partie exportée.');
   const six = dotsOf(Array.from({length:6}, (_, i) => [66 + Math.cos(i * Math.PI / 3) * 63, 66 + Math.sin(i * Math.PI / 3) * 63]));

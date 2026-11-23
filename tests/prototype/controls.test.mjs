@@ -15,6 +15,8 @@ it("moves, picks, opens, dismantles and rebinds as players asked", async () => {
     // A belt of rank 2 facing down, in the middle of the screen.
     const spot = await page.evaluate(() => {
       begin();
+      // Every rank open: MK2 comes with the second stage, MK3 with the fourth.
+      G.stage = 3;
       paused = true;
       G.dna = 1000;
       const x = CORE.x + 4, y = CORE.y + 4;

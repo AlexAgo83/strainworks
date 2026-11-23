@@ -261,7 +261,7 @@ window.createView3D = (glCanvas) => {
       const kind = field[0];
       const patch = patchOf(field);
       if (!patch.list.some((p) => known(p.x, p.y))) continue;
-      // Dark on dark ground: carbon is framed and named, or it passes for rubble.
+      // Dark on dark ground: carbon is framed, or it passes for rubble. Its name shows when it is aimed at, not floating.
       if (kind === 'K') {
         g.beginPath();
         for (const p of patch.list) {
@@ -271,7 +271,6 @@ window.createView3D = (glCanvas) => {
         }
         g.fillStyle = '#AEB9BF14';
         g.fill();
-        if (cam.zoom >= 8) label(typeof L === 'function' ? L('carbone') : 'carbone', patch.cx, patch.top - 0.42, Math.min(40, Math.max(14, 440 / cam.zoom)), '#D3DCE0');
         continue;
       }
       const rich = richAt(patch.list[0].x, patch.list[0].y);
