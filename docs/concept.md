@@ -401,7 +401,7 @@ overshoots counts toward the next shot.
 
 ## 15. Languages
 
-The game asks for its language on first opening, keeps it in the browser, and changes it from the menu
+The game opens in English and asks for its language on first opening, keeps it in the browser, and changes it from the menu
 (**Langue** / **Language**). A change saves the game in progress and reopens it in the other language.
 
 The French text in the code is the key: `L('…')`, or a template tagged `L`, gives it in the chosen

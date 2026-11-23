@@ -995,8 +995,9 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 // with EN's {} filled in order, or {0}, {1} when English turns the sentence around.
 // The language holds for the whole page: changing it saves the game and reloads.
 const LANG_KEY = 'strainworks-lang';
-const LANG_SET = (() => { try { return localStorage.getItem(LANG_KEY); } catch (_) { return 'fr'; } })();
-const LANG = LANG_SET === 'en' ? 'en' : 'fr';
+const LANG_SET = (() => { try { return localStorage.getItem(LANG_KEY); } catch (_) { return 'en'; } })();
+// English until the player picks French.
+const LANG = LANG_SET === 'fr' ? 'fr' : 'en';
 const DEC = LANG === 'en' ? '.' : ',', LOCALE = LANG === 'en' ? 'en-US' : 'fr-FR';
 function L(s, ...v) {
   const fr = typeof s === 'string' ? s : s.join('{}');
