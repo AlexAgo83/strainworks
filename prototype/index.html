@@ -278,6 +278,14 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #commands dl { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; margin:0 0 16px; }
 #commands dt { color:var(--cyan); }
 #commands dd { margin:0; }
+#commands .keys-head { margin:0 0 8px; color:var(--muted, #8B989C); font-size:13px; }
+#commands #keys { margin-bottom:6px; }
+#commands #keys button { min-width:64px; padding:3px 10px; border:1px solid var(--cyan); border-radius:6px; background:transparent; color:var(--cyan); font:inherit; cursor:pointer; }
+#commands #keys button[aria-pressed="true"] { background:var(--cyan); color:#05090B; }
+#commands #keys-note { min-height:1.2em; margin:0 0 10px; font-size:13px; }
+#hold-ring { position:fixed; z-index:20; width:40px; height:40px; margin:-20px 0 0 -20px; pointer-events:none; }
+#hold-ring circle { fill:none; stroke:#FF6B74; stroke-width:3; stroke-dasharray:101; stroke-dashoffset:101; transform:rotate(-90deg); transform-origin:center; }
+#hold-ring.filling circle { stroke-dashoffset:0; transition:stroke-dashoffset .6s linear; }
 #lang-pick p { margin:0 0 16px; }
 #lang-pick .choice { display:flex; gap:10px; }
 
@@ -985,20 +993,23 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   </section>
   <input id="file" type="file" accept=".json,application/json" hidden>
 
+  <div id="hold-ring" hidden><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16"/></svg></div>
   <dialog id="commands" aria-labelledby="commands-title">
     <h2 id="commands-title">Commandes</h2>
     <dl>
       <dt>Glisser</dt><dd>se déplacer, ou tracer avec Tapis, Piste, Veine, Nerf et Démonter</dd>
       <dt>Deux doigts</dt><dd>se déplacer et zoomer</dd>
       <dt>Molette</dt><dd>zoomer</dd>
-      <dt>Clic droit</dt><dd>se déplacer, outil en main</dd>
+      <dt>Clic droit</dt><dd>glisser pour se déplacer, maintenir pour démonter</dd>
       <dt>Flèches</dt><dd>déplacer la vue, plus vite avec Maj</dd>
       <dt>1 à 7</dt><dd>choisir une famille</dd>
-      <dt>R, Maj+R</dt><dd>tourner dans un sens ou dans l’autre</dd>
-      <dt>Espace</dt><dd>pause et reprise</dd>
+      <dt>Maj+1, 2, 3…</dt><dd>dans une famille ou les statistiques ouvertes, prendre la machine ou l’onglet</dd>
       <dt>Échap</dt><dd>tout lâcher et revenir sur Inspecter</dd>
     </dl>
-    <button id="help-close" class="tip">Fermer</button>
+    <p class="keys-head">Clique une touche pour la changer.</p>
+    <dl id="keys"></dl>
+    <p id="keys-note" role="status"></p>
+    <div class="choice"><button id="keys-reset" class="tip">Touches par défaut</button><button id="help-close" class="tip">Fermer</button></div>
   </dialog>
 
   <dialog id="lang-pick" aria-labelledby="lang-title">
@@ -1217,7 +1228,7 @@ const EN = {
   "Fermer": "Close",
   "Nouvelle version disponible : touche ici pour mettre à jour.": "New version available: tap here to update.",
   "Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.": "The core is hungry: make the gene asked for at the top and bring it to the core. The breaches are asleep.",
-  "Sens : {}. R pour tourner, Maj+R dans l’autre sens.": "Direction: {}. R to rotate, Shift+R the other way.",
+  "Sens : {}. {} pour tourner, Maj+{} dans l’autre sens.": "Direction: {}. {} to rotate, Shift+{} the other way.",
   "Sûr ? Encore une fois": "Sure? Once more",
   "Statistiques": "Statistics",
   "stade {}": "stage {}",
@@ -1615,14 +1626,27 @@ const EN = {
   "Molette": "Wheel",
   "zoomer": "zoom",
   "Clic droit": "Right click",
-  "se déplacer, outil en main": "move, tool in hand",
+  "glisser pour se déplacer, maintenir pour démonter": "drag to move, hold to dismantle",
+  "Maj+1, 2, 3…": "Shift+1, 2, 3…",
+  "dans une famille ou les statistiques ouvertes, prendre la machine ou l’onglet": "in an open family or the open statistics, take the machine or the tab",
+  "Clique une touche pour la changer.": "Click a key to change it.",
+  "Touches par défaut": "Default keys",
+  "Vue vers le haut": "View up",
+  "Vue vers la gauche": "View left",
+  "Vue vers le bas": "View down",
+  "Vue vers la droite": "View right",
+  "Pipette : reprendre le bâtiment survolé": "Eyedropper: take the building under the pointer",
+  "Tourner, avec Maj dans l’autre sens": "Rotate, with Shift the other way",
+  "Pause et reprise": "Pause and resume",
+  "Espace": "Space",
+  "Appuie sur une touche…": "Press a key…",
+  "Touche réservée : choisis-en une autre.": "Reserved key: choose another one.",
+  "Échangée avec : {}.": "Swapped with: {}.",
+  "Pipette : survole un bâtiment à reprendre.": "Eyedropper: point at a building to take it.",
   "Flèches": "Arrows",
   "déplacer la vue, plus vite avec Maj": "move the view, faster with Shift",
   "1 à 7": "1 to 7",
   "choisir une famille": "choose a family",
-  "R, Maj+R": "R, Shift+R",
-  "tourner dans un sens ou dans l’autre": "rotate one way or the other",
-  "pause et reprise": "pause and resume",
   "Échap": "Esc",
   "tout lâcher et revenir sur Inspecter": "drop everything and go back to Inspect",
   "Langue": "Language",
@@ -4741,7 +4765,24 @@ canvas.addEventListener('pointerdown', event => {
   drag = null;
   if (pointers.size > 1) { gesture = {mode:'pinch'}; return; }
   gesture = {mode:event.button > 0 ? 'pan' : 'tap', start:p, now:p};
+  if (event.button === 2) holdToDismantle(event, p);
 });
+// Held still for 0.6 s, the right button dismantles what is under it: a ring fills, letting go or moving gives up.
+const HOLD_MS = 600;
+function holdToDismantle(event, p) {
+  const ring = $('hold-ring');
+  ring.style.left = `${event.clientX}px`; ring.style.top = `${event.clientY}px`;
+  ring.hidden = false; ring.classList.remove('filling'); void ring.offsetWidth; ring.classList.add('filling');
+  gesture.hold = setTimeout(() => {
+    stopHold();
+    const at = view3d ? view3d.pick(p) : position(p);
+    if (inside(at.x, at.y)) { wipe(at.x, at.y); refresh(); }
+  }, HOLD_MS);
+}
+function stopHold() {
+  if (gesture?.hold) { clearTimeout(gesture.hold); gesture.hold = null; }
+  $('hold-ring').hidden = true; $('hold-ring').classList.remove('filling');
+}
 canvas.addEventListener('pointerleave', () => { hovered = null; });
 canvas.addEventListener('pointermove', event => {
   hovered = event.pointerType === 'touch' ? null : screenPoint(event);
@@ -4760,6 +4801,7 @@ canvas.addEventListener('pointermove', event => {
   }
   pointers.set(event.pointerId,p);
   gesture.now = p;
+  if (gesture.hold && Math.hypot(p.x - gesture.start.x,p.y - gesture.start.y) >= 8) stopHold();
   if (gesture.mode === 'tap') {
     if (Math.hypot(p.x - gesture.start.x,p.y - gesture.start.y) < 8) return;
     if (!['belt','erase','pump','track','wire'].includes(tool)) { gesture.mode = 'pan'; pan(p.x - gesture.start.x,p.y - gesture.start.y); return; }
@@ -4783,6 +4825,7 @@ canvas.addEventListener('pointermove', event => {
 });
 function release(event) {
   if (!pointers.delete(event.pointerId) || pointers.size) return;
+  stopHold();
   if (event.type === 'pointerup' && gesture?.mode === 'tap') {
     const p = view3d ? view3d.pick(gesture.start) : position(gesture.start);
     if (inside(p.x,p.y)) place(p.x,p.y);
@@ -4812,15 +4855,88 @@ canvas.addEventListener('wheel', event => {
 }, {passive:false});
 // The arrows glide the camera at one speed on screen, whatever the zoom. Shift is faster.
 const GLIDE = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]};
+// ---- Keys the player can change. Named by where they sit (event.code), so W A S D is Z Q S D on a French board.
+const KEYS_KEY = 'strainworks-keys';
+const ACTIONS = [
+  ['up', L('Vue vers le haut'), 'KeyW'],
+  ['left', L('Vue vers la gauche'), 'KeyA'],
+  ['down', L('Vue vers le bas'), 'KeyS'],
+  ['right', L('Vue vers la droite'), 'KeyD'],
+  ['pick', L('Pipette : reprendre le bâtiment survolé'), 'KeyQ'],
+  ['rotate', L('Tourner, avec Maj dans l’autre sens'), 'KeyR'],
+  ['pause', L('Pause et reprise'), 'Space'],
+];
+const RESERVED = /^(Escape|Tab|Enter|Arrow|Digit|Numpad|Shift|Control|Alt|Meta|F\d)/;
+let KEYS = {};
+function loadKeys() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEYS_KEY)) || {}; } catch (_) {}
+  KEYS = Object.fromEntries(ACTIONS.map(([id, , code]) => [id, typeof saved[id] === 'string' && !RESERVED.test(saved[id]) ? saved[id] : code]));
+}
+loadKeys();
+const actionOf = event => event.ctrlKey || event.metaKey || event.altKey || event.target.closest?.('input, textarea') ? null : ACTIONS.find(([id]) => KEYS[id] === event.code)?.[0];
+const PAN_DIRS = {up:'ArrowUp', left:'ArrowLeft', down:'ArrowDown', right:'ArrowRight'};
+// The arrow a key stands for: the arrows themselves, or the four keys of the view.
+const dirOf = event => GLIDE[event.key] ? event.key : PAN_DIRS[actionOf(event)];
+// What the key shows on this board, where the browser tells. shortcut: without it, a French page guesses AZERTY for the letters that move.
+let layout = null;
+navigator.keyboard?.getLayoutMap?.().then(map => { layout = map; paintKeys(); }).catch(() => {});
+const AZERTY = {KeyW:'Z', KeyA:'Q', KeyQ:'A', KeyZ:'W', Semicolon:'M'};
+const keyName = code => code === 'Space' ? L('Espace') : (layout?.get(code) || (LANG === 'fr' && AZERTY[code]) || code.replace(/^(Key|Digit)/, '')).toUpperCase();
+let rebinding = null;
+function paintKeys() {
+  $('keys').innerHTML = ACTIONS.map(([id, name]) => `<dt><button type="button" data-action="${id}" aria-pressed="${rebinding === id}">${rebinding === id ? L('Appuie sur une touche…') : keyName(KEYS[id])}</button></dt><dd>${name}</dd>`).join('');
+}
+paintKeys();
+$('keys').onclick = event => {
+  const b = event.target.closest('[data-action]');
+  if (!b) return;
+  rebinding = rebinding === b.dataset.action ? null : b.dataset.action;
+  $('keys-note').textContent = '';
+  paintKeys();
+};
+$('keys-reset').onclick = () => {
+  try { localStorage.removeItem(KEYS_KEY); } catch (_) {}
+  rebinding = null; loadKeys(); $('keys-note').textContent = ''; paintKeys();
+};
+$('commands').addEventListener('close', () => { rebinding = null; paintKeys(); });
+// The next key pressed is the new one; Escape gives up. A key another action had is swapped with it.
+document.addEventListener('keydown', event => {
+  if (!rebinding || !$('commands').open) return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  if (event.code === 'Escape') { rebinding = null; paintKeys(); return; }
+  if (RESERVED.test(event.code) || !event.code) { $('keys-note').textContent = L('Touche réservée : choisis-en une autre.'); return; }
+  const other = ACTIONS.find(([id]) => id !== rebinding && KEYS[id] === event.code);
+  if (other) KEYS[other[0]] = KEYS[rebinding];
+  KEYS[rebinding] = event.code;
+  $('keys-note').textContent = other ? L`Échangée avec : ${other[1]}.` : '';
+  try { localStorage.setItem(KEYS_KEY, JSON.stringify(KEYS)); } catch (_) {}
+  rebinding = null; paintKeys();
+}, true);
+// The eyedropper: the building under the pointer, in hand with its heading and rank.
+function pipette() {
+  const at = hovered && (view3d ? view3d.pick(hovered) : position(hovered));
+  const c = at && inside(at.x, at.y) ? cellAt(at.x, at.y) : null;
+  if (!c || !$('tools').querySelector(`[data-type="${c.type}"]`)) { refuse(L('Pipette : survole un bâtiment à reprendre.')); return; }
+  if (RANKS[c.type]) handRank[c.type] = rankOf(c);
+  choose(c.type);
+  if (tool === c.type && TURNS.includes(c.type)) setHeading(c.dir);
+}
+document.addEventListener('keydown', event => {
+  if (actionOf(event) !== 'pick' || event.repeat || modalOpen() || G.over) return;
+  event.preventDefault();
+  pipette();
+});
 const arrows = new Set();
 let hurried = false;
 document.addEventListener('keydown', event => {
   hurried = event.shiftKey;
-  if (!GLIDE[event.key] || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return;
+  const dir = dirOf(event);
+  if (!dir || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return;
   event.preventDefault();
-  arrows.add(event.key);
+  arrows.add(dir);
 });
-document.addEventListener('keyup', event => { hurried = event.shiftKey; arrows.delete(event.key); });
+document.addEventListener('keyup', event => { hurried = event.shiftKey; arrows.delete(dirOf(event)); });
 // A key let go outside the page never says so.
 window.addEventListener('blur', () => { arrows.clear(); hurried = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden) arrows.clear(); });
@@ -5028,7 +5144,7 @@ $('pause').onclick = togglePause;
 let tabbed = false;
 document.addEventListener('pointerdown', () => { tabbed = false; }, true);
 function spacePauses(event) {
-  if (event.code !== 'Space' || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (event.code !== KEYS.pause || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return false;
   if (tabbed && event.target.closest?.('button')) return false;
   // Both ways, or a focused button clicks itself on the way up.
   event.preventDefault();
@@ -5095,13 +5211,13 @@ function rotate(back) {
     setHeading((heading + by) % 4);
     if (building) {
       select(null);
-      say(L`Sens : ${WAYS[heading]}. R pour tourner, Maj+R dans l’autre sens.`);
+      say(L`Sens : ${WAYS[heading]}. ${keyName(KEYS.rotate)} pour tourner, Maj+${keyName(KEYS.rotate)} dans l’autre sens.`);
     }
   }
   showActions();
 }
 document.addEventListener('keydown', event => {
-  if (event.key.toLowerCase() !== 'r' || modalOpen() || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (actionOf(event) !== 'rotate' || modalOpen()) return;
   event.preventDefault();
   rotate(event.shiftKey);
 });
@@ -5826,11 +5942,17 @@ document.addEventListener('pointerdown', event => {
 canvas.addEventListener('wheel', () => { ui.travel = null; }, {passive:true});
 // The physical key, so 1 to 7 also answer on a French keyboard.
 document.addEventListener('keydown', event => {
-  if (GLIDE[event.key]) ui.travel = null;
+  if (dirOf(event)) ui.travel = null;
   if (modalOpen() || G.over || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
   const n = /^(?:Digit|Numpad)([1-8])$/.exec(event.code)?.[1];
   if (!n) return;
   event.preventDefault();
+  // With Shift, inside what is open: the machines of a family, or the tabs of the statistics.
+  if (event.shiftKey && (ui.family || ui.stats)) {
+    const pick = ui.family ? $('tools').querySelectorAll(`.tray[data-tray="${ui.family}"] [data-type]`)[n - 1] : $('stats').querySelectorAll('.tab')[n - 1];
+    if (pick) { replay(pick, 'pressed'); pick.click(); }
+    return;
+  }
   const b = n === '8' ? $('stats-pod') : n === '1' || n === '7' ? $('tools').querySelector(`[data-type="${n === '1' ? 'hand' : 'erase'}"]`) : $('tools').querySelectorAll('.family')[n - 2];
   const box = b.getBoundingClientRect();
   ui.point = {x:box.x + box.width / 2, y:box.y};
@@ -6818,9 +6940,9 @@ document.addEventListener('keydown', event => {
     const game = orbit.list.games[orbit.pick];
     if (!game) leavePlanet(() => foundGame(orbit.pick));
     else if (!game.over) playPicked();
-  } else if (GLIDE[event.key]) {
+  } else if (dirOf(event)) {
     event.preventDefault();
-    const [x, y] = GLIDE[event.key];
+    const [x, y] = GLIDE[dirOf(event)];
     orbit.to = null; orbit.yaw -= x * .12; orbit.pitch = within(orbit.pitch - y * .12, -1.35, 1.35); orbit.dirty = true;
   }
 });
