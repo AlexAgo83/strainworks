@@ -1384,7 +1384,7 @@ window.createModels3D = (B, scene) => {
     N: { long: 0.5, wide: 0.36, tall: 0.32, legs: 3, reach: 0.56 }, // stilts
   };
   function creatures(area) {
-    G.enemies.forEach((e, index) => {
+    G.enemies.map(creatureAt).forEach((e, index) => {
       if (e.x < area.x0 - 1 || e.x > area.x1 + 1 || e.y < area.y0 - 1 || e.y > area.y1 + 1 || !inSight(e.x, e.y)) return;
       const goal = e.goal || { x: CORE.x + 0.5, y: CORE.y + 0.5 };
       const a = Math.atan2(goal.y - e.y, goal.x - e.x);

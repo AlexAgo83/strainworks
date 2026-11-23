@@ -278,7 +278,7 @@ window.createView3D = (glCanvas) => {
     }
     if (cam.zoom >= 9) {
       const packs = [];
-      for (const e of G.enemies) {
+      for (const e of G.enemies.map(creatureAt)) {
         if (!inSight(e.x, e.y)) continue;
         const pack = packs.find((p) => p.e.gene === e.gene && Math.abs(p.e.x - e.x) < 0.8 && Math.abs(p.e.y - e.y) < 0.6);
         if (pack) pack.n++;

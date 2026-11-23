@@ -3077,6 +3077,12 @@ function spawn(b, gene) {
   const a = Math.random() * Math.PI * 2, far = 2 + Math.random() * 3, x = b.x + .5, y = b.y + .5;
   G.enemies.push({x, y, gene, hp, max:hp, home:G.breaches.indexOf(b), fly:{x, y, tx:x + Math.cos(a) * far, ty:y + Math.sin(a) * far, t:0}});
 }
+// Where to draw a creature: in flight, between two ticks, for the throw is too quick for 20 steps a second.
+function creatureAt(e) {
+  if (!e.fly) return e;
+  const f = e.fly, k = Math.min(1, f.t + owed / NEST.throw);
+  return {...e, x:f.x + (f.tx - f.x) * k, y:f.y + (f.ty - f.y) * k, z:Math.sin(Math.PI * k) * 1.6};
+}
 function destroyNest(b) {
   b.state = 'spent'; b.ended = G.time; b.hp = 0;
   earn('breaches', b.total);
@@ -3817,7 +3823,7 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(s.x + Math.cos(a) * out - Math.sin(a) * off,s.y + Math.sin(a) * out + Math.cos(a) * off); ctx.lineTo(s.tx,s.ty); ctx.stroke();
   }
   const packs = [];
-  for (const e of G.enemies) {
+  for (const e of G.enemies.map(creatureAt)) {
     if (!inSight(e.x,e.y)) continue;
     const pack = packs.find(p => p.e.gene === e.gene && Math.abs(p.e.x - e.x) < .8 && Math.abs(p.e.y - e.y) < .6);
     if (pack) pack.n++; else packs.push({e, n:1});
