@@ -297,8 +297,7 @@ window.createView3D = (glCanvas) => {
         [...gene].forEach((kind, i) => glyph(g, kind, x + (i - 1) * 0.65, y + 2 + row * 0.65, 0.24));
       });
     }
-    const want = STAGES[G.stage];
-    const part = !want ? 0 : want.rate ? G.held / want.hold : G.fed / want.count;
+    const part = stagePart() ?? 0;
     if (part > 0) {
       g.beginPath();
       g.arc(CORE.x + 0.5, CORE.y + 0.5, 1.05 + G.stage * 0.22, -Math.PI / 2, -Math.PI / 2 + part * Math.PI * 2);

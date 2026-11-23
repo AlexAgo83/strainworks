@@ -1168,8 +1168,7 @@ window.createModels3D = (B, scene) => {
   function organism() {
     const x = CORE.x + 0.5;
     const y = CORE.y + 0.5;
-    const want = STAGES[G.stage];
-    const part = !want ? 0 : want.rate ? G.held / want.hold : G.fed / want.count;
+    const part = stagePart() ?? 0;
     const born = Math.min(1, (G.time - (G.grownAt ?? -99)) / 3);
     const reach = 1.3 + Math.max(0, G.stage + part - (1 - born)) * 1.6;
     // On the plinth the arms climb as a crown over it, a little taller each stage, held over its edge.
