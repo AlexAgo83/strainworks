@@ -29,6 +29,9 @@ it("guides a new game to its first line into the core", async () => {
       const dna = G.dna;
       // The spot is a free S cell: building there completes the step.
       const s = ui.guidePoint;
+      // Painted again, the circle stays on the middle of the same cell.
+      paintGuide();
+      const steady = [ui.guidePoint.x - s.x, ui.guidePoint.y - s.y, s.x % 1, s.y % 1];
       put("mine", Math.floor(s.x), Math.floor(s.y), 1);
       paintGuide();
       seen.push(read());
@@ -44,13 +47,14 @@ it("guides a new game to its first line into the core", async () => {
       seen.push(read());
       G.fed = 1;
       paintGuide();
-      return { seen, dna: G.dna - dna, done: document.querySelector("#guide").hidden, bases: [depositAt(Math.floor(s.x), Math.floor(s.y)), depositAt(Math.floor(f.x), Math.floor(f.y))] };
+      return { seen, steady, dna: G.dna - dna, done: document.querySelector("#guide").hidden, bases: [depositAt(Math.floor(s.x), Math.floor(s.y)), depositAt(Math.floor(f.x), Math.floor(f.y))] };
     });
     expect(out.seen[0]).toMatchObject({ step: 0, shown: true, called: ["rec"], spot: true, pictured: 1 });
     expect(out.seen[0].title).toBe("Pose un récolteur sur");
     expect(out.seen[1]).toMatchObject({ step: 1, called: ["rec"] });
     expect(out.seen[2]).toMatchObject({ step: 3, called: ["fab"], spot: false });
     expect(out.seen[3]).toMatchObject({ step: 4, called: ["tra"], spot: true });
+    expect(out.steady).toEqual([0, 0, 0.5, 0.5]);
     expect(out).toMatchObject({ dna: 25, done: true, bases: ["S", "F"] });
     // Hidden, it waits behind a button; the menu starts it again.
     const again = await page.evaluate(() => {

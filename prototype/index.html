@@ -5462,8 +5462,8 @@ function guideSpot(step) {
   const want = GUIDE[step];
   if (want.model === 'belt') return {x:CORE.x + .5, y:CORE.y + .5};
   if (!want.base) return null;
-  const old = ui.guideSpot;
-  if (old?.step === step && !cellAt(old.x, old.y)) return old;
+  const old = ui.guideSpot, middle = s => s && {...s, x:s.x + .5, y:s.y + .5};
+  if (old?.step === step && !cellAt(old.x, old.y)) return middle(old);
   let best = null;
   for (let r = 2; r <= 26 && !best; r++) for (let x = CORE.x - r; x <= CORE.x + r; x++) for (let y = CORE.y - r; y <= CORE.y + r; y++) {
     if (Math.max(Math.abs(x - CORE.x), Math.abs(y - CORE.y)) !== r || depositAt(x, y) !== want.base || cellAt(x, y) || !placeable(x, y)) continue;
@@ -5471,7 +5471,7 @@ function guideSpot(step) {
     if (!best || d < best.d) best = {x, y, d};
   }
   ui.guideSpot = best && {step, x:best.x, y:best.y};
-  return ui.guideSpot && {...ui.guideSpot, x:best.x + .5, y:best.y + .5};
+  return middle(ui.guideSpot);
 }
 function paintGuide() {
   const g = G.guide, live = Boolean(g) && g.step < GUIDE.length && !G.over && !orbit.on;
@@ -6724,7 +6724,6 @@ function openPlanet(intro) {
 }
 // enter readies the game and says whether it could.
 function leavePlanet(enter, at) {
-  sleepStation();
   if (!orbit.on) return false;
   orbit.on = false;
   if (!enter()) {
@@ -6737,10 +6736,11 @@ function leavePlanet(enter, at) {
   showMenu(false);
   orbit.seenAt = performance.now();
   el.style.transformOrigin = `${x}px ${y}px`;
-  if (at === 'now' || STILL.matches) el.hidden = true;
+  // The live station stays through the zoom: its picture is an older model.
+  if (at === 'now' || STILL.matches) { el.hidden = true; sleepStation(); }
   else {
     el.classList.add('leaving');
-    setTimeout(() => { if (!orbit.on) el.hidden = true; }, 720);
+    setTimeout(() => { if (!orbit.on) { el.hidden = true; sleepStation(); } }, 720);
   }
   resize(); home();
   canvas.focus({preventScroll:true});
