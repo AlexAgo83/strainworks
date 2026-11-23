@@ -38,7 +38,7 @@ A factory game crossed with tower defense, in the browser and on the phone, in E
   logistics: worms that haul like trains, veins that pump, isotope far out in the dark.
 - **Nothing appears by magic.** Drones fly to every site, build it, dismantle it, repair it. You watch them work.
 
-![An assault on the starting base](docs/media/strainworks-assault.gif)
+![An assault on the north nest: the turret fires, the nest empties, then breeds again](docs/media/strainworks-assault.gif)
 
 ## A small planet of games
 
@@ -47,11 +47,11 @@ copy it, share it as a file. The game installs as an app and plays offline, in 2
 small-planet curvature, on a desktop or a phone.
 
 <p align="center">
-  <img src="docs/media/strainworks-planet.png" alt="The planet of saved games" width="49%" />
+  <img src="docs/media/strainworks-planet.gif" alt="The planet of saved games" width="49%" />
   <img src="docs/media/strainworks-stats.png" alt="The Statistics sheet" width="49%" />
 </p>
 
-<p align="center"><img src="docs/media/strainworks.png" alt="The starting base in 3D" /></p>
+<p align="center"><img src="docs/media/strainworks-overview.gif" alt="A stage 2 factory in 3D: two production lines, bridges, a radar and an assault on its way" /></p>
 
 ## Play
 
