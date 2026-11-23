@@ -19,8 +19,7 @@ very code you manufacture. Your only real weapon is their exact opposite.
 
 Zoom out and the belts start to pulse like veins. **It was never a factory. It was a creature.**
 
-A factory game crossed with tower defense, in the browser and on the phone. Version `0.1.0`, a playable
-prototype, in English and French.
+A factory game crossed with tower defense, in the browser and on the phone, in English and French.
 
 ---
 

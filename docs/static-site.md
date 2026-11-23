@@ -21,7 +21,7 @@ Creating the service makes a first deployment of main.
 Deployment follows a published GitHub release `vX.Y.Z`, never a push. The sequence is
 `release_sequence` in `logics/release/contract.json`. The workflow refuses a tag that
 is not on main, does not match `package.json`, or has no green CI, then waits until
-`version.json` on the site names the released commit.
+`version.json` on the site names the released commit. The bottom of the game menu shows the version and its commit, and opens the repository.
 
 A new version installs when the game is next closed and opened. An open game keeps
 the files it started with.

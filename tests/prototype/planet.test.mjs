@@ -296,7 +296,7 @@ it("turns under the finger, and shares one menu with the game", async () => {
     await act(page, "Fonder une station").click();
     await page.click("#menu-toggle");
     expect(await page.isVisible("#restart")).toBe(true);
-    expect(await page.isVisible("#export-game")).toBe(true);
+    expect(await page.isVisible("#version-row")).toBe(true);
     expect(await page.isVisible("#import")).toBe(false);
     expect(errors).toEqual([]);
   } finally {

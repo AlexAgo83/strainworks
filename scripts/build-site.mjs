@@ -79,8 +79,8 @@ page = replaceOnce(
 );
 page = replaceOnce(
   page,
-  "<h2>Réglages</h2>",
-  `<h2>Réglages</h2><p id="build" style="color:var(--muted);font-size:12px">v${version} · ${commit.slice(0, 7)}</p>`,
+  `<span id="game-version">${version}</span>`,
+  `<span id="game-version">${version} · ${commit.slice(0, 7)}</span>`,
 );
 writeFileSync(resolve(out, "index.html"), page);
 cached.push("index.html");
