@@ -1,6 +1,6 @@
 # Strainworks 0.1.0
 
-Release date: to be set, publication pending.
+Release date: 2026-11-23.
 
 The first playable version.
 
