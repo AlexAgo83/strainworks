@@ -351,11 +351,11 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #slot-facts p { display:inline-flex; align-items:baseline; gap:5px; padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.05); font-size:12px; }
 #slot-facts b { display:inline; font-size:15px; }
 #slot-actions { grid-template-columns:minmax(0,1.6fr) repeat(3, minmax(0,1fr)); gap:6px; margin-top:4px; }
-#slot-actions .act.go { grid-column:auto; }
+#app #slot-actions .act.go { grid-column:auto; }
 #app #slot-actions .act { min-height:40px; padding:4px 10px; font-size:13px; }
 @media (max-width:759px), (max-height:520px), (max-aspect-ratio:11/10) {
   #slot-actions { grid-template-columns:repeat(3, minmax(0,1fr)); }
-  #slot-actions .act.go { grid-column:1 / -1; }
+  #app #slot-actions .act.go { grid-column:1 / -1; }
 }
 
 /* The guided start (boards 15 and 16). */
@@ -5605,7 +5605,7 @@ function projectSlot(note = '', bad = false) {
   const color = !shown ? '#B7F34A' : shown.over ? '#FF6B74' : '#66D9EA';
   const inner = shown ? settlementSVG((u, v) => [66 + u * 55, 66 - v * 55], shown, id, .85) : '<path d="M52 66h28M66 52v28" stroke="#B7F34A" stroke-width="3"/>';
   $('slot-icon').innerHTML = `<polygon points="${six}" fill="#040A0C99" stroke="${color}" stroke-width="1.5"/>${inner}`;
-  const facts = game ? [[durationText(game.played), 'de jeu'], [Math.floor(Number(game.dna) || 0).toLocaleString('fr-FR'), 'ADN'], [Number(game.spent) || 0, 'nids vidés'], [(Number(game.kills) || 0).toLocaleString('fr-FR'), 'tuées']] : [];
+  const facts = game ? [[durationText(game.played), 'de jeu'], [Math.floor(Number(game.dna) || 0).toLocaleString('fr-FR'), 'ADN'], [Number(game.spent) || 0, 'nids détruits'], [(Number(game.kills) || 0).toLocaleString('fr-FR'), 'tuées']] : [];
   $('slot-facts').replaceChildren(...facts.map(([value, label]) => {
     const p = document.createElement('p'), b = document.createElement('b');
     b.textContent = value; p.append(b, label);
