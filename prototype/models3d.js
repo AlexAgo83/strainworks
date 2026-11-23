@@ -467,7 +467,6 @@ window.createModels3D = (B, scene) => {
       limb('copper', ...from(x, y, out, 0.14), 0.72, tx, ty, 0.3, 0.1);
       nozzle(x, y, c.dir, 0.24);
       status(...from(x, y, out + 2.5, 0.2), 0.86, 'lime', working);
-      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.5 + i * 0.16, 0.5 + i * 0.12);
     },
 
     // A glass column holding the helix it is binding, three mouths in, one nozzle out.
@@ -581,7 +580,6 @@ window.createModels3D = (B, scene) => {
         if (fine) limb('gore', ...from(x, y, a + 0.3, r * 0.46), 0.22 + r * 0.22, ...from(x, y, a, r * 0.3), 0.22 + r * 0.68, 0.035);
       }
       add('lip', 'pink', x, y, 0.2 + r * 0.83, 0.2);
-      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.12 + i * 0.14, 0.78);
       if (c.stock.length && fine) cargo(c.stock[0], x, y, 0.3 + r * 0.85, Math.PI, 0.36);
       nozzle(x, y, c.dir, 0.22);
     },
@@ -607,7 +605,6 @@ window.createModels3D = (B, scene) => {
       if (fine) for (let i = 0; i < 3; i++) add('ring', 'copper', x, y, 0.62 + i * 0.16 + dive, 0.4 - i * 0.05);
       add('hull', 'steel', x, y, 1.26, 0.74, 0.22, 0.74);
       add('ring', working ? 'cyan' : 'amber', x, y, 1.39, 0.7);
-      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.8 + i * 0.22, 1 + i * 0.2);
       add('dome', 'glass', x, y, 1.36, 0.6, 0.7, 0.6);
       base(kind, x, y, 1.5, 0.19, spin * 0.2);
       for (const door of edgesOf(c)) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.22);
@@ -632,7 +629,6 @@ window.createModels3D = (B, scene) => {
       }
       add('sac', 'skin', x, y, 0.62, 0.4, 0.46, 0.4);
       add('ring', full > 0.95 ? 'alarm' : 'cyan', x, y, 0.84, 0.36);
-      for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.18 + i * 0.2, 1.66);
       if (c.stock.length) cargo(c.stock[0], x, y, 0.98, Math.PI, 0.5);
       for (const door of edgesOf(c)) {
         if (door.dir === c.dir) nozzle(door.x + 0.5, door.y + 0.5, door.dir, 0.26);
@@ -819,6 +815,46 @@ window.createModels3D = (B, scene) => {
     },
   };
 
+
+  // A rank shows on its own plinth, square to the cell: a dark plate, a lit frame in the rank's colour (orange
+  // MK2, violet MK3), corner posts taller and beating at MK3, chevrons at the front, and a part each family gains.
+  function rankKit(c, x, y, size) {
+    const mk = rankOf(c), paint = mk > 2 ? 'rail3' : 'rail2', half = size / 2 - 0.05, w = size - 0.1;
+    add('hull', 'dark', x, y, 0.012, w, 0.024, w);
+    for (const s of [-1, 1]) {
+      add('hull', paint, x + s * half, y, 0.03, 0.05, 0.04, w);
+      add('hull', paint, x, y + s * half, 0.03, w, 0.04, 0.05);
+    }
+    const post = mk > 2 ? 0.42 + Math.sin(clock * 3) * 0.04 : 0.26;
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) add('hull', paint, x + sx * half, y + sy * half, post / 2, 0.07, post, 0.07);
+    const a = facing(c.dir ?? 0);
+    for (let i = 0; i < mk - 1; i++) {
+      const [cx, cy] = from(x, y, a, half - 0.02 - i * 0.14);
+      for (const s of [-1, 1]) add('hull', paint, ...from(cx, cy, a + s * 2.3, 0.09), 0.05, 0.16, 0.035, 0.05, a + s * 0.8);
+    }
+    if (c.type === 'mine' || c.type === 'borer') for (let i = 0; i < mk - 1; i++) {
+      // A drilling arm more each rank, its tip lit.
+      const b = a + Math.PI / 2 + i * Math.PI, r = size * 0.24;
+      limb('steel', ...from(x, y, b, r * 0.5), 0.7, ...from(x, y, b, r * 1.8), 0.08, 0.11, 'taper');
+      add('bead', paint, ...from(x, y, b, r * 1.8), 0.12, 0.11);
+    }
+    if (['ligase', 'join', 'pack'].includes(c.type)) for (let i = 0; i < mk - 1; i++) {
+      // A coil on each side, an arc between them at MK3.
+      const s = i ? -1 : 1, [cx, cy] = from(x, y, a + s * Math.PI / 2, 0.44);
+      add('tube', 'steel2', cx, cy, 0.4, 0.16, 0.6, 0.16);
+      for (let k = 0; k < 4; k++) add('ring', paint, cx, cy, 0.16 + k * 0.13, 0.24);
+      if (mk > 2 && i) limb(paint, ...from(x, y, a + Math.PI / 2, 0.44), 0.74 + Math.sin(clock * 6) * 0.03, ...from(x, y, a - Math.PI / 2, 0.44), 0.74, 0.04);
+    }
+    if (['turret', 'sting', 'maw'].includes(c.type)) {
+      // Front armour lined in the rank's colour, and a back plate at MK3.
+      const aim = c.aim ?? a, [fx, fy] = from(x, y, aim, 0.34);
+      add('hull', 'steel', fx, fy, 0.34, 0.6, 0.42, 0.12, aim);
+      add('hull', paint, ...from(fx, fy, aim, 0.07), 0.34, 0.62, 0.06, 0.05, aim);
+      if (mk > 2) add('hull', 'steel', ...from(x, y, aim + Math.PI, 0.34), 0.34, 0.52, 0.36, 0.12, aim);
+    }
+    if (c.type === 'cyst' || c.type === 'vault') for (let i = 0; i < mk; i++) add('ring', paint, x, y, 0.22 + i * 0.2, size * 0.44);
+    if (c.type === 'wall') for (let i = 0; i < mk - 1; i++) add('horn', 'bone', x, y, 0.5 + i * 0.2, 0.18, 0.4, 0.18);
+  }
   // ---- The ground
   function fields(area) {
     for (const field of fieldsIn(area.x0, area.y0, area.x1, area.y1)) {
@@ -1246,7 +1282,7 @@ window.createModels3D = (B, scene) => {
       // Solid from the bottom up, as far as it stands: taken down, it goes from the top.
       if (waiting) add.solid = woven(c) * (size > 1 ? 1.6 : 0.9);
       BUILDINGS[c.type]?.(c, x, y);
-      if (RINGED.has(c.type)) for (let i = 1; i < rankOf(c); i++) add('ring', i > 1 ? 'rail3' : 'rail2', x, y, 0.1 + i * 0.12, 0.6 + i * 0.1);
+      if (rankOf(c) > 1) rankKit(c, x, y, sizeOf(c));
       add.ghost = false;
       add.solid = 0;
       if (waiting) {
