@@ -21,6 +21,8 @@ function seedRandom() {
 // A new game is the core alone. Games recorded before began on a first line; tests replaying them lay it again.
 function startLine() {
   window.startLine = () => {
+    delete G.cells[key(CORE.x - 1, CORE.y - 1)];
+    put("core", CORE.x, CORE.y, 0);
     const run = (x0, y0, x1, y1, dir) => {
       for (let x = x0, y = y0; ; x += DX[dir], y += DY[dir]) { put("belt", x, y, dir); if (x === x1 && y === y1) break; }
     };

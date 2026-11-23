@@ -791,6 +791,21 @@ window.createModels3D = (B, scene) => {
 
     // A creature held in a steel cradle, growing lobes, ribs and a crown.
     core(c, x, y) {
+      if (c.size !== 3) return this.coreBody(c, x, y);
+      const top = 0.55;
+      add('hull', 'dark', x, y, top / 2, 2.94, top, 2.94);
+      add('hull', 'steel2', x, y, top + 0.03, 2.72, 0.06, 2.72);
+      add('ring', 'cyan', x, y, top + 0.07, 2.3, 0.3, 2.3);
+      for (let s = 0; s < 4; s++) for (const o of [-1, 0, 1]) {
+        const dx = DX[s], dy = DY[s];
+        add('hull', 'black', x + dx * 1.36 + -dy * o, y + dy * 1.36 + dx * o, top * 0.45, dx ? 0.3 : 0.7, top * 0.8, dx ? 0.7 : 0.3);
+        add('hull', 'cyan', x + dx * 1.49 + -dy * o, y + dy * 1.49 + dx * o, top * 0.55, dx ? 0.05 : 0.5, 0.1, dx ? 0.5 : 0.05);
+      }
+      const raw = add;
+      add = (shape, paint, ax, ay, h, ...rest) => raw(shape, paint, ax, ay, h + top, ...rest);
+      try { this.coreBody(c, x, y); } finally { add = raw; }
+    },
+    coreBody(c, x, y) {
       const beat = Math.exp(-((clock * 1.15) % 1) * 6) * 0.09;
       const stage = Math.min(3, G.stage);
       add('skirt', 'dark', x, y, 0.14, 1.56, 0.28, 1.56, Math.PI / 8);
@@ -1059,13 +1074,30 @@ window.createModels3D = (B, scene) => {
       if (b.x < area.x0 - 6 || b.x > area.x1 + 6 || b.y < area.y0 - 6 || b.y > area.y1 + 6) continue;
       const tier = b.tier || 0;
       // It fades as it dies, and stands bigger the farther it was dealt.
-      const fade = (b.state === 'spent' ? 1 - (G.time - b.ended) / 8 : 1) * (1 + tier * 0.08);
+      // Hit, it swells a little and settles back: a spasm a third of a second long.
+      const hurt = nestHurt(b), spasm = 1 + Math.sin(hurt * Math.PI) * 0.12;
+      const fade = (b.state === 'spent' ? 1 - (G.time - b.ended) / 8 : 1) * (1 + tier * 0.08) * spasm;
       if (fade <= 0) continue;
       const x = b.x + 0.5;
       const y = b.y + 0.5;
       const asleep = b.state === 'sleep';
       const left = b.left / b.total;
-      const breath = asleep ? Math.sin(clock * 0.8 + b.x) * 0.02 : Math.sin(clock * 5) * 0.08;
+      // Badly hurt, its breath turns uneven.
+      const torn = b.max ? 1 - b.hp / b.max : 0;
+      const breath = asleep ? Math.sin(clock * 0.8 + b.x) * 0.02 : Math.sin(clock * 5) * 0.08 + (torn > 0.4 ? Math.sin(clock * 13.7 + b.y) * 0.05 * torn : 0);
+      if (hurt > 0) {
+        // A red flash and spatter thrown out.
+        add('ball', 'alarm', x, y, 0.6, (1.1 + (1 - hurt) * 0.6) * fade * hurt);
+        for (let i = 0; i < 7; i++) {
+          const a = i * 0.9 + b.x, out = (1 - hurt) * 2.2;
+          add('bead', i % 2 ? 'gore' : 'alarm', ...from(x, y, a, 0.6 + out), 0.3 + out * hurt * 1.4, 0.16 * hurt + 0.04);
+        }
+      }
+      if (fine && !asleep && torn > 0.4) for (let i = 0; i < 3; i++) {
+        // Bleeding: drops running down its sides.
+        const p = (clock * 0.5 + i / 3) % 1, a = i * 2.1 + b.y;
+        add('bead', 'gore', ...from(x, y, a, 1.1 + p * 0.5), 1 - p * 0.9, 0.1 * (1 - p) + 0.03);
+      }
       add('stain', asleep ? 'husk' : 'infected', x, y, 0.035, 7.2 * fade, 0.04, 7.2 * fade, b.x);
       for (let i = 0; i < tier * 3; i++) {
         // A crown of spines for what a level adds.
@@ -1140,19 +1172,21 @@ window.createModels3D = (B, scene) => {
     const part = !want ? 0 : want.rate ? G.held / want.hold : G.fed / want.count;
     const born = Math.min(1, (G.time - (G.grownAt ?? -99)) / 3);
     const reach = 1.3 + Math.max(0, G.stage + part - (1 - born)) * 1.6;
+    // On the plinth the arms climb as a crown over it, a little taller each stage, held over its edge.
+    const crown = coreCell()?.size === 3, tall = 1 + Math.min(3, Math.max(0, G.stage + part - (1 - born))) * 0.45;
     const arms = 6 + G.stage * 3;
     const joints = fine ? 9 : 4;
     for (let i = 0; i < arms; i++) {
       const a0 = i * 2.39996;
       const far = reach * (0.8 + (i % 4) * 0.13);
-      let [px, py] = from(x, y, a0, 0.55);
-      let ph = 0.2;
+      let [px, py] = from(x, y, a0, crown ? 1.05 : 0.55);
+      let ph = crown ? 0.6 : 0.2;
       let a = a0;
       for (let j = 1; j <= joints; j++) {
         const k = j / joints;
         a = a0 + Math.sin(i * 1.7 + k * 5) * 0.34 + Math.sin(clock * 0.9 + i + k * 4) * 0.16 * k;
-        const [nx, ny] = from(px, py, a, Math.max(0.1, far - 0.55) / joints);
-        const nh = 0.04 + Math.max(0, 0.16 * (1 - k * 2)) + (k === 1 ? 0.12 : 0);
+        const [nx, ny] = crown ? from(x, y, a, 1.05 + Math.sin(k * Math.PI * 0.6) * 0.5 * Math.min(1, far / 4)) : from(px, py, a, Math.max(0.1, far - 0.55) / joints);
+        const nh = crown ? 0.6 + k * tall * (0.85 + (i % 3) * 0.1) : 0.04 + Math.max(0, 0.16 * (1 - k * 2)) + (k === 1 ? 0.12 : 0);
         const width = (0.3 + G.stage * 0.05) * (1 - k * 0.66);
         limb(k > 0.7 ? 'skin2' : 'skin', px, py, ph, nx, ny, nh, width, 'taper');
         if (fine) add('bead', k > 0.7 ? 'skin2' : 'skin', nx, ny, nh, width * 0.8);
@@ -1420,13 +1454,32 @@ window.createModels3D = (B, scene) => {
     C: { long: 0.64, wide: 0.5, tall: 0.36, legs: 3, reach: 0.42 }, // armoured
     N: { long: 0.5, wide: 0.36, tall: 0.32, legs: 3, reach: 0.56 }, // stilts
   };
+  // The dead lie flat and dark on a stain for 20 s, legs folded, then sink into the ground.
+  function corpses(area) {
+    for (const d of G.corpses || []) {
+      if (d.x < area.x0 - 1 || d.x > area.x1 + 1 || d.y < area.y0 - 1 || d.y > area.y1 + 1 || !inSight(d.x, d.y)) continue;
+      const sunk = corpseSunk(d);
+      if (sunk >= 1) continue;
+      const kind = silhouette(d.gene), { long, wide } = BODY[kind], low = 0.06 - sunk * 0.1, s = 1 - sunk * 0.4;
+      add('stain', 'black', d.x, d.y, 0.03, long * 1.6 * s, 0.03, wide * 2 * s, d.a);
+      add('sac', 'gore', d.x, d.y, low, long * 0.85 * s, 0.12 * s, wide * 0.9 * s, d.a);
+      if (!fine) continue;
+      for (const side of [-1, 1]) for (let leg = 0; leg < 2; leg++) {
+        const f = (leg - 0.5) * long * 0.5;
+        limb('chitin', ...from(d.x, d.y, d.a, f, side * wide * 0.25), low + 0.04, ...from(d.x, d.y, d.a, f + 0.08, side * wide * 0.6), low, 0.04);
+      }
+    }
+  }
   function creatures(area) {
     G.enemies.map(creatureAt).forEach((e, index) => {
       if (e.x < area.x0 - 1 || e.x > area.x1 + 1 || e.y < area.y0 - 1 || e.y > area.y1 + 1 || !inSight(e.x, e.y)) return;
       const goal = e.goal || { x: CORE.x + 0.5, y: CORE.y + 0.5 };
       const a = Math.atan2(goal.y - e.y, goal.x - e.x);
       const kind = silhouette(e.gene);
-      const { long, wide, tall, legs, reach } = BODY[kind];
+      // Hit, it flinches: a little bigger for a quarter of a second, with a pale flash.
+      const flinch = flinchOf(e), grow = 1 + flinch * 0.18;
+      const { legs, reach } = BODY[kind], long = BODY[kind].long * grow, wide = BODY[kind].wide * grow, tall = BODY[kind].tall * grow;
+      if (flinch > 0.2) add('bead', 'pale', e.x, e.y, 0.5, 0.3 * flinch);
       const h = (kind === 'N' ? 0.4 : 0.26) + Math.sin(clock * 10 + index) * 0.025 + (e.z || 0);
       const rear = from(e.x, e.y, a, -long * 0.24);
       const head = from(e.x, e.y, a, long * 0.48);
@@ -1552,6 +1605,7 @@ window.createModels3D = (B, scene) => {
       cells(area);
       ghost();
       worms();
+      corpses(area);
       creatures(area);
       shots();
       drones(area);

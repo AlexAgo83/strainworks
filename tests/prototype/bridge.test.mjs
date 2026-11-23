@@ -17,7 +17,8 @@ it("puts a bridge where a drawn belt crosses another line, and both flows go on"
       paused = true;
       G.open = true;
       G.breaches = [];
-      G.cells = { [key(CORE.x, CORE.y)]: G.cells[key(CORE.x, CORE.y)] };
+      const core = coreCell();
+      G.cells = { [key(core.x, core.y)]: core };
       // A running line west to east, an item riding where the new line will cross.
       const west = put("cyst", 19, 60, 1);
       for (let x = 20; x < 31; x++) put("belt", x, 60, 1);

@@ -59,7 +59,7 @@ it("starts a new game on the core alone, the view centred on it", async () => {
     await page.goto("http://proto.test/prototype/");
     const start = await page.evaluate(() => {
       begin();
-      const middle = screenAt(centreOf(G.cells[key(CORE.x, CORE.y)]));
+      const middle = screenAt(centreOf(coreCell()));
       return { built: Object.values(G.cells).map((c) => c.type), centred: Math.abs(middle.x - view.w / 2) < 2 && Math.abs(middle.y - view.h / 2) < 2 };
     });
     expect(start).toEqual({ built: ["core"], centred: true });

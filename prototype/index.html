@@ -915,9 +915,12 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
 #menu .row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:56px; padding-block:5px; border-bottom:1px solid #1D3036; }
 #menu .choice { display:flex; gap:6px; }
 #app #menu [aria-pressed="true"] { border-color:var(--acid); color:var(--acid); }
-#menu .last { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
-#app #menu #to-planet { border-color:var(--acid); background:var(--acid); color:var(--night); font-weight:600; }
-#app #menu #restart { color:var(--alarm); border-color:var(--alarm); }
+#app #menu #to-planet { color:var(--acid); font-weight:600; }
+#app #menu #restart { color:var(--alarm); border-color:#1D3036; border-radius:0; }
+#app #menu #restart i { height:2px; }
+/* A page's last row needs no rule under it; button rows line up with the others. */
+#menu .page > .row:last-child, #menu #playlist > :last-child { border-bottom:0; }
+#menu .row.go { padding-inline:0; }
 #menu #speed { align-self:flex-end; }
 .on-planet #menu .in-game, .on-planet #menu #speed { display:none; }
 #app:not(.on-planet) #menu .at-planet { display:none; }
@@ -1018,15 +1021,13 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
   <div id="menu" hidden>
    <div class="page" data-page="root">
     <h2>Réglages</h2>
+    <button id="to-planet" class="row go in-game"><span>Retour à la planète</span><b aria-hidden="true">›</b></button>
+    <button id="restart" class="row go in-game"><span>Recommencer : maintenir</span><i></i></button>
     <button class="row go" data-go="graphics"><span>Graphismes</span><b aria-hidden="true">›</b></button>
     <button class="row go" data-go="audio"><span>Audio</span><b aria-hidden="true">›</b></button>
     <div class="row"><span>Commandes</span><button id="help" class="tip">Voir</button></div>
     <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip">Français</button><button id="lang-en" class="tip">English</button></span></div>
     <button class="row go in-game" data-go="help"><span>Aide</span><b aria-hidden="true">›</b></button>
-    <div class="last in-game">
-      <button id="to-planet" class="tip">Retour à la planète</button>
-      <button id="restart" class="tip"><span>Recommencer : maintenir</span><i></i></button>
-    </div>
     <button class="row go" data-go="dev"><span>Développeur</span><b aria-hidden="true">›</b></button>
     <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.14</span></a>
    </div>
@@ -1980,7 +1981,8 @@ const splitExits = c => SPLIT[c.type].map(turn => (c.dir + turn) % 4);
 // These cover 2 x 2 cells. The object stands on its north-west cell: saved games need nothing new.
 const BIG = {borer:true, vault:true};
 const BORER = {harvesters:6, hold:24};
-const sizeOf = c => BIG[c.type] ? 2 : 1;
+// A building's side in cells: its own (the core's 3) or 2 for the big ones.
+const sizeOf = c => c.size || (BIG[c.type] ? 2 : 1);
 const centreOf = c => ({x:c.x + sizeOf(c) / 2, y:c.y + sizeOf(c) / 2});
 function footprint(c) {
   const cells = [];
@@ -2003,8 +2005,16 @@ function covering(list, x, y) {
     const big = list[(x - i) + ',' + (y - j)];
     if (big && BIG[big.type]) return big;
   }
+  // The core's plinth: its nine cells answer as the core.
+  if (Math.abs(x - CORE.x) <= 1 && Math.abs(y - CORE.y) <= 1) {
+    const core = list[(CORE.x - 1) + ',' + (CORE.y - 1)];
+    if (core?.size === 3) return core;
+  }
   return undefined;
 }
+// The core: one cell at CORE in games from before, a 3x3 plinth centred on it in new ones, kept by its corner.
+const coreIn = cells => [key(CORE.x, CORE.y), key(CORE.x - 1, CORE.y - 1)].map(id => cells?.[id]).find(c => c?.type === 'core') || null;
+const coreCell = () => coreIn(G.cells);
 const cellAt = (x, y) => covering(G.cells, x, y);
 const ruinAt = (x, y) => covering(G.ruins, x, y);
 const buried = w => footprint(w).some(p => cellAt(p.x, p.y));
@@ -2753,10 +2763,10 @@ function eat(item) {
   // nothing; what it does not ask for pays a third of a gene's worth.
   const holds = boxOf(item) ? fill(boxOf(item)) : 1;
   const want = STAGES[G.stage];
-  if (!want || item !== want.item) { earn('core', holds * contentOf(item).length / 9); playNear('dna', G.cells[key(CORE.x, CORE.y)] || CORE, .4); return; }
+  if (!want || item !== want.item) { earn('core', holds * contentOf(item).length / 9); playNear('dna', coreCell() || CORE, .4); return; }
   if (want.rate) for (let i = 0; i < holds; i++) G.meals.push(G.time);
   else if (++G.fed >= want.count) grow();
-  playNear('eat', G.cells[key(CORE.x, CORE.y)] || CORE, .25);
+  playNear('eat', coreCell() || CORE, .25);
 }
 // Capsules come three seconds apart: a short window would see the rate jump between none and double.
 const mealWindow = () => boxOf(STAGES[G.stage]?.item || '') ? 10 : 5;
@@ -2774,7 +2784,7 @@ function grow() {
   G.stage++; G.fed = G.held = 0; G.meals = []; G.grownAt = G.time;
   playSound('stage_up');
   earn('stage', GROWTH_BONUS);
-  G.cells[key(CORE.x, CORE.y)].hp = 100;
+  coreCell().hp = 100;
   select(null);
   tell(L`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
   if (G.stage === 3) { G.mutant = mutation(); G.mutateAt = G.time + MUTATION.every; }
@@ -2791,8 +2801,8 @@ function recipe(item) {
 function fresh() {
   G = {time:0, ranked:true, capsules:true, world:2, seed:newSeed(), far:true, paid:true, wires:[], stage:0, fed:0, held:0, meals:[], open:false, tracks:{}, worms:[], cells:{}, ruins:{}, enemies:[], shots:[], threat:0, dna:START_DNA, kills:0, made:0,
     woken:0, breaches:[], families:['SFN','SSC','FNN'], over:false};
-  // The core alone: the guide has the player build the first line, on open ground.
-  put('core', CORE.x, CORE.y, 0);
+  // The core alone, on a 3x3 plinth fed from any of its twelve faces: the guide has the player build the first line.
+  put('core', CORE.x - 1, CORE.y - 1, 0).size = 3;
   survey();
   // Tests replaying games recorded on the first line older versions gave lay it again here.
   window.startLine?.();
@@ -3333,6 +3343,12 @@ function disturb() {
     if (cause) wake(b, cause);
   }
 }
+// How much a nest still shows its last hit, from 1 at the hit to 0 a third of a second later.
+const CORPSE = {stays:20, sinks:3};
+// How far a body has sunk, 0 lying fresh to 1 gone; the gone ones leave the list.
+const corpseSunk = d => Math.max(0, (G.time - d.at - CORPSE.stays) / CORPSE.sinks);
+const flinchOf = e => Math.max(0, 1 - (G.time + owed - (e.hitAt ?? -9)) / .25);
+const nestHurt = b => Math.max(0, 1 - (G.time + owed - (b.hitAt ?? -9)) / .35);
 // A nest's health: 3000 at level 1, up to three times that far out: two fed turrets take about 45 s. It heals when left alone.
 const NEST = {hp:3000, quiet:8, heal:.02, refill:60, throw:.7};
 function nestHp(b) {
@@ -3495,6 +3511,7 @@ function fire(dt) {
         c.ammo[shell]--; c.clock = due;
         if (!shot) c.aim = Math.atan2(nest.y - c.y, nest.x - c.x);
         nest.hp -= hurt * gun.power; nest.hitAt = G.time;
+        playNear('hit', nest, .12);
         playNear(c.type === 'turret' ? 'turret' : c.type, c);
         G.shots.push({x:c.x + .5, y:c.y + .5, tx:nest.x + .5, ty:nest.y + .5, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
         if (nest.hp <= 0) destroyNest(nest);
@@ -3509,7 +3526,13 @@ function fire(dt) {
       playNear(target.hp <= 0 ? 'kill' : 'hit', {x:target.x - .5, y:target.y - .5});
       // hurt stays how right the gene was, it gives the colour. The gun gives the shape.
       G.shots.push({x:c.x + .5, y:c.y + .5, tx:target.x, ty:target.y, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
-      if (target.hp <= 0) { G.kills++; earn('kills', 1); }
+      target.hitAt = G.time;
+      if (target.hp <= 0) {
+        G.kills++; earn('kills', 1);
+        // The body stays 20 s, then sinks in 3; sixty at most, the oldest going first.
+        (G.corpses ||= []).push({x:target.x, y:target.y, gene:target.gene, at:G.time, a:Math.atan2(target.y - c.y - .5, target.x - c.x - .5)});
+        if (G.corpses.length > 60) G.corpses.shift();
+      }
     }
   }
   G.enemies = G.enemies.filter(e => e.hp > 0);
@@ -3743,7 +3766,7 @@ function zoomAt(factor, sx = view.w / 2, sy = view.h / 2) {
 }
 function home() {
   // Centred on the core: a new game starts from it alone.
-  const c = centreOf(G.cells[key(CORE.x, CORE.y)] || {x:CORE.x, y:CORE.y, type:'core'});
+  const c = centreOf(coreCell() || {x:CORE.x, y:CORE.y, type:'core'});
   cam.x = c.x; cam.y = c.y;
   cam.zoom = Math.max(11, Math.min(44, Math.min(view.w / 28, view.h / (28 * flat()))));
 }
@@ -4100,6 +4123,15 @@ function draw() {
     const out = s.gun === 'sting' ? .66 : s.gun === 'maw' ? .38 : .3;
     ctx.beginPath(); ctx.moveTo(s.x + Math.cos(a) * out - Math.sin(a) * off,s.y + Math.sin(a) * out + Math.cos(a) * off); ctx.lineTo(s.tx,s.ty); ctx.stroke();
   }
+  // Bodies lie a while, dark and flat, then sink.
+  if (G.corpses) {
+    G.corpses = G.corpses.filter(d => corpseSunk(d) < 1);
+    for (const d of G.corpses) if (inSight(d.x, d.y)) {
+      ctx.globalAlpha = .8 * (1 - corpseSunk(d));
+      ctx.beginPath(); ctx.ellipse(d.x, d.y, .42, .24, d.a, 0, Math.PI * 2); ctx.fillStyle = '#21100F'; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
   const packs = [];
   for (const e of G.enemies.map(creatureAt)) {
     if (!inSight(e.x,e.y)) continue;
@@ -4115,7 +4147,7 @@ function draw() {
     ctx.strokeStyle = '#B34A5A'; ctx.lineWidth = .06; ctx.beginPath();
     for (const dx of [-.16,0,.16]) { ctx.moveTo(e.x+dx,e.y-.24); ctx.lineTo(e.x+dx,e.y+.32); }
     ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(e.x,e.y,.36,.2,0,0,Math.PI*2); ctx.fillStyle = '#3A1820'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(e.x,e.y,.36 * (1 + flinchOf(e) * .18),.2 * (1 + flinchOf(e) * .18),0,0,Math.PI*2); ctx.fillStyle = flinchOf(e) > .3 ? '#C24A5A' : '#3A1820'; ctx.fill();
     ctx.strokeStyle = '#FF6B6B'; ctx.stroke();
     [...e.gene].forEach((b,i) => glyph(ctx,b,e.x+(i-1)*.22,e.y,.1));
     rect(ctx,e.x-.3,e.y-.38,.6*Math.max(0,e.hp/e.max),.07,'#FF6B6B');
@@ -4192,6 +4224,9 @@ function drawBreach(b) {
   const asleep = b.state === 'sleep';
   ctx.globalAlpha = fade;
   circle(ctx,x,y,3.5,asleep ? '#171A1B' : '#241016');
+  // Hit, it flashes red for a moment.
+  const hurt = nestHurt(b);
+  if (hurt > 0) { ctx.globalAlpha = fade * hurt * .55; circle(ctx,x,y,2.6 + (1 - hurt) * .8,'#FF6B6B'); ctx.globalAlpha = fade; }
   // The circle is the limit to build up to without waking it.
   if (asleep) { ctx.setLineDash([.6,.6]); circle(ctx,x,y,b.r + Math.sin(motionTime() * 1.1) * .08,null,'#6B5960',Math.max(.06,1 / cam.zoom)); ctx.setLineDash([]); }
   if (!asleep && b.max) {
@@ -4399,6 +4434,16 @@ function turnWay(c, axis) {
   // What is already on the lane follows the new way.
   if (c.ways[axis] != null && c.lanes[axis]) c.lanes[axis].dir = c.ways[axis];
 }
+// What a machine holds, wherever it keeps it: an item on its way, a stock, its inputs, its ammunition, a bridge's lanes.
+const holdsAnything = c => Boolean(c.item || c.stock?.length || c.ports?.some(p => p.length) || Object.values(c.ammo || {}).some(n => n > 0) || c.lanes?.some(Boolean) || c.packets?.length);
+function emptyOut(c) {
+  c.item = null; c.t = 0;
+  if (c.stock) { c.stock = []; c.due = []; }
+  if (c.ports) { c.ports = c.ports.map(() => []); c.portDue = c.ports.map(() => []); }
+  if (c.ammo) c.ammo = {};
+  if (c.lanes) c.lanes = c.lanes.map(() => null);
+  if (c.packets) c.packets = [];
+}
 function showActions() {
   ui.at = '';
   $('actions').replaceChildren();
@@ -4431,6 +4476,8 @@ function showActions() {
     if (c.to) button(c.veinOut != null ? L('Annuler la coupe') : L('Couper la veine'), () => { if (c.veinOut != null) keepVein(c); else scrapVein(c); showActions(); });
     button(L('Vider'), () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
   }
+  // Any machine holding something can be emptied; pumps and encapsulators keep their own, which empty more.
+  if (!['core', 'pump', 'pack'].includes(c.type) && holdsAnything(c)) button(L('Vider'), () => { emptyOut(c); refresh(); showActions(); });
   if (c.type === 'pocket') button(c.unload ? L('Poche : vide') : L('Poche : charge'), () => { c.unload = !c.unload; showActions(); });
   if (c.type === 'pack') {
     button(L`Recette : ${BOX[c.box].name}`, () => { const order = unlocked(4) ? ['T', 'A', 'H'] : ['T', 'A']; setRecipe(c, order[(order.indexOf(c.box) + 1) % order.length]); showActions(); });
@@ -4789,7 +4836,7 @@ function extend(to) {
     if (tool !== 'belt') { drag = null; return; }
     const from = cellAt(drag.x,drag.y);
     // Still inside a big one: the line starts at the face it leaves by.
-    if (from && BIG[from.type] && from === cellAt(x,y)) { drag = {...drag, x, y}; continue; }
+    if (from && sizeOf(from) > 1 && from === cellAt(x,y)) { drag = {...drag, x, y}; continue; }
     // Drawn over again, a belt on its way out stays.
     for (const c of [from, cellAt(x,y)]) if (isBelt(c)) keepIt(c);
     if (from && !isBelt(from) && from.type !== 'bridge' && drag.moved) { drag = null; return; }
@@ -4830,7 +4877,7 @@ function preview() {
   if (!inside(x, y)) return null;
   const id = key(x, y), old = cellAt(x, y);
   // A big one answers as a whole, from its corner.
-  const whole = old || (tool === 'erase' ? ruinAt(x, y) : null), over = whole && BIG[whole.type] ? {x:whole.x, y:whole.y, size:2} : {};
+  const whole = old || (tool === 'erase' ? ruinAt(x, y) : null), over = whole && sizeOf(whole) > 1 ? {x:whole.x, y:whole.y, size:sizeOf(whole)} : {};
   const to = (act, more) => ({x, y, act, ...over, ...more}), no = (why, more) => to('no', {why, ...more});
   const hive = whyNot(x, y), free = () => !hive;
   const fromVein = (drawing && drag?.vein) || (linking && G.cells[linking]);
@@ -5568,7 +5615,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && saved.cells?.[key(CORE.x,CORE.y)] && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
+    if (saved && !saved.over && coreIn(saved.cells) && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
   } catch (_) {}
   return false;
 }
@@ -5737,7 +5784,7 @@ function jobName({c, field}) {
 function paintOrganism() {
   const want = STAGES[G.stage], part = !want ? 1 : want.rate ? G.held / want.hold : G.fed / want.count;
   $('stage-arc').setAttribute('stroke-dasharray', `${Math.round(Math.min(1, part) * 352)} 352`);
-  const life = Math.max(0, Math.ceil(G.cells[key(CORE.x, CORE.y)].hp));
+  const life = Math.max(0, Math.ceil(coreCell().hp));
   $('life').setAttribute('stroke-dasharray', `${Math.round(life * 2.96)} 296`);
   $('life-text').textContent = L`Cœur ${life}`;
   $('organism').classList.toggle('ailing', life < 40);
@@ -5991,7 +6038,7 @@ function guideSpot(step) {
     if (!lig) return null;
     const m = centreOf(lig);
     if (want.core) {
-      const out = {x:m.x + DX[lig.dir], y:m.y + DY[lig.dir]}, core = G.cells[key(CORE.x, CORE.y)];
+      const out = {x:m.x + DX[lig.dir], y:m.y + DY[lig.dir]}, core = coreCell();
       const touches = n => [0, 1, 2, 3].some(d => cellAt(n.x + DX[d], n.y + DY[d]) === core);
       const route = guideRoute(lig, touches);
       ui.guideNoRoute = !route;
@@ -6831,7 +6878,7 @@ function checkGame(game) {
   if (game.upgrades > 20 || game.threat > 10) return false;
   if (game.guide != null && !(plain(game.guide) && Number.isInteger(game.guide.step) && game.guide.step >= 0 && game.guide.step <= 9 && plain(game.guide.base) && Object.values(game.guide.base).every(count))) return false;
   if (!list(game.families, code) || !game.families.length || game.families.length > MAX_FAMILIES) return false;
-  if (!plain(game.cells) || Object.keys(game.cells).length > FILE.cells || game.cells[key(CORE.x, CORE.y)]?.type !== 'core') return false;
+  if (!plain(game.cells) || Object.keys(game.cells).length > FILE.cells || !coreIn(game.cells)) return false;
 
   const rank = c => c.mk == null || [1, 2, 3].includes(c.mk);
   const known = c => c.type === 'core' || (Object.hasOwn(TYPES, c.type) && !['hand', 'erase', 'track', 'worm', 'wire'].includes(c.type));
@@ -7736,7 +7783,8 @@ $('playlist').onclick = event => {
   if (!b) return;
   startSound();
   // Touched while it plays, it stops; any other starts and loops. Either way the game no longer chooses.
-  music.manual = music.manual === b.dataset.track && music.src === b.dataset.track ? '' : b.dataset.track;
+  const playing = music.on && music.src === b.dataset.track && (music.manual ?? b.dataset.track) === b.dataset.track;
+  music.manual = playing ? '' : b.dataset.track;
   music.on = true; paintMusic(); musicTick(); paintPlaylist();
 };
 $('playlist-auto').onclick = () => { music.manual = music.manual == null ? (music.src || '') : null; musicTick(); paintPlaylist(); };
@@ -7797,12 +7845,17 @@ function startSound() {
   } catch (_) { music.gains = null; }
   music.started = true; musicTick();
 }
+// Hidden, it stops at once: a phone slows or freezes the fade's timer, and the piece would play on behind the lock screen.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { musicTick(); return; }
+  music.players.forEach((a, i) => { a.pause(); music.level[i] = 0; if (music.gains) music.gains[i].gain.value = 0; });
+});
 if (!LAB.on) for (const kind of ['pointerdown', 'keydown']) addEventListener(kind, startSound, {once:true, capture:true});
 // An iPhone unlocks sound only when a finger lifts: every lift or click resumes it until it runs.
 for (const kind of ['pointerup', 'touchend', 'click', 'keydown']) addEventListener(kind, () => {
   if (!music.started || sfx.ctx?.state === 'running') return;
   sfx.ctx?.resume?.();
-  music.players[music.live].play().catch(() => {});
+  if (music.on && music.src && music.manual !== '') music.players[music.live].play().catch(() => {});
 }, {capture:true, passive:true});
 setInterval(musicTick, 100);
 
@@ -7839,7 +7892,8 @@ const heard = c => !orbit.on && c?.x != null && placeOf(c).gain > .03;
 const playNear = (id, c, gap) => heard(c) && playSound(id, gap, placeOf(c));
 // Under the theme on the planet, the station hums.
 function stationHum() {
-  const ctx = sfx.ctx, want = Boolean(ctx && orbit.on && sfx.on && !document.hidden && sfx.buffers.station_loop?.length);
+  // It sounds like music, so the music rules it: off, or a piece chosen or stopped in the playlist, and it goes quiet.
+  const ctx = sfx.ctx, want = Boolean(ctx && orbit.on && sfx.on && music.on && music.manual == null && !document.hidden && sfx.buffers.station_loop?.length);
   if (want && !sfx.loop) {
     const src = ctx.createBufferSource(), gain = ctx.createGain();
     src.buffer = sfx.buffers.station_loop[0]; src.loop = true;
