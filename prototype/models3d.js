@@ -62,6 +62,8 @@ window.createModels3D = (B, scene) => {
       return m;
     },
     ring: () => M.CreateTorus('ring', { diameter: 1, thickness: 0.1, tessellation: 14 }, scene),
+    // A wave across the ground: thin enough to stay a line when it is 70 cells wide.
+    wave: () => M.CreateTorus('wave', { diameter: 1, thickness: 0.0035, tessellation: 96 }, scene),
     lip: () => reshape(M.CreateTorus('lip', { diameter: 1, thickness: 0.28, tessellation: 14 }, scene), (x, y, z) => {
       const swell = 1 + Math.sin(Math.atan2(z, x) * 7) * 0.07;
       return [x * swell, y * swell, z * swell];
@@ -319,19 +321,22 @@ window.createModels3D = (B, scene) => {
     // The radar pylon: three legs, a mast, a dish that turns, glowing rings, and a wave across the ground.
     radar(c, x, y) {
       for (let i = 0; i < 3; i++) {
-        const a = (i / 3) * Math.PI * 2;
-        limb('steel2', x + Math.cos(a) * 0.4, y + Math.sin(a) * 0.4, 0.02, x, y, 0.62, 0.06);
+        const a = (i / 3) * Math.PI * 2 + 0.5;
+        limb('steel2', x + Math.cos(a) * 0.46, y + Math.sin(a) * 0.46, 0.02, x, y, 0.95, 0.08);
       }
-      add('hull', 'dark', x, y, 0.08, 0.7, 0.16, 0.7);
-      add('tube', 'steel2', x, y, 0.75, 0.1, 1.2, 0.1);
+      add('hull', 'dark', x, y, 0.1, 0.78, 0.2, 0.78);
+      add('tube', 'steel2', x, y, 1.15, 0.14, 1.9, 0.14);
+      add('ring', 'cyan', x, y, 0.7 + Math.sin(clock * 3) * 0.05, 0.62, 1.4, 0.62);
+      add('ring', 'cyan', x, y, 1.3 + Math.sin(clock * 3 + 1.5) * 0.05, 0.46, 1.4, 0.46);
       const spin = clock * 1.6;
-      add('ring', 'cyan', x, y, 0.55 + Math.sin(clock * 3) * 0.04, 0.42, 1, 0.42);
-      add('ring', 'cyan', x, y, 0.95 + Math.sin(clock * 3 + 1.5) * 0.04, 0.3, 1, 0.3);
-      add('cone', 'steel', x, y, 1.42, 0.62, 0.22, 0.62, spin, 1.15);
-      add('bead', 'pale', ...from(x, y, spin, 0.12), 1.48, 0.12);
+      add('cone', 'steel', ...from(x, y, spin, 0.06), 2.12, 1.05, 0.32, 1.05, spin, 1.15);
+      add('bead', 'pale', ...from(x, y, spin, 0.24), 2.2, 0.18);
+      add('bead', 'cyan', x, y, 2.3, 0.12);
       if (!built(c)) return;
+      // One wave every 3 s, from the pylon to the edge of what it sees.
       const k = (clock / RADAR.pulse + ((c.x * 7 + c.y * 3) % 10) / 10) % 1;
-      add('ring', 'cyan', x, y, 0.04, 1.2 + k * RADAR.range * 2, Math.max(0.05, (1 - k) * 0.5), 1.2 + k * RADAR.range * 2);
+      const d = 1.6 + k * RADAR.range * 2;
+      add('wave', 'cyan', x, y, 0.05, d, 1, d);
     },
     gate(c, x, y) {
       const sides = conveyor(c, x, y);
