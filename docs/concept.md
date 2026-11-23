@@ -307,7 +307,11 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 | 2. Tissue (Tissu) | capsules of Shell (CCF): 2 genes per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
 | 3. Organ (Organe) | 10 capsules of 6 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
 
-- A stage gives 40 ADN and restores the core's hit points. What is not demanded becomes ADN.
+- A stage gives 40 ADN and restores the core's hit points.
+- **ADN (2026-11-23)**: what the core demands moves the stage and pays no ADN. What it does not demand pays a third
+  of a gene a gene (a strand two thirds, a capsule two). Kills pay 1, an emptied breach pays its creatures, a stage 40.
+  Before, every gene paid 1 whatever it was, so income grew without bound with production and prices never held.
+  The performance graph shows ADN a minute by source, to tune these figures by playing.
 - A dip in rate at stage 2 loses the time it lasted, never the whole minute.
 - The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.
 - Proposed next: the System and Organism stages, organs to place and feed, and creatures invented by writing their genes.

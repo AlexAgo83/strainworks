@@ -7,7 +7,7 @@ exports[`economy behaves as the recorded prototype 1`] = `
     {
       "beltsFree": 80,
       "hurtRefund": 15,
-      "incomeFromZero": 1,
+      "incomeFromZero": 0,
       "oldSave": [
         83,
         true,

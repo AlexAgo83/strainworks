@@ -236,7 +236,7 @@ it("packs genes in carbon", async () => {
       holds24: [true, false],
       notMore: false,
       noCapsuleInTurret: false,
-      worth: 24,
+      worth: 8,
       looseDoesNotCount: 0,
       capsuleCounts: 1,
       filter: [true, true, false],

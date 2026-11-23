@@ -650,6 +650,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #perf-legend { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px 14px; margin-top:4px; }
 #perf-legend p { display:flex; align-items:center; gap:6px; margin:0!important; color:var(--muted); font-size:11px; }
 #perf-legend i { flex:none; width:9px; height:9px; border-radius:2px; }
+#perf-dna { margin:6px 0 0!important; color:var(--acid); font:600 12px var(--display); }
 #perf-legend b { margin-left:auto; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
 .on-planet #perf { display:none; }
 @media (max-width:759px) { #perf { top:calc(108px + var(--t)); } #perf-chart { height:120px; } }
@@ -728,7 +729,7 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
     </div>
   </div>
 
-  <section id="perf" hidden aria-label="Performance"><p id="perf-sum">Mesure en cours…</p><canvas id="perf-chart" aria-hidden="true"></canvas><div id="perf-legend"></div></section>
+  <section id="perf" hidden aria-label="Performance"><p id="perf-sum">Mesure en cours…</p><canvas id="perf-chart" aria-hidden="true"></canvas><div id="perf-legend"></div><p id="perf-dna"></p></section>
 
   <nav id="zoom" aria-label="Caméra">
     <button id="zoom-in" class="node step" aria-label="Zoomer"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v14M2 9h14" stroke="currentColor" stroke-width="2"/></svg></button>
@@ -1634,12 +1635,21 @@ function repair(dt) {
       c.veinHp = Math.min(VEIN.hp, c.veinHp + VEIN.hp * dt * REPAIR.share);
   }
 }
+// Every gain of ADN, by source: fractions wait in G.dnaBits until they make a whole one.
+const EARN = {core:'Surplus du cœur', kills:'Combats', breaches:'Brèches vidées', stage:'Stades', guide:'Guide'};
+function earn(source, amount) {
+  G.dnaBits = (G.dnaBits || 0) + amount;
+  const whole = Math.floor(G.dnaBits + 1e-9);
+  G.dna += whole;
+  G.dnaBits -= whole;
+  (ui.earned ||= []).push({at:G.time, source, amount});
+}
 function eat(item) {
-  // A container is worth what it holds, carbon adds nothing.
+  // A container is worth what it holds, carbon adds nothing. What the core asks for moves the stage and pays
+  // nothing; what it does not ask for pays a third of a gene's worth.
   const holds = boxOf(item) ? PACK.size : 1;
-  G.dna += holds * contentOf(item).length / 3;
   const want = STAGES[G.stage];
-  if (!want || item !== want.item) return;
+  if (!want || item !== want.item) { earn('core', holds * contentOf(item).length / 9); return; }
   if (want.rate) for (let i = 0; i < holds; i++) G.meals.push(G.time);
   else if (++G.fed >= want.count) grow();
 }
@@ -1657,7 +1667,7 @@ function digest(dt) {
 function grow() {
   const done = STAGES[G.stage];
   G.stage++; G.fed = G.held = 0; G.meals = []; G.grownAt = G.time;
-  G.dna += GROWTH_BONUS;
+  earn('stage', GROWTH_BONUS);
   G.cells[key(CORE.x, CORE.y)].hp = 100;
   select(null);
   tell(`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
@@ -2210,7 +2220,7 @@ function menace(dt) {
     if (!b.left) {
       b.pending = 0;
       if (G.enemies.some(e => e.home === G.breaches.indexOf(b))) continue;
-      b.state = 'spent'; b.ended = G.time; G.dna += b.total;
+      b.state = 'spent'; b.ended = G.time; earn('breaches', b.total);
       tell(`Brèche au ${bearing(b)} vidée : +${b.total} ADN, elle s’estompe et le terrain est à toi.`, {at:b});
       continue;
     }
@@ -2317,7 +2327,7 @@ function fire(dt) {
       target.hp -= hurt * gun.power;
       // hurt stays how right the gene was, it gives the colour. The gun gives the shape.
       G.shots.push({x:c.x + .5, y:c.y + .5, tx:target.x, ty:target.y, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
-      if (target.hp <= 0) { G.kills++; G.dna++; }
+      if (target.hp <= 0) { G.kills++; earn('kills', 1); }
     }
   }
   G.enemies = G.enemies.filter(e => e.hp > 0);
@@ -4511,7 +4521,7 @@ function paintGuide() {
     const now = builtNow();
     while (g.step < GUIDE.length && guideDone(g.step, now)) {
       g.step++;
-      G.dna += 5;
+      earn('guide', 5);
       tell(g.step < GUIDE.length ? `Étape ${g.step} faite : +5 ADN.` : 'Premier atelier en marche : +5 ADN. Le guide se range dans le menu.');
     }
   }
@@ -5817,10 +5827,17 @@ function drawPerf() {
   $('perf-sum').textContent = `${Math.round(fps)} images/s · ${figure(last.frame)} ms entre deux · CPU ${figure(last.cpu)} ms par image`;
   for (const [id] of PERF_KINDS) $(`perf-${id}`).textContent = `${figure(last.costs[id])} ms`;
   $('perf-gpu').textContent = last.gpu == null ? (view3d ? 'indisponible' : 'en 3D seulement') : `${figure(last.gpu)} ms`;
+  const minute = (ui.earned || []).filter(e => e.at > G.time - 60), by = {};
+  ui.earned = minute;
+  for (const e of minute) by[e.source] = (by[e.source] || 0) + e.amount;
+  const span = Math.min(60, Math.max(1, G.time - (ui.perfFrom ?? 0)));
+  const rate = n => Math.round(n * 60 / span);
+  $('perf-dna').textContent = `ADN / min : ${rate(Object.values(by).reduce((a, b) => a + b, 0))}` + Object.entries(EARN).filter(([id]) => by[id]).map(([id, name]) => ` · ${name.toLowerCase()} ${rate(by[id])}`).join('');
   $('perf-other').textContent = `${figure(Math.max(0, last.cpu - Object.values(last.costs).reduce((a, b) => a + b, 0)))} ms`;
 }
 function showPerf(on) {
   PERF.on = on;
+  ui.perfFrom = G?.time ?? 0;
   perfReset();
   $('perf').hidden = !on;
   $('perf-toggle').setAttribute('aria-pressed', on);
