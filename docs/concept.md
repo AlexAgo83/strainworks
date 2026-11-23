@@ -318,6 +318,7 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 | 2. Tissue (Tissu) | capsules of Shell (CCF): 2 genes per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
 | 3. Organ (Organe) | 10 capsules of 6 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
 | 4. System (Système, 2026-11-23) | 30 magazines (6 genes, 1 carbon) of the antidote of the family born on entering | a mutation every 5 minutes, up to 8 families |
+| 5. Nucleus (Noyau, 2026-11-23) | 6 heavy capsules (12 Motor + Hold strands, 2 carbon, 1 isotope) | isotope, heavy capsule, a fourth drone; swarming next |
 
 - A stage gives 40 ADN and restores the core's hit points.
 - **ADN (2026-11-23)**: what the core demands moves the stage and pays no ADN. What it does not demand pays a third
@@ -389,3 +390,11 @@ Open questions: building costs in strands, research pace, the penalty when the c
 Bridges and gates keep the pace of their rails. Splitters and sorters of a game saved before these ranks take the
 rank of their rails, free, so no line slows down. A turret's shots now keep their pace exactly: the time a step
 overshoots counts toward the next shot.
+
+### Isotope and the heavy capsule (2026-11-23)
+
+- Isotope (I) is matter like carbon, never a base. From level 3 (320 cells out) half the carbon rows are isotope.
+  Harvesters stand on it before stage 5 but only work it from stage 5 on.
+- The Encapsulator's third recipe, Capsule lourde: 12 strands or genes behind, 2 carbon and 1 isotope on the side.
+  The side takes exactly what the recipe needs.
+- Entering stage 5 hatches a fourth drone.

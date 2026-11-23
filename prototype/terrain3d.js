@@ -365,7 +365,7 @@ window.createTerrain3D = (B, scene, glow) => {
   const MUD = [42, 37, 33];
   const CRUST = [78, 56, 50];
   const MOSS = [42, 56, 36];
-  const SOIL = { S: [36, 64, 27], F: [86, 52, 24], C: [90, 84, 68], N: [17, 58, 65], K: [25, 27, 30] };
+  const SOIL = { S: [36, 64, 27], F: [86, 52, 24], C: [90, 84, 68], N: [17, 58, 65], K: [25, 27, 30], I: [44, 24, 56] };
   function shapeGround(chunk, fields, plates, pools) {
     const { ox, oy, step: apart, size, natural, tint } = chunk;
     for (let j = 0; j < size; j++) {

@@ -123,7 +123,7 @@ window.createModels3D = (B, scene) => {
     glass: ['#8FE3EF', 0.06, 0.2, 1], membraneGlass: ['#B9E88A', 0.06, 0.32, 1],
     S: ['#69AE32', 0.28, 1, 0.7], S2: ['#B9EC7C', 0.35, 1, 0.7], F: ['#C9741F', 0.22, 1, 0.45], F2: ['#FFC06B', 0.3, 1, 0.4],
     C: ['#BFAF8E', 0.08, 1, 0.85], C2: ['#F3E6C8', 0.12, 1, 0.9], N: ['#36AFC6', 0.5, 1, 0.5], N2: ['#B8F3FA', 0.6, 1, 0.5],
-    K: ['#272D31', 0.05, 1, 1], K2: ['#87959D', 0.1, 1, 1],
+    K: ['#272D31', 0.05, 1, 1], K2: ['#87959D', 0.1, 1, 1], I: ['#9B4DE0', 0.55, 1, 0.4], I2: ['#E7C2FF', 0.7, 1, 0.4],
     Nsoil: ['#0C2A31', 0.06, 1, 0.4],
     flesh: ['#7C2A3D', 0.07, 1, 0.9], flesh2: ['#A8485C', 0.12, 1, 0.9], pink: ['#E8738A', 0.28, 1, 0.8],
     gore: ['#32151C', 0.02, 1, 0.8], chitin: ['#241319', 0.02, 1, 1], bone: ['#A89C84', 0.03, 1, 0.5],
@@ -200,6 +200,10 @@ window.createModels3D = (B, scene) => {
       add('crystal', 'C', x, y, h, r * 1.5, r * 2.6, r * 1.2, angle, LYING);
       if (fine) add('crystal', 'C2', ...from(x, y, angle, -r * 0.35, r * 0.5), h + r * 0.25, r * 0.7, r * 1.5, r * 0.6, angle, LYING + 0.3);
     }
+    if (kind === 'I') {
+      add('crystal', 'I', x, y, h, r * 1.3, r * 2.6, r * 1.3, angle, 0.2);
+      add('bead', 'I2', x, y, h + r * 0.4, r * 0.6);
+    }
     if (kind === 'K') {
       add('hull', 'K', x, y, h, r * 2, r * 1.5, r * 1.7, angle + 0.5, 0.2);
       add('crystal', 'K2', ...from(x, y, angle, r * 0.3), h + r * 0.6, r * 0.8, r * 1.3, r * 0.7, angle, 0.5);
@@ -218,8 +222,8 @@ window.createModels3D = (B, scene) => {
     if (box) {
       // A carbon shell, its content on the lid.
       const magazine = box === 'A';
-      const trim = magazine ? 'amber' : 'cyan';
-      const long = room * 1.05;
+      const trim = magazine ? 'amber' : box === 'H' ? 'I' : 'cyan';
+      const long = room * (box === 'H' ? 1.2 : 1.05);
       const wide = Math.min(0.4, room * 0.58);
       add('hull', 'K', x, y, h, long, 0.22, wide, angle);
       add('box', 'K2', x, y, h + 0.1, long * 0.76, 0.04, wide * 0.7, angle);
@@ -848,6 +852,15 @@ window.createModels3D = (B, scene) => {
         const a = m * 6 + i * 2.1;
         const [px, py] = from(x, y, a, 0.28);
         add(i ? 'hull' : 'crystal', i % 2 ? 'K2' : 'K', px, py, 0.13, 0.2, 0.18 + ((n + i * 0.3) % 1) * 0.3, 0.18, a, 0.45);
+      }
+    },
+    // Isotope: violet spires that glow, rare and far out.
+    I(x, y, n, m) {
+      add('hull', 'K', x, y, 0.1, 0.4 + m * 0.2, 0.2, 0.36 + n * 0.14, n * 6);
+      for (let i = 0; i < (fine ? 3 : 1); i++) {
+        const a = m * 6 + i * 2.1;
+        const [px, py] = from(x, y, a, i ? 0.24 : 0);
+        add('crystal', i % 2 ? 'I2' : 'I', px, py, 0.2, 0.16, 0.36 + ((n + i * 0.3) % 1) * 0.36, 0.16, a, 0.15);
       }
     },
     // Pods on stalks, breathing.
