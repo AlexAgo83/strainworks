@@ -21,7 +21,8 @@ it("guides a new game to its first line into the core", async () => {
         step: G.guide.step,
         shown: !document.querySelector("#guide").hidden,
         called: [...document.querySelectorAll("#tools .family.call")].map((b) => b.dataset.family),
-        spot: !document.querySelector("#guide-spot").hidden,
+        // Shown: the circle on the map, or the arrow pointing at it when it is out of sight.
+        spot: !document.querySelector("#guide-spot").hidden || !document.querySelector("#guide-arrow").hidden,
         title: document.querySelector("#guide-title").textContent,
         pictured: document.querySelectorAll("#guide-title svg").length,
       });
@@ -42,20 +43,55 @@ it("guides a new game to its first line into the core", async () => {
       put("mine", Math.floor(s2.x), Math.floor(s2.y), 1);
       paintGuide();
       seen.push(read());
-      put("ligase", CORE.x - 6, CORE.y + 6, 1);
+      // Take the Ligase: the family, then the machine in it, stand out with its key; the rest of the dock steps back.
+      openFamily("fab");
+      paintGuide();
+      const pod = document.querySelector('#tools .tray[data-tray="fab"] [data-type="ligase"]');
+      const lit = [pod.classList.contains("call"), pod.dataset.guideKey?.startsWith("Maj+"), document.querySelector("#tools").classList.contains("guide-dim"), document.querySelector("#guide-why").textContent.includes("Ouvre")];
+      choose("ligase");
+      paintGuide();
+      seen.push(read());
+      // Placed on the spot offered, the guide draws the belt from an S harvester to input 1.
+      const l = ui.guidePoint;
+      const lig = put("ligase", Math.floor(l.x), Math.floor(l.y), 0);
+      paintGuide();
+      placeGuideSpot();
+      seen.push({ ...read(), trace: !document.querySelector("#guide-trace").hidden, ports: !document.querySelector("#guide-ports").hidden });
+      // Off screen, an arrow points at the spot and takes the view there.
+      const was = { x: cam.x, y: cam.y };
+      cam.x += 60;
+      placeGuideSpot();
+      const arrow = [!document.querySelector("#guide-arrow").hidden, document.querySelector("#guide-spot").hidden];
+      document.querySelector("#guide-arrow").click();
+      const travels = Math.abs((ui.travel ?? cam).x - ui.guidePoint.x) < 1e-9;
+      ui.travel = null;
+      Object.assign(cam, was);
+      // A base in an input completes its step.
+      lig.ports[0].push("S");
+      paintGuide();
+      seen.push(read());
+      lig.ports[1].push("F");
+      paintGuide();
+      lig.ports[2].push("S");
       paintGuide();
       seen.push(read());
       G.fed = 1;
       paintGuide();
-      return { seen, steady, dna: G.dna - dna, done: document.querySelector("#guide").hidden, bases: [depositAt(Math.floor(s.x), Math.floor(s.y)), depositAt(Math.floor(f.x), Math.floor(f.y))] };
+      return { seen, steady, lit, arrow, travels, dna: G.dna - dna, done: document.querySelector("#guide").hidden, bases: [depositAt(Math.floor(s.x), Math.floor(s.y)), depositAt(Math.floor(f.x), Math.floor(f.y))] };
     });
     expect(out.seen[0]).toMatchObject({ step: 0, shown: true, called: ["rec"], spot: true, pictured: 1 });
     expect(out.seen[0].title).toBe("Pose un récolteur sur");
     expect(out.seen[1]).toMatchObject({ step: 1, called: ["rec"] });
     expect(out.seen[2]).toMatchObject({ step: 3, called: ["fab"], spot: false });
-    expect(out.seen[3]).toMatchObject({ step: 4, called: ["tra"], spot: true });
+    expect(out.lit).toEqual([true, true, true, true]);
+    expect(out.seen[3]).toMatchObject({ step: 4, called: [], spot: true });
+    expect(out.seen[4]).toMatchObject({ step: 5, called: ["tra"], spot: true, trace: true, ports: true });
+    expect(out.arrow).toEqual([true, true]);
+    expect(out.travels).toBe(true);
+    expect(out.seen[5]).toMatchObject({ step: 6 });
+    expect(out.seen[6]).toMatchObject({ step: 8, spot: true });
     expect(out.steady).toEqual([0, 0, 0.5, 0.5]);
-    expect(out).toMatchObject({ dna: 25, done: true, bases: ["S", "F"] });
+    expect(out).toMatchObject({ dna: 45, done: true, bases: ["S", "F"] });
     // Hidden, it waits behind a button; the menu starts it again.
     const again = await page.evaluate(() => {
       startGuide();

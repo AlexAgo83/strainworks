@@ -523,7 +523,22 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
 #guide-spot { position:absolute; left:0; top:0; z-index:2; width:0; height:0; pointer-events:none; }
 #guide-spot i { position:absolute; left:-26px; top:-26px; width:52px; height:52px; border:2.5px dashed var(--amber); border-radius:50%; animation:spin 6s linear infinite, beat 1.3s ease-in-out infinite; }
 #guide-spot i::after { content:""; position:absolute; left:50%; top:-14px; margin-left:-7px; border:7px solid transparent; border-top-color:var(--amber); }
-#tools .family.call .porthole { border-color:var(--amber); box-shadow:0 0 0 3px rgba(240,160,60,.25); animation:beat 1.3s ease-in-out infinite; }
+#tools .call .porthole { border-color:var(--amber); box-shadow:0 0 0 3px rgba(240,160,60,.35), 0 0 18px rgba(240,160,60,.55); animation:beat 1.3s ease-in-out infinite; }
+/* The guide points at the button to press, in the dock then in the family it opens; the rest of the dock steps back. */
+#tools .call::before { content:""; position:absolute; z-index:3; left:50%; top:-26px; margin-left:-10px; border:10px solid transparent; border-top:14px solid var(--amber); border-bottom:0; animation:nudge .9s ease-in-out infinite; pointer-events:none; }
+#tools .call[data-guide-key]::after { content:attr(data-guide-key); position:absolute; left:50%; top:-46px; transform:translateX(-50%); color:var(--amber); font:700 12px var(--display, sans-serif); white-space:nowrap; pointer-events:none; }
+#tools.guide-dim .pod:not(.call) { opacity:.4; }
+@keyframes nudge { 50% { transform:translateY(-6px); } }
+#guide-trace, #guide-trace svg { position:absolute; inset:0; z-index:2; width:100%; height:100%; overflow:visible; pointer-events:none; }
+#guide-trace path { fill:none; stroke:var(--amber); stroke-width:4; stroke-dasharray:10 8; stroke-linecap:round; opacity:.9; animation:march 1s linear infinite; }
+@keyframes march { to { stroke-dashoffset:-18; } }
+#guide-ports { position:absolute; left:0; top:0; z-index:2; pointer-events:none; }
+#guide-ports b { position:absolute; left:-12px; top:-12px; width:24px; height:24px; border:2px solid var(--amber); border-radius:50%; background:rgba(11,20,23,.85); color:var(--amber); font:700 13px/20px var(--display, sans-serif); text-align:center; }
+#guide-ports b.now { background:var(--amber); color:#0B1417; }
+#guide-arrow { position:absolute; left:0; top:0; z-index:5; width:76px; height:76px; margin:-38px 0 0 -38px; padding:0; border:2.5px solid var(--amber); border-radius:50%; background:rgba(11,20,23,.9); pointer-events:auto; cursor:pointer; }
+#guide-arrow svg { width:44px; height:44px; fill:var(--amber); }
+#guide-arrow.low span { top:-24px; }
+#guide-arrow span { position:absolute; top:82px; left:50%; transform:translateX(-50%); color:var(--amber); font:700 13px var(--display, sans-serif); white-space:nowrap; text-shadow:0 1px 3px #000; }
 @keyframes beat { 50% { opacity:.55; } }
 @media (max-width:759px), (max-height:520px) {
   #guide { left:calc(8px + var(--l)); right:calc(128px + var(--r)); top:calc(154px + var(--t)); width:auto; padding:10px 12px; }
@@ -923,6 +938,9 @@ body { background:var(--night); color:var(--ink); font:500 14px/1.3 var(--body);
   </section>
   <div id="guide-open" hidden><button id="guide-show" class="tip">Premier atelier</button><button id="guide-drop" class="tip" aria-label="Passer le guide">×</button></div>
   <div id="guide-spot" hidden aria-hidden="true"><i></i></div>
+  <div id="guide-trace" hidden aria-hidden="true"><svg><path/></svg></div>
+  <div id="guide-ports" hidden aria-hidden="true"><b>1</b><b>2</b><b>3</b></div>
+  <button id="guide-arrow" hidden aria-label="Aller à l’étape du guide"><svg viewBox="-20 -20 40 40" aria-hidden="true"><path d="M-9 -11 L12 0 L-9 11 L-4 0 Z"/></svg><span></span></button>
   <div id="events" role="log" aria-live="polite"></div>
 
   <section id="crew" aria-label="Drones">
@@ -1038,6 +1056,8 @@ function L(s, ...v) {
 L.missing = new Set();
 // The lab (?lab): every 3D model on clean ground, its state shown and edited. A dev page, in English.
 const LAB = {on:new URLSearchParams(location.search).has('lab')};
+// The lab is not played: no game shortcut takes a key from its fields. Caught on window, before every listener of the game.
+if (LAB.on) for (const kind of ['keydown', 'keyup']) window.addEventListener(kind, event => event.stopImmediatePropagation(), true);
 const EN = {
   "Recommencer : maintenir": "Restart: hold",
   "Carte graphique (trait)": "Graphics card (line)",
@@ -1178,6 +1198,26 @@ const EN = {
   "La Ligase": "The Ligase",
   "Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.": "Two of one and one of the other: the Ligase never keeps a belt waiting.",
   "Un second récolteur sur": "A second harvester on",
+  "Aller à l’étape du guide": "Go to the guide step",
+  "Prendre la Ligase": "Take the Ligase",
+  "Prends la Ligase": "Take the Ligase",
+  "Elle assemble trois bases en un gène, dans l’ordre : S, F, S. Le cœur mange ce gène.": "It joins three bases into a gene, in order: S, F, S. The core eats that gene.",
+  "Poser la Ligase": "Place the Ligase",
+  "Pose la Ligase ici": "Place the Ligase here",
+  "Entre tes récolteurs et le cœur. Sa sortie, la flèche, doit regarder le cœur : R pour la tourner avant de la poser.": "Between your harvesters and the core. Its output, the arrow, must face the core: R turns it before you place it.",
+  "Récolteur → entrée 1": "Harvester → input 1",
+  "Récolteur → entrée 2": "Harvester → input 2",
+  "Récolteur → entrée 3": "Harvester → input 3",
+  "Relie à l’entrée 1 un récolteur sur": "Connect to input 1 a harvester on",
+  "Relie à l’entrée 2 un récolteur sur": "Connect to input 2 a harvester on",
+  "Relie à l’entrée 3 un récolteur sur": "Connect to input 3 a harvester on",
+  "Prends un tapis et glisse du récolteur jusqu’à l’entrée 1 de la Ligase, en suivant le tracé.": "Take a belt and drag from the harvester to input 1 of the Ligase, along the trace.",
+  "Même geste vers l’entrée 2 : la base du milieu du gène.": "Same gesture to input 2: the middle base of the gene.",
+  "Et vers l’entrée 3 : la Ligase assemble le gène dès que ses trois entrées sont servies.": "And to input 3: the Ligase joins the gene once its three inputs are fed.",
+  "La Ligase jusqu’au cœur": "The Ligase to the core",
+  "Relie la Ligase au cœur": "Connect the Ligase to the core",
+  "Un tapis de la sortie de la Ligase jusqu’au cœur : il mange le gène, et le premier atelier tourne.": "A belt from the Ligase output to the core: it eats the gene, and the first workshop runs.",
+  "Ouvre {} (touche {}), puis prends {} (Maj+{}).": "Open {} (key {}), then take {} (Shift+{}).",
   "Elle ira au milieu du gène, par l’arrière de la Ligase.": "It will go in the middle of the gene, through the back of the Ligase.",
   "Puis un récolteur sur": "Then a harvester on",
   "Un récolteur sur": "A harvester on",
@@ -5553,11 +5593,15 @@ function paintSheet(c) {
 
 // ---- The guided start: five steps to a first line feeding the core, each checked on what is built.
 const GUIDE = [
-  {family:'rec', model:'mine', base:'S', list:L('Un récolteur sur'), title:L('Pose un récolteur sur'), why:L('Le cœur veut ce gène : il faut deux fois cette base pour une de l’autre.')},
-  {family:'rec', model:'mine', base:'F', list:L('Un récolteur sur'), title:L('Puis un récolteur sur'), why:L('Elle ira au milieu du gène, par l’arrière de la Ligase.')},
-  {family:'rec', model:'mine', base:'S', list:L('Un second récolteur sur'), title:L('Un second récolteur sur'), why:L('Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.')},
-  {family:'fab', model:'ligase', list:L('La Ligase'), title:L('Pose la Ligase'), why:L('Entrées 1, 2, 3 dans l’ordre du gène : SFS. Sa sortie regarde le cœur, R pour tourner.')},
-  {family:'tra', model:'belt', list:L('Des tapis jusqu’au cœur'), title:L('Relie tout jusqu’au cœur'), why:L('De chaque récolteur à son entrée, puis de la Ligase au cœur. Le premier gène valide l’étape.')}
+  {family:'rec', pick:'mine', model:'mine', base:'S', list:L('Un récolteur sur'), title:L('Pose un récolteur sur'), why:L('Le cœur veut ce gène : il faut deux fois cette base pour une de l’autre.')},
+  {family:'rec', pick:'mine', model:'mine', base:'F', list:L('Un récolteur sur'), title:L('Puis un récolteur sur'), why:L('Elle ira au milieu du gène, par l’arrière de la Ligase.')},
+  {family:'rec', pick:'mine', model:'mine', base:'S', list:L('Un second récolteur sur'), title:L('Un second récolteur sur'), why:L('Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.')},
+  {family:'fab', pick:'ligase', model:'ligase', list:L('Prendre la Ligase'), title:L('Prends la Ligase'), why:L('Elle assemble trois bases en un gène, dans l’ordre : S, F, S. Le cœur mange ce gène.')},
+  {family:'fab', pick:'ligase', model:'ligase', place:true, list:L('Poser la Ligase'), title:L('Pose la Ligase ici'), why:L('Entre tes récolteurs et le cœur. Sa sortie, la flèche, doit regarder le cœur : R pour la tourner avant de la poser.')},
+  {family:'tra', pick:'belt', model:'belt', port:0, base:'S', list:L('Récolteur → entrée 1'), title:L('Relie à l’entrée 1 un récolteur sur'), why:L('Prends un tapis et glisse du récolteur jusqu’à l’entrée 1 de la Ligase, en suivant le tracé.')},
+  {family:'tra', pick:'belt', model:'belt', port:1, base:'F', list:L('Récolteur → entrée 2'), title:L('Relie à l’entrée 2 un récolteur sur'), why:L('Même geste vers l’entrée 2 : la base du milieu du gène.')},
+  {family:'tra', pick:'belt', model:'belt', port:2, base:'S', list:L('Récolteur → entrée 3'), title:L('Relie à l’entrée 3 un récolteur sur'), why:L('Et vers l’entrée 3 : la Ligase assemble le gène dès que ses trois entrées sont servies.')},
+  {family:'tra', pick:'belt', model:'belt', core:true, list:L('La Ligase jusqu’au cœur'), title:L('Relie la Ligase au cœur'), why:L('Un tapis de la sortie de la Ligase jusqu’au cœur : il mange le gène, et le premier atelier tourne.')}
 ];
 function builtNow() {
   const n = {S:0, F:0, ligase:0};
@@ -5571,20 +5615,68 @@ function startGuide() {
   G.guide = {step:0, base:builtNow(), hidden:false};
   ui.guideSpot = null;
 }
+// The Ligase the guide speaks of: the one nearest the core.
+function guideLigase() {
+  let best = null;
+  for (const c of allCells()) if (c.type === 'ligase' && (!best || Math.hypot(c.x - CORE.x, c.y - CORE.y) < Math.hypot(best.x - CORE.x, best.y - CORE.y))) best = c;
+  return best;
+}
+// Each step is checked on the game itself: a base that reached its input, a gene the core ate.
 function guideDone(step, now) {
-  const base = G.guide.base;
+  const base = G.guide.base, want = GUIDE[step], fed = G.fed >= 1 || G.stage > 0, placed = now.ligase >= base.ligase + 1;
   if (step === 0) return now.S >= base.S + 1;
   if (step === 1) return now.F >= base.F + 1;
   if (step === 2) return now.S >= base.S + 2;
-  if (step === 3) return now.ligase >= base.ligase + 1;
-  return G.fed >= 1 || G.stage > 0;
+  if (step === 3) return tool === 'ligase' || placed || fed;
+  if (step === 4) return placed || fed;
+  if (want.port != null) return Boolean(G.guide.got?.[want.port]) || fed;
+  return fed;
+}
+// How to reach the machine of a step from the dock, while it is not in hand.
+function howTo(want) {
+  if (!want.pick || tool === want.pick) return '';
+  const families = [...$('tools').querySelectorAll('.family')], fam = families.findIndex(b => b.dataset.family === want.family);
+  const pods = [...$('tools').querySelectorAll(`.tray[data-tray="${want.family}"] [data-type]`)], at = pods.findIndex(b => b.dataset.type === want.pick);
+  if (fam < 0 || at < 0) return '';
+  return L`Ouvre ${FAMILIES[fam][1]} (touche ${fam + 2}), puis prends ${TYPES[want.pick].name} (Maj+${at + 1}).`;
 }
 // The free deposit cell of that base nearest the core, kept until something stands on it.
 function guideSpot(step) {
   const want = GUIDE[step];
-  if (want.model === 'belt') return {x:CORE.x + .5, y:CORE.y + .5};
-  if (!want.base) return null;
+  ui.guideTrace = null; ui.guidePort = null;
   const old = ui.guideSpot, middle = s => s && {...s, x:s.x + .5, y:s.y + .5};
+  if (want.place) {
+    // Between the harvesters and the core: the free cell nearest the middle of the way.
+    if (old?.step === step && !cellAt(old.x, old.y) && placeable(old.x, old.y)) return middle(old);
+    const mines = [...allCells()].filter(c => c.type === 'mine');
+    if (!mines.length) return null;
+    const tx = (mines.reduce((a, c) => a + c.x, 0) / mines.length + CORE.x) / 2, ty = (mines.reduce((a, c) => a + c.y, 0) / mines.length + CORE.y) / 2;
+    let best = null;
+    for (let x = Math.floor(tx) - 6; x <= Math.floor(tx) + 6; x++) for (let y = Math.floor(ty) - 6; y <= Math.floor(ty) + 6; y++) {
+      if (cellAt(x, y) || depositAt(x, y) || !placeable(x, y)) continue;
+      const d = Math.hypot(x - tx, y - ty);
+      if (!best || d < best.d) best = {x, y, d};
+    }
+    ui.guideSpot = best && {step, x:best.x, y:best.y};
+    return middle(ui.guideSpot);
+  }
+  if (want.port != null || want.core) {
+    const lig = guideLigase();
+    if (!lig) return null;
+    const m = centreOf(lig);
+    if (want.core) {
+      const out = {x:m.x + DX[lig.dir], y:m.y + DY[lig.dir]};
+      ui.guideTrace = [out, {x:CORE.x + .5, y:CORE.y + .5}];
+      return out;
+    }
+    const side = portSide(lig, want.port), at = {x:m.x + DX[side], y:m.y + DY[side]};
+    let from = null;
+    for (const c of allCells()) if (c.type === 'mine' && matterUnder(c) === want.base && (!from || Math.hypot(c.x - at.x, c.y - at.y) < Math.hypot(from.x - at.x, from.y - at.y))) from = c;
+    if (from) ui.guideTrace = [centreOf(from), at];
+    ui.guidePort = want.port;
+    return at;
+  }
+  if (!want.base) return null;
   if (old?.step === step && !cellAt(old.x, old.y)) return middle(old);
   let best = null;
   for (let r = 2; r <= 26 && !best; r++) for (let x = CORE.x - r; x <= CORE.x + r; x++) for (let y = CORE.y - r; y <= CORE.y + r; y++) {
@@ -5598,6 +5690,8 @@ function guideSpot(step) {
 function paintGuide() {
   const g = G.guide, live = Boolean(g) && g.step < GUIDE.length && !G.over && !orbit.on;
   if (live) {
+    // A base seen in an input stays seen: the Ligase empties its inputs once the gene is made.
+    guideLigase()?.ports.forEach((port, i) => { if (port.length) (g.got ||= [false, false, false])[i] = true; });
     const now = builtNow();
     while (g.step < GUIDE.length && guideDone(g.step, now)) {
       g.step++;
@@ -5610,26 +5704,68 @@ function paintGuide() {
   $('guide-open').hidden = !(live && g.step < GUIDE.length && g.hidden);
   $('app').classList.toggle('guide-folded', !$('guide-open').hidden);
   $('app').classList.toggle('guiding', on);
-  for (const b of $('tools').querySelectorAll('.family')) b.classList.toggle('call', on && b.dataset.family === GUIDE[g.step]?.family);
+  // The button to press, in the dock and in the open family, while the machine is not in hand.
+  const want = on ? GUIDE[g.step] : null, need = Boolean(want?.pick) && tool !== want.pick;
+  for (const b of $('tools').querySelectorAll('.family')) b.classList.toggle('call', need && b.dataset.family === want.family);
+  $('tools').querySelectorAll('.tray [data-type]').forEach(b => {
+    const call = need && ui.family === want.family && b.dataset.type === want.pick && b.closest('.tray').dataset.tray === want.family;
+    b.classList.toggle('call', call);
+    if (call) b.dataset.guideKey = `Maj+${[...b.parentElement.querySelectorAll('[data-type]')].indexOf(b) + 1}`; else delete b.dataset.guideKey;
+  });
+  $('tools').classList.toggle('guide-dim', need);
   if (!on) { $('guide-spot').hidden = true; return; }
   const step = GUIDE[g.step], base = step.base ? markOf(step.base) : '';
   $('guide-no').textContent = L`étape ${g.step + 1} sur ${GUIDE.length}`;
   const title = `${step.title}${base}`;
   if ($('guide-title').innerHTML !== title) $('guide-title').innerHTML = title;
-  write($('guide-why'), step.why);
+  write($('guide-why'), [step.why, howTo(step)].filter(Boolean).join(' '));
   showModel($('guide-model'), step.model);
   const list = GUIDE.map((s, i) => `<li class="${i < g.step ? 'done' : i === g.step ? 'now' : ''}"><i>${i < g.step ? '✓' : i + 1}</i><span>${s.list}</span>${s.base ? markOf(s.base) : ''}</li>`).join('');
   if ($('guide-steps').innerHTML !== list) $('guide-steps').innerHTML = list;
   $('app').style.setProperty('--guide-h', `${$('guide').offsetHeight}px`);
   ui.guidePoint = guideSpot(g.step);
 }
-function placeGuideSpot() {
-  const spot = $('guide-spot'), at = !$('guide').hidden && ui.guidePoint;
-  spot.hidden = !at;
-  if (!at) return;
-  const p = screenAt(at);
-  spot.style.transform = `translate(${p.x}px,${p.y}px)`;
+// The map the player sees: inside the screen, clear of the top bar, the side buttons, the dock and the guide.
+// gap: how far from what covers it, 20 px for the circle to read, more for the arrow to fit.
+function freeBox(gap) {
+  const box = {l:gap, t:70 + gap, r:view.w - 60 - gap, b:view.h - gap};
+  const dock = $('tools').getBoundingClientRect();
+  if (dock.height) box.b = Math.min(box.b, dock.top - gap);
+  if (!$('guide').hidden) {
+    const g = $('guide').getBoundingClientRect();
+    if (NARROW.matches) box.t = Math.max(box.t, g.bottom + gap); else box.l = Math.max(box.l, g.right + gap);
+  }
+  return box;
 }
+function placeGuideSpot() {
+  const spot = $('guide-spot'), arrow = $('guide-arrow'), trace = $('guide-trace'), ports = $('guide-ports');
+  const at = !$('guide').hidden && ui.guidePoint, lig = at && ui.guidePort != null ? guideLigase() : null;
+  ports.hidden = !lig;
+  if (lig) [...ports.children].forEach((b, i) => {
+    const side = portSide(lig, i), m = centreOf(lig), p = screenAt({x:m.x + DX[side] * .62, y:m.y + DY[side] * .62});
+    b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; b.classList.toggle('now', i === ui.guidePort);
+  });
+  trace.hidden = !(at && ui.guideTrace);
+  if (!trace.hidden) {
+    // Along the grid, as a belt runs.
+    const [a, b] = ui.guideTrace, p = screenAt(a), c = screenAt({x:a.x, y:b.y}), q = screenAt(b);
+    trace.querySelector('path').setAttribute('d', `M${p.x} ${p.y}L${c.x} ${c.y}L${q.x} ${q.y}`);
+  }
+  if (!at) { spot.hidden = arrow.hidden = true; return; }
+  const p = screenAt(at), seen = freeBox(20), out = p.x < seen.l || p.x > seen.r || p.y < seen.t || p.y > seen.b, box = freeBox(50);
+  spot.hidden = out; arrow.hidden = !out;
+  if (!out) { spot.style.transform = `translate(${p.x}px,${p.y}px)`; return; }
+  // Off screen, at its edge or under the interface: a big arrow on the border of the free map points at it.
+  const c = {x:(box.l + box.r) / 2, y:(box.t + box.b) / 2}, a = Math.atan2(p.y - c.y, p.x - c.x), cos = Math.cos(a), sin = Math.sin(a);
+  const k = Math.min(Math.abs(((cos < 0 ? box.l : box.r) - c.x) / (cos || 1e-9)), Math.abs(((sin < 0 ? box.t : box.b) - c.y) / (sin || 1e-9)));
+  arrow.style.left = `${c.x + cos * k}px`; arrow.style.top = `${c.y + sin * k}px`;
+  arrow.firstElementChild.style.transform = `rotate(${a}rad)`;
+  // Near the bottom its distance reads above it, clear of the dock.
+  arrow.classList.toggle('low', sin > .3);
+  const far = L`${Math.round(Math.hypot(at.x - cam.x, at.y - cam.y))} cases`;
+  if (arrow.lastElementChild.textContent !== far) arrow.lastElementChild.textContent = far;
+}
+$('guide-arrow').onclick = () => { const at = ui.guidePoint; if (at) travelTo({...cam, x:at.x, y:at.y}); };
 $('guide-hide').onclick = () => { if (G.guide) G.guide.hidden = true; paintGuide(); };
 $('guide-show').onclick = () => { if (G.guide) G.guide.hidden = false; paintGuide(); };
 const skipGuide = () => { if (G.guide) G.guide.step = GUIDE.length; paintGuide(); };
@@ -7162,6 +7298,10 @@ function labShow(value) {
   const {x, y} = LAB.at;
   for (const c of Object.values(G.cells)) if (c.type !== 'core') delete G.cells[key(c.x, c.y)];
   G.enemies = []; G.shots = [];
+  // The nest and the drone are moved onto the spot when shown: every other time they wait far from it.
+  const away = {x:x + 60, y:y + 60};
+  if (G.breaches[0]) Object.assign(G.breaches[0], away);
+  if (G.drones[0]) Object.assign(G.drones[0], {x:away.x, y:away.y, was:{...G.drones[0].was, x:away.x, y:away.y}});
   LAB.kind = kind;
   let focus = {x, y};
   LAB.cell = id === 'core' ? CORE : LAB.at;

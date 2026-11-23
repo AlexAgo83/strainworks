@@ -47,6 +47,22 @@ it("shows each model alone and edits its state without saving", async () => {
     const after = await page.evaluate(() => [G.time, G.enemies[0].x]);
     expect(after[0]).toBeGreaterThan(before[0]);
     expect(after[1]).toBe(before[1]);
+    // Typing in the state keeps every key: no game shortcut (pause, turn, digits, eyedropper) takes it.
+    await page.selectOption("#lab-list", "cell|turret");
+    const keys = await page.evaluate(() => [paused, tool, cam.x]);
+    await page.click("#lab-state");
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" qr2 wasd");
+    const typed = await page.evaluate(() => [paused, tool, cam.x, document.querySelector("#lab-state").value.endsWith(" qr2 wasd")]);
+    expect(typed).toEqual([...keys, true]);
+    // A nest or a drone shown leaves the spot to the next specimen.
+    const near = () => page.evaluate(() => [G.breaches[0], G.drones[0]].map((o) => Math.hypot(o.x - LAB.at.x, o.y - LAB.at.y) < 3));
+    await page.selectOption("#lab-list", "nest|2:wake");
+    const nestShown = await near();
+    await page.selectOption("#lab-list", "drone|drone");
+    const droneShown = await near();
+    await page.selectOption("#lab-list", "cell|ligase");
+    expect([nestShown, droneShown, await near()]).toEqual([[true, false], [false, true], [false, false]]);
     expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => /game|save|planet/i.test(k)))).toEqual([]);
     expect(errors).toEqual([]);
   } finally {
