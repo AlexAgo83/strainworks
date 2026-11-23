@@ -273,10 +273,7 @@ window.createView3D = (glCanvas) => {
         g.fill();
         continue;
       }
-      const rich = richAt(patch.list[0].x, patch.list[0].y);
-      if (rich < 2) continue;
-      const color = rich > richCap() ? '#8B989C' : '#B7F34A';
-      label(`×${rich}`, patch.cx, patch.top - 0.5, Math.min(90, Math.max(18, (13 * 40) / cam.zoom)), color);
+      // A deposit's richness shows when it is aimed at, not as a label floating over it.
     }
     for (const b of shownNests(area.x0, area.y0, area.x1, area.y1)) {
       if (b.state === 'spent') continue;

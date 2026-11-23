@@ -323,6 +323,16 @@ window.createModels3D = (B, scene) => {
 
     // A gantry with a two-lamp head, and an arm that drops on red.
     // The radar pylon: three legs, a mast, a dish that turns, glowing rings, and a wave across the ground.
+    relay(c, x, y) {
+      add('hull', 'dark', x, y, 0.06, 0.5, 0.12, 0.5);
+      for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU + 0.3; limb('steel2', ...from(x, y, a, 0.3), 0.02, x, y, 0.5, 0.05); }
+      add('tube', 'steel2', x, y, 0.8, 0.09, 1.5, 0.09);
+      for (const h of [0.55, 0.85, 1.15]) add('ring', 'N', x, y, h, 0.2, 0.6, 0.2);
+      const beat = built(c) ? 0.5 + 0.5 * Math.sin(clock * 4 + x) : 0;
+      add('bead', 'N2', x, y, 1.62, 0.2 + beat * 0.05);
+      add('ring', 'cyan', x, y, 1.62, 0.36 + beat * 0.08, 0.5, 0.36 + beat * 0.08, 0, LYING);
+      for (const s of [-1, 1]) { limb('steel', x, y, 1.5, ...from(x, y, 0, s * 0.22), 1.42, 0.035); add('bead', 'cyan', ...from(x, y, 0, s * 0.22), 1.42, 0.07); }
+    },
     radar(c, x, y) {
       for (let i = 0; i < 3; i++) {
         const a = (i / 3) * Math.PI * 2 + 0.5;
@@ -1276,8 +1286,12 @@ window.createModels3D = (B, scene) => {
       const live = carries(w);
       const length = span(a, b);
       const at = (k) => [a.x + 0.5 + (b.x - a.x) * k, a.y + 0.5 + (b.y - a.y) * k, 0.9 - Math.sin(k * Math.PI) * Math.min(0.5, length * 0.05)];
-      const n = fine ? Math.max(4, Math.ceil(length)) : 2;
-      for (let i = 0; i < n; i++) limb(!w.hp || w.out != null ? 'alarm' : live ? 'N' : 'site', ...at(i / n), ...at((i + 1) / n), 0.055);
+      // Short straight pieces along the sag, a bead at every joint so the fibre reads as one thread.
+      const n = fine ? Math.max(6, Math.ceil(length * 2)) : 3, paint = !w.hp || w.out != null ? 'alarm' : live ? 'N' : 'site';
+      for (let i = 0; i < n; i++) {
+        limb(paint, ...at(i / n), ...at((i + 1) / n), 0.055);
+        if (i) add('bead', paint, ...at(i / n), 0.06);
+      }
       const gene = live && netOf(a)?.focus;
       if (!gene) continue;
       const count = Math.max(1, Math.ceil(length / 4));
