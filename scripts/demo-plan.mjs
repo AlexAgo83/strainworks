@@ -156,6 +156,13 @@ export const STEPS = [
       ...run(41, 14, 61, 14, 1, 3),
       ...run(62, 14, 62, 19, 2, 3),
       ...run(62, 20, 61, 20, 3, 3),
+      // The second row lives on F, which the first row leaves little of: the F harvester, raised to MK2, gives half
+      // its 12 a second by a second door east, over the K line, up x=67 and into the second row's head.
+      { t: "borer", x: 60, y: 44, d: 0, mk: 2 },
+      ...run(62, 44, 65, 44, 1, 2),
+      { t: "bridge", x: 66, y: 44, d: 0 },
+      ...run(67, 44, 67, 21, 0, 2),
+      ...run(67, 20, 63, 20, 3, 2),
       ...module(59, 22, "lig4"),
       { t: "belt", x: 57, y: 20, d: 3, mk: 3 },
       ...module(55, 22, "lig5", 4),
