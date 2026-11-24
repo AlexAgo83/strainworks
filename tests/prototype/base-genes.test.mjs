@@ -21,8 +21,11 @@ it("shows the final goal, the stage, and the base genes the core eats", async ()
 		const out = await page.evaluate(() => {
 			begin();
 			paused = true;
+			// The story and the base genes are on the stage page, behind the sheet's info button.
 			const card = () => {
 				select(key(CORE.x, CORE.y));
+				ui.goalStage = G.stage;
+				ui.sheetTab = "info";
 				paintSheet(coreCell());
 				return document.getElementById("card");
 			};

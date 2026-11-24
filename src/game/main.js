@@ -868,17 +868,15 @@ $('menu').addEventListener('click', event => { const to = event.target.closest('
 export const SIDE_KEY = 'strainworks-side';
 $('side-toggle').onclick = () => { const off = !$('app').classList.contains('side-off'); foldSide(off); keep(SIDE_KEY, off ? 'off' : 'on'); };
 foldSide(stored(SIDE_KEY) === 'off');
-// ---- The core's card as a diagram: what it wants, how to make it, what it gives.
-export const ARROW = '<svg class="to" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#66D9EA" stroke-width="1.5"/></svg>';
-export const CARBON = '<svg viewBox="0 0 18 18" role="img" aria-label="' + L('carbone') + '"><path d="M9 2l6 3.5v7L9 16l-6-3.5v-7z" fill="#8C949A" stroke="#C9D2D0" stroke-width="1.2"/></svg>';
+// ---- The core's card: a machine drawn from the sprite sheet, for what a stage unlocks.
 export const machineOf = (type, label) => `<span class="porthole model machine" data-model="${type}" role="img" aria-label="${label}"></span>`;
 // A row or a tab of the core's sheet, touched.
 $('sheet').addEventListener('click', event => {
   const row = event.target.closest('[data-goal]'), tab = event.target.closest('[data-sheet-tab]'), up = event.target.closest('[data-up]'), labTab = event.target.closest('[data-lab-tab]');
   if (up) buyLab(up.dataset.up);
   else if (labTab) ui.labTab = labTab.dataset.labTab;
-  else if (row) ui.goalPick = Number(row.dataset.goal);
-  else if (tab) ui.sheetTab = tab.dataset.sheetTab;
+  else if (row) { ui.goalPick = Number(row.dataset.goal); ui.sheetTab = 'asks'; }
+  else if (tab) ui.sheetTab = ui.sheetTab === tab.dataset.sheetTab ? 'asks' : tab.dataset.sheetTab;
   else return;
   paintSheet(G.cells[selected]);
 });

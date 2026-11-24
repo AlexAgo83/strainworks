@@ -1,4 +1,5 @@
-// The core's card is a diagram: what it wants, how to make it, what it gives, with pictures and no codes in letters.
+// The core's card is a diagram: one demand at a time, its recipe drawn down to the core, what the stage gives behind
+// its info button, with pictures and no codes in letters (docs/design/core-panel-v2).
 import { expect, it } from "vitest";
 import { launch, pageHTML } from "./harness.mjs";
 
@@ -26,27 +27,28 @@ it("draws what the core wants, its recipe and what it gives, for every stage", a
         const text = sheet.textContent;
         seen.push({
           shown: !sheet.hidden && document.querySelector("#message").hidden,
-          titles: [...sheet.querySelectorAll("h3")].map((h) => h.textContent),
-          steps: sheet.querySelectorAll(".step").length,
-          machines: [...sheet.querySelectorAll(".machine")].map((m) => m.getAttribute("aria-label")),
-          pictures: sheet.querySelectorAll(".gene svg").length > 0,
+          demands: sheet.querySelectorAll(".demand").length,
+          machines: [...sheet.querySelectorAll(".recipe .machine")].map((m) => m.getAttribute("aria-label")),
+          pictures: sheet.querySelectorAll(".recipe .node svg").length > 0 && sheet.querySelectorAll(".demand .gene svg").length > 0,
           gives: 0,
           letters: /(?<![\p{L}])[SFCN]{3}(?![\p{L}])/u.test(text),
-          carbon: /carbone/.test(text),
+          carbon: sheet.querySelector('.recipe [aria-label="carbone"]') != null,
+          heart: sheet.querySelector('.recipe .heart') != null,
         });
-        // What the stage unlocks: in its tab on the compact sheet, on the page itself on the older one.
-        const tab = sheet.querySelector('[data-sheet-tab="gives"]');
-        if (tab) tab.click();
+        // What the stage unlocks sits behind the info button, out of the main view; touched again, it goes back.
+        sheet.querySelector('[data-sheet-tab="info"]').click();
         seen.at(-1).gives = document.querySelectorAll("#sheet .gives > span").length;
-        if (tab) sheet.querySelector('[data-sheet-tab="asks"]').click();
+        seen.at(-1).recipeInInfo = document.querySelector("#sheet .recipe") != null;
+        document.querySelector('#sheet [data-sheet-tab="info"]').click();
+        seen.at(-1).back = document.querySelector("#sheet .recipe") != null;
       }
       return seen;
     });
-    // A count to reach: the compact sheet, one row and its recipe, what it unlocks in a tab.
-    expect(stages[0]).toMatchObject({ shown: true, titles: ["Recette"], steps: 1, machines: ["Ligase"], pictures: true, letters: false, carbon: false });
-    expect(stages[1]).toMatchObject({ shown: true, steps: 2, machines: ["Ligase", "Encapsuleur"], pictures: true, letters: false, carbon: true });
-    expect(stages[2]).toMatchObject({ shown: true, steps: 4, machines: ["Ligase", "Ligase", "Assembleur", "Encapsuleur"], pictures: true, letters: false, carbon: true });
-    expect(stages.every((s) => s.gives > 0)).toBe(true);
+    // One demand, its recipe from the bases down to the heart, what it unlocks behind the info button.
+    expect(stages[0]).toMatchObject({ shown: true, demands: 1, machines: ["Ligase"], pictures: true, letters: false, carbon: false, heart: true });
+    expect(stages[1]).toMatchObject({ shown: true, demands: 1, machines: ["Ligase", "Encapsuleur"], pictures: true, letters: false, carbon: true });
+    expect(stages[2]).toMatchObject({ shown: true, demands: 1, machines: ["Ligase", "Ligase", "Assembleur", "Encapsuleur"], pictures: true, letters: false, carbon: true });
+    expect(stages.every((s) => s.gives > 0 && !s.recipeInInfo && s.back)).toBe(true);
     // Another piece keeps its card in words.
     const other = await page.evaluate(() => {
       const belt = Object.values(G.cells).find((c) => c.type === "belt");

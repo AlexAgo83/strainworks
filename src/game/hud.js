@@ -1,10 +1,10 @@
 // The interface around the map: panels, the core card, the guide, the goal and the statistics.
 import { eaten, hungryFor, BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, PACK, RANKS, STAGES, TYPES, VEIN, WORM, allCells, bearing, boxOf, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, jobId, key, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
-import { buyLab, diagnose, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
+import { buyLab, diagnose, packTrouble, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
-import { choose, geneMark, orderHTML, pickedWorm, say, stockOf, write } from "./input.js";
-import { $, ARROW, CARBON, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GUIDE, GUIDE_GENE, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
+import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, write } from "./input.js";
+import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, GUIDE_GENE, MATTER, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
 
 export function paint(id, html, el = $(id)) {
@@ -271,67 +271,137 @@ export function cellsOf(c, worm) {
   }
   return '';
 }
-// The steps that make an item: each gene at a Ligase, two joined at an Assembleur, then the box.
-export function stepsOf(item) {
-  const box = boxOf(item), body = contentOf(item), genes = body.match(/.{3}/g);
-  const picture = box ? L`<span class="crate" role="img" aria-label="${BOX[box].name} de ${fill(box)}">${geneMark(body)}<b>×${fill(box)}</b></span>` : geneMark(body);
-  const steps = [...new Set(genes)].map(gene => `<div class="step">${[...gene].map((b, i) => `<span class="in"><span class="num">${i + 1}</span>${markOf(b)}</span>`).join('')}${ARROW}${machineOf('ligase', L('Ligase'))}${ARROW}${geneMark(gene)}</div>`);
-  if (genes.length === 2) steps.push(`<div class="step"><span class="in">${geneMark(genes[0])}</span><span class="side">+</span><span class="in">${geneMark(genes[1])}</span>${ARROW}${machineOf('join', L('Assembleur'))}${ARROW}${geneMark(body)}</div>`);
-  if (box) steps.push(`<div class="step"><span class="in">${fill(box)}×${geneMark(body)}</span><span class="side">+</span><span class="in">${BOX[box].carbon}×${CARBON}</span>${BOX[box].isotope ? `<span class="side">+</span><span class="in">${BOX[box].isotope}×${markOf('I')}</span>` : ''}${ARROW}${machineOf('pack', L('Encapsuleur'))}${ARROW}${picture.replace(`<b>×${fill(box)}</b>`, '')}</div>`);
-  return steps;
+// ---- The core's sheet (docs/design/core-panel-v2): one demand at a time, its recipe drawn from the bases down
+// to the core. Green is made already, dashed is still to make, red is a machine set wrong. No gene in letters.
+const BOX_EDGE = {A:'#F0A03C', T:'#55D6E8', H:'#D08CFF'};
+const picture = item => { const box = boxOf(item), body = contentOf(item); return box ? L`<span class="crate" role="img" aria-label="${BOX[box].name} de ${fill(box)}">${geneMark(body)}</span>` : geneMark(body); };
+const kindOf = item => boxOf(item) ? BOX[boxOf(item)].name.toLowerCase() : contentOf(item).length === 6 ? L('brin') : L('gène');
+const titleOf = item => boxOf(item) ? BOX[boxOf(item)].name : contentOf(item).length === 6 ? L('Brin') : GENES[item] || L('Gène');
+// What the base already makes: the matter under each harvester, and what each machine last gave.
+function madeNow() {
+  const made = new Set();
+  for (const c of allCells()) {
+    if (!built(c)) continue;
+    if (c.type === 'mine') made.add(matterUnder(c));
+    if (c.last) made.add(c.last);
+  }
+  return made;
+}
+// The encapsulator set wrong for this recipe, with what it says.
+function troubleFor(item) {
+  if (!boxOf(item)) return null;
+  for (const c of allCells()) { const t = packTrouble(c); if (t && t.gene === contentOf(item)) return {c, ...t}; }
+  return null;
+}
+// The goals the sheet shows: drawn recipes, or the one an older stage asks for.
+function sheetGoals(want) {
+  if (G.goals && (G.goals.length > 1 || (G.base && G.goals.length))) return G.goals;
+  if (want.rate) return [{item:want.item, count:want.hold, fed:Math.floor(G.held), rate:true}];
+  return [{item:want.item, count:want.count, fed:G.fed}];
+}
+const glyphAt = (b, x, y, size) => `<svg x="${x - size / 2}" y="${y - size / 2}" width="${size}" height="${size}" viewBox="0 0 18 18">${SHAPE[b] || ''}</svg>`;
+const bodyAt = (body, x, y, size) => {
+  const step = size + 2, width = body.length * step + (body.length > 3 ? 6 : 0);
+  return [...body].map((b, i) => glyphAt(b, x - width / 2 + step / 2 + i * step + (i >= 3 ? 6 : 0), y, size)).join('');
+};
+const node = (x, y, w, h, state, inner, label = '') => `<g class="node ${state}"${label ? ` role="img" aria-label="${label}"` : ''}><rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="8"/>${inner}</g>`;
+const flow = (d, on = false) => `<path class="flow${on ? ' on' : ''}" d="${d}" marker-end="url(#sw-${on ? 'on' : 'to'})"/>`;
+const words = (x, y, text, cls = 'small', anchor = 'middle') => `<text class="${cls}" x="${x}" y="${y}" text-anchor="${anchor}">${text}</text>`;
+function machineNode(x, y, w, name, note, bad = false) {
+  return `<g class="machine${bad ? ' bad' : ''}" role="img" aria-label="${name}"><rect x="${x - w / 2}" y="${y - 22}" width="${w}" height="44" rx="6"/>`
+    + (note ? `${words(x, y - 2, name, 'big')}${words(x, y + 15, note, bad ? 'small bad' : 'small')}` : words(x, y + 5, name, 'big')) + '</g>';
+}
+export function recipeSVG(item, made, trouble, fed) {
+  const box = boxOf(item), body = contentOf(item), genes = body.match(/.{3}/g), two = genes.length === 2;
+  const sides = [L('gauche'), L('derrière'), L('droite')], out = [];
+  const centres = two ? [82, 246] : [164], gap = two ? 44 : 90, size = two ? 34 : 44, top = 22;
+  const lig = two ? 78 : 96, geneY = lig + 56;
+  genes.forEach((gene, g) => {
+    const cx = centres[g];
+    [...gene].forEach((b, i) => {
+      const x = cx + (i - 1) * gap;
+      out.push(node(x, top, size, size * .8, made.has(b) ? 'have' : 'miss', glyphAt(b, x, top, two ? 20 : 24), MATTER[b]));
+      if (!two) out.push(words(i === 2 ? x + size / 2 + 5 : x - size / 2 - 5, top + 4, String(i + 1), 'lbl', i === 2 ? 'start' : 'end'));
+      if (two) out.push(words(x, top + 26, sides[i]));
+      else out.push(words(x, top + 31, MATTER[b]), words(x, top + 43, sides[i]));
+      const below = top + (two ? 30 : 47), half = two ? 30 : 38;
+      out.push(i === 1 ? flow(`M${x} ${below} V${lig - 24}`) : flow(`M${x} ${below} V${lig} H${cx + (i ? half : -half)}`));
+    });
+    out.push(machineNode(cx, lig, two ? 60 : 76, L('Ligase')));
+    out.push(flow(`M${cx} ${lig + 22} V${geneY - 19}`));
+    out.push(node(cx, geneY, 70, 32, made.has(gene) ? 'have' : 'miss', bodyAt(gene, cx, geneY, 14), GENES[gene] || L('Gène')));
+  });
+  let y = geneY, x = 164;
+  if (two) {
+    const asm = geneY + 56;
+    out.push(flow(`M82 ${geneY + 16} V${asm} H${164 - 52}`), flow(`M246 ${geneY + 16} V${asm} H${164 + 52}`));
+    out.push(words(70, asm - 6, '1', 'lbl'), words(258, asm - 6, '2', 'lbl'));
+    out.push(machineNode(164, asm, 100, L('Assembleur')));
+    y = asm + 54;
+    out.push(flow(`M164 ${asm + 22} V${y - 19}`));
+    out.push(node(164, y, 120, 32, made.has(body) ? 'have' : 'miss', bodyAt(body, 164, y, 13), L('Brin')));
+  }
+  if (box) {
+    const pack = y + 60, bad = trouble?.want ? trouble.c.box : null;
+    out.push(flow(`M164 ${y + 17} V${pack - 24}`));
+    const note = bad ? L`réglé sur ${BOX[bad].name.toLowerCase()} ✗` : L`sur ${BOX[box].name.toLowerCase()}`;
+    out.push(machineNode(164, pack, 116, L('Encapsuleur'), note, Boolean(trouble)));
+    out.push(`<g role="img" aria-label="${L('carbone')}">${glyphAt('K', 276, pack, 26)}</g>`, words(276, pack - 18, L`${BOX[box].carbon} carbone`), words(276, pack + 27, L('à l’est du cœur')));
+    out.push(flow(`M260 ${pack} H${164 + 62}`));
+    if (BOX[box].isotope) {
+      out.push(`<g role="img" aria-label="${MATTER.I}">${glyphAt('I', 52, pack, 26)}</g>`, words(52, pack - 18, L`${BOX[box].isotope} isotope`));
+      out.push(flow(`M68 ${pack} H${164 - 62}`));
+    }
+    y = pack + 58;
+    out.push(flow(`M164 ${pack + 22} V${y - 18}`));
+    const have = made.has(item) || fed > 0, w = two ? 124 : 90;
+    out.push(`<g class="crate-node ${have ? 'have' : 'miss'}" role="img" aria-label="${BOX[box].name}"><path d="M${164 - w / 2} ${y - 16}H${164 + w / 2 - 6}L${164 + w / 2} ${y - 10}V${y + 10}L${164 + w / 2 - 6} ${y + 16}H${164 - w / 2 + 6}L${164 - w / 2} ${y + 10}V${y - 10}Z" style="stroke:${BOX_EDGE[box]}"/>${bodyAt(body, 164, y, 13)}</g>`);
+    x = 164 + w / 2;
+  } else x = 164 + (two ? 60 : 35);
+  // Into the core, on the right of what it eats.
+  out.push(flow(`M${x + 4} ${y} H${280 - 24}`, true));
+  out.push(`<g class="heart" role="img" aria-label="${L('cœur')}"><circle cx="280" cy="${y}" r="20"/><path transform="translate(280 ${y})" d="M0 7C-11 -1 -9 -10 -3 -9C-1 -9 0 -7 0 -6C0 -7 1 -9 3 -9C9 -10 11 -1 0 7Z"/></g>`, words(280, y + 36, L('cœur')));
+  const height = y + 44;
+  return `<svg class="recipe" viewBox="0 0 328 ${height}" role="img" aria-label="${L('Recette')}"><defs><marker id="sw-to" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#52707A"/></marker><marker id="sw-on" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#B7F34A"/></marker></defs>${out.join('')}</svg>`;
 }
 export function coreSheet() {
   const want = STAGES[G.stage];
   if (!want) return '';
-  if (G.goals && (G.goals.length > 1 || (G.base && G.goals.length))) return goalsSheet(want);
-  if (!want.rate) return goalsSheet(want, [{item:want.item, count:want.count, fed:G.fed}]);
-  const box = boxOf(want.item), body = contentOf(want.item), genes = body.match(/.{3}/g);
-  const figure = n => n.toFixed(1).replace('.', DEC);
-  const picture = box ? L`<span class="crate" role="img" aria-label="${BOX[box].name} de ${fill(box)}">${geneMark(body)}<b>×${fill(box)}</b></span>` : geneMark(body);
-  const rate = mealRate(), part = want.rate ? Math.min(1, G.held / want.hold) : Math.min(1, G.fed / want.count);
-  const goal = want.rate
-    ? `<div class="goal"><b>${want.rate}<small> / s</small></b><span>pendant ${want.hold} s</span></div>`
-    : L`<div class="goal"><b>${G.fed}<small> / ${want.count}</small></b><span>livrés</span></div>`;
-  const legend = want.rate
-    ? L`<div class="legend"><span>débit <b>${figure(rate)} / s</b></span><span>tenu <b>${Math.floor(G.held)} / ${want.hold} s</b></span></div>`
-    : '';
-  const steps = stepsOf(want.item);
-  const hints = [];
-  if (want.rate) hints.push(L('<p><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h12M2 11h12" stroke="#F0A03C" stroke-width="2.2"/></svg>2 lignes en parallèle</p>'));
-  if (box) hints.push(L`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`);
-  const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
-  if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', L`Gisements ×${G.stage + 1 === 2 ? '2' : L('4 à ×8')}`]);
-  for (const mk of [2, 3]) if (RANK_NEED[mk - 1] === G.stage + 1) gives.push(['belt', L`Rang MK${mk}`]);
-  const frieze = `<div class="frieze">${STAGES.map((s, i) => `<span class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"><i>${i < G.stage ? '✓' : i + 1}</i>${s.name}</span>`).join('')}</div>`;
-  return `<h3>${L('Stades')}</h3>` + frieze + L`<h3>Il réclame</h3><div class="want">${picture}${goal}</div><div class="gauge${part >= 1 ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></div>${legend}`
-    + L`<h3>Recette</h3>${steps.join('')}${hints.length ? `<div class="hints">${hints.join('')}</div>` : ''}`
-    + (gives.length ? L`<h3>Débloque</h3><div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : '');
-}
-// Several recipes: each with its count and gauge, then every step still to make, once.
-export function goalsSheet(want, goals = G.goals) {
-  const frieze = `<div class="frieze">${STAGES.map((s, i) => `<span class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"><i>${i < G.stage ? '✓' : i + 1}</i>${s.name}</span>`).join('')}</div>`;
-  const picture = item => { const box = boxOf(item), body = contentOf(item); return box ? L`<span class="crate" role="img" aria-label="${BOX[box].name} de ${fill(box)}">${geneMark(body)}<b>×${fill(box)}</b></span>` : geneMark(body); };
-  // One row a recipe, its crate, a thin gauge and its count; the recipe shown is the row picked, else the first to make.
+  const goals = sheetGoals(want);
   if (ui.goalStage !== G.stage) { ui.goalStage = G.stage; ui.goalPick = null; ui.sheetTab = 'asks'; }
-  const first = Math.max(0, goals.findIndex(g => g.fed < g.count)), pick = ui.goalPick ?? first, chosen = goals[pick] || goals[0];
-  const rows = goals.map((g, i) => {
-    const part = Math.min(1, g.fed / g.count), met = g.fed >= g.count;
-    return `<button class="ask${met ? ' met' : ''}" data-goal="${i}" aria-pressed="${i === pick}">${picture(g.item)}<span class="gauge${met ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></span><span class="count">${met ? '✓' : `${Math.floor(g.fed)}<small> / ${g.count}</small>`}</span></button>`;
-  }).join('');
-  const open = [chosen];
-  const hints = open.some(g => boxOf(g.item)) ? `<div class="hints">${L`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`}</div>` : '';
+  const first = Math.max(0, goals.findIndex(g => g.fed < g.count)), pick = goals[ui.goalPick ?? -1] ? ui.goalPick : first, chosen = goals[pick];
+  const hungry = G.base ? hungryFor() : [], made = madeNow();
+  const part = stagePart() ?? 1;
+  const steps = STAGES.map((_, i) => `<i class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"${i === G.stage ? ` style="--part:${(part * 100).toFixed(0)}%"` : ''}></i>`).join('');
+  const info = ui.sheetTab === 'info';
+  const head = `<div class="core-head"><span><b>${L`Stade ${G.stage + 1}`}</b><small>${L`sur ${STAGES.length} · ${want.name}`}</small></span><span class="steps" aria-hidden="true">${steps}</span>`
+    + `<button class="stage-info${hungry.length ? ' alert' : ''}" data-sheet-tab="info" aria-pressed="${info}" aria-label="${L('Le stade : l’histoire, les gènes de base et ce qu’il débloque')}">i</button></div>`;
+  const tabs = `<div class="demands" role="tablist">${goals.map((g, i) => {
+    const met = g.fed >= g.count, blocked = !met && troubleFor(g.item);
+    return `<button role="tab" class="demand${met ? ' met' : ''}${blocked ? ' alert' : ''}" data-goal="${i}" aria-selected="${!info && i === pick}">${picture(g.item)}${met ? '<b class="tick">✓</b>' : ''}<small>${kindOf(g.item)}</small></button>`;
+  }).join('')}</div>`;
+  if (info) return head + tabs + stageInfo(want, hungry);
+  const trouble = troubleFor(chosen.item), met = chosen.fed >= chosen.count, done = Math.min(1, chosen.fed / chosen.count);
+  const figure = n => n.toFixed(1).replace('.', DEC);
+  const count = chosen.rate ? `${Math.floor(chosen.fed)}<small> / ${chosen.count} s</small>` : `${Math.floor(chosen.fed)}<small> / ${chosen.count}</small>`;
+  const demand = `<div class="asked"><h4><small>${L('Le cœur veut')}</small>${picture(chosen.item)}<span>${titleOf(chosen.item)}</span></h4><span class="count">${met ? '✓' : count}</span></div>`
+    + `<div class="gauge${met ? ' done' : ''}"><i style="width:${(done * 100).toFixed(1)}%"></i></div>`
+    + (chosen.rate ? L`<div class="legend"><span>débit <b>${figure(mealRate())} / s</b> sur ${want.rate}</span><span>${L('2 lignes en parallèle')}</span></div>` : '');
+  const warns = [];
+  if (trouble) warns.push(`<p class="warn"><b>${L('Bloqué :')}</b> ${sentenceHTML(trouble.text)}</p>`);
+  const legendKey = `<div class="key"><span>${L('tu le produis')}</span><span class="miss">${L('à faire')}</span></div>`;
+  return head + tabs + demand + recipeSVG(chosen.item, made, trouble, chosen.fed) + warns.join('') + legendKey;
+}
+// Out of the main view: what it is all for, where the organism stands, the base genes and what comes next.
+function stageInfo(want, hungry) {
+  const frieze = `<div class="frieze">${STAGES.map((s, i) => `<span class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"><i>${i < G.stage ? '✓' : i + 1}</i>${s.name}</span>`).join('')}</div>`;
+  const story = `<p class="story">${L('La souche est malade. Une mutation la ronge de l’intérieur et chaque brèche en crache une forme nouvelle. Tu écris son antidote, gène après gène, jusqu’à ce que l’organisme guérisse et éclose.')}</p><p class="unit">${L`Stade ${G.stage + 1} sur ${STAGES.length} : ${want.name}`}</p>`;
+  const base = G.base ? `<h3>${L('Gènes de base')}</h3><div class="base-genes">${eaten().map(gene => `<span class="${hungry.includes(gene) ? 'hungry' : 'fed'}">${picture(gene)}</span>`).join('')}</div>${hungry.length ? `<p class="unit hungry">${L`Le cœur a faim de ${hungry.map(geneMark).join(' ')} : livraisons comptées à moitié.`}</p>` : ''}` : '';
   const gives = Object.keys(NEEDS).filter(type => NEEDS[type] === G.stage + 1).map(type => [type, TYPES[type].name]);
   if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', L`Gisements ×${G.stage + 1 === 2 ? '2' : L('4 à ×8')}`]);
   for (const mk of [2, 3]) if (RANK_NEED[mk - 1] === G.stage + 1) gives.push(['belt', L`Rang MK${mk}`]);
-  const giving = gives.length ? `<div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : `<p class="unit">${want.gives}</p>`;
-  const tab = ui.sheetTab === 'gives' ? 'gives' : 'asks';
-  const tabs = `<div class="sheet-tabs" role="tablist"><button role="tab" data-sheet-tab="asks" aria-selected="${tab === 'asks'}">${L('Il réclame')}</button><button role="tab" data-sheet-tab="gives" aria-selected="${tab === 'gives'}">${L('Débloque')}</button></div>`;
-  // The base genes the core eats, each green while it came in the last half minute: a hungry core counts half.
-  const hungry = hungryFor(), base = G.base ? `<h3>${L('Gènes de base')}</h3><div class="base-genes">${eaten().map(gene => `<span class="${hungry.includes(gene) ? 'hungry' : 'fed'}">${picture(gene)}</span>`).join('')}</div>${hungry.length ? `<p class="unit hungry">${L`Le cœur a faim de ${hungry.map(geneMark).join(' ')} : livraisons comptées à moitié.`}</p>` : ''}` : '';
-  const body = tab === 'gives' ? giving : `${base}<div class="asks">${rows}</div><h3>${L('Recette')}</h3>${stepsOf(chosen.item).join('')}${hints}`;
-  // What it is all for, and where the organism stands.
-  const story = `<p class="story">${L('La souche est malade. Une mutation la ronge de l’intérieur et chaque brèche en crache une forme nouvelle. Tu écris son antidote, gène après gène, jusqu’à ce que l’organisme guérisse et éclose.')}</p><p class="unit">${L`Stade ${G.stage + 1} sur ${STAGES.length} : ${STAGES[G.stage]?.name ?? ''}`}</p>`;
-  return story + frieze + tabs + body;
+  const giving = `<h3>${L('Débloque')}</h3>` + (gives.length ? `<div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : `<p class="unit">${want.gives}</p>`);
+  return `<div class="stage-page">${story}${frieze}${base}${giving}</div>`;
 }
 export function labSheet() {
   const tab = LAB_TABS[ui.labTab] ? ui.labTab : 'drones';

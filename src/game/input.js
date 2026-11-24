@@ -11,6 +11,12 @@ export function geneMark(gene) {
   if (!/^([SFCN]{3}){1,2}$/.test(gene)) return '';
   return `<span class="gene" role="img" aria-label="${[...gene].map(b => BASE[b]).join(', ')}">${[...gene].map((b, i) => `${i === 3 ? '<i class="cut"></i>' : ''}<svg viewBox="0 0 18 18">${SHAPE[b]}</svg>`).join('')}</span>`;
 }
+// A sentence as markup, its codes drawn and never kept in letters: for a sheet painted as HTML.
+export function sentenceHTML(text) {
+  return piecesOf(text).map(({part, code}) => code
+    ? `<span class="gene inline" role="img" aria-label="${[...part].map(base => MATTER[base] || L('n’importe laquelle')).join(', ')}">${[...part].map((base, i) => `${i === 3 ? '<i class="cut"></i>' : ''}${markOf(base) || JOKER}`).join('')}</span>`
+    : part.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('');
+}
 // The code stays in the text for copying and for what reads it, hidden behind its drawing.
 export function write(el, text) {
   if (el.textContent === text) return;

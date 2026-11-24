@@ -37,11 +37,12 @@ it("shows the goal once on a first game, made of the game's pictures, and again 
     expect(last).toEqual(["Ton objectif · 3 sur 3", "Commencer"]);
     expect(closed).toEqual([true, false, null]);
     expect(again).toBe(true);
-    // The core sheet opens on its five stages, the first one under way.
+    // The core sheet's stage page shows its six stages, the first one under way.
     const frieze = await page.evaluate(() => {
       showIntro(false);
       select(key(CORE.x, CORE.y));
       refresh();
+      document.querySelector('#sheet [data-sheet-tab="info"]').click();
       return [...document.querySelectorAll("#sheet .frieze span")].map((s) => s.className);
     });
     expect(frieze).toEqual(["now", "", "", "", "", ""]);

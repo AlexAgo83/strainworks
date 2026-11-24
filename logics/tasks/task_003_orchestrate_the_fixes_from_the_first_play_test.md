@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Indicators reviewed: 2026-11-24 20:07:45
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -35,6 +36,8 @@
 - `item_013_make_drawing_and_dismantling_lines_follow_one_rule`
 - `item_014_stop_empty_inputs_from_reading_as_errors`
 - `item_015_review_room_carry_over_between_stages_waits_and_the_reason_to_fight`
+- `item_022_redesign_the_core_panel_as_one_demand_at_a_time_with_its_recipe_drawn`
+- `item_023_show_an_unlock_card_the_first_time_a_new_building_is_picked`
 
 # Definition of Done (DoD)
 - [ ] Generated request, product, backlog, and task docs are present.
@@ -57,7 +60,7 @@
 - (no validation recorded yet)
 
 # Report
-- Not started.
+- 2026-11-24: the hunger rule counts half (operator decision); item_022, the core panel one demand at a time, done.
 
 # Links
 - Request: `req_003_act_on_the_first_play_test`
@@ -67,4 +70,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-

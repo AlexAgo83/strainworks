@@ -340,17 +340,19 @@ export function upstream(c, side) {
 // An encapsulator working for nothing: its box is one the core does not ask for this gene while another box is,
 // or a second gene waits at its door until a box of the first one is full. Said on the map and in its sheet.
 const BOXES_ASKED = {A:L('chargeurs'), T:L('capsules'), H:L('capsules lourdes')};
-export function packWarning(c) {
+export function packWarning(c) { return packTrouble(c)?.text ?? null; }
+// The same, with the gene it is about, for the core's sheet to flag the right recipe.
+export function packTrouble(c) {
   if (c?.type !== 'pack' || !built(c)) return null;
   const [goods] = c.ports, from = feeders(c, (c.dir + 2) % 4)[0]?.c, waiting = from && liftable(from)[0];
   const gene = goods[0] || (c.last ? contentOf(c.last) : null) || (waiting && !boxOf(waiting) ? waiting : null);
   if (gene) {
     const open = (G.goals || []).filter(g => g.fed < g.count).map(g => g.item);
     const other = Object.keys(BOX).find(box => box !== c.box && open.includes(`${box}:${gene}`));
-    if (other && !open.includes(`${c.box}:${gene}`)) return L`Le cœur demande des ${BOXES_ASKED[other]} de ${gene} : passe en ${BOX[other].name.toLowerCase()}.`;
+    if (other && !open.includes(`${c.box}:${gene}`)) return {gene, want:other, text:L`Le cœur demande des ${BOXES_ASKED[other]} de ${gene} : passe en ${BOX[other].name.toLowerCase()}.`};
   }
   if (goods.length && waiting && !boxOf(waiting) && waiting !== goods[0] && !packTakes(c, waiting, 0))
-    return L`${goods[0]} dans la boîte, ${waiting} attend dehors : vide-la pour changer de gène.`;
+    return {gene:waiting, text:L`${goods[0]} dans la boîte, ${waiting} attend dehors : vide-la pour changer de gène.`};
   return null;
 }
 export function diagnose(c) {
