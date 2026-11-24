@@ -45,8 +45,10 @@ export function keepHarvests() {
     const found = home ? [...(G.far ? [] : INNER), ...CROWDED] : [crowdedField(Math.floor(c.x / SECTOR), Math.floor(c.y / SECTOR))].filter(Boolean);
     // Inside its rectangle, or on a splash round it.
     const off = ([, x, y, w, h]) => Math.hypot(Math.max(x - c.x, 0, c.x - x - w + 1), Math.max(y - c.y, 0, c.y - y - h + 1));
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     const was = found.filter(f => off(f) <= 5.5).sort((a, b) => off(a) - off(b))[0];
     if (!was) continue;
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     const rich = home ? richness(was[1] + was[3] / 2, was[2] + was[4] / 2) : was[0] === 'K' ? 2 : 4;
     if (footprint(c).every(p => depositAt(p.x, p.y) === was[0] && richAt(p.x, p.y) === rich)) continue;
     c.on = was[0]; c.onRich = rich;
@@ -506,31 +508,6 @@ export function diagnose(c) {
 
 // The bindings other modules replace.
 export const actionsSet = {
-  breachesIn: (v) => (breachesIn = v),
-  build: (v) => (build = v),
-  buyLab: (v) => (buyLab = v),
-  creatureAt: (v) => (creatureAt = v),
-  diagnose: (v) => (diagnose = v),
-  dronePose: (v) => (dronePose = v),
-  feeders: (v) => (feeders = v),
-  fieldsIn: (v) => (fieldsIn = v),
-  incubate: (v) => (incubate = v),
-  keepIt: (v) => (keepIt = v),
-  known: (v) => (known = v),
-  layTrack: (v) => (layTrack = v),
-  link: (v) => (link = v),
-  netSummary: (v) => (netSummary = v),
-  netWires: (v) => (netWires = v),
-  portSide: (v) => (portSide = v),
-  radarWave: (v) => (radarWave = v),
-  raise: (v) => (raise = v),
-  rankFollowers: (v) => (rankFollowers = v),
-  recipe: (v) => (recipe = v),
-  rowOf: (v) => (rowOf = v),
-  scrap: (v) => (scrap = v),
-  scrapVein: (v) => (scrapVein = v),
-  shownNests: (v) => (shownNests = v),
-  siteFor: (v) => (siteFor = v),
-  stagePart: (v) => (stagePart = v),
-  wireUp: (v) => (wireUp = v)
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
+  known: (v) => (known = v)
 };

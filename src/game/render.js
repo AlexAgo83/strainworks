@@ -81,6 +81,7 @@ export function glyph(g, base, x, y, r) {
   if (base === 'F') {
     g.lineCap = 'round';
     for (const [width, color] of [[1.15,'#FFC06B'],[.8,'#B86B1E']]) {
+      // @ts-expect-error: loose typing, tightened module by module (item_007)
       g.lineWidth = r * width; g.strokeStyle = color;
       g.beginPath(); g.moveTo(x-r*.55,y); g.lineTo(x+r*.55,y); g.stroke();
     }
@@ -680,20 +681,6 @@ export function marker(x,y,color) {
 
 // The bindings other modules replace.
 export const renderSet = {
-  along: (v) => (along = v),
-  arrow: (v) => (arrow = v),
-  circle: (v) => (circle = v),
-  crate: (v) => (crate = v),
-  draw: (v) => (draw = v),
-  drawCell: (v) => (drawCell = v),
-  glyph: (v) => (glyph = v),
-  home: (v) => (home = v),
-  lamp: (v) => (lamp = v),
-  marker: (v) => (marker = v),
-  pan: (v) => (pan = v),
-  passing: (v) => (passing = v),
-  reading: (v) => (reading = v),
-  rect: (v) => (rect = v),
-  resize: (v) => (resize = v),
-  worldAt: (v) => (worldAt = v)
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
+  draw: (v) => (draw = v)
 };

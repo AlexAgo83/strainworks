@@ -1,4 +1,3 @@
-// @ts-nocheck: typed in step 5 of the modularization (item_007).
 // The simulation: the world, its pieces and their rules, stepped at a fixed rate. No DOM and no renderer:
 // what it says, sounds and shows goes through hooks the interface fills in.
 import { hooks } from "./hooks.ts";
@@ -194,7 +193,7 @@ export function richness(x, y) { const d = Math.hypot(x - CORE.x - .5, y - CORE.
 // Round the base one nest is enough: the one the first turret faces. The others start this far from the core.
 export const CALM = 30;
 export const keepsNest = b => b.id || (b.x === NORTH[0].x && b.y === NORTH[0].y) || Math.hypot(b.x - CORE.x, b.y - CORE.y) >= CALM;
-export function nestBy([, x, y, w, h, free]) {
+export function nestBy([, x, y, w, h, free]: any[]) {
   // A field marked free has no nest: the one south of the base was too close for a camp.
   if (free) return null;
   const cx = x + w / 2, cy = y + h / 2, rich = richness(cx, cy);
@@ -224,7 +223,7 @@ export const spotHash = (x, y, n) => {
 // The first harvesters stand on these.
 export const PINNED = [[38,56], [59,44], [57,57]];
 export let patches = new WeakMap();
-export function makePatch(field, allowed) {
+export function makePatch(field, allowed): any {
   const [kind, x, y, w, h] = field, roll = n => spotHash(x, y, n);
   const cx = x + w / 2, cy = y + h / 2, R = Math.max(1.55, Math.sqrt(w * h / Math.PI) * .94), long = Math.max(.8, Math.min(1.25, Math.sqrt(w / h)));
   const lobes = [{x:cx, y:cy, r:R, sx:long, sy:1 / long, wave:roll(1) * 7}], count = 2 + Math.floor(roll(2) * 2);
@@ -371,7 +370,7 @@ export function lightUp(sets, x, y, r) {
 }
 // Who sees, how far, and what that uncovers. A nest shows as soon as ground in sight reaches its circle,
 // so none is ever woken from out of the fog.
-export function look(force) {
+export function look(force?) {
   forgetCells();
   G.seen ||= {};
   const eyes = new Map(), moving = new Map();
@@ -381,7 +380,7 @@ export function look(force) {
     if (!(into.get(id)?.r >= r)) into.set(id, {x:ex, y:ey, r});
   };
   for (const c of allCells()) if (c.type === 'core' || built(c)) eye(c.x, c.y, (c.type === 'core' ? SIGHT.core : c.type === 'radar' ? SIGHT.radar : SIGHT.built) * (1 + .25 * labLevel('sight')));
-  for (const t of Object.values(G.tracks)) if (built(t)) eye(t.x, t.y, SIGHT.built);
+  for (const t of Object.values<any>(G.tracks)) if (built(t)) eye(t.x, t.y, SIGHT.built);
   for (const d of G.drones || []) if (d.job) eye(d.x, d.y, SIGHT.moving, moving);
   for (const w of G.worms) if (built(w)) { const p = at(w.path[0]); eye(p.x, p.y, SIGHT.moving, moving); }
   // What stands is only added to, until something falls. What moves is few and drawn again when it moves.
@@ -401,7 +400,7 @@ export function look(force) {
       for (const e of movers) lightUp([by, ever], e.x, e.y, e.r);
     }
     const list = moved ? [...added, ...movers] : added;
-    const round = new Map(), nests = new Map(G.breaches.map(b => [b.id || b, b]));
+    const round = new Map(), nests = new Map<any, any>(G.breaches.map(b => [b.id || b, b]));
     for (const e of list) round.set(Math.floor(e.x / SECTOR) + ',' + Math.floor(e.y / SECTOR), e);
     for (const e of round.values()) eachSector(e.x - 72, e.y - 72, e.x + 72, e.y + 72, s => { if (s.breach && !nests.has(s.breach.id)) nests.set(s.breach.id, s.breach); });
     for (const b of nests.values()) if (list.some(e => Math.hypot(e.x - b.x, e.y - b.y) <= e.r + b.r + 4)) lightUp([ever], b.x, b.y, SIGHT.nest);
@@ -422,7 +421,7 @@ export function richAt(x, y) {
   if (atHome(x, y)) return RICH[key(x, y)];
   return depositAt(x, y) && sector(Math.floor(x / SECTOR), Math.floor(y / SECTOR)).rich;
 }
-export let G;
+export let G: any;
 // A gate is a belt with a switch.
 export const isBelt = c => c?.type === 'belt' || c?.type === 'gate';
 export const key = (x, y) => x + ',' + y;
@@ -587,7 +586,7 @@ export function allCells() {
   if (cellMemo?.of !== G.cells) { cellMemo = {of:G.cells, list:Object.values(G.cells)}; pumpMemo = null; queueMicrotask(forgetCells); }
   return cellMemo.list;
 }
-export function put(type, x, y, dir) { forgetCells(); return G.cells[key(x, y)] = cell(type, x, y, dir); }
+export function put(type, x, y, dir): any { forgetCells(); return G.cells[key(x, y)] = cell(type, x, y, dir); }
 export function sites() {
   const jobs = [];
   const look = c => {
@@ -601,7 +600,7 @@ export function sites() {
     if (c.to && c.veinOut != null) jobs.push({c, field:'veinOut', order:c.veinOutOrder});
   }
   for (const c of [...Object.values(G.tracks), ...G.worms, ...G.wires]) look(c);
-  for (const [id, c] of Object.entries(G.ruins)) if (c.out != null && !buried(c)) jobs.push({c, field:'out', order:c.outOrder});
+  for (const [id, c] of Object.entries<any>(G.ruins)) if (c.out != null && !buried(c)) jobs.push({c, field:'out', order:c.outOrder});
   return jobs.sort((a, b) => a.order - b.order);
 }
 export function perch(i) {
@@ -1125,7 +1124,7 @@ export function sense() {
       if (src.type === 'desk' && src.mode === 'hand' && src.gene) return {...net, list:[src.gene], focus:src.gene, source:src, live:true};
       return {...net, source:src};
     };
-    for (const id of group) if (hasTrait(G.cells[id]?.type), 'listen') VIEW.set(id, viewOf(G.cells[id]));
+    for (const id of group) if (hasTrait(G.cells[id]?.type, 'listen')) VIEW.set(id, viewOf(G.cells[id]));
     // A Ligase on the nerve drops the bases it was given for the last antidote, so it never makes a mix of two.
     for (const id of group) {
       const c = G.cells[id], heard = VIEW.get(id);
@@ -1178,7 +1177,7 @@ export function lift(arm, src) {
 }
 export function netOf(c) { return NET.get(key(c.x, c.y)); }
 // The genes the core still asks for this stage, in recipe order.
-export function coreWants() {
+export function coreWants(): any[] {
   const open = G.goals ? G.goals.filter(g => g.fed < g.count).map(g => g.item) : [STAGES[G.stage]?.item].filter(Boolean);
   return [...new Set(open.map(contentOf))];
 }
@@ -1468,7 +1467,7 @@ export function breed(b) {
 export function mutationTarget() {
   const alive = G.breaches.filter(o => o.state !== 'spent');
   if (!alive.length) return null;
-  const belts = [...new Set(alive.map(o => o.tier || 0))].sort((a, c) => a - c);
+  const belts = [...new Set<number>(alive.map(o => o.tier || 0))].sort((a, c) => a - c);
   let open = 0;
   const within = () => alive.filter(o => (o.tier || 0) <= belts[open]);
   while (open < belts.length - 1 && within().reduce((n, o) => n + (o.mutations || 0), 0) / within().length >= MUTATION.spread) open++;
@@ -1851,139 +1850,19 @@ export function hungry() { return L('Le cœur a faim : fabrique le gène demand�
 
 // The bindings the interface may replace: a new or loaded game, a reset network, the timing probes.
 export const simSet = {
-  footprint: (v) => { footprint = v; },
-  edgesOf: (v) => { edgesOf = v; },
-  covering: (v) => { covering = v; },
   FIELDS: (v) => { FIELDS = v; },
   DEPOSIT: (v) => { DEPOSIT = v; },
   RICH: (v) => { RICH = v; },
-  richness: (v) => { richness = v; },
-  nestBy: (v) => { nestBy = v; },
-  nest: (v) => { nest = v; },
   patches: (v) => { patches = v; },
-  makePatch: (v) => { makePatch = v; },
-  survey: (v) => { survey = v; },
   sectors: (v) => { sectors = v; },
-  worldSeed: (v) => { worldSeed = v; },
-  dice: (v) => { dice = v; },
-  sector: (v) => { sector = v; },
-  nestSector: (v) => { nestSector = v; },
-  generate: (v) => { generate = v; },
   live: (v) => { live = v; },
   passingBy: (v) => { passingBy = v; },
-  standing: (v) => { standing = v; },
-  movedFrom: (v) => { movedFrom = v; },
   fogTick: (v) => { fogTick = v; },
-  bitAt: (v) => { bitAt = v; },
-  inSight: (v) => { inSight = v; },
-  lightUp: (v) => { lightUp = v; },
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
   look: (v) => { look = v; },
-  eachSector: (v) => { eachSector = v; },
-  depositAt: (v) => { depositAt = v; },
-  richAt: (v) => { richAt = v; },
   G: (v) => { G = v; },
-  reap: (v) => { reap = v; },
-  perSecond: (v) => { perSecond = v; },
-  dropRise: (v) => { dropRise = v; },
-  exitsOf: (v) => { exitsOf = v; },
-  paces: (v) => { paces = v; },
   uncapped: (v) => { uncapped = v; },
-  paceOf: (v) => { paceOf = v; },
-  mouthPace: (v) => { mouthPace = v; },
-  cell: (v) => { cell = v; },
-  cellMemo: (v) => { cellMemo = v; },
-  pumpMemo: (v) => { pumpMemo = v; },
-  forgetCells: (v) => { forgetCells = v; },
-  allCells: (v) => { allCells = v; },
-  put: (v) => { put = v; },
-  sites: (v) => { sites = v; },
-  perch: (v) => { perch = v; },
-  hatchDrones: (v) => { hatchDrones = v; },
-  workTime: (v) => { workTime = v; },
-  unlink: (v) => { unlink = v; },
-  finishJob: (v) => { finishJob = v; },
-  workAt: (v) => { workAt = v; },
-  construct: (v) => { construct = v; },
-  repair: (v) => { repair = v; },
-  earn: (v) => { earn = v; },
-  eat: (v) => { eat = v; },
-  mealRate: (v) => { mealRate = v; },
-  digest: (v) => { digest = v; },
-  drawGene: (v) => { drawGene = v; },
-  drawGoals: (v) => { drawGoals = v; },
-  grow: (v) => { grow = v; },
-  fresh: (v) => { fresh = v; },
-  portOf: (v) => { portOf = v; },
-  fits: (v) => { fits = v; },
-  sideExit: (v) => { sideExit = v; },
-  wayOf: (v) => { wayOf = v; },
-  pumps: (v) => { pumps = v; },
-  drains: (v) => { drains = v; },
-  span: (v) => { span = v; },
-  leaking: (v) => { leaking = v; },
-  nearest: (v) => { nearest = v; },
-  network: (v) => { network = v; },
-  veinKind: (v) => { veinKind = v; },
-  pulse: (v) => { pulse = v; },
-  trackAfter: (v) => { trackAfter = v; },
-  pocketsAt: (v) => { pocketsAt = v; },
-  stationHead: (v) => { stationHead = v; },
-  dropWorm: (v) => { dropWorm = v; },
-  transfer: (v) => { transfer = v; },
-  mayLeave: (v) => { mayLeave = v; },
-  crawl: (v) => { crawl = v; },
-  carbonSide: (v) => { carbonSide = v; },
-  packPort: (v) => { packPort = v; },
-  packTakes: (v) => { packTakes = v; },
-  setRecipe: (v) => { setRecipe = v; },
-  strandPort: (v) => { strandPort = v; },
-  joinSide: (v) => { joinSide = v; },
-  joinPort: (v) => { joinPort = v; },
   NET: (v) => { NET = v; },
-  NET_HOPS: (v) => { NET_HOPS = v; },
-  carries: (v) => { carries = v; },
-  sight: (v) => { sight = v; },
-  VIEW: (v) => { VIEW = v; },
-  sense: (v) => { sense = v; },
-  armReach: (v) => { armReach = v; },
-  liftable: (v) => { liftable = v; },
-  lift: (v) => { lift = v; },
-  netOf: (v) => { netOf = v; },
-  coreWants: (v) => { coreWants = v; },
-  listens: (v) => { listens = v; },
-  gateStore: (v) => { gateStore = v; },
-  gateCondition: (v) => { gateCondition = v; },
-  asked: (v) => { asked = v; },
-  connects: (v) => { connects = v; },
-  accepts: (v) => { accepts = v; },
-  stamp: (v) => { stamp = v; },
-  settled: (v) => { settled = v; },
-  intoStock: (v) => { intoStock = v; },
-  intoPort: (v) => { intoPort = v; },
-  receive: (v) => { receive = v; },
-  advance: (v) => { advance = v; },
-  flow: (v) => { flow = v; },
-  breed: (v) => { breed = v; },
-  mutationTarget: (v) => { mutationTarget = v; },
-  mutation: (v) => { mutation = v; },
-  mutate: (v) => { mutate = v; },
-  bearing: (v) => { bearing = v; },
-  nearestBuilding: (v) => { nearestBuilding = v; },
-  wake: (v) => { wake = v; },
-  disturb: (v) => { disturb = v; },
-  nestHp: (v) => { nestHp = v; },
-  spawn: (v) => { spawn = v; },
-  destroyNest: (v) => { destroyNest = v; },
-  waveGene: (v) => { waveGene = v; },
-  menace: (v) => { menace = v; },
-  glueOver: (v) => { glueOver = v; },
-  damage: (v) => { damage = v; },
-  fire: (v) => { fire = v; },
-  slain: (v) => { slain = v; },
-  puff: (v) => { puff = v; },
-  pierce: (v) => { pierce = v; },
-  step: (v) => { step = v; },
-  exitOf: (v) => { exitOf = v; },
-  remove: (v) => { remove = v; },
-  hungry: (v) => { hungry = v; }
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
+  step: (v) => { step = v; }
 };

@@ -150,6 +150,7 @@ export function startLab() {
   new ResizeObserver(() => resize()).observe(document.documentElement);
   labSounds(panel);
   panel.addEventListener('click', event => {
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     const act = event.target.closest('[data-lab]')?.dataset.lab;
     if (act === 'turn') labEdit(c => { c.dir = ((c.dir ?? 0) + 1) % 4; });
     if (act === 'mk') labEdit(c => { c.mk = (rankOf(c) % 3) + 1; c.hp = fullHp(c); });
@@ -199,5 +200,5 @@ export function frame(now) {
 
 // The bindings other modules replace.
 export const labSet = {
-  frame: (v) => (frame = v)
+
 };

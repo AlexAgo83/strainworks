@@ -107,9 +107,11 @@ export function growDock() {
   side('hand', 1);
   FAMILIES.forEach(([id, name, model, types], i) => {
     const tray = document.createElement('div'), b = podOf(name);
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     tray.className = 'tray'; tray.dataset.tray = id; tray.hidden = true;
     for (const type of types) tray.append(toolPod(type));
     $('tools').append(tray);
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     b.classList.add('family'); b.dataset.family = id; b.setAttribute('aria-expanded', 'false');
     b.querySelector('.porthole').classList.add('model');
     showModel(b.querySelector('.porthole'), model);
@@ -128,6 +130,7 @@ export function growDock() {
   ranks.id = 'ranks'; ranks.hidden = true;
   for (const mk of [1, 2, 3]) {
     const b = document.createElement('button');
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     b.dataset.rank = mk;
     b.append(`MK${mk}`, document.createElement('small'));
     b.onclick = () => { handRank[tool] = mk; paintRanks(); layoutHud(); };
@@ -222,9 +225,5 @@ export function begin() {
 
 // The bindings other modules replace.
 export const viewSet = {
-  begin: (v) => (begin = v),
-  hold: (v) => (hold = v),
-  load: (v) => (load = v),
-  rotate: (v) => (rotate = v),
-  script: (v) => (script = v)
+
 };

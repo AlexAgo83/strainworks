@@ -14,7 +14,7 @@
     "build": "node scripts/build-site.mjs",
     "preview": "node scripts/serve-site.mjs",
     "test": "vitest run",
-    "typecheck": "tsc",
+    "typecheck": "tsc && tsc -p tsconfig.game.json",
     "lint": "biome lint src tests scripts site",
     "format": "biome format --write src",
     "logics:validate": "logics-manager lint --require-status && logics-manager audit --group-by-doc && logics-manager i18n validate",

@@ -80,11 +80,13 @@ export function hexAt(x, y) {
   if (d > 1) return null;
   const at = [u, v, Math.sqrt(1 - d)];
   let best = 0, close = -2;
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   CELLS_OF_GLOBE.forEach((cell, id) => { const near = dot3(turn(cell.c), at); if (near > close) { close = near; best = id; } });
   return best;
 }
 // Turns the planet until that hexagon is where the beam likes it, if it is not already in view.
 export function faceHex(id, force) {
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   const v = turn(CELLS_OF_GLOBE[id].c), [x, y] = onScreen(v);
   const panelTop = $('projection').getBoundingClientRect().top || view.h;
   if (!force && v[2] > .4 && x > 24 && x < view.w - 24 && y > 60 && y < Math.max(120, view.h < view.w ? view.h - 30 : panelTop - 20)) return;
@@ -148,12 +150,14 @@ export function drawGrid() {
   let defs = '<defs><filter id="beam-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter></defs>';
   const buttons = new Map([...$('games').children].map(b => [b.dataset.hex, b]));
   CELLS_OF_GLOBE.forEach(({c, ring, size}, id) => {
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     const v = turn(c), b = buttons.get(String(id));
     if (b) {
       const [x, y] = onScreen(v);
       b.style.left = `${x}px`; b.style.top = `${y}px`;
     }
     if (v[2] < .08) return;
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     const turned = ring.map(q => onScreen(unit3(turn([0, 1, 2].map(k => c[k] * .06 + q[k] * .94)))));
     const shape = dotsOf(turned), game = games[id];
     grid += `<polygon class="grid" points="${shape}" stroke-opacity="${(.06 + v[2] * .24).toFixed(2)}"/>`;
@@ -357,6 +361,7 @@ export function projectSlot(note = '', bad = false) {
   const facts = game ? [[durationText(game.played), L('de jeu')], [Math.floor(Number(game.dna) || 0).toLocaleString(LOCALE), L('ADN')], [Number(game.spent) || 0, L('nids détruits')], [(Number(game.kills) || 0).toLocaleString(LOCALE), L('tuées')]] : [];
   $('slot-facts').replaceChildren(...facts.map(([value, label]) => {
     const p = document.createElement('p'), b = document.createElement('b');
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     b.textContent = value; p.append(b, label);
     return p;
   }));
@@ -481,6 +486,7 @@ export function leavePlanet(enter, at) {
     orbit.on = true;
     return false;
   }
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   const el = $('planet'), [x, y] = onScreen(turn(CELLS_OF_GLOBE[slotId].c));
   $('app').classList.remove('on-planet');
   backgroundInert(false);
@@ -634,12 +640,5 @@ export function keepForReload() {
 
 // The bindings other modules replace.
 export const planetSet = {
-  drawPlanet: (v) => (drawPlanet = v),
-  hexAt: (v) => (hexAt = v),
-  noteOnPlanet: (v) => (noteOnPlanet = v),
-  onScreen: (v) => (onScreen = v),
-  pickHex: (v) => (pickHex = v),
-  resumeLast: (v) => (resumeLast = v),
-  timed: (v) => (timed = v),
-  turn: (v) => (turn = v)
+
 };

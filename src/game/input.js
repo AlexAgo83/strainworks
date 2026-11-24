@@ -47,6 +47,7 @@ export function say(text) { mainSet.note(text); ui.saidAt = performance.now(); w
 export function button(text, action) {
   const b = document.createElement('button'), icon = document.createElement('span');
   icon.className = 'icon'; icon.setAttribute('aria-hidden', 'true');
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   icon.innerHTML = `<svg viewBox="0 0 18 18">${ICONS.find(([sign]) => sign.test(text))[1]}</svg>`;
   b.append(icon, document.createTextNode(text));
   if (/^(Démonter|Retirer)/.test(text)) b.classList.add('danger');
@@ -175,7 +176,7 @@ export function showActions() {
     }
     if (c.type === 'gate') button(L`Si coupé : ${c.open ? 'vert' : 'rouge'}`, () => { c.open = !c.open; showActions(); });
     if (c.type === 'cyst' || c.type === 'vault') button(L`Plein à : ${Math.ceil(capOf(c) * (c.level ?? .5))} / ${capOf(c)}`, () => { c.level = [.25, .5, .75, 1][([.25, .5, .75, 1].indexOf(c.level ?? .5) + 1) % 4]; sense(); showActions(); });
-    if (hasTrait(c.type), 'listen') {
+    if (hasTrait(c.type, 'listen')) {
       const src = c.source && G.cells[c.source];
       button(L`Écoute : ${sourceName(c, src)}. Changer`, () => {
         mainSet.listening(key(c.x, c.y)); select(null);
@@ -387,6 +388,7 @@ export function place(x,y) {
     const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && known(h.x,h.y) && Math.hypot(h.x - x, h.y - y) < 3);
     if (!b) return;
     say(L`Brèche au ${bearing(b)}, niveau ${levelOf(b)} sur 5 : ${b.left} créatures, gène faible ${b.genes.join(' et ')}, antidote ${b.genes.map(opposite).join(' et ')}. ${b.state === 'sleep' ? L('Elle dort tant que rien n’est bâti dans son cercle.') : L('Elle est réveillée. Vide-la pour qu’elle disparaisse.')}`);
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     if (b.state === 'sleep') button(L('Réveiller'), () => { wake(b); $('actions').replaceChildren(); });
     return;
   }
@@ -665,10 +667,14 @@ export function drawPreview(g, models) {
   if (!p) { drawPorts(g, null); return; }
   const {x, y, act} = p, color = PREVIEW[act], size = p.size || (p.type && isBig(p.type) ? 2 : 1), mx = x + size / 2, my = y + size / 2;
   const at = `${x},${y},${act},${p.type},${size}`, now = performance.now();
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   if (at !== drawPreview.at) {
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     drawPreview.at = at; drawPreview.since = now;
+    // @ts-expect-error: loose typing, tightened module by module (item_007)
     if (p.type !== drawPreview.type) { drawPreview.type = p.type; drawPreview.held = now; }
   }
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   const age = STILL.matches ? 9 : (now - drawPreview.since) / 1000, held = STILL.matches ? 9 : (now - drawPreview.held) / 1000;
   if (age < .3) { g.globalAlpha = 1 - age / .3; rect(g, x - age, y - age, size + age * 2, size + age * 2, null, color); g.globalAlpha = 1; }
   if (p.type && act === 'build' && age < 9) { g.globalAlpha = .4; rect(g, x + .04, y + (age * .9 % 1) * (size - .06), size - .08, .06, color); g.globalAlpha = 1; }
@@ -856,26 +862,6 @@ export function release(event) {
 
 // The bindings other modules replace.
 export const inputSet = {
-  button: (v) => (button = v),
-  choose: (v) => (choose = v),
-  drawPorts: (v) => (drawPorts = v),
-  drawPreview: (v) => (drawPreview = v),
-  extend: (v) => (extend = v),
-  flipCorner: (v) => (flipCorner = v),
-  joinVein: (v) => (joinVein = v),
-  place: (v) => (place = v),
-  portsOf: (v) => (portsOf = v),
-  position: (v) => (position = v),
-  preview: (v) => (preview = v),
-  refresh: (v) => (refresh = v),
-  release: (v) => (release = v),
-  say: (v) => (say = v),
-  select: (v) => (select = v),
-  showActions: (v) => (showActions = v),
-  stockOf: (v) => (stockOf = v),
-  stretch: (v) => (stretch = v),
-  turnWay: (v) => (turnWay = v),
-  wipe: (v) => (wipe = v),
-  wormState: (v) => (wormState = v),
-  write: (v) => (write = v)
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
+  refresh: (v) => (refresh = v)
 };

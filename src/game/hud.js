@@ -24,6 +24,7 @@ export function showModel(el, type) {
 export function markOf(base) { return SHAPE[base] ? `<svg viewBox="0 0 18 18">${SHAPE[base]}</svg>` : ''; }
 
 // What happened, kept on the left edge. Touched, it takes the camera there.
+// @ts-expect-error: loose typing, tightened module by module (item_007)
 export function tell(text, {at, gene, bad, act} = {}) {
   say(text);
   ui.saidAt = 0;
@@ -492,6 +493,7 @@ export function guideSpot(step) {
     // A harvester of that base not yet feeding anything first, then the nearest; the trace is a belt's real way to it.
     const goal = {x:Math.floor(at.x), y:Math.floor(at.y)}, free = c => !isBelt(cellAt(c.x + DX[c.dir], c.y + DY[c.dir]));
     const mines = [...allCells()].filter(c => c.type === 'mine' && matterUnder(c) === want.base)
+      // @ts-expect-error: loose typing, tightened module by module (item_007)
       .sort((a, b) => (free(b) - free(a)) || Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y));
     ui.guideNoRoute = mines.length > 0 && 'mine';
     // The shortest real way from a harvester not yet feeding anything, else from any.
@@ -1075,27 +1077,10 @@ export function paintStats() {
 
 // The bindings other modules replace.
 export const hudSet = {
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
   drawFog: (v) => (drawFog = v),
-  guideLigase: (v) => (guideLigase = v),
-  menuPage: (v) => (menuPage = v),
-  openFamily: (v) => (openFamily = v),
-  paint: (v) => (paint = v),
-  paintDrones: (v) => (paintDrones = v),
-  paintGuide: (v) => (paintGuide = v),
-  paintHud: (v) => (paintHud = v),
-  paintInfo: (v) => (paintInfo = v),
-  paintMoments: (v) => (paintMoments = v),
-  placeGuideSpot: (v) => (placeGuideSpot = v),
-  refuse: (v) => (refuse = v),
-  replay: (v) => (replay = v),
-  sceneSigns: (v) => (sceneSigns = v),
-  showIntro: (v) => (showIntro = v),
-  showMenu: (v) => (showMenu = v),
-  showStats: (v) => (showStats = v),
-  spark: (v) => (spark = v),
-  startGuide: (v) => (startGuide = v),
-  tell: (v) => (tell = v),
-  toggleFamily: (v) => (toggleFamily = v),
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
   animateHud: (v) => (animateHud = v),
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
   layoutHud: (v) => (layoutHud = v)
 };

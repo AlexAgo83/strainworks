@@ -8,7 +8,7 @@
   "files": {
     "includes": [
       "src/**/*.ts",
-      "!src/sim/sim.ts",
+      "src/**/*.js",
       "tests/**/*.mjs",
       "scripts/**/*.mjs",
       "site/*.js"
@@ -34,5 +34,36 @@
       "quoteStyle": "double",
       "semicolons": "always"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/game/**",
+        "src/sim/sim.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noAssignInExpressions": "off",
+            "useIterableCallbackReturn": "off",
+            "noExplicitAny": "off",
+            "noFunctionAssign": "off",
+            "noImplicitAnyLet": "off"
+          },
+          "style": {
+            "useTemplate": "off",
+            "useConst": "off"
+          },
+          "complexity": {
+            "noCommaOperator": "off",
+            "useOptionalChain": "off"
+          },
+          "correctness": {
+            "noUnusedFunctionParameters": "off",
+            "noUnusedVariables": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -312,15 +312,6 @@ export async function exportAll() {
 
 // The bindings other modules replace.
 export const savesSet = {
-  checkGame: (v) => (checkGame = v),
-  foundGame: (v) => (foundGame = v),
-  freeHex: (v) => (freeHex = v),
-  keep: (v) => (keep = v),
-  openGame: (v) => (openGame = v),
-  openSlot: (v) => (openSlot = v),
-  parsed: (v) => (parsed = v),
-  planetList: (v) => (planetList = v),
-  readList: (v) => (readList = v),
-  save: (v) => (save = v),
-  stored: (v) => (stored = v)
+  // @ts-expect-error: a function rebound in place, as a test's stub or the timing probes do
+  save: (v) => (save = v)
 };

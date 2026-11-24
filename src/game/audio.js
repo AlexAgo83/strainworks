@@ -17,6 +17,7 @@ export function paintPlaylist() {
   const groups = [[L('Planète'), '', MUSIC.theme], [L('Calme'), '', [...MUSIC.calm].sort((a, b) => trackOf(a)[0].localeCompare(trackOf(b)[0]))], [L('Combat'), 'fight', MUSIC.fight]];
   const play = '<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2l9 5-9 5z" fill="currentColor"/></svg>';
   const stop = '<svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1.5" fill="currentColor"/></svg>';
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   $('playlist').innerHTML = groups.map(([name, kind, list]) => `<div class="${kind}"><p class="group"><span>${name}</span><span>${list.length}</span></p>${list.map(src => {
     const [title, time] = trackOf(src), now = music.on && music.src === src && (music.manual ?? src) === src;
     return `<div class="track${now ? ' now' : ''}"><button data-track="${src}" aria-label="${now ? L`Arrêter ${title}` : L`Lancer ${title}`}">${now ? stop : play}</button><span class="name"><b>${title}</b><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span></span><span class="time">${time}</span></div>`;
@@ -71,6 +72,7 @@ export function keepMusic() { try { localStorage.setItem(MUSIC_KEY, JSON.stringi
 export function startSound() {
   if (music.started) return;
   // A media player, not a page sound: an iPhone in silent mode still plays it, as it does a video.
+  // @ts-expect-error: loose typing, tightened module by module (item_007)
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* only some browsers have an audio session */ }
   try {
     const Context = window.AudioContext || window.webkitAudioContext, ctx = new Context();
@@ -177,7 +179,5 @@ export function setLang(id) {
 
 // The bindings other modules replace.
 export const audioSet = {
-  musicTick: (v) => (musicTick = v),
-  placeOf: (v) => (placeOf = v),
-  playSound: (v) => (playSound = v)
+
 };

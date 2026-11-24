@@ -48,5 +48,5 @@ export function followEdge(elapsed) {
 
 // The bindings other modules replace.
 export const keysSet = {
-  glide: (v) => (glide = v)
+
 };
