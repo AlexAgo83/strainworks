@@ -469,7 +469,7 @@ export const BUILDERS = 3;
 // New games start with two drones; the lab buys up to six. Games from before keep theirs.
 export const NEW_DRONES = 2;
 // Tests replaying games recorded before the lab start them as they were, with three.
-export const START_DRONES_OF = () => hooks.drawsRecipes() ? NEW_DRONES : BUILDERS;
+export const START_DRONES_OF = () => (hooks.drawsRecipes() ? NEW_DRONES : BUILDERS) + (G?.mutations?.drone || 0);
 export const labLevel = id => G?.lab?.[id] || 0;
 // The recycler: its beam pulls the nearest corpse in reach, analyses it, and gives its gene or, when the copy fails, carbon.
 export const REAPER = {reach:[4, 6, 8, 10], copy:[.5, .65, .8, 1], time:1.2};
@@ -544,11 +544,12 @@ export const HOLD = {cyst:[60, 120, 240], vault:[360, 720, 1440]};
 export const capOf = c => HOLD[c.type][rankOf(c) - 1];
 export const BELT_SPEED = 4;
 export const rankOf = c => c.mk || 1;
-export const rankCost = (type, mk = 1) => RANKS[type]?.cost[mk - 1] || 0;
+// A strain mutation (item_026) takes 30 % off the MK2 rank.
+export const rankCost = (type, mk = 1) => { const cost = RANKS[type]?.cost[mk - 1] || 0; return mk === 2 && G?.mutations?.rank ? Math.round(cost * .7) : cost; };
 export function perSecond(c) {
   if (hasTrait(c.type, 'rate')) return rankOf(c);
   if (c.type !== 'mine' && c.type !== 'borer') return 1;
-  return rankOf(c) * (c.type === 'borer' ? BORER.harvesters : 1) * Math.min(richCap(), richUnder(c) || 1);
+  return rankOf(c) * (c.type === 'borer' ? BORER.harvesters : 1) * Math.min(richCap(), richUnder(c) || 1) * (1 + .15 * (G?.mutations?.harvest || 0));
 }
 export function dropRise(c) {
   if (c.up == null) return;

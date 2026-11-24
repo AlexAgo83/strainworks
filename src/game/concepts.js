@@ -34,5 +34,25 @@ export const CONCEPTS = {
       circle(g, 2.5, 2.5, .28 + .05 * Math.sin(t * Math.PI * 8), null, turn ? LIVING : '#FF6B74', .03);
     },
   },
+  mutation:{
+    kicker:L('Planète'), title:L('Mutation de souche'),
+    lines:[L('Chaque éclosion te laisse choisir une mutation parmi trois.'), L('Elle reste pour toutes tes prochaines stations sur cette planète.')],
+    facts:[['3', L('mutations proposées à chaque éclosion')], ['1', L('gardée pour toutes les stations suivantes')], ['max', L('chacune a un plafond, puis ne sort plus')]],
+    draw(g, t) {
+      const pick = ease((t - .45) / .1);
+      for (const [i, x] of [[0, .95], [1, 2.5], [2, 4.05]]) {
+        const shown = ease((t - i * .08) / .15), chosen = i === 1, k = chosen ? 1 + .12 * pick : 1 - .5 * pick;
+        if (!shown) continue;
+        g.save(); g.globalAlpha = shown * (chosen ? 1 : 1 - .55 * pick);
+        g.translate(x, 2.6 + (1 - shown) * .6); g.scale(k, k);
+        polygon(g, [[-.62, -1], [.62, -1], [.62, 1], [-.62, 1]], chosen && pick ? '#111F12' : '#0D171A', chosen && pick ? LIVING : '#2A3C41', .05);
+        circle(g, 0, -.45, .3, '#1D3317', '#36592A', .03);
+        circle(g, 0, -.45, .1 + i * .03, [OPEN, LIVING, '#F0A03C'][i]);
+        for (const y of [.15, .38, .6]) polygon(g, [[-.42, y], [.42 - (y > .5 ? .25 : 0), y], [.42 - (y > .5 ? .25 : 0), y + .07], [-.42, y + .07]], '#2A3C41', null);
+        g.restore();
+      }
+      if (t > .65) circle(g, 2.5, 2.6, 1.3 + (t - .65) * 1.5, null, `rgba(183,243,74,${Math.max(0, .6 - (t - .65) * 2)})`, .06);
+    },
+  },
 };
 export const conceptIds = () => Object.keys(CONCEPTS);

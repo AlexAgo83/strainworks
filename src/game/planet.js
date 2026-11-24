@@ -2,11 +2,12 @@
 import { G, STAGES, spotHash } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { playSound } from "./audio.js";
-import { anyPurified, isOpen, purified } from "./conquest.js";
+import { MUTATIONS, anyPurified, isOpen, purified, takeMutation } from "./conquest.js";
+import { offerConcept } from "./unlock.js";
 import { forgetEvent, replay, showMenu, tell } from "./hud.js";
 import { $, ART, CURVE_KEY, BABYLON_HASH, BABYLON_SRC, CELLS_OF_GLOBE, DEMO_HEX, EARN, FILE, GLOBE_SHADER, LENS, NARROW, PERF, PERF_KINDS, PREFERRED, STILL, VIEW_KEY, arrows, canvas, cross3, demoMoved, dot3, drag, fx, fxRandom, gesture, loadDemo, made3d, mainSet, orbit, perfZero, slotId, slotKey, station3d, switching, ui, unit3, view, view3d, within } from "./main.js";
 import { home, resize } from "./render.js";
-import { eraseGame, exportAll, exportGame, foundGame, freeHex, graftGames, keep, openGame, parsed, planetList, readFileGames, save, stored, summaryOf } from "./saves.js";
+import { eraseGame, exportAll, exportGame, foundGame, freeHex, graftGames, keep, openGame, parsed, planetList, readFileGames, readList, save, stored, summaryOf, writeList } from "./saves.js";
 import { script, show3D } from "./view.js";
 
 // The dual of a divided icosahedron: 150 hexagons and twelve pentagons.
@@ -412,6 +413,9 @@ export function projectSlot(note = '', bad = false) {
     act(L('Effacer : maintenir'), 'bad', gone, true);
   }
   noteOnPlanet(note || (incoming ? L('Rien n’est écrit avant ta validation. Aucune partie n’est écrasée.') : ''), bad);
+  const held = Object.entries(state?.mutations || {});
+  $('planet-mutations').hidden = !held.length;
+  $('planet-mutations').innerHTML = held.length ? L`<span class="label">Mutations de souche</span>` + held.map(([id, n]) => `<span class="chip">${mutationPic(id)}${MUTATIONS[id].name}${n > 1 ? ` ×${n}` : ''}</span>`).join('') : '';
 }
 // The drawn hexagons are for pointers, these for keyboards and screen readers.
 export function nameGames() {
@@ -451,7 +455,7 @@ export async function takeFile(file) {
 
 // ---- In and out
 export function backgroundInert(on) {
-  for (const el of $('app').children) if (!['planet', 'menu', 'commands', 'file', 'lang-pick', 'unlock'].includes(el.id)) el.inert = on;
+  for (const el of $('app').children) if (!['planet', 'menu', 'commands', 'file', 'lang-pick', 'unlock', 'mutations'].includes(el.id)) el.inert = on;
 }
 export function openPlanet(intro) {
   if (slotKey) save();
@@ -473,6 +477,8 @@ export function openPlanet(intro) {
   el.hidden = false;
   $('app').classList.add('on-planet');
   backgroundInert(true);
+  // A hatching's mutation not yet chosen waits here.
+  if (orbit.list.planet?.offer?.length) setTimeout(() => { if (orbit.on) openMutations(); }, 0);
   nameGames(); projectSlot(); layoutPlanet();
   orbit.yaw = orbit.pitch = 0; orbit.to = null;
   faceHex(orbit.pick);
@@ -673,6 +679,44 @@ export function askCurve(fps) {
   answer(L('Couper'), () => { setCurve(0); keep(CURVE_KEY, '0'); });
   answer(L('Garder'), () => {});
   entry.el.insertBefore(row, entry.el.lastChild);
+}
+// ---- The strain mutation choice (item_026, docs/design/endgame-mutations): three cards, one kept for good.
+const MUTATION_PICS = {
+  drone:'<ellipse cx="18" cy="18" rx="12" ry="6" fill="none" stroke="#66D9EA" stroke-width="2"/><circle cx="18" cy="18" r="4.5" fill="#E9F3EF"/><circle cx="18" cy="18" r="2" fill="#B7F34A"/>',
+  dna:'<path d="M12 7c12 6 0 16 12 22M24 7c-12 6 0 16-12 22" fill="none" stroke="#B7F34A" stroke-width="2.4" stroke-linecap="round"/><path d="M14 13h8M14 23h8" stroke="#66D9EA" stroke-width="2" stroke-linecap="round"/>',
+  hunger:'<circle cx="18" cy="18" r="11" fill="#1D3317" stroke="#B7F34A" stroke-width="2"/><path d="M12 18h12" stroke="#E9F3EF" stroke-width="3" stroke-linecap="round"/>',
+  turret:'<rect x="11" y="18" width="14" height="9" rx="2" fill="#2C3A3D" stroke="#A9BDB8" stroke-width="1.5"/><path d="M18 18V8" stroke="#E9F3EF" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="8" r="2.5" fill="#F0A03C"/>',
+  harvest:'<path d="M9 26h18" stroke="#A9BDB8" stroke-width="2"/><circle cx="14" cy="20" r="4" fill="#6DAA38" stroke="#C9F77A" stroke-width="1.2"/><path d="M20 12l6 0M22 9l4 3-4 3" fill="none" stroke="#B7F34A" stroke-width="2" stroke-linecap="round"/>',
+  rank:'<path d="M18 7l3.5 7 7.5 1-5.5 5 1.5 7.5L18 24l-7 3.5 1.5-7.5-5.5-5 7.5-1z" fill="none" stroke="#F0A03C" stroke-width="2" stroke-linejoin="round"/>',
+};
+export const mutationPic = id => `<svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">${MUTATION_PICS[id] || ''}</svg>`;
+export function openMutations() {
+  const state = readList().planet, box = $('mutations');
+  if (!state.offer?.length || !box) return false;
+  let picked = null;
+  const take = $('mutation-take');
+  take.disabled = true; take.textContent = L('Choisis une carte');
+  $('mutation-cards').replaceChildren(...state.offer.map(id => {
+    const m = MUTATIONS[id], b = document.createElement('button'), have = state.mutations[id] || 0;
+    b.type = 'button'; b.className = 'card'; b.dataset.mutation = id; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = `<span class="pic">${mutationPic(id)}</span><h3>${m.name}</h3><p>${m.what}</p><span class="stack">${m.cap > 1 ? L`Cumulable · <b>${have} / ${m.cap}</b> déjà pris` : L('Une seule fois')}</span>`;
+    b.onclick = () => {
+      picked = id;
+      for (const one of $('mutation-cards').children) one.setAttribute('aria-pressed', String(one === b));
+      take.disabled = false; take.textContent = L`Prendre ${m.name}`;
+    };
+    return b;
+  }));
+  take.onclick = () => {
+    const list = readList();
+    if (!picked || !takeMutation(list.planet, picked, Date.now() % 1e6) || !writeList(list)) return;
+    box.close();
+    $('won-mutation').hidden = !list.planet.offer?.length;
+    if (orbit.on) { orbit.list = planetList(); projectSlot(); }
+    if (list.planet.offer?.length) openMutations(); else offerConcept('mutation');
+  };
+  if (!box.open) box.showModal();
+  return true;
 }
 // A game in progress is saved and reopened after the page reloads.
 export function keepForReload() {

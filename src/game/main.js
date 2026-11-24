@@ -9,7 +9,7 @@ import { cardTypes, closeCard, offerConcept, paintCardList, paintConceptList, sh
 import { mirror, button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
 import { glide, keysSet, loadKeys, paintKeys, pipette } from "./keys.js";
 import { frame, labSet, startLab } from "./lab.js";
-import { askCurve, drawGrid, drawPlanet, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn, watchCurve } from "./planet.js";
+import { askCurve, drawGrid, drawPlanet, openMutations, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn, watchCurve } from "./planet.js";
 import { along, arrow, circle, crate, draw, drawCell, glyph, home, lamp, marker, pan, passing, reading, rect, renderSet, resize, worldAt, zoomAt } from "./render.js";
 import { checkGame, findGames, foundGame, freeHex, graftGames, keep, openGame, openSlot, parsed, planetList, readFileGames, readList, save, savesSet, stored, writeList } from "./saves.js";
 import { isOpen, neighbours, purified } from "./conquest.js";
@@ -392,6 +392,7 @@ const WINDOW_API = {
   slotId: [() => slotId],
   openPlanet: [() => openPlanet],
   drawGrid: [() => drawGrid],
+  openMutations: [() => openMutations],
   span: [() => span],
   spark: [() => spark],
   spawn: [() => spawn],
@@ -985,6 +986,8 @@ $('next-stage').onclick = () => {
   showMenu(false); grow(); refresh();
 };
 $('won-planet').onclick = () => { $('victory').hidden = true; openPlanet(); };
+$('won-mutation').onclick = () => { closeCard(); openMutations(); };
+$('mutations').addEventListener('close', () => { $('won-mutation').hidden = !readList().planet.offer?.length; });
 for (let i = 0; i < MOST_DRONES; i++) addPip(i);
 document.addEventListener('pointerdown', event => {
   ui.point = {x:event.clientX, y:event.clientY};

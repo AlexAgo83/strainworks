@@ -1102,3 +1102,38 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
 #sheet .demand .machine { width:30px; height:30px; }
 #sheet .asked h4 .machine { width:34px; height:34px; }
 #sheet .need-what { margin:0; color:var(--muted); font-size:13px; line-height:1.4; }
+
+/* The strain mutation choice (docs/design/endgame-mutations): three cards, one kept for every later station. */
+#mutations { width:min(960px, calc(100vw - 32px)); max-height:92vh; overflow:auto; padding:26px 26px 22px; color:var(--ink); background:rgba(8,16,18,.96); border:1px solid var(--edge); border-radius:16px; box-shadow:0 30px 80px rgba(0,0,0,.6); pointer-events:auto; }
+#mutations::backdrop { background:rgba(3,6,7,.6); }
+#mutations .kicker { margin:0; color:var(--acid); font:600 12px var(--display); letter-spacing:.1em; text-transform:uppercase; }
+#mutations h2 { margin:4px 0 6px; font:700 28px/1.15 var(--display); }
+#mutations .lead { margin:0 0 20px; color:var(--muted); font-size:15px; line-height:1.45; }
+#mutation-cards { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; }
+#mutation-cards .card { display:flex; flex-direction:column; gap:10px; padding:16px; border-radius:12px; border:1px solid rgba(82,112,122,.35); background:#0B1417; text-align:left; color:inherit; font:inherit; cursor:pointer; }
+#mutation-cards .card[aria-pressed="true"] { border-color:var(--acid); background:#111F12; box-shadow:0 0 0 1px var(--acid) inset, 0 0 30px rgba(183,243,74,.15); }
+#mutation-cards .pic { width:64px; height:64px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle, #1D3317 0 60%, #0B1417 61%); border:1px solid #36592A; }
+#mutation-cards h3 { margin:0; font:700 18px var(--display); }
+#mutation-cards p { margin:0; color:var(--muted); font-size:14px; line-height:1.4; }
+#mutation-cards .stack { margin-top:auto; font-size:12px; color:var(--muted); }
+#mutation-cards .stack b { color:var(--cyan); font-weight:600; }
+#mutations .foot { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:20px; flex-wrap:wrap; }
+#mutations .foot p { margin:0; font-size:13px; color:var(--muted); }
+#app #mutation-take, #mutation-take { min-height:46px; padding:0 28px; border-radius:999px; border:1px solid var(--acid); background:var(--acid); color:#0B1417; font:700 16px var(--display); cursor:pointer; }
+#app #mutation-take:disabled, #mutation-take:disabled { opacity:.45; cursor:default; }
+#planet-mutations { position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px; font-size:12px; }
+#planet-mutations[hidden] { display:none; }
+#planet-mutations .label { color:var(--muted); font:600 11px var(--display); letter-spacing:.08em; text-transform:uppercase; margin-right:4px; }
+#planet-mutations .chip { color:var(--ink); display:inline-flex; align-items:center; gap:4px; padding:2px 9px 2px 3px; border-radius:999px; border:1px solid rgba(82,112,122,.35); background:#0B1417; }
+#planet-mutations .chip svg { width:20px; height:20px; }
+@media (max-width:700px) {
+  #mutations { padding:20px 16px 18px; }
+  #mutations h2 { font-size:23px; }
+  #mutation-cards { grid-template-columns:1fr; gap:10px; }
+  #mutation-cards .card { display:grid; grid-template-columns:48px 1fr; gap:6px 12px; align-items:center; padding:12px; }
+  #mutation-cards .pic { width:48px; height:48px; }
+  #mutation-cards .pic svg { width:28px; height:28px; }
+  #mutation-cards p, #mutation-cards .stack { grid-column:1 / -1; }
+  #mutation-cards h3 { font-size:16px; }
+  #mutation-take { width:100%; }
+}

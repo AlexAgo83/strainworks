@@ -177,7 +177,7 @@
     <p class="said">L’organisme a éclos. La station tient, les brèches continuent : tu peux jouer encore.</p>
     <div id="victory-score"></div>
     <p id="victory-planet" class="said" hidden></p>
-    <div class="ways"><button id="free-play" class="tip">Continuer en mode libre</button><button id="won-planet" class="tip">Retour à la planète</button></div>
+    <div class="ways"><button id="won-mutation" class="tip" hidden>Choisir ta mutation</button><button id="free-play" class="tip">Continuer en mode libre</button><button id="won-planet" class="tip">Retour à la planète</button></div>
   </section>
 
   <section id="over" hidden aria-label="Fin de partie">
@@ -207,6 +207,7 @@
       <i class="scan" aria-hidden="true"></i>
       <div id="slot-head"><svg id="slot-icon" viewBox="0 0 132 132" aria-hidden="true"></svg><div aria-live="polite"><p id="slot-kicker"></p><h2 id="slot-name"></h2><p id="slot-sub"></p><div id="slot-facts"></div></div></div>
       <p id="slot-note" role="status"></p>
+      <div id="planet-mutations" hidden></div>
       <div id="slot-actions"></div>
     </section>
   </section>
@@ -235,6 +236,14 @@
     <dl id="keys"></dl>
     <p id="keys-note" role="status"></p>
     <div class="choice"><button id="keys-reset" class="tip">Touches par défaut</button><button id="help-close" class="tip">Fermer</button></div>
+  </dialog>
+
+  <dialog id="mutations" aria-labelledby="mutations-title">
+    <p class="kicker">Éclosion · hexagone purifié</p>
+    <h2 id="mutations-title">Choisis une mutation de souche</h2>
+    <p class="lead">Elle reste pour toutes tes prochaines stations sur cette planète.</p>
+    <div id="mutation-cards"></div>
+    <div class="foot"><p>Trois tirées au hasard ; celles déjà au maximum ne sortent plus.</p><button id="mutation-take" type="button" disabled>Choisis une carte</button></div>
   </dialog>
 
   <dialog id="unlock" aria-labelledby="unlock-title">

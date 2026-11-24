@@ -6,7 +6,7 @@ import { paintPlaylist, playSound } from "./audio.js";
 import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, write } from "./input.js";
 import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, DEFENSE_GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gateGreen, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
-import { save } from "./saves.js";
+import { readList, save } from "./saves.js";
 import { offerConcept } from "./unlock.js";
 
 export function paint(id, html, el = $(id)) {
@@ -877,6 +877,7 @@ export function showVictory() {
   $('growth').hidden = true;
   box.hidden = false;
   playSound('stage_up');
+  $('won-mutation').hidden = !readList().planet.offer?.length;
   if (kept) offerConcept('purify');
 }
 export function paintDry() {
