@@ -26,7 +26,7 @@ recipes and rules.
 - An encapsulator set on the wrong box, or blocked by a second gene, says so on the map, in its card and in the
   statistics.
 - The statistics name why a production stopped: nothing comes in, the output is blocked, a wrong setting, no
-  carbon, a full deposit, a closed gate.
+  carbon or isotope, a closed gate or a nerve still to come.
 - The 3D view starts flat (curvature 0 %); when curvature slows the display under 55 images/s, the game offers
   once to turn it off.
 
