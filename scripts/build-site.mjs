@@ -45,6 +45,11 @@ function asset(name, data) {
 }
 
 let page = readFileSync(at("prototype/index.html"), "utf8");
+// The stylesheet and its model sheet, and the English text, hashed beside the page.
+const sheetPath = asset("models.webp", readFileSync(at("prototype/models.webp")));
+const css = replaceOnce(readFileSync(at("prototype/style.css"), "utf8"), "url(models.webp)", `url(${sheetPath.replace("assets/", "")})`);
+page = replaceOnce(page, '<link rel="stylesheet" href="style.css">', `<link rel="stylesheet" href="./${asset("style.css", css)}">`);
+page = replaceOnce(page, '<script src="en.js"></script>', `<script src="./${asset("en.js", readFileSync(at("prototype/en.js")))}"></script>`);
 const inline = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 if (inline.length !== 1) throw new Error(`expected one inline script, found ${inline.length}`);
 let app = inline[0][1];
