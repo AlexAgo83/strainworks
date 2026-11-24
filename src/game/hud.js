@@ -1,10 +1,10 @@
 // The interface around the map: panels, the core card, the guide, the goal and the statistics.
-import { eaten, hungryFor, BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, PACK, RANKS, STAGES, TYPES, VEIN, WORM, allCells, bearing, boxOf, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, jobId, key, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
+import { eaten, hungryFor, BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, RANKS, STAGES, TYPES, VEIN, WORM, ahead, allCells, bearing, boxOf, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, joinSide, jobId, key, listens, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
-import { buyLab, diagnose, packTrouble, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
+import { buyLab, diagnose, packTrouble, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart, upstream } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
 import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, write } from "./input.js";
-import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, DEFENSE_GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
+import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, DEFENSE_GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gateGreen, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
 
 export function paint(id, html, el = $(id)) {
@@ -1111,8 +1111,8 @@ export function production() {
   for (const c of allCells()) {
     if (!hasTrait(c.type, 'produce') || !built(c)) continue;
     const item = outputOf(c), id = `${c.type}|${item}`;
-    const line = lines.get(id) || {type:c.type, item, n:0, now:0, max:0};
-    line.n++; line.now += (c.made?.length || 0) * 6; line.max += perSecond(c) * 60;
+    const line = lines.get(id) || {type:c.type, item, n:0, now:0, max:0, why:null};
+    line.n++; line.why ||= stopReason(c); line.now += (c.made?.length || 0) * 6; line.max += perSecond(c) * 60;
     lines.set(id, line);
   }
   return [...lines.entries()].sort((a, b) => PRODUCERS.indexOf(a[1].type) - PRODUCERS.indexOf(b[1].type) || b[1].now - a[1].now);
@@ -1135,15 +1135,37 @@ export function problems() {
     const name = TYPES[c.type]?.name || '';
     if (isGun(c) && !Object.values(c.ammo).some(n => n)) out.push([c, 'red', L`${name} à sec`, L('plus de munitions')]);
     else if (packWarning(c)) out.push([c, 'red', L`${name} pour rien`, packWarning(c)]);
-    else if (hasTrait(c.type, 'produce') && !c.made?.length) {
-      if (c.item) out.push([c, 'amber', L`${name} bloqué`, L('sortie pleine')]);
-      else if (c.ports) {
-        const empty = c.type === 'pack' ? (readyPort(c, 0) < PACK.size ? L('gènes manquants') : L('carbone manquant')) : L`entrée ${c.ports.findIndex((p, i) => !readyPort(c, i)) + 1} vide`;
-        out.push([c, 'red', L`${name} à l’arrêt`, empty]);
-      }
-    }
+    else if (stopReason(c)) out.push([c, c.item ? 'amber' : 'red', c.item ? L`${name} bloqué` : L`${name} à l’arrêt`, stopReason(c)]);
   }
   return out.sort((a, b) => (a[1] === 'red' ? 0 : 1) - (b[1] === 'red' ? 0 : 1) || span(a[0], CORE) - span(b[0], CORE));
+}
+// Why a producer made nothing in the last 10 s, in the few words the simulation can back (item_015).
+// Null while it works, or while it only waits out its own clock.
+export function stopReason(c) {
+  if (!hasTrait(c.type, 'produce') || !built(c) || c.made?.length) return null;
+  if (packWarning(c)) return L('mauvais réglage');
+  const red = gate => gate.type === 'gate' && !gateGreen(gate) ? (listens(gate) ? L('en attente d’un nerf') : L('feu fermé')) : null;
+  if (c.item || (c.type === 'borer' && c.stock.length >= BORER.hold)) {
+    // Down the line it feeds: a red light holding it is the cause, else the end refuses or is full.
+    const seen = new Set();
+    for (let to = ahead(c, c.dir), dir = c.dir; to && !seen.has(to); to = ahead(to, dir)) {
+      seen.add(to);
+      if (red(to)) return red(to);
+      if (isBelt(to)) dir = to.dir; else if (to.type !== 'bridge') break;
+    }
+    return L('sortie bloquée');
+  }
+  if (c.type === 'pack' && readyPort(c, 0) >= fill(c.box)) {
+    const side = c.ports[1].slice(0, readyPort(c, 1)), box = BOX[c.box];
+    return side.filter(k => k === 'K').length < box.carbon ? L('pas de carbone') : side.filter(k => k === 'I').length < (box.isotope || 0) ? L('pas d’isotope') : null;
+  }
+  // Every cell carries three port lists: a Ligase reads three, an assembler two; harvesters and borers read none.
+  // An encapsulator here still lacks genes for its box.
+  const port = c.type === 'pack' ? 0 : c.ports.slice(0, {ligase:3, join:2}[c.type] ?? 0).findIndex((p, i) => !readyPort(c, i));
+  if (port < 0) return null;
+  const side = c.type === 'ligase' ? portSide(c, port) : c.type === 'join' ? joinSide(c, port) : (c.dir + 2) % 4;
+  for (const from of upstream(c, side)) if (red(from)) return red(from);
+  return L('rien n’arrive');
 }
 export function statsHTML(tab) {
   if (tab === 'prod') {
@@ -1155,7 +1177,7 @@ export function statsHTML(tab) {
       + L('<div class="row prod cols label"><span>Ce qui sort</span><span>Débit</span><span>/ min</span><span>Capacité</span><span>5 minutes</span></div>')
       + lines.map(([id, l]) => `<div class="row prod"><span class="what">${holeOf(l.type)}${itemMark(l.item)}${l.n > 1 ? `<span class="dim">×${l.n}</span>` : ''}</span>`
         + `<span class="bar"><i style="width:${Math.min(100, l.now / Math.max(1, l.max) * 100).toFixed(0)}%"></i></span><span class="n">${fr(l.now)}</span><span class="dim">${fr(l.max)}</span>`
-        + `${spark((ui.history || []).map(h => h[id] || 0))}</div>`).join('');
+        + `${spark((ui.history || []).map(h => h[id] || 0))}${!l.now && l.why ? `<span class="why">${l.why}</span>` : ''}</div>`).join('');
   }
   if (tab === 'eco') {
     const recent = {}, total = {};

@@ -459,6 +459,7 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #stats .issue { grid-template-columns:34px 1fr 90px 130px; width:100%; border:0; border-bottom:1px solid rgba(255,255,255,.06); background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
 #stats .issue:hover { background:rgba(255,255,255,.04); }
 #stats .what { display:flex; align-items:center; gap:10px; min-width:0; }
+#stats .prod .why { grid-column:1 / -1; color:var(--amber); font-size:12px; }
 #stats .porthole { flex:none; width:30px; height:30px; border-width:1px; }
 #stats .gene svg, #stats .base svg { width:15px; height:15px; }
 #stats .base { display:inline-flex; }
