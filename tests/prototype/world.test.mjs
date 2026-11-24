@@ -195,7 +195,7 @@ it("goes on past the landing square", async () => {
       sleepingOneIsGone: true,
       smallSave: true,
       oldSave: true,
-      thinned: [7, true, "wake"],
+      thinned: [6, true, "wake"],
       camera: true,
     });
     for (const [away, took, back] of out.flights) {

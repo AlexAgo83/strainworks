@@ -1105,7 +1105,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <div class="row"><span>Commandes</span><button id="help" class="tip">Voir</button></div>
     <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip" aria-label="Français" lang="fr">FR</button><button id="lang-en" class="tip" aria-label="English" lang="en">EN</button></span></div>
     <button class="row go" data-go="dev"><span>Développeur</span><b aria-hidden="true">›</b></button>
-    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.34</span></a>
+    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.35</span></a>
    </div>
    <div class="page" data-page="graphics" hidden>
     <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Graphismes</h2></div>
@@ -2236,7 +2236,7 @@ const NORTH = [{x:48,y:27}, {x:40,y:29}, {x:56,y:29}];
 const INNER = [['C',44,46,2,3], ['N',51,46,2,3], ['S',44,51,2,2], ['F',51,51,2,2]];
 const OUTER = [
   ['F',59,43,4,3], ['C',36,56,3,4], ['N',57,57,4,3], ['S',47,63,4,3], ['K',60,50,3,3],
-  ['N',32,35,3,3], ['C',62,34,3,3], ['C',46,78,6,5],
+  ['N',32,35,3,3], ['C',62,34,3,3], ['C',46,78,6,5,'free'],
   ['F',12,20,7,6], ['S',78,18,7,6], ['N',10,78,7,7], ['C',80,80,7,7]
 ];
 // What lay there before the map breathed, to tell what an older game's harvesters stand on.
@@ -2256,7 +2256,9 @@ function thinNests() {
   G.breaches = all.filter(b => b.state !== 'sleep' || (keepsNest(b) && inLayout(b)));
   for (const e of G.enemies || []) if (e.home != null) e.home = G.breaches.indexOf(all[e.home]);
 }
-function nestBy([, x, y, w, h]) {
+function nestBy([, x, y, w, h, free]) {
+  // A field marked free has no nest: the one south of the base was too close for a camp.
+  if (free) return null;
   const cx = x + w / 2, cy = y + h / 2, rich = richness(cx, cy);
   if (rich < 2) return null;
   const dx = cx - CORE.x, dy = cy - CORE.y, wide = Math.abs(dx) > Math.abs(dy);

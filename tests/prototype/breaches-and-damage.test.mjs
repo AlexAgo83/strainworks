@@ -20,8 +20,8 @@ it("breaches-and-damage behaves as the recorded prototype", async () => {
       out.badPlace = G.breaches.filter(b => overlap(b) || !inside(b.x,b.y)).length;
       out.blockedDeposit = Object.keys(DEPOSIT).filter(k => !buildable(...k.split(',').map(Number))).length;
       out.nearTheBase = G.breaches.filter(b => Math.hypot(b.x-CORE.x,b.y-CORE.y) < CALM).map(b => [b.x,b.y]);
-      // The two x2 deposits of the first ring are free, every other rich one stays guarded.
-      const free = ([,x,y,w,h]) => richness(x+w/2,y+h/2)===2 && Math.hypot(x+w/2-CORE.x,y+h/2-CORE.y) < 24;
+      // The two x2 deposits of the first ring and the field south of the base are free, every other rich one stays guarded.
+      const free = ([,x,y,w,h,open]) => open === 'free' || richness(x+w/2,y+h/2)===2 && Math.hypot(x+w/2-CORE.x,y+h/2-CORE.y) < 24;
       const openField = (x,y) => OUTER.filter(free).some(f => patchOf(f).cells.has(key(x,y)));
       out.freeDeposits = OUTER.filter(free).length;
       out.freeOnesSleepOn = OUTER.filter(free).filter(f => { lab(); for (const c of patchOf(f).list) put('mine',c.x,c.y,0); run(1); return G.breaches.some(b=>b.state==='wake'); }).length;
@@ -91,6 +91,6 @@ it("breaches-and-damage behaves as the recorded prototype", async () => {
     report('errors', JSON.stringify(errors));
   } finally { await browser.close(); }
   expect(entries.find(([label]) => label === "errors")?.[1]).toEqual([]);
-  expect(entries.find(([label]) => label === "rules")[1]).toMatchObject({ nearTheBase: [[48, 27]], freeDeposits: 2, freeOnesSleepOn: 0, unguardedRich: 0, wakeEach: 0 });
+  expect(entries.find(([label]) => label === "rules")[1]).toMatchObject({ nearTheBase: [[48, 27]], freeDeposits:3, freeOnesSleepOn: 0, unguardedRich: 0, wakeEach: 0 });
   expect(entries).toMatchSnapshot();
 });

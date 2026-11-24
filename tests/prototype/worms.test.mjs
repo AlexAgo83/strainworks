@@ -62,7 +62,7 @@ it("worms behaves as the recorded prototype", async () => {
       run(1); out.hurt=Math.round(ate.hp); G.enemies=[]; run(12); out.healed=ate.hp===WORM.hp;
       begin(); G.open=true; paused=true; G.dna=100; layTrack(20,20,1); incubate(20,20); const d=G.dna; wipe(20,20);
       out.money=[d,G.dna]; out.trailStays=!!G.tracks['20,20']; wipe(20,20); out.trailGone=!G.tracks['20,20'];
-      begin(); G.open=true; paused=true; const g=G.breaches.find(b=>b.total===40); layTrack(g.x+4,g.y,1); run(1); out.trailWakes=g.state;
+      begin(); G.open=true; paused=true; const g=G.breaches.find(b=>b.total===70); layTrack(g.x+4,g.y,1); run(1); out.trailWakes=g.state;
       begin(); G.open=true; paused=true; layTrack(48,42,1); out.underBelt=G.cells['48,42'].type;
       return out;
     })));
