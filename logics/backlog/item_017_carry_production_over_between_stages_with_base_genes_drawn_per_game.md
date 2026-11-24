@@ -1,10 +1,10 @@
 ## item_017_carry_production_over_between_stages_with_base_genes_drawn_per_game - Carry production over between stages with base genes drawn per game
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95%
-> Confidence: 90%
-> Progress: 90%
+> Confidence: 95%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -44,6 +44,9 @@
 - Tests: `tests/sim/base-genes.test.ts` (draw over 200 seeds, layering, hunger), `tests/prototype/base-genes.test.mjs` (the card), `tests/prototype/recipes.test.mjs` retargeted to the layered stages.
 - Done after (2026-11-24): Démonter takes a whole area. A drag from bare ground asks every building in the rectangle it opens to come down, a drag from a building still follows its line; the message counts the buildings and Escape gives it up (`stretch` and `commitPath` in `src/game/input.js`). Proof: `tests/prototype/area-dismantle.test.mjs`.
 - Done after (2026-11-24): the guide teaches this game's first base gene (`guideGene` in `src/game/main.js`): its harvesters, inputs and words follow `G.base[0]` ("le premier gène de base de cette partie"), the Motor for older games and the demo. Before, it always taught SFS while a drawn game's first stage asked another gene. Proof: `tests/prototype/guide-base-genes.test.mjs` walks a drawn game to a fed core.
+
+# Proof of AC1 (2026-11-24)
+- `tests/sim/carry-over.test.ts`: a Ligase fed the first base gene's three bases, built at stage 2, still feeds the core at stage 5 with nothing touched; the core keeps eating it and never hungers for it.
 
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: A chain built for a base gene at stage 2 still feeds the core at stage 5, in a simulation test.
