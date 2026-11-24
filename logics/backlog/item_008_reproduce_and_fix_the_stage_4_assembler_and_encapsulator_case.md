@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Gameplay
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 17:43:51
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -29,6 +30,11 @@
 - AC1: A test reproduces the case.
 - AC2: The machine either works or says in its sheet what it waits for.
 
+# Findings (2026-11-24, reproduced in simulation)
+- An encapsulator set to magazine ('A') refuses two-gene strands: the strand waits on the belt forever, nothing is made, and the line backs up to the Ligase, whose full inputs show the red rings.
+- An encapsulator fed two different genes on one line takes the first, then the second waits outside until a box of the first is complete, which never comes: a permanent jam.
+- Set to capsule ('T'), or fed one gene, the same setup works: this matches "the same setup, one works and the other does not". Neither case says anything on the board or in the sheet.
+
 # AC Traceability
 - request-AC1 -> This backlog slice. Proof: AC1: A test reproduces the case.
 
@@ -49,4 +55,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-
