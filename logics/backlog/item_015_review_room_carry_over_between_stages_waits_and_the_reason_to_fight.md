@@ -2,9 +2,9 @@
 > From version: 0.1.38
 > Schema version: 1.0
 > Status: Ready
-> Understanding: 90%
-> Confidence: 85%
-> Progress: 0%
+> Understanding: 95%
+> Confidence: 90%
+> Progress: 50%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -30,6 +30,18 @@
 - AC1: A design note records a decision for each point.
 - AC2: The statistics name the cause of a stopped production.
 
+# Decisions (2026-11-24, with the operator)
+- Follow-up from the tester, after the session: never had to defend, DNA piled up (about 4,000) so costs and ranks meant nothing, splitters were useless (a new line from the harvester is free), stages read as unrelated puzzles with recipes drawn at random, few mechanics were added between stages 1 and 4, and one encapsulated product needed six or more lines on a small map. The tester still found it fun.
+- Reason to fight: both levers. Rich deposits and the rare F sit inside the nests' reach, and the threat grows with the base so that nests wake and attack on their own. A destroyed nest gives a reward (DNA, freed ground or a gene).
+- Carry-over between stages: a few fixed base genes are the ingredients of later stages and the core consumes them continuously, so a chain built at stage 2 still serves at stage 5. A tool dismantles a whole area.
+- Economy: tightened on every side. Fewer DNA gains, dearer ranks whose sheet shows the rate before and after, and a limit on harvesters per deposit so that splitters matter.
+- Mechanics: each stage requires one mechanic the game already has (sorting, nerves, burner, turrets, drones, outposts); no new mechanic for now.
+- Lines and room: recipes with fewer inputs (base genes act as intermediates) and more free ground round the core. Copy and paste of a block is deferred.
+- Purpose: fixed, named recipes with a readable logic replace the random draw, and the final goal (what the antidote cures) is shown.
+- Pace: a time acceleration button (x2, x4); counts stay as they are, since continuous consumption takes weight off fixed counts.
+- Line drawing (item_013): the simple cases are fixed first (no link to a harvester a line passes beside, a bridge dismantles without breaking the line before it); the drawing rule itself waits for the tester's live walkthrough.
+- Order: the modularization (req_002, steps 2 to 5) finishes first; this play test work, design included, follows on the split and tested simulation. Each decision above becomes its own backlog item when that work starts.
+
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: A design note records a decision for each point.
 
@@ -50,4 +62,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-

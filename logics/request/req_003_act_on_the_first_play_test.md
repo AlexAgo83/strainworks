@@ -2,8 +2,8 @@
 > From version: 0.1.38
 > Schema version: 1.0
 > Status: Draft
-> Understanding: 90%
-> Confidence: 85%
+> Understanding: 95%
+> Confidence: 90%
 > Complexity: High
 > Theme: Player experience
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
@@ -32,6 +32,7 @@
 - Purpose: the splitter, the fights and the mutations seemed optional, since no fight was needed to progress.
 - Statistics: one production stopped while another went on, with nothing saying why.
 - Suggestion: let a harvester's output pass under a line like a bridge.
+- Follow-up after the session: no fight was ever needed, DNA piled up so costs and ranks meant nothing, stages read as unrelated puzzles with random recipes, few mechanics were added, and lines tangled on a small map. Design decisions on each point are recorded in item_015; this work starts once req_002 is done.
 
 # Acceptance criteria
 - AC1: The stage 4 assembler and encapsulator case is reproduced from the tester's description, its cause fixed or explained in the game, and covered by a test.
@@ -71,4 +72,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-
