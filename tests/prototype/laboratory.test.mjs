@@ -39,7 +39,7 @@ it("is built once, sells drones and upgrades level by level as the stages open, 
     expect(out.then).toEqual([true, 4]);
     expect(out.reachEarly).toBeFalsy();
     expect(out.reach).toBeCloseTo(6.8 * 1.1, 5);
-    expect(out.sheet).toBe(6);
+    expect(out.sheet).toBe(8);
     expect(out.valid).toBe(true);
     expect(errors).toEqual([]);
   } finally {

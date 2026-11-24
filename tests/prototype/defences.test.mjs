@@ -22,6 +22,8 @@ it("lets the glue, the mister and the harpoon do their work", async () => {
       G.enemies = [{ x: core.x - 11, y: gy + 1, gene: "SFN", hp: 200, max: 200, tier: 0 }];
       run(12);
       const glued = { x: G.enemies[0]?.x, hp: G.enemies[0]?.hp, left: glue.stock.length };
+      // Its hold is the nine cells round it, its own among them.
+      const zone = [glueOver(glue.x + 1.5, glue.y - 0.5) === glue, glueOver(glue.x - 0.5, glue.y + 1.9) === glue, glueOver(glue.x + 2.5, glue.y + 0.5), glueOver(glue.x + 0.5, glue.y - 1.2)];
       glue.stock = [];
       G.enemies = [{ x: core.x - 11, y: gy + 1, gene: "SFN", hp: 200, max: 200, tier: 0 }];
       run(12);
@@ -39,8 +41,9 @@ it("lets the glue, the mister and the harpoon do their work", async () => {
       G.enemies = [3, 5, 7].map((d) => ({ x: harpoon.x + 0.5, y: harpoon.y + 0.5 - d, gene: "FSN", hp: 500, max: 500, tier: 0 }));
       fire(0.05);
       const pierced = G.enemies.filter((e) => e.hp < 500).length;
-      return { glued, dry, misted, takesGene, takesBox, pierced, needs: [NEEDS.glue, NEEDS.mist, NEEDS.harpoon], ranks: ["glue", "mist", "harpoon"].every((t) => RANKS[t]) };
+      return { zone, glued, dry, misted, takesGene, takesBox, pierced, needs: [NEEDS.glue, NEEDS.mist, NEEDS.harpoon], ranks: ["glue", "mist", "harpoon"].every((t) => RANKS[t]) };
     });
+    expect(out.zone).toEqual([true, true, null, null]);
     expect(out.glued.hp).toBeLessThan(out.dry.hp);
     expect(out.glued.x).toBeLessThan(out.dry.x);
     expect(out.glued.left).toBeLessThan(10);

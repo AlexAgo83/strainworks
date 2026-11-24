@@ -340,6 +340,17 @@ window.createModels3D = (B, scene) => {
         });
       } else if (live) add('hull', 'cyan', x, y, 0.6, 0.3, 0.02, 0.05 + Math.sin(clock * 3) * 0.02);
     },
+    // A slanted console on a post: four lamps for the four priorities, the chosen one lit, and the set gene on its face.
+    desk(c, x, y) {
+      const live = built(c), mode = c.mode || 'most', face = facing(c.dir);
+      add('hull', 'dark', x, y, 0.06, 0.6, 0.12, 0.6);
+      add('tube', 'steel2', x, y, 0.28, 0.14, 0.4, 0.14);
+      add('box', 'steel', x, y, 0.56, 0.8, 0.1, 0.56, face, -0.35);
+      add('box', 'black', x, y, 0.61, 0.7, 0.02, 0.44, face, -0.35);
+      DESK.modes.forEach((m, i) => add('bead', live && m === mode ? 'amber' : 'off', ...from(x, y, face, -0.12, (i - 1.5) * 0.16), 0.66, 0.07));
+      if (mode === 'hand' && c.gene) for (let i = 0; i < 3; i++) base(c.gene[i], ...from(x, y, face, 0.1, (i - 1) * 0.18), 0.7, 0.06, face);
+      else if (live) add('box', 'amber', ...from(x, y, face, 0.1), 0.66, 0.4, 0.02, 0.05, face);
+    },
     relay(c, x, y) {
       add('hull', 'dark', x, y, 0.06, 0.5, 0.12, 0.5);
       for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU + 0.3; limb('steel2', ...from(x, y, a, 0.3), 0.02, x, y, 0.5, 0.05); }
@@ -554,6 +565,8 @@ window.createModels3D = (B, scene) => {
       // A pool in a steel lip, fed by a glass hopper; it bubbles while it holds genes, dries when empty.
       const live = built(c), full = (c.stock?.length || 0) / GLUE.hold, wet = live && c.stock?.length;
       const mk = rankOf(c), rim = ['steel2', 'rail2', 'rail3'][mk - 1];
+      // The nine cells it holds: a thin sheen of glue round it while it has genes.
+      if (wet) add('stain', 'membraneGlass', x, y, 0.025, 2.9, 0.01, 2.9);
       add('hull', 'dark', x, y, 0.03, 0.96, 0.06, 0.96);
       add('lip', rim, x, y, 0.08, 0.92, 0.3, 0.92);
       add('stain', wet ? 'S' : 'husk', x, y, 0.07, 0.84, 0.02, 0.84);
@@ -651,6 +664,69 @@ window.createModels3D = (B, scene) => {
       for (let i = 0; i < 10; i++) add('bead', 'cyan', ...from(x, y, spin + (i / 12) * TAU, 0.32), 0.56, 0.03 + i * 0.004);
       add('cone', 'cyan', ...from(x, y, spin + (10 / 12) * TAU, 0.32), 0.56, 0.08, 0.1, 0.08, spin + (10 / 12) * TAU + Math.PI / 2, Math.PI / 2);
       intake(x, y, (c.dir + 2) % 4, c.ports[0].length);
+      nozzle(x, y, c.dir, 0.25);
+    },
+    // The Ligase run backwards, in its warm colours: a glass column where the helix unwinds, a blade turning through
+    // it, and each base waiting at its own outlet, left, ahead and right.
+    unbind(c, x, y) {
+      const out = facing(c.dir), back = out + Math.PI, outs = c.outs || [];
+      const gene = c.ports?.[0]?.[0] || c.last || '', working = built(c) && (c.ports?.[0]?.length || outs.some(Boolean));
+      footing(x, y);
+      add('hull', 'steel', x, y, 0.3, 0.74, 0.32, 0.74);
+      add('hull', 'copper', ...from(x, y, out, -0.02), 0.47, 0.56, 0.08, 0.56, out);
+      // The helix comes apart as it rises: its two strands drift wider at the top.
+      const spin = working ? clock * 3 : 0.4, steps = fine ? 6 : 3;
+      for (let i = 0; i < steps; i++) {
+        const a = spin + i * 0.85, h = 0.55 + (i / steps) * 0.42, gap = 0.1 + (i / steps) * 0.12;
+        add('bead', working ? 'ember' : 'skin2', ...from(x, y, a, gap), h, 0.085);
+        add('bead', working ? 'acid' : 'steel2', ...from(x, y, a, -gap), h, 0.085);
+      }
+      add('tube', 'glass', x, y, 0.75, 0.42, 0.5, 0.42);
+      add('ring', 'steel2', x, y, 0.53, 0.46);
+      add('ring', working ? 'ember' : 'steel2', x, y, 1, 0.44);
+      if (fine) add('box', 'chrome', x, y, 0.8, 0.4, 0.02, 0.05, spin * 2);
+      intake(x, y, (c.dir + 2) % 4, c.ports?.[0]?.length);
+      if (gene) cargo(gene, ...from(x, y, back, 0.3), 0.5, out, 0.3);
+      for (let i = 0; i < 3; i++) {
+        const side = outSide(c, i), a = facing(side), kind = outs[i] || (working ? '' : gene[i]);
+        nozzle(x, y, side, 0.27);
+        if (kind) base(kind, ...from(x, y, a, 0.47), 0.42, 0.08, a);
+      }
+    },
+    // The Assembler run backwards: the strand comes in behind and a glowing blade parts it; each gene rises in its own
+    // glass chamber, one ring for gene 1 and two for gene 2, and leaves by its side.
+    unjoin(c, x, y) {
+      const out = facing(c.dir), back = out + Math.PI, outs = c.outs || [];
+      const strand = c.ports?.[0]?.[0] || c.last || '', working = built(c) && (c.ports?.[0]?.length || outs.some(Boolean));
+      footing(x, y);
+      add('hull', 'steel', x, y, 0.27, 0.74, 0.26, 0.6, out);
+      for (const i of [0, 2]) {
+        const side = outSide(c, i), [tx, ty] = from(x, y, facing(side), 0.22), half = outs[i] || strand.slice(i ? 3 : 0, i ? 6 : 3);
+        add('hull', 'steel2', tx, ty, 0.43, 0.34, 0.1, 0.36, out);
+        if (half) cargo(half, tx, ty, 0.62, out, 0.36);
+        add('tube', 'glass', tx, ty, 0.56, 0.36, 0.22, 0.36);
+        for (let r = 0; r <= i / 2; r++) add('ring', 'copper', tx, ty, 0.5 + r * 0.1, 0.4);
+        nozzle(x, y, side, 0.25);
+      }
+      // The blade between the chambers, glowing while it cuts.
+      const [kx, ky] = from(x, y, back, 0.1);
+      add('box', working ? 'ember' : 'steel2', kx, ky, 0.62 + (working ? Math.sin(clock * 10) * 0.05 : 0), 0.04, 0.34, 0.3, out);
+      add('arch', 'copper', kx, ky, 0.46, 0.5, 0.6, 0.8, out + Math.PI / 2);
+      intake(x, y, (c.dir + 2) % 4, c.ports?.[0]?.length);
+    },
+    // A squat analyser crowned with a beam emitter; the emitter turns towards what it pulls, the core flashes green on a
+    // copy and grey on carbon.
+    reaper(c, x, y) {
+      const live = built(c), beam = c.beam, flash = c.flash && G.time - c.flash.at < 0.6 ? 1 - (G.time - c.flash.at) / 0.6 : 0;
+      footing(x, y);
+      add('hull', 'steel2', x, y, 0.22, 0.8, 0.3, 0.8);
+      add('lip', 'rail2', x, y, 0.38, 0.66, 0.08, 0.66);
+      const aim = beam ? Math.atan2(beam.y - (c.y + 0.5), beam.x - (c.x + 0.5)) : (live ? clock * 0.6 : 0);
+      add('tube', 'dark', x, y, 0.55, 0.18, 0.3, 0.18);
+      const [ex, ey] = from(x, y, aim, 0.12);
+      add('dome', beam ? 'cyan' : 'steel', ex, ey, 0.74, 0.34, 0.16, 0.34, aim);
+      add('bead', beam ? 'pale' : 'cyan', ...from(x, y, aim, 0.24), 0.76, 0.1);
+      add('sac', flash ? (c.flash.ok ? 'acid' : 'husk') : 'membraneGlass', x, y, 0.45, 0.4 + flash * 0.12, 0.12, 0.4 + flash * 0.12);
       nozzle(x, y, c.dir, 0.25);
     },
     unpack(c, x, y) {
@@ -1453,13 +1529,11 @@ window.createModels3D = (B, scene) => {
       }
       if (fine && (t.x + t.y) % 3 === 0) arrow(ready ? 'scent' : 'site', x, y, 0.05, t.dir, 0.15);
     }
-    // Nerves: sagging fibres with the message riding them.
+    // Nerves: sagging fibres, coloured by their network.
     for (const w of G.wires) {
-      let a = G.cells[w.a];
-      let b = G.cells[w.b];
+      const a = G.cells[w.a];
+      const b = G.cells[w.b];
       if (!a || !b) continue;
-      // The message rides from the end nearer where it starts.
-      if ((NET_HOPS.get(w.b) ?? 0) < (NET_HOPS.get(w.a) ?? 0)) [a, b] = [b, a];
       const live = carries(w);
       const length = span(a, b);
       const at = (k) => [a.x + 0.5 + (b.x - a.x) * k, a.y + 0.5 + (b.y - a.y) * k, 0.9 - Math.sin(k * Math.PI) * Math.min(0.5, length * 0.05)];
@@ -1468,15 +1542,6 @@ window.createModels3D = (B, scene) => {
       for (let i = 0; i < n; i++) {
         limb(paint, ...at(i / n), ...at((i + 1) / n), 0.055);
         if (i) add('bead', paint, ...at(i / n), 0.06);
-      }
-      const gene = live && netOf(a)?.focus;
-      if (!gene) continue;
-      const count = Math.max(1, Math.ceil(length / 4));
-      for (let i = 0; i < count; i++) {
-        const [x, y, h] = at(((clock * 5) / Math.max(1, length) + i / count) % 1), ang = Math.atan2(b.y - a.y, b.x - a.x);
-        // The bases themselves, small, in the shapes the sheets use; a strand's two genes split by a gap.
-        const step = 0.16, gap = gene.length > 3 ? 0.08 : 0, mid = ((gene.length - 1) * step + gap) / 2;
-        for (let j = 0; j < gene.length; j++) base(gene[j], ...from(x, y, ang, j * step + (j >= 3 ? gap : 0) - mid), h + 0.1, 0.07, j);
       }
     }
   }
@@ -1815,6 +1880,18 @@ window.createModels3D = (B, scene) => {
   }
   // The dead lie flat and dark on a stain for 20 s, legs folded, then sink into the ground.
   function corpses(area) {
+    // A recycler's tractor beam: the body glides up it, shrinking, a bright ring sweeping it as it is analysed.
+    for (const c of allCells()) {
+      if (c.type !== 'reaper' || !c.beam) continue;
+      const b = c.beam, k = Math.min(1, (G.time - b.at) / REAPER.time), cx = c.x + 0.5, cy = c.y + 0.5;
+      const bx = b.x + (cx - b.x) * k, by = b.y + (cy - b.y) * k, bh = 0.1 + k * 0.6, a = Math.atan2(by - cy, bx - cx);
+      limb('cyan', ...from(cx, cy, a, 0.24), 0.76, bx, by, bh, 0.16 * (1 - k * 0.5));
+      limb('membraneGlass', ...from(cx, cy, a, 0.24), 0.76, bx, by, bh, 0.34 * (1 - k * 0.5));
+      const kind = silhouette(b.gene), body = (b.kind === 'swarm' ? 0.3 : b.kind === 'titan' ? 3 : 1) * (1 - k * 0.75);
+      add('sac', 'gore', bx, by, bh, BODY[kind].long * body * 0.85, 0.12 * body, BODY[kind].wide * body * 0.9, b.a || 0);
+      const sweep = Math.sin(clock * 12) * 0.25 * body;
+      add('ring', 'pale', ...from(bx, by, b.a || 0, sweep), bh, 0.5 * body + 0.1, 0.04, 0.5 * body + 0.1, b.a || 0, LYING);
+    }
     for (const d of G.corpses || []) {
       if (d.x < area.x0 - 1 || d.x > area.x1 + 1 || d.y < area.y0 - 1 || d.y > area.y1 + 1 || !inSight(d.x, d.y)) continue;
       const sunk = corpseSunk(d);

@@ -174,6 +174,13 @@ Nerves carry one kind of information only: what is needed. Routing stays with th
 - Sorter: what is asked is diverted. Reading by position, the overflow continues to the next sorter, because a base can be asked twice.
 - A nerve is 24 cells long at most, relays through a gate or a sorter, and can be cut by creatures. Cut, each returns to its manual setting.
 - Unlocked at stage 2. The Eye, placed forward to warn earlier, remains to be built.
+- **Logic (2026-11-24)**: cysts and large cysts join a nerve and report their level against a threshold the player
+  sets (25, 50, 75 or 100 %); the net is full once every store is over it. A wired gate opens on the gene asked (as
+  before), a threat, no threat, low stock, full stock, threat AND low stock, or threat OR low stock.
+- **Console (Pupitre, 2026-11-24)**: on a nerve it sets the priority of what the net asks: the most numerous (the
+  default), the nearest to the net's guns and radars, each threat in turn every 20 s, or a gene set by hand.
+- **Reading the network (2026-11-24)**: every wired piece has "Read the network": its sources, what it asks and how
+  many creatures each, the priority, its stores and who listens. The gene no longer rides the nerve in the view.
 
 ## 8. Transfer and transports
 
@@ -317,8 +324,8 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 | 1. Cell (Cellule) | 100 Motor (SFS), loose | three-way splitter, sorter, Encapsulator |
 | 2. Tissue (Tissu) | capsules of Shell (CCF): 2 genes per second, held for 60 seconds | veins, nerves, ×2 deposits, assembler |
 | 3. Organ (Organe) | 10 capsules of 6 Motor + Hold strands (SFSFFF) | trails, pockets, worms, ×4 deposits |
-| 4. System (Système, 2026-11-23) | 30 magazines (6 genes, 1 carbon) of the antidote of the family born on entering | a mutation every 5 minutes, up to 8 families |
-| 5. Nucleus (Noyau, 2026-11-23) | 6 heavy capsules (12 Motor + Hold strands, 2 carbon, 1 isotope) | isotope, heavy capsule, a fourth drone; swarming next |
+| 4. System (Système, 2026-11-23) | 30 magazines (6 genes, 1 carbon) of the antidote of the family born on entering | the Separator, a mutation every 5 minutes, up to 8 families |
+| 5. Nucleus (Noyau, 2026-11-23) | 6 heavy capsules (12 Motor + Hold strands, 2 carbon, 1 isotope) | isotope, heavy capsule, the Recycler, the Deligase, a fourth drone; swarming next |
 
 - A stage gives 40 ADN and restores the core's hit points.
 - **ADN (2026-11-23)**: what the core demands moves the stage and pays no ADN. What it does not demand pays a third
@@ -327,6 +334,12 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
   The performance graph shows ADN a minute by source, to tune these figures by playing.
 - A dip in rate at stage 2 loses the time it lasted, never the whole minute.
 - The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.
+- **Taking apart (2026-11-24)**: the Deligase is the Ligase run backwards, a gene in behind, base 1 out on the left,
+  2 ahead, 3 on the right; the Separator is the Assembler run backwards, a strand in behind, gene 1 out on the
+  left, gene 2 on the right. Both turn, take ranks and mirror their sides.
+- **Recycler (2026-11-24)**: one per game, from stage 6. Its tractor beam pulls the nearest corpse within 4 cells
+  and analyses it: half the time it copies the creature's gene, otherwise it gives carbon. The Laboratory raises the
+  copy (65 %, 80 %, always) and the reach (6, 8, 10 cells).
 - Proposed next: the System and Organism stages, organs to place and feed, and creatures invented by writing their genes.
 
 ### Carbon and containers
@@ -418,6 +431,7 @@ English line, or on French left on screen in English. The rule tests run in Fren
 | Tapis, Feu, Pont, Diviseur, Trieur | Belt, Gate, Bridge, Splitter, Sorter |
 | Récolteur, Grand récolteur | Harvester, Large harvester |
 | Ligase, Assembleur, Encapsuleur | Ligase, Assembler, Encapsulator |
+| Déligase, Séparateur, Recycleur | Deligase, Separator, Recycler |
 | Kyste, Grand kyste | Cyst, Large cyst |
 | Veine, pompe, Piste, Poche, Ver, soute | Vein, pump, Trail, Pocket, Worm, hold |
 | Nerf (outil), Pylône radar | Nerve, Radar pylon |

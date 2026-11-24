@@ -1,6 +1,6 @@
 {
   "name": "strainworks",
-  "version": "0.1.35",
+  "version": "0.1.36",
   "private": true,
   "type": "module",
   "description": "A browser and mobile incremental factory and tower defense game where you write living strands of DNA.",
