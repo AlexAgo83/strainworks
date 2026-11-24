@@ -4,6 +4,7 @@ import { L } from "../sim/text.ts";
 import { forgetEvents, paintGuide, showIntro, startGuide, tell } from "./hud.js";
 import { choose, refresh } from "./input.js";
 import { $, BATCHES, CELLS_OF_GLOBE, DEMO_HEX, DEMO_KEY, FILE, GAME_KEY, INTRO_KEY, LIMIT, LIST_KEY, MATTER, MAX_FAMILIES, MOST_DRONES, NAMES, NERVE_COLORS, OLD_SAVE, PREFERRED, SAVE, UPGRADES, demoMoved, dot3, downloads, drag, gesture, hovered, mainSet, owed, paused, repaid, saveFailed, slotId, slotKey, slotName, slotSaved, ui } from "./main.js";
+import { anyPurified, isOpen, planetOf, purify } from "./conquest.js";
 import { noteOnPlanet } from "./planet.js";
 import { home } from "./render.js";
 import { begin, load } from "./view.js";
@@ -17,7 +18,7 @@ export function summaryOf(game) {
   let level = 0, rank = 1;
   for (const c of cells) { level = Math.max(level, tierAt(c.x, c.y) + 1); rank = Math.max(rank, c.mk || 1); }
   return {
-    stage:game?.stage ?? 0, over:Boolean(game?.over), dna:Math.floor(game?.dna || 0), kills:game?.kills || 0,
+    stage:game?.stage ?? 0, over:Boolean(game?.over), won:game?.won ?? null, dna:Math.floor(game?.dna || 0), kills:game?.kills || 0,
     // Creatures on the map or a breach awake when it was saved: the planet shows that station fighting.
     fight:!game?.over && ((game?.enemies?.length || 0) > 0 || (Array.isArray(game?.breaches) && game.breaches.some(b => b?.state === 'wake'))),
     played:Math.floor(game?.played ?? game?.time ?? 0), built:cells.length, level, rank,
@@ -27,9 +28,18 @@ export function summaryOf(game) {
 // Read again before each change: another tab may have changed it.
 export function readList() {
   const found = parsed(stored(LIST_KEY)), games = found?.games && typeof found.games === 'object' ? found.games : {};
-  const list = {v:1, last:found?.last ?? null, games:{}};
+  const list = {v:1, last:found?.last ?? null, games:{}, planet:planetOf(found?.planet)};
   for (const [id, g] of Object.entries(games)) {
     if (CELLS_OF_GLOBE[id] && typeof g?.key === 'string' && stored(g.key) !== null) list.games[id] = g;
+  }
+  // A planet from before the conquest (item_029): each game already won purifies its hexagon, once, with no
+  // mutation to choose for it; games in progress stay where they are and keep playing.
+  if (found && !found.planet) {
+    for (const [id, g] of Object.entries(list.games)) {
+      const won = g.won ?? parsed(stored(g.key))?.won;
+      if (won != null) purify(list.planet, id, 0);
+    }
+    writeList(list);
   }
   // The demo's hexagon is kept for it: a game a player had there moves to the nearest free one, untouched.
   if (list.games[DEMO_HEX]) {
@@ -97,6 +107,8 @@ export function save() {
   }
   mainSet.saveFailed(false); mainSet.slotSaved(true);
   list.games[slotId] = {name:slotName, ...entry, key:slotKey, ...summaryOf(G)};
+  // The hatching purifies the hexagon for good; what follows in free mode never undoes it.
+  if (G.won != null) { const opened = purify(list.planet, slotId, Date.now()); if (opened.length) ui.opened = opened; }
   list.last = slotId;
   writeList(list);
   return true;
@@ -110,8 +122,17 @@ export function settleIn() {
   mainSet.paused(false); mainSet.owed(0); mainSet.hovered(null); mainSet.gesture(null); mainSet.drag(null);
   paces.clear(); simSet.NET(new Map());
 }
+// A new station only on an open hexagon, once a first strain has hatched; refused with the reason on the planet.
+export function openHex(list, near) {
+  const free = PREFERRED.filter(id => !list.games[id] && id !== DEMO_HEX && isOpen(list.planet, id));
+  if (near == null || !free.length) return free[0];
+  const c = CELLS_OF_GLOBE[near].c;
+  return free.sort((a, b) => dot3(CELLS_OF_GLOBE[b].c, c) - dot3(CELLS_OF_GLOBE[a].c, c))[0];
+}
 export function foundGame(wanted) {
-  const list = readList(), id = wanted != null && !list.games[wanted] ? wanted : freeHex(list);
+  const list = readList();
+  if (wanted != null && !list.games[wanted] && !isOpen(list.planet, wanted)) { noteOnPlanet(L('Cet hexagone est encore infecté : fais éclore une souche juste à côté pour l’ouvrir.'), true); return false; }
+  const id = wanted != null && !list.games[wanted] ? wanted : openHex(list);
   if (id == null) { noteOnPlanet(L('La planète est pleine : efface ou exporte une partie.'), true); return false; }
   // The first one keeps the key every earlier version wrote.
   let key = SAVE;
@@ -167,10 +188,14 @@ export function eraseGame(id) {
   return true;
 }
 // Written beside what exists, all or none.
+// A whole planet exported, brought into an empty one, comes back on its own hexagons with its conquest.
 export function graftGames(found, near) {
   const list = readList(), made = [];
-  for (const {name, game} of found) {
-    const id = !made.length && near != null && !list.games[near] ? near : freeHex(list, made[0]?.id ?? near);
+  const whole = Boolean(found.planet) && !Object.keys(list.games).length && !anyPurified(list.planet)
+    && found.every(one => CELLS_OF_GLOBE[one.hex] && Number(one.hex) !== DEMO_HEX) && new Set(found.map(one => Number(one.hex))).size === found.length;
+  if (whole) list.planet = planetOf(found.planet);
+  for (const {name, game, hex} of found) {
+    const id = whole ? Number(hex) : !made.length && near != null && !list.games[near] ? near : freeHex(list, made[0]?.id ?? near);
     let key = `${GAME_KEY}${id}`;
     if (stored(key) !== null) key += `:${Date.now()}`;
     if (id == null || !keep(key, JSON.stringify(game))) {
@@ -179,6 +204,8 @@ export function graftGames(found, near) {
     }
     made.push({id, key});
     list.games[id] = {key, name:String(name || newName(list)).slice(0, 40), ...summaryOf(game)};
+    // A won game brought in elsewhere purifies the hexagon it lands on.
+    if (!whole && game.won != null) purify(list.planet, id, 0);
     list.last = made[0].id;
   }
   if (writeList(list)) return made[0]?.id ?? null;
@@ -276,8 +303,10 @@ export function readFileGames(text) {
   if (!data || typeof data !== 'object') return {error:L('Ce fichier est illisible. Rien n’a été modifié.')};
   const many = data.format === FILE.all && Array.isArray(data.games);
   const found = many ? data.games : data.format === FILE.one ? [{name:data.name, game:data.game}] : [{name:'', game:data}];
+  if (many && data.planet) found.planet = planetOf(data.planet);
   const fine = found.length > 0 && found.length <= CELLS_OF_GLOBE.length && found.every(one => {
     if (one?.name != null && typeof one.name !== 'string') return false;
+    if (one?.hex != null && !Number.isInteger(one.hex)) return false;
     try { return checkGame(one?.game); } catch (_) { return false; }
   });
   return fine ? {found} : {error:L('Ce n’est pas une partie Strainworks valide. Rien n’a été modifié.')};
@@ -308,9 +337,9 @@ export async function exportGame(id) {
   return handFile(entry.name, game ? JSON.stringify({format:FILE.one, v:1, name:entry.name, game}) : text);
 }
 export async function exportAll() {
-  const games = Object.values(readList().games).map(g => ({name:g.name, game:parsed(stored(g.key))})).filter(one => one.game);
+  const list = readList(), games = Object.entries(list.games).map(([hex, g]) => ({name:g.name, hex:Number(hex), game:parsed(stored(g.key))})).filter(one => one.game);
   if (!games.length) return L('Aucune partie à exporter.');
-  return handFile('planete', JSON.stringify({format:FILE.all, v:1, games}));
+  return handFile('planete', JSON.stringify({format:FILE.all, v:1, games, planet:list.planet}));
 }
 
 // The bindings other modules replace.

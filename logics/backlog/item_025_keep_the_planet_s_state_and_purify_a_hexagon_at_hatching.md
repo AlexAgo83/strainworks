@@ -1,10 +1,10 @@
 ## item_025_keep_the_planet_s_state_and_purify_a_hexagon_at_hatching - Keep the planet's state and purify a hexagon at hatching
 > From version: 0.2.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 85%
 > Confidence: 75%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -34,8 +34,16 @@ A won game changes nothing on the planet: every hexagon stays the same and a new
 - AC4: Free mode threat and losses after hatching leave the planet state unchanged.
 
 # AC Traceability
-- request-AC1 -> This backlog slice. Proof: deferred to implementation; this slice's AC1.
-- request-AC2 -> This backlog slice. Proof: deferred to implementation; this slice's AC4 (free mode leaves the planet unchanged).
+- request-AC1 -> This backlog slice. Proof: `tests/prototype/conquest.test.mjs` (AC1)
+- request-AC2 -> This backlog slice. Proof: `tests/prototype/conquest.test.mjs` (AC4)
+
+# Implementation notes (2026-11-24)
+- `src/game/conquest.js`: each hexagon's neighbours read from the globe (12 pentagons with five, 150 hexagons with six), the planet state `{v, first, purified, mutations}` stored beside the games list (`strainworks-planet`), `isOpen` and `purify`.
+- `save()` purifies the game's hexagon as soon as `G.won` is set; `showVictory` saves at once, says how many hexagons opened and offers the Purification concept card. A loss in free mode afterwards leaves it purified.
+- `foundGame` refuses an infected hexagon with its reason on the planet and picks an open one when none is named (`openHex`).
+- The planet screen (real globe, SVG overlay) fills purified hexagons living green, outlines open ones in dashed cyan and tints the rest infected; an infected hexagon's panel says how to open it and offers no Fonder.
+- Concept cards: `src/game/concepts.js` holds each rule's looping scene, two lines and key figures; `offerConcept` shows it once (`strainworks-concepts`), the help lists them under Concepts.
+- Proof: `tests/prototype/conquest.test.mjs`.
 
 # Decision framing
 - Product framing: Not needed

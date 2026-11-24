@@ -8,6 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 23:38:24
 
 # AI Context
 - Summary: At each hatching the player picks one of three permanent strain mutations from a designed pool; they apply to every later game on the planet.

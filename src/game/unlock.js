@@ -5,6 +5,7 @@ import { L } from "../sim/text.ts";
 import { $, FAMILIES, KEYS, NEEDS, STILL, keyName } from "./main.js";
 import { drawCell, rect, token } from "./render.js";
 import { keep, stored } from "./saves.js";
+import { CONCEPTS, conceptIds } from "./concepts.js";
 
 export const CARDS_KEY = 'strainworks-cards';
 // Sides as the building faces east: front, back, left, right. Each scene: what enters where, what leaves where.
@@ -74,6 +75,7 @@ export function showCard(type, fresh = true) {
   if (!card || !box) return;
   box.dataset.type = type;
   $('unlock-kicker').textContent = fresh ? L('Nouveau bâtiment') : L('Bâtiment');
+  $('unlock-later').textContent = L('À revoir dans l’aide, rubrique Bâtiments');
   $('unlock-title').textContent = TYPES[type].name;
   $('unlock-what').textContent = card.what;
   $('unlock-keys').innerHTML = controlsOf(type).map(([k, what]) => `<li><kbd>${k}</kbd>${what}</li>`).join('');
@@ -109,6 +111,43 @@ export function drawScene(g, type) {
     const reach = inward ? 2.5 - part * 2 : .5 + part * 2, dir = inward ? (side + 2) % 4 : side;
     token(g, item, 2.5 + DX[side] * reach, 2.5 + DY[side] * reach, Math.atan2(DY[dir], DX[dir]));
   }
+}
+// A rule of the game met for the first time: its card, once; the help shows any of them again.
+export const CONCEPTS_KEY = 'strainworks-concepts';
+function met() { try { return JSON.parse(stored(CONCEPTS_KEY) || '[]'); } catch (_) { return []; } }
+export function offerConcept(id) {
+  if (!CONCEPTS[id] || met().includes(id)) return false;
+  keep(CONCEPTS_KEY, JSON.stringify([...met(), id]));
+  showConcept(id);
+  return true;
+}
+export function showConcept(id, fresh = true) {
+  const concept = CONCEPTS[id], box = $('unlock');
+  if (!concept || !box) return;
+  box.dataset.type = `concept-${id}`;
+  $('unlock-kicker').textContent = fresh ? L`Nouveau · ${concept.kicker}` : concept.kicker;
+  $('unlock-title').textContent = concept.title;
+  $('unlock-what').replaceChildren(concept.lines[0], document.createElement('br'), concept.lines[1]);
+  $('unlock-keys').innerHTML = concept.facts.map(([k, what]) => `<li><kbd>${k}</kbd>${what}</li>`).join('');
+  $('unlock-later').textContent = L('À revoir dans l’aide, rubrique Concepts');
+  $('unlock-scene').setAttribute('aria-label', concept.title);
+  if (!box.open) box.showModal();
+  cancelAnimationFrame(loop);
+  const g = $('unlock-scene').getContext('2d');
+  const frame = () => { if (!box.open) return; drawConcept(g, id); loop = requestAnimationFrame(frame); };
+  frame();
+}
+// The same five-unit scene as a building's card; under reduced motion one still frame, the change done.
+export function drawConcept(g, id, t = STILL.matches ? .8 : (performance.now() / 4000) % 1) {
+  const size = g.canvas.width / 5;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = '#0B1417'; g.fillRect(0, 0, g.canvas.width, g.canvas.height);
+  g.setTransform(size, 0, 0, size, 0, 0);
+  CONCEPTS[id].draw(g, t);
+}
+export function paintConceptList() {
+  const list = $('concept-cards');
+  if (list) list.innerHTML = conceptIds().map(id => `<button type="button" class="tip" data-concept="${id}">${CONCEPTS[id].title}</button>`).join('');
 }
 export function closeCard() { cancelAnimationFrame(loop); $('unlock')?.close(); }
 // The help lists every building: touched, its card again.

@@ -176,6 +176,7 @@
     <h1>Éclosion</h1>
     <p class="said">L’organisme a éclos. La station tient, les brèches continuent : tu peux jouer encore.</p>
     <div id="victory-score"></div>
+    <p id="victory-planet" class="said" hidden></p>
     <div class="ways"><button id="free-play" class="tip">Continuer en mode libre</button><button id="won-planet" class="tip">Retour à la planète</button></div>
   </section>
 
@@ -227,6 +228,9 @@
     <h3>Bâtiments</h3>
     <p class="keys-head">Touche un bâtiment pour revoir sa carte.</p>
     <div id="building-cards"></div>
+    <h3>Concepts</h3>
+    <p class="keys-head">Touche une règle du jeu pour revoir son explication.</p>
+    <div id="concept-cards"></div>
     <p class="keys-head">Clique une touche pour la changer.</p>
     <dl id="keys"></dl>
     <p id="keys-note" role="status"></p>
@@ -240,7 +244,7 @@
       <h2 id="unlock-title"></h2>
       <p id="unlock-what"></p>
       <ul id="unlock-keys"></ul>
-      <div class="foot"><span class="later">À revoir dans l’aide, rubrique Bâtiments</span><button id="unlock-ok" type="button">Compris</button></div>
+      <div class="foot"><span id="unlock-later" class="later">À revoir dans l’aide, rubrique Bâtiments</span><button id="unlock-ok" type="button">Compris</button></div>
     </div>
   </dialog>
 

@@ -4,14 +4,15 @@ import { eaten, harvestersOn, hungryFor, BASE, BIG, BORER, BOX, CALM, CORE, DEPO
 import { L, LANG, LOCALE } from "../sim/text.ts";
 import { actionsSet, packWarning, breachesIn, build, buyLab, creatureAt, diagnose, dronePose, feeders, fieldsIn, incubate, keepIt, known, layTrack, link, netSummary, netWires, portSide, radarWave, raise, rankFollowers, recipe, rowOf, scrap, scrapVein, setHeading, shownNests, siteFor, stagePart, wireUp } from "./actions.js";
 import { audioSet, keepMusic, keepSfx, musicTick, paintMusic, paintPlaylist, paintSfx, placeOf, playSound, setLang, shuffleMusic, startSound } from "./audio.js";
-import { addPip, problems, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, stopReason, tell, toggleFamily, travelTo } from "./hud.js";
-import { cardTypes, closeCard, paintCardList, showCard } from "./unlock.js";
+import { addPip, problems, showVictory, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, stopReason, tell, toggleFamily, travelTo } from "./hud.js";
+import { cardTypes, closeCard, offerConcept, paintCardList, paintConceptList, showCard, showConcept } from "./unlock.js";
 import { mirror, button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
 import { glide, keysSet, loadKeys, paintKeys, pipette } from "./keys.js";
 import { frame, labSet, startLab } from "./lab.js";
-import { askCurve, drawPlanet, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn, watchCurve } from "./planet.js";
+import { askCurve, drawGrid, drawPlanet, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn, watchCurve } from "./planet.js";
 import { along, arrow, circle, crate, draw, drawCell, glyph, home, lamp, marker, pan, passing, reading, rect, renderSet, resize, worldAt, zoomAt } from "./render.js";
-import { checkGame, findGames, foundGame, freeHex, keep, openGame, openSlot, parsed, planetList, readList, save, savesSet, stored } from "./saves.js";
+import { checkGame, findGames, foundGame, freeHex, graftGames, keep, openGame, openSlot, parsed, planetList, readFileGames, readList, save, savesSet, stored, writeList } from "./saves.js";
+import { isOpen, neighbours, purified } from "./conquest.js";
 import { begin, chooseView, growDock, hold, jobDone, letGo, load, markView, noteEarned, onFresh, rotate, script, spacePauses, testLine, viewSet, wormGone } from "./view.js";
 
 import "./actions.js";
@@ -171,6 +172,8 @@ const WINDOW_API = {
   diagnose: [() => diagnose],
   packWarning: [() => packWarning],
   showCard: [() => showCard],
+  showConcept: [() => showConcept],
+  offerConcept: [() => offerConcept],
   closeCard: [() => closeCard],
   CARD_TYPES: [() => cardTypes()],
   problems: [() => problems],
@@ -334,6 +337,14 @@ const WINDOW_API = {
   rankOf: [() => rankOf],
   reachOf: [() => reachOf],
   readList: [() => readList],
+  showVictory: [() => showVictory],
+  writeList: [() => writeList],
+  graftGames: [() => graftGames],
+  readFileGames: [() => readFileGames],
+  FILE: [() => FILE],
+  neighbours: [() => neighbours],
+  isOpen: [() => isOpen],
+  purified: [() => purified],
   reading: [() => reading],
   receive: [() => receive],
   recipe: [() => recipe],
@@ -378,6 +389,9 @@ const WINDOW_API = {
   sites: [() => sites],
   sizeOf: [() => sizeOf],
   slotKey: [() => slotKey, v => { slotKey = v; }],
+  slotId: [() => slotId],
+  openPlanet: [() => openPlanet],
+  drawGrid: [() => drawGrid],
   span: [() => span],
   spark: [() => spark],
   spawn: [() => spawn],
@@ -943,7 +957,8 @@ $('threat-toggle').onclick = () => {
 $('menu-toggle').onclick = () => showMenu(!ui.menu);
 // @ts-expect-error: loose typing, tightened module by module (item_007)
 for (const [id, less] of [['motion-auto', false], ['motion-less', true]]) $(id).onclick = () => { setMotion(less); keep(MOTION_KEY, less ? 'less' : 'auto'); };
-$('help').onclick = () => { showMenu(false); paintCardList(); $('commands').showModal(); };
+$('help').onclick = () => { showMenu(false); paintCardList(); paintConceptList(); $('commands').showModal(); };
+$('concept-cards').addEventListener('click', event => { const b = event.target.closest('[data-concept]'); if (b) showConcept(b.dataset.concept, false); });
 $('building-cards').addEventListener('click', event => { const b = event.target.closest('[data-card]'); if (b) showCard(b.dataset.card, false); });
 $('unlock-ok').onclick = closeCard;
 $('unlock').addEventListener('close', closeCard);

@@ -1,10 +1,10 @@
 ## item_029_carry_existing_planets_and_saves_over_to_purification - Carry existing planets and saves over to purification
 > From version: 0.2.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 85%
 > Confidence: 75%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -32,7 +32,12 @@ Players already hold won games and games in progress on hexagons that the new ru
 - AC3: Reading the same old planet twice changes nothing the second time.
 
 # AC Traceability
-- request-AC2 -> This backlog slice. Proof: deferred to implementation; this slice's AC1.
+- request-AC2 -> This backlog slice. Proof: `tests/prototype/conquest.test.mjs` (AC1)
+
+# Implementation notes (2026-11-24)
+- `readList` builds the planet state once for a list that has none: every game already won purifies its hexagon, with no mutation to choose for it (operator decision); running games stay where they are and keep playing. Read again, nothing changes.
+- `exportAll` writes each game's hexagon and the planet state; `graftGames` puts a whole planet brought into an empty one back on its own hexagons with its conquest, and a won game grafted elsewhere purifies the hexagon it lands on.
+- Proof: `tests/prototype/conquest.test.mjs`.
 
 # Decision framing
 - Product framing: Not needed

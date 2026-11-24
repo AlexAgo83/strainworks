@@ -6,6 +6,8 @@ import { paintPlaylist, playSound } from "./audio.js";
 import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, write } from "./input.js";
 import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, DEFENSE_GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gateGreen, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
+import { save } from "./saves.js";
+import { offerConcept } from "./unlock.js";
 
 export function paint(id, html, el = $(id)) {
   if (ui.html[id] === html) return false;
@@ -867,9 +869,15 @@ export function showVictory() {
   const minutes = Math.max(1, Math.round(G.won / 60)), made = Math.floor(G.made).toLocaleString(LOCALE);
   box.querySelector('.stage').textContent = L`Victoire en ${minutes} min`;
   paint('victory-score', [[G.kills, L('créatures tuées')], [G.breaches.filter(b => b.state === 'spent').length, L('brèches vidées')], [made, L('gènes produits')], [G.families.length, L('familles affrontées')]].map(([n, what]) => `<span><b>${n}</b>${what}</span>`).join(''));
+  // The hatching purifies this hexagon on the planet (req_001); saved now, so leaving at once keeps it.
+  ui.opened = null;
+  const kept = save();
+  $('victory-planet').hidden = !kept;
+  $('victory-planet').textContent = ui.opened?.length ? L`Hexagone purifié : ${ui.opened.length} hexagones voisins s’ouvrent sur la planète.` : L('Hexagone purifié sur la planète.');
   $('growth').hidden = true;
   box.hidden = false;
   playSound('stage_up');
+  if (kept) offerConcept('purify');
 }
 export function paintDry() {
   ui.dry = G.over || !G.enemies.length ? [] : allCells().filter(c => isGun(c) && built(c) && !Object.values(c.ammo).some(n => n) && G.enemies.some(e => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range * 2)).slice(0, 4);

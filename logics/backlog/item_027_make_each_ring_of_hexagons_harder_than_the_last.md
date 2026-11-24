@@ -8,6 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 23:38:24
 
 # AI Context
 - Summary: Hexagons farther from the first purified one are harder: more enemy families, stronger swarms, poorer deposits.

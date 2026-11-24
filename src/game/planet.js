@@ -2,6 +2,7 @@
 import { G, STAGES, spotHash } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { playSound } from "./audio.js";
+import { anyPurified, isOpen, purified } from "./conquest.js";
 import { forgetEvent, replay, showMenu, tell } from "./hud.js";
 import { $, ART, CURVE_KEY, BABYLON_HASH, BABYLON_SRC, CELLS_OF_GLOBE, DEMO_HEX, EARN, FILE, GLOBE_SHADER, LENS, NARROW, PERF, PERF_KINDS, PREFERRED, STILL, VIEW_KEY, arrows, canvas, cross3, demoMoved, dot3, drag, fx, fxRandom, gesture, loadDemo, made3d, mainSet, orbit, perfZero, slotId, slotKey, station3d, switching, ui, unit3, view, view3d, within } from "./main.js";
 import { home, resize } from "./render.js";
@@ -159,8 +160,11 @@ export function drawGrid() {
     if (v[2] < .08) return;
     // @ts-expect-error: loose typing, tightened module by module (item_007)
     const turned = ring.map(q => onScreen(unit3(turn([0, 1, 2].map(k => c[k] * .06 + q[k] * .94)))));
-    const shape = dotsOf(turned), game = games[id];
+    const shape = dotsOf(turned), game = games[id], state = orbit.list.planet;
     grid += `<polygon class="grid" points="${shape}" stroke-opacity="${(.06 + v[2] * .24).toFixed(2)}"/>`;
+    // The conquest: purified ground turns living green, the open hexagons beside it are outlined, the rest infected.
+    if (state && purified(state, id)) grid += `<polygon class="purified" points="${shape}"/>`;
+    else if (state && anyPurified(state) && !game) grid += `<polygon class="${isOpen(state, id) ? 'open' : 'locked'}" points="${shape}"/>`;
     if (game) {
       const e1 = unit3(cross3([0, 1, .001], c)), e2 = cross3(c, e1);
       const to = (u, w) => onScreen(turn(unit3([0, 1, 2].map(k => c[k] + e1[k] * u * size + e2[k] * w * size))));
@@ -350,13 +354,14 @@ export function projectSlot(note = '', bad = false) {
   const shown = game || first, box = $('projection');
   box.classList.toggle('free', !shown);
   box.classList.toggle('fallen', Boolean(shown?.over));
-  $('slot-kicker').textContent = incoming ? L('Fichier reçu') : !game ? L('Hexagone libre') : game.demo ? L('Démo · repart à neuf à chaque lancement') : game.over ? L('Station tombée') : game.fight ? L('En combat') : L('Partie en cours');
+  const state = orbit.list.planet, locked = !game && !incoming && state && !isOpen(state, id);
+  $('slot-kicker').textContent = incoming ? L('Fichier reçu') : locked ? L('Hexagone infecté') : !game && state && purified(state, id) ? L('Hexagone purifié') : !game && state && anyPurified(state) ? L('Hexagone ouvert') : !game ? L('Hexagone libre') : game.demo ? L('Démo · repart à neuf à chaque lancement') : game.over ? L('Station tombée') : game.fight ? L('En combat') : L('Partie en cours');
   $('slot-kicker').classList.toggle('fight', Boolean(game?.fight && !game.over && !game.demo));
-  $('slot-name').textContent = incoming?.length > 1 ? L`${incoming.length} parties` : shown ? shown.name : L('Terre vierge');
-  $('slot-sub').textContent = incoming?.length > 1 ? L('Elles prendront les hexagones libres autour de celui-ci.') : shown ? stageText(shown) : L('Fonde une station, ou greffes-y une partie exportée.');
+  $('slot-name').textContent = incoming?.length > 1 ? L`${incoming.length} parties` : shown ? shown.name : locked ? L('Terre infectée') : L('Terre vierge');
+  $('slot-sub').textContent = incoming?.length > 1 ? L('Elles prendront les hexagones libres autour de celui-ci.') : shown ? stageText(shown) : locked ? L('Fais éclore une souche sur un hexagone voisin pour l’ouvrir.') : L('Fonde une station, ou greffes-y une partie exportée.');
   const six = dotsOf(Array.from({length:6}, (_, i) => [66 + Math.cos(i * Math.PI / 3) * 63, 66 + Math.sin(i * Math.PI / 3) * 63]));
-  const color = !shown ? '#B7F34A' : shown.over ? '#FF6B74' : '#66D9EA';
-  const inner = shown ? settlementSVG((u, v) => [66 + u * 55, 66 - v * 55], shown, id, .85) : '<path d="M52 66h28M66 52v28" stroke="#B7F34A" stroke-width="3"/>';
+  const color = locked ? '#8A3040' : !shown ? '#B7F34A' : shown.over ? '#FF6B74' : '#66D9EA';
+  const inner = shown ? settlementSVG((u, v) => [66 + u * 55, 66 - v * 55], shown, id, .85) : locked ? '<circle cx="66" cy="66" r="14" fill="#3A1820" stroke="#8A3040" stroke-width="2"/><circle cx="60" cy="62" r="3" fill="#8A3040"/><circle cx="71" cy="70" r="4" fill="#8A3040"/>' : '<path d="M52 66h28M66 52v28" stroke="#B7F34A" stroke-width="3"/>';
   $('slot-icon').innerHTML = `<polygon points="${six}" fill="#040A0C99" stroke="${color}" stroke-width="1.5"/>${inner}`;
   const facts = game ? [[durationText(game.played), L('de jeu')], [Math.floor(Number(game.dna) || 0).toLocaleString(LOCALE), L('ADN')], [Number(game.spent) || 0, L('nids détruits')], [(Number(game.kills) || 0).toLocaleString(LOCALE), L('tuées')]] : [];
   $('slot-facts').replaceChildren(...facts.map(([value, label]) => {
@@ -385,7 +390,7 @@ export function projectSlot(note = '', bad = false) {
     });
     act(L('Annuler'), '', () => { orbit.incoming = null; projectSlot(); });
   } else if (!game) {
-    act(L('Fonder une station'), 'go', () => leavePlanet(() => foundGame(orbit.pick)));
+    if (!locked) act(L('Fonder une station'), 'go', () => leavePlanet(() => foundGame(orbit.pick)));
     act(L('Importer un fichier'), '', () => $('file').click());
     act(L('Tout exporter'), '', async () => noteOnPlanet(await exportAll()));
   } else if (game.demo) {
@@ -446,7 +451,7 @@ export async function takeFile(file) {
 
 // ---- In and out
 export function backgroundInert(on) {
-  for (const el of $('app').children) if (!['planet', 'menu', 'commands', 'file', 'lang-pick'].includes(el.id)) el.inert = on;
+  for (const el of $('app').children) if (!['planet', 'menu', 'commands', 'file', 'lang-pick', 'unlock'].includes(el.id)) el.inert = on;
 }
 export function openPlanet(intro) {
   if (slotKey) save();

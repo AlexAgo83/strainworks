@@ -8,6 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 23:38:24
 
 # AI Context
 - Summary: Purifying a region, one hexagon and its six neighbours, is the grand victory, shown once with the planet changed.
