@@ -544,6 +544,41 @@ window.createModels3D = (B, scene) => {
     },
 
     // A press over a carousel of six, with a hopper of carbon on one side.
+    arm(c, x, y) {
+      // A round base, a two-segment arm turning from the back to the front, a gripper carrying what it holds.
+      const live = built(c), reach = live ? armReach(c) : 0, back = facing((c.dir + 2) % 4), a = back - reach * Math.PI;
+      const paint = ['steel2', 'rail2', 'rail3'][rankOf(c) - 1];
+      footing(x, y, 0.8);
+      add('tube', 'steel', x, y, 0.16, 0.6, 0.2, 0.6);
+      add('ring', paint, x, y, 0.27, 0.62, 0.3, 0.62, 0, LYING);
+      add('tube', 'dark', x, y, 0.36, 0.26, 0.24, 0.26);
+      const lift = 0.15 + Math.sin(reach * Math.PI) * 0.25, ex = x + Math.cos(a) * 0.18, ey = y + Math.sin(a) * 0.18;
+      const tx = x + Math.cos(a) * 0.44, ty = y + Math.sin(a) * 0.44;
+      limb(paint, x, y, 0.48, ex, ey, 0.62 + lift, 0.09);
+      limb('steel', ex, ey, 0.62 + lift, tx, ty, 0.42 + lift * 0.6, 0.07);
+      add('bead', 'dark', ex, ey, 0.62 + lift, 0.09);
+      for (const s2 of [-1, 1]) add('hull', 'steel2', ...from(tx, ty, a, 0.02, s2 * 0.07), 0.34 + lift * 0.6, 0.1, 0.12, 0.03, a);
+      if (c.hold?.length) add('bead', contentOf(c.hold[0])[0] || 'off', tx, ty, 0.3 + lift * 0.6, 0.11);
+      if (c.hold?.length > 1) add('bead', contentOf(c.hold[1])[0] || 'off', ...from(tx, ty, a, -0.12), 0.3 + lift * 0.6, 0.09);
+    },
+    burn(c, x, y) {
+      // A squat furnace: a grate on top, embers under it, a flare and smoke each time something goes in.
+      const live = built(c), since = c.gulp ? G.time - c.gulp.t : 9, flare = live ? Math.max(0, 1 - since / 0.7) : 0;
+      footing(x, y);
+      add('hull', 'steel', x, y, 0.22, 0.78, 0.36, 0.78);
+      add('tube', 'dark', x, y, 0.42, 0.62, 0.06, 0.62);
+      for (let i = -1; i <= 1; i++) add('hull', 'steel2', x + i * 0.18, y, 0.46, 0.05, 0.05, 0.6);
+      if (live) for (let i = 0; i < 5; i++) add('bead', 'ember', x + Math.sin(i * 2.4) * 0.2, y + Math.cos(i * 1.7) * 0.18, 0.4, 0.06 + Math.max(0, Math.sin(clock * 7 + i * 1.3)) * 0.03);
+      for (let i = 0; i < 6 && flare > 0; i++) {
+        const k = (1 - flare + i / 6) % 1;
+        add('cone', 'ember', x + Math.sin(i * 2 + clock * 5) * 0.12, y + Math.cos(i * 3) * 0.1, 0.55 + k * 0.5, 0.16 * flare, 0.3 * flare, 0.16 * flare);
+      }
+      if (live) for (let i = 0; i < 3; i++) {
+        const k = (clock * 0.6 + i / 3) % 1;
+        add('bead', 'smoke', x + Math.sin(clock + i * 2) * 0.1, y + Math.cos(clock * 0.7 + i) * 0.1, 0.7 + k * 1.2, 0.08 + k * 0.18);
+      }
+      for (const [dx, dy] of [[0.42, 0], [-0.42, 0], [0, 0.42], [0, -0.42]]) add('hull', 'dark', x + dx, y + dy, 0.18, Math.abs(dy) ? 0.3 : 0.06, 0.12, Math.abs(dx) ? 0.3 : 0.06);
+    },
     flip(c, x, y) {
       const out = facing(c.dir), live = built(c);
       footing(x, y);
