@@ -77,6 +77,7 @@
 - `item_021_draw_recipes_from_the_base_genes_and_show_the_final_goal`
 - `item_022_redesign_the_core_panel_as_one_demand_at_a_time_with_its_recipe_drawn`
 - `item_023_show_an_unlock_card_the_first_time_a_new_building_is_picked`
+- `item_024_let_idle_drones_orbit_the_core_as_if_charging`
 
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |

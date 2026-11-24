@@ -1,10 +1,10 @@
 // What the player does to the game: building, ranks, the lab's upgrades, nerves and stages, as the interface asks.
-import { BELT_SPEED, HARVESTERS_PER_DEPOSIT, depositFull, liftable, BORER, BOX, BUILD, BUILDERS, CORE, DRONE, FIELDS, G, GUNS, H, INNER, NERVE, NEST, NET, RADAR, RANKS, SECTOR, STAGES, STEP, TYPES, VEIN, W, WATCHES, WHEN, WORM, accepts, ahead, allCells, asked, atHome, bitAt, boxOf, built, capOf, carbonSide, cellAt, connects, contentOf, depositAt, dice, drains, dropRise, eachSector, edgesOf, exitOf, fill, footprint, gateCondition, gateOpen, gateStore, hasTrait, heardOf, inSight, isBelt, isGun, isSplit, jobId, joinSide, keepsNest, key, leaking, listens, matterUnder, mouthPace, netOf, paceOf, paces, packTakes, perSecond, perch, pocketCap, pumps, put, refund, richAt, richCap, richUnder, richness, sideExit, simSet, sites, span, splitExits, unlink, unlocked, veinKind, wayOf, workTime, wormHolds } from "../sim/sim.ts";
+import { centreOf, coreCell, sizeOf, BELT_SPEED, HARVESTERS_PER_DEPOSIT, depositFull, liftable, BORER, BOX, BUILD, BUILDERS, CORE, DRONE, FIELDS, G, GUNS, H, INNER, NERVE, NEST, NET, RADAR, RANKS, SECTOR, STAGES, STEP, TYPES, VEIN, W, WATCHES, WHEN, WORM, accepts, ahead, allCells, asked, atHome, bitAt, boxOf, built, capOf, carbonSide, cellAt, connects, contentOf, depositAt, dice, drains, dropRise, eachSector, edgesOf, exitOf, fill, footprint, gateCondition, gateOpen, gateStore, hasTrait, heardOf, inSight, isBelt, isGun, isSplit, jobId, joinSide, keepsNest, key, leaking, listens, matterUnder, mouthPace, netOf, paceOf, paces, packTakes, perSecond, perch, pocketCap, pumps, put, refund, richAt, richCap, richUnder, richness, sideExit, simSet, sites, span, splitExits, unlink, unlocked, veinKind, wayOf, workTime, wormHolds } from "../sim/sim.ts";
 import { DEC, L } from "../sim/text.ts";
 import { playSound } from "./audio.js";
 import { refuse, tell } from "./hud.js";
 import { refresh, say, selectWorm } from "./input.js";
-import { CROWDED, DESK_NAMES, HEADING_KEY, MATTER, MOST_DRONES, NERVE_COLORS, UPGRADES, canRise, chain, gateGreen, geneName, heading, inLayout, labNext, mainSet, named, owed, paused, placeable, price, selected, tileAt, tileKey, touchesTrack, trackAt, upCost, whyNot } from "./main.js";
+import { motionTime, CROWDED, DESK_NAMES, HEADING_KEY, MATTER, MOST_DRONES, NERVE_COLORS, UPGRADES, canRise, chain, gateGreen, geneName, heading, inLayout, labNext, mainSet, named, owed, paused, placeable, price, selected, tileAt, tileKey, touchesTrack, trackAt, upCost, whyNot } from "./main.js";
 
 // The finger may be on any of the four cells: the first square round it that fits, else why the first does not.
 export function siteFor(type, x, y) {
@@ -211,12 +211,29 @@ export function keepVein(c) {
   delete c.veinOut; delete c.veinCut; delete c.veinOutOrder;
 }
 // Where to draw a drone: between two ticks, and circling its site while it works.
+// How far each drone has settled into its idle orbit, 0 to 1: drawing only, the simulation never reads it.
+const resting = new WeakMap();
+export const DRONE_ORBIT = {speed:.35, lift:1.3, ease:1.6};
 export function dronePose(d) {
   const k = Math.max(0, Math.min(1, owed / STEP)), mix = name => d.was[name] + (d[name] - d.was[name]) * k;
-  const w = mix('w'), turn = (G.time + owed) * 2.6 + G.drones.indexOf(d) * 2.1;
-  const x = mix('x') + Math.cos(turn) * .7 * w, y = mix('y') + Math.sin(turn) * .7 * w;
-  const facing = d.goal && w > .5 ? Math.atan2(d.goal.y - y, d.goal.x - x) : d.a;
-  return {x, y, w, a:facing, h:mix('h'), goal:d.goal, undo:d.undo};
+  const index = G.drones.indexOf(d), w = mix('w'), turn = (G.time + owed) * 2.6 + index * 2.1;
+  let x = mix('x') + Math.cos(turn) * .7 * w, y = mix('y') + Math.sin(turn) * .7 * w, h = mix('h');
+  // Nothing to do: it eases out of the core onto a slow orbit round it, as if charging, each at its own phase, radius
+  // and height; given a job it eases back onto its real path. Seconds of the screen, so it also settles while paused; under reduced motion the orbit holds still.
+  const now = performance.now() / 1000, was = resting.get(d) || {rest:0, at:now};
+  const dt = Math.min(.25, Math.max(0, now - was.at)), target = d.job || d.goal ? 0 : 1;
+  const rest = was.rest + (target - was.rest) * (1 - Math.exp(-dt * DRONE_ORBIT.ease));
+  resting.set(d, {rest, at:now});
+  const core = coreCell();
+  if (core && rest > .001) {
+    const mid = centreOf(core), ease = rest * rest * (3 - 2 * rest);
+    const radius = sizeOf(core) / 2 * Math.SQRT2 + .45 + (index % 3) * .3, spin = motionTime() * DRONE_ORBIT.speed * (1 + (index % 2) * .15) + index * 2.4;
+    x += (mid.x + Math.cos(spin) * radius - x) * ease;
+    y += (mid.y + Math.sin(spin) * radius - y) * ease;
+    h += (DRONE_ORBIT.lift + (index % 3) * .2 - h) * ease;
+  }
+  const facing = d.goal && w > .5 ? Math.atan2(d.goal.y - y, d.goal.x - x) : rest > .5 ? Math.atan2(y - (core ? centreOf(core).y : y), x - (core ? centreOf(core).x : x)) + Math.PI / 2 : d.a;
+  return {x, y, w, a:facing, h, goal:d.goal, undo:d.undo, charge:rest};
 }
 // How far the stage is, 0 to 1, or null past the last stage.
 export function stagePart() {

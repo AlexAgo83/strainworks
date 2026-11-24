@@ -510,7 +510,9 @@ export function draw() {
 export function drawDrones() {
   const t = G.time + owed, s = Math.max(1, Math.min(1.8, 17 / cam.zoom));
   for (const d of G.drones) {
-    const {x, y, w, a, goal, undo} = dronePose(d);
+    const {x, y, w, a, goal, undo, charge} = dronePose(d);
+    // Resting round the core: a soft glow that breathes, as if charging.
+    if (charge > .05) circle(ctx,x,y,.34 * s,`rgba(183,243,74,${(.1 + .12 * (.5 + .5 * Math.sin(motionTime() * 2.2 + G.drones.indexOf(d)))) * charge})`);
     if (goal && w < .5) {
       ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(goal.x,goal.y);
       ctx.strokeStyle = '#55D6E8AA'; ctx.lineWidth = 1 / cam.zoom; ctx.setLineDash([.3,.3]); ctx.lineDashOffset = -motionTime() % .6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;

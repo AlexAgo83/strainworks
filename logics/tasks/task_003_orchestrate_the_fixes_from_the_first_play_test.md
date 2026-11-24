@@ -8,7 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-11-24 20:36:43
+> Indicators reviewed: 2026-11-24 22:17:39
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -38,6 +38,7 @@
 - `item_015_review_room_carry_over_between_stages_waits_and_the_reason_to_fight`
 - `item_022_redesign_the_core_panel_as_one_demand_at_a_time_with_its_recipe_drawn`
 - `item_023_show_an_unlock_card_the_first_time_a_new_building_is_picked`
+- `item_024_let_idle_drones_orbit_the_core_as_if_charging`
 
 # Definition of Done (DoD)
 - [ ] Generated request, product, backlog, and task docs are present.

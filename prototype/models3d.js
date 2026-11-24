@@ -1987,7 +1987,7 @@ window.createModels3D = (B, scene) => {
   function drones(area) {
     const s = Math.max(1, Math.min(1.8, 17 / cam.zoom));
     G.drones.forEach((d, index) => {
-      const { x, y, h, w, a, goal, undo } = dronePose(d);
+      const { x, y, h, w, a, goal, undo, charge = 0 } = dronePose(d);
       if (x < area.x0 - 2 || x > area.x1 + 2 || y < area.y0 - 2 || y > area.y1 + 2) return;
       const flying = Math.max(0, Math.min(1, h - 0.6));
       const speed = Math.min(1, Math.hypot(d.x - d.was.x, d.y - d.was.y) * 2);
@@ -1999,6 +1999,8 @@ window.createModels3D = (B, scene) => {
       const bone = (paint, one, two, width, shape) => limb(paint, ...part(...one), ...part(...two), width * s, shape);
       piece('sac', 'skin2', -0.14, 0, 0, 0.3, 0.22, 0.24);
       piece('bead', w > 0.5 ? 'amber' : 'acid', -0.22, 0, 0.09, 0.11, 0.08, 0.11);
+      // Resting round the core: the charge bead swells and breathes.
+      if (charge > 0.05) { const glow = (0.5 + 0.5 * Math.sin(clock * 2.2 + index)) * charge; piece('bead', 'acid', -0.22, 0, 0.09, 0.11 + 0.1 * glow, 0.08 + 0.1 * glow, 0.11 + 0.1 * glow); }
       piece('hull', 'steel2', 0.06, 0, 0.02, 0.3, 0.13, 0.2, -dip);
       piece('shell', 'bone', 0.02, 0, 0.07, 0.32, 0.18, 0.24, -dip);
       piece('hull', 'hazard', -0.07, 0, 0.14, 0.05, 0.04, 0.2, -dip);
