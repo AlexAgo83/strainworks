@@ -6,9 +6,19 @@
 > Related task: `task_003_orchestrate_the_fixes_from_the_first_play_test`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-11-24 22:58:27
 
 # Overview
-Development-ready workflow corpus for act on the first play test.
+Fix what blocked or confused the first outside tester, then record a design decision on each point the session raised.
+
+```mermaid
+flowchart LR
+    Test[First play test] --> Fixes[Quick fixes]
+    Test --> Decisions[Design decisions]
+    Decisions --> Items[One item per decision]
+    Fixes --> Replay[Tester replays]
+    Items --> Replay
+```
 
 # Goals
 - Make the generated corpus usable without transcript context.

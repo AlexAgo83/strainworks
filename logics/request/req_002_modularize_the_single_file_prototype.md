@@ -7,12 +7,13 @@
 > Complexity: High
 > Theme: Architecture
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 22:58:41
 
 # AI Context
-- Summary: (unfilled: replace before this doc is used)
+- Summary: Split the single-file prototype into CSS, dictionary, trait table, ES modules and typed, linted code, without changing the game.
 - Keywords: modularize, single, file, prototype
-- Use when: (unfilled: replace before this doc is used)
-- Skip when: (unfilled: replace before this doc is used)
+- Use when: tracing where the module layout, the trait table or the Babylon pin came from.
+- Skip when: gameplay or play test changes.
 
 # Needs
 - Split the game out of one 9,500-line page into ES modules and TypeScript, through the Vite already installed, with no UI framework.

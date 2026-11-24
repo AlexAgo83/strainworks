@@ -8,13 +8,13 @@
 > Complexity: High
 > Theme: Controls
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 22:56:12
+> Indicators reviewed: 2026-11-24 22:58:32
 
 # AI Context
-- Summary: (unfilled: replace before this doc is used)
+- Summary: One predictable rule for drawing and dismantling lines; simple cases done, the rule waits for the tester's walkthrough.
 - Keywords: drawing, dismantling, lines, follow, rule
-- Use when: (unfilled: replace before this doc is used)
-- Skip when: (unfilled: replace before this doc is used)
+- Use when: changing how a drag draws, turns, branches or dismantles a line.
+- Skip when: new logistics pieces.
 
 # Problem
 - A drag sometimes extends a line and sometimes starts a perpendicular one; turns are sometimes refused; lines link to a harvester they pass; a bridge cannot be removed alone; a belt's direction reads poorly.
