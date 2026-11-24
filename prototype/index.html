@@ -4003,6 +4003,7 @@ function wake(found, cause) {
   G.woken++;
   // A mutation adds a family: every line already built keeps an enemy to kill.
   if (G.woken % 2 === 0) { const born = breed(b); if (born) b.born = born; }
+  forgetEvent(hungry());
   tell(L`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? L(', avec une nouvelle famille') : ''}.${b.id ? L(' Elle vise l’avant-poste qui l’a réveillée.') : ''}`, {at:b, gene:b.born, bad:true});
 }
 function disturb() {
@@ -6607,7 +6608,7 @@ function begin() {
   $('growth').hidden = true;
   look(true);
   forgetEvents(); choose('hand'); home();
-  tell(L('Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.'));
+  tell(hungry());
   save(); refresh();
 }
 
@@ -6652,6 +6653,12 @@ function tell(text, {at, gene, bad, act} = {}) {
   $('events').append(el);
   ui.events.push(entry);
   while (ui.events.length > 5) ui.events.shift().el.remove();
+}
+// The opening message says the breaches sleep: it goes once one wakes.
+function hungry() { return L('Le cœur a faim : fabrique le gène demandé en haut et amène-le jusqu’à lui. Les brèches dorment.'); }
+function forgetEvent(text) {
+  const at = ui.events.findIndex(e => e.text === text);
+  if (at >= 0) ui.events.splice(at, 1)[0].el.remove();
 }
 function forgetEvents() {
   for (const e of ui.events) e.el.remove();

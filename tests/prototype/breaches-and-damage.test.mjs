@@ -94,3 +94,24 @@ it("breaches-and-damage behaves as the recorded prototype", async () => {
   expect(entries.find(([label]) => label === "rules")[1]).toMatchObject({ nearTheBase: [[48, 27]], freeDeposits:3, freeOnesSleepOn: 0, unguardedRich: 0, wakeEach: 0 });
   expect(entries).toMatchSnapshot();
 });
+
+it("drops the opening message that says the breaches sleep once one wakes", async () => {
+  const browser = await launch();
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (r) => (r.request().url().startsWith("http://proto.test") ? r.fulfill({ body: pageHTML(), contentType: "text/html" }) : r.abort()));
+    await page.goto("http://proto.test/prototype/");
+    const out = await page.evaluate(() => {
+      begin();
+      const before = ui.events.some((e) => e.text === hungry());
+      wake(G.breaches[0]);
+      return { before, after: ui.events.some((e) => e.text === hungry()), woke: ui.events.length > 0 };
+    });
+    expect(out).toEqual({ before: true, after: false, woke: true });
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});
