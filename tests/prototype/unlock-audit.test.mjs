@@ -40,7 +40,10 @@ it("asks at each stage only for what that stage has open", async () => {
 			};
 			for (const seed of [1, 2, 3, 4, 5, 6]) {
 				let s = seed;
-				Math.random = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+				Math.random = () => {
+					s = (s * 16807) % 2147483647;
+					return (s - 1) / 2147483646;
+				};
 				fresh();
 				G.open = false;
 				for (let stage = 0; stage < STAGES.length; stage++) {
