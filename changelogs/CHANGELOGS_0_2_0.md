@@ -27,6 +27,8 @@ recipes and rules.
   statistics.
 - The statistics name why a production stopped: nothing comes in, the output is blocked, a wrong setting, no
   carbon, a full deposit, a closed gate.
+- The 3D view starts flat (curvature 0 %); when curvature slows the display under 55 images/s, the game offers
+  once to turn it off.
 
 ## Base genes and layered recipes
 
