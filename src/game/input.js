@@ -270,8 +270,8 @@ export function orderHTML() {
     // The next recipe to make, and how many others wait: the whole list is in the core's sheet.
     const open = G.goals.filter(g => g.fed < g.count), next = open[0] || G.goals[0], gene = geneMark(contentOf(next.item));
     const more = open.length > 1 ? `<span class="more" title="${L('Toutes les recettes sont dans la fiche du cœur')}">+${open.length - 1}</span>` : '';
-    const hunger = G.base && hungryFor().length ? `<span class="unit hungry">${L`faim de ${hungryFor().join(', ')}`}</span>` : '';
-    return `<b>${L`Stade ${G.stage + 1} · ${want.name}`}</b><div class="wanted">${boxOf(next.item) ? `<span class="crate">${gene}</span>` : gene}<output>${next.fed} / ${next.count}</output>${more}</div>${hunger}`;
+    const hunger = G.base && hungryFor().length ? `<span class="unit hungry">${L`faim de ${hungryFor().map(geneMark).join(' ')} : livraisons comptées à moitié`}</span>` : '';
+    return `<b>${L`Stade ${G.stage + 1} · ${want.name}`}</b><div class="wanted">${boxOf(next.item) ? `<span class="crate">${gene}</span>` : gene}<output>${Math.floor(next.fed)} / ${next.count}</output>${more}</div>${hunger}`;
   }
   const done = want.rate ? `${mealRate().toFixed(1).replace('.', DEC)} / ${want.rate}` : `${G.fed} / ${want.count}`;
   const unit = [boxOf(want.item) ? L`${BOX[boxOf(want.item)].name.toLowerCase()} de ${fill(boxOf(want.item))}` : '', want.rate ? L`gènes/s, tenus ${Math.floor(G.held)} sur ${want.hold} s` : ''].filter(Boolean).join(' · ');

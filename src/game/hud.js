@@ -316,7 +316,7 @@ export function goalsSheet(want, goals = G.goals) {
   const first = Math.max(0, goals.findIndex(g => g.fed < g.count)), pick = ui.goalPick ?? first, chosen = goals[pick] || goals[0];
   const rows = goals.map((g, i) => {
     const part = Math.min(1, g.fed / g.count), met = g.fed >= g.count;
-    return `<button class="ask${met ? ' met' : ''}" data-goal="${i}" aria-pressed="${i === pick}">${picture(g.item)}<span class="gauge${met ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></span><span class="count">${met ? '✓' : `${g.fed}<small> / ${g.count}</small>`}</span></button>`;
+    return `<button class="ask${met ? ' met' : ''}" data-goal="${i}" aria-pressed="${i === pick}">${picture(g.item)}<span class="gauge${met ? ' done' : ''}"><i style="width:${(part * 100).toFixed(1)}%"></i></span><span class="count">${met ? '✓' : `${Math.floor(g.fed)}<small> / ${g.count}</small>`}</span></button>`;
   }).join('');
   const open = [chosen];
   const hints = open.some(g => boxOf(g.item)) ? `<div class="hints">${L`<p>${CARBON}carbone à l’est du cœur<svg viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h12M9 1l5 4-5 4" fill="none" stroke="#A9BDB8" stroke-width="1.5"/></svg></p>`}</div>` : '';
@@ -326,8 +326,8 @@ export function goalsSheet(want, goals = G.goals) {
   const giving = gives.length ? `<div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : `<p class="unit">${want.gives}</p>`;
   const tab = ui.sheetTab === 'gives' ? 'gives' : 'asks';
   const tabs = `<div class="sheet-tabs" role="tablist"><button role="tab" data-sheet-tab="asks" aria-selected="${tab === 'asks'}">${L('Il réclame')}</button><button role="tab" data-sheet-tab="gives" aria-selected="${tab === 'gives'}">${L('Débloque')}</button></div>`;
-  // The base genes the core eats, each green while it came in the last half minute: a hungry core counts nothing.
-  const hungry = hungryFor(), base = G.base ? `<h3>${L('Gènes de base')}</h3><div class="base-genes">${eaten().map(gene => `<span class="${hungry.includes(gene) ? 'hungry' : 'fed'}">${picture(gene)}</span>`).join('')}</div>${hungry.length ? `<p class="unit hungry">${L`Le cœur a faim de ${hungry.join(', ')} : rien ne compte tant qu’il n’en reçoit pas.`}</p>` : ''}` : '';
+  // The base genes the core eats, each green while it came in the last half minute: a hungry core counts half.
+  const hungry = hungryFor(), base = G.base ? `<h3>${L('Gènes de base')}</h3><div class="base-genes">${eaten().map(gene => `<span class="${hungry.includes(gene) ? 'hungry' : 'fed'}">${picture(gene)}</span>`).join('')}</div>${hungry.length ? `<p class="unit hungry">${L`Le cœur a faim de ${hungry.map(geneMark).join(' ')} : livraisons comptées à moitié.`}</p>` : ''}` : '';
   const body = tab === 'gives' ? giving : `${base}<div class="asks">${rows}</div><h3>${L('Recette')}</h3>${stepsOf(chosen.item).join('')}${hints}`;
   // What it is all for, and where the organism stands.
   const story = `<p class="story">${L('La souche est malade. Une mutation la ronge de l’intérieur et chaque brèche en crache une forme nouvelle. Tu écris son antidote, gène après gène, jusqu’à ce que l’organisme guérisse et éclose.')}</p><p class="unit">${L`Stade ${G.stage + 1} sur ${STAGES.length} : ${STAGES[G.stage]?.name ?? ''}`}</p>`;

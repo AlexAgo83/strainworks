@@ -747,10 +747,11 @@ export function eat(item) {
   const want = STAGES[G.stage];
   if (G.base?.includes(item)) (G.baseAt ||= {})[item] = G.time;
   if (G.goals) {
-    // The first recipe this item still counts for; the stage grows once every one is met. A hungry core counts nothing.
-    const goal = hungryFor().length ? null : G.goals.find(g => g.item === item && g.fed < g.count);
+    // The first recipe this item still counts for; the stage grows once every one is met. A hungry core counts half.
+    const goal = G.goals.find(g => g.item === item && g.fed < g.count);
     if (!goal) { earn('core', holds * contentOf(item).length / 9); hooks.playNear('dna', coreCell() || CORE, .4); return; }
-    goal.fed++; G.fed++;
+    const part = hungryFor().length ? HUNGRY_SHARE : 1;
+    goal.fed = Math.min(goal.count, goal.fed + part); G.fed += part;
     if (G.goals.every(g => g.fed >= g.count)) grow();
     hooks.playNear('eat', coreCell() || CORE, .25);
     return;
@@ -795,8 +796,10 @@ export function drawGene(taken) {
 // core. Each stage's recipe is built on them, and the core keeps eating them as long as the game lasts.
 export const BASE_POOL = ['SFS', 'FFF', 'SSS', 'CCF', 'CSC', 'NFN', 'SSN', 'FNF'];
 export const BASE_COUNT = 3;
-// The core counts a stage's deliveries only while every base gene it already eats came in the last BASE_WINDOW seconds.
+// The core counts a stage's deliveries in full while every base gene it already eats came in the last BASE_WINDOW
+// seconds, and HUNGRY_SHARE of each while one did not (operator decision, 2026-11-24: half, not nothing).
 export const BASE_WINDOW = 30;
+export const HUNGRY_SHARE = .5;
 export function drawBase() {
   const have = new Set(Object.values(DEPOSIT)), near = new Set(INNER.map(([kind]) => kind));
   const pool = BASE_POOL.filter(gene => [...gene].every(b => have.has(b)) && [...gene].some(b => near.has(b)));

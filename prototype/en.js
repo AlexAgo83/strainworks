@@ -892,8 +892,8 @@ const EN = {
   "Tourner ({})": "Turn ({})",
   "En prendre un autre ({})": "Take another ({})",
   "Gènes de base": "Base genes",
-  "Le cœur a faim de {} : rien ne compte tant qu’il n’en reçoit pas.": "The core hungers for {}: nothing counts until it gets some.",
+  "Le cœur a faim de {} : livraisons comptées à moitié.": "The core hungers for {}: deliveries count half.",
   "La souche est malade. Une mutation la ronge de l’intérieur et chaque brèche en crache une forme nouvelle. Tu écris son antidote, gène après gène, jusqu’à ce que l’organisme guérisse et éclose.": "The strain is sick. A mutation eats it from within and every breach spits out a new form of it. You write its antidote, gene after gene, until the organism heals and hatches.",
   "Stade {} sur {} : {}": "Stage {} of {}: {}",
-  "faim de {}": "hungry for {}",
+  "faim de {} : livraisons comptées à moitié": "hungry for {}: deliveries count half",
 };

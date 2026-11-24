@@ -341,6 +341,8 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
   Before, every gene paid 1 whatever it was, so income grew without bound with production and prices never held.
   The performance graph shows ADN a minute by source, to tune these figures by playing.
 - A dip in rate at stage 2 loses the time it lasted, never the whole minute.
+- **Hunger (Decided, 2026-11-24)**: in a game with drawn base genes, the core eats them continuously. While one it
+  eats has not arrived in the last 30 seconds, stage deliveries count half, not nothing.
 - The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.
 - **Taking apart (2026-11-24)**: the Deligase is the Ligase run backwards, a gene in behind, base 1 out on the left,
   2 ahead, 3 on the right; the Separator is the Assembler run backwards, a strand in behind, gene 1 out on the

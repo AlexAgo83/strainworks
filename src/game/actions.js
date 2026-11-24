@@ -390,7 +390,7 @@ export function diagnose(c) {
   if (c.type === 'core') {
     const want = STAGES[G.stage];
     if (!want) return L`Organisme au stade ${STAGES.length}, ${G.kills} créatures tuées. Tout ce que tu livres devient de l’ADN.`;
-    if (G.goals && G.goals.length > 1) return L`Il veut : ${G.goals.map(g => `${recipe(g.item)} ${g.fed}/${g.count}`).join(', ')}. En échange : ${want.gives}. Les autres gènes deviennent de l’ADN.`;
+    if (G.goals && G.goals.length > 1) return L`Il veut : ${G.goals.map(g => `${recipe(g.item)} ${Math.floor(g.fed)}/${g.count}`).join(', ')}. En échange : ${want.gives}. Les autres gènes deviennent de l’ADN.`;
     const how = want.rate ? L`${want.rate} par seconde pendant ${want.hold} s, il faut deux lignes en parallèle` : L`${want.count} au total`;
     const carbon = BOX[boxOf(want.item)]?.carbon, isotope = BOX[boxOf(want.item)]?.isotope;
     const pack = carbon ? L` Ça sort d’un Encapsuleur réglé sur ${BOX[boxOf(want.item)].name} : ${fill(boxOf(want.item))} derrière, ${carbon} carbone${carbon > 1 ? 's' : ''}${isotope ? L` et ${isotope} isotope` : ''} sur le côté. Le carbone est juste à l’est du cœur${isotope ? L(', l’isotope loin dehors, au niveau 3') : ''}.` : '';

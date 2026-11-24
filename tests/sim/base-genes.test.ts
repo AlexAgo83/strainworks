@@ -45,7 +45,7 @@ it("builds every stage's recipe on the base genes", () => {
       expect(sim.contentOf(item).match(/.{3}/g)?.every((gene: string) => G.base.includes(gene))).toBe(true);
 });
 
-it("counts nothing for the stage while the core hungers for a base gene it eats", () => {
+it("counts half for the stage while the core hungers for a base gene it eats", () => {
   seeded(3);
   sim.fresh();
   const { G } = sim;
@@ -54,13 +54,18 @@ it("counts nothing for the stage while the core hungers for a base gene it eats"
   G.goals = sim.drawGoals(1);
   G.time = 100;
   sim.eat(a + b);
-  expect(G.goals[0].fed).toBe(0);
+  expect(G.goals[0].fed).toBe(0.5);
   expect(sim.hungryFor()).toEqual([a, b]);
   sim.eat(a);
   sim.eat(b);
   sim.eat(a + b);
-  expect(G.goals[0].fed).toBe(1);
+  expect(G.goals[0].fed).toBe(1.5);
   G.time += sim.BASE_WINDOW + 1;
   sim.eat(a + b);
-  expect(G.goals[0].fed).toBe(1);
+  sim.eat(a + b);
+  expect(G.goals[0].fed).toBe(2.5);
+  // Half a delivery still completes the last one: the stage grows.
+  G.goals[0].fed = G.goals[0].count - 0.25;
+  sim.eat(a + b);
+  expect(G.stage).toBe(2);
 });

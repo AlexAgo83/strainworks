@@ -8,7 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 19:20:39
+> Indicators reviewed: 2026-11-24 19:50:03
 
 # AI Context
 - Summary: Tighten the economy so DNA and ranks matter, as decided after the first play test (item_015).
@@ -31,6 +31,9 @@
 - AC1: In a simulated reference game, DNA held at stage 4 stays under an agreed ceiling.
 - AC2: A deposit refuses a harvester past its limit, with the reason said.
 - AC3: Splitting one harvester's output is the cheapest way to feed two machines.
+
+# Related decision (2026-11-24)
+- A hungry core counts stage deliveries half (`HUNGRY_SHARE` in `src/sim/sim.ts`), recorded in item_017: feeding the base genes keeps full pace, so a lapse slows a stage without stopping it.
 
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: In a simulated reference game, DNA held at stage 4 stays under an agreed ceiling.
