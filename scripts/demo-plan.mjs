@@ -117,8 +117,8 @@ export const STEPS = [
   {
     name: "Défense",
     // The CNF antidote leaves its cyst west, over the capsule line by a bridge, into an Encapsulator set to
-    // magazines (6 genes and 1 carbon); a second splitter on the K line brings its carbon round by y=25. A splitter
-    // shares the magazines between three turrets on the side of the north-west nest.
+    // magazines (6 genes and 1 carbon); a second splitter on the K line brings its carbon round by y=25. CNF is the
+    // antidote of SFN, the south-west nest's family: the magazines go down x=33 to three turrets facing it.
     rebuild: true,
     pieces: [
       { t: "cyst", x: 46, y: 31, d: 3, mk: 1, tag: "gènes antidote" },
@@ -130,11 +130,13 @@ export const STEPS = [
       { t: "belt", x: 57, y: 26, d: 0, mk: 1 },
       ...run(57, 25, 37, 25, 3, 1),
       ...run(36, 25, 36, 30, 2, 1),
-      { t: "belt", x: 35, y: 31, d: 3, mk: 1 },
-      { t: "split", x: 34, y: 31, d: 3, mk: 1 },
-      { t: "turret", x: 33, y: 31, d: 3, tag: "tourelle ouest" },
-      { t: "turret", x: 34, y: 30, d: 0, tag: "tourelle nord" },
-      { t: "turret", x: 34, y: 32, d: 2, tag: "tourelle sud" },
+      ...run(35, 31, 34, 31, 3, 1),
+      ...run(33, 31, 33, 63, 2, 1),
+      ...run(33, 64, 31, 64, 3, 1),
+      { t: "split", x: 30, y: 64, d: 3, mk: 1 },
+      { t: "turret", x: 29, y: 64, d: 3, tag: "tourelle sud-ouest" },
+      { t: "turret", x: 30, y: 63, d: 3, tag: "tourelle sud-ouest nord" },
+      { t: "turret", x: 30, y: 65, d: 3, tag: "tourelle sud-ouest sud" },
     ],
   },
   {
@@ -195,11 +197,13 @@ export const STEPS = [
     // The F field west of the base lies inside the north-west nest's circle (family SSC, 70 creatures). An outpost
     // at the circle's edge holds it: the idle C and S cysts feed a small bus west, an MK3 module on a console set
     // to CCS, the antidote of SSC, makes the genes, an Encapsulator boxes magazines with carbon split off the y=25
-    // line, and the magazines climb x=28 to three turrets, a sting and a maw. A large harvester on the guarded
+    // line, and the magazines climb x=28 to three turrets, three stings and a maw; two stings stand within reach of
+    // the nest and shoot it when no creature is in sight. A large harvester on the guarded
     // field wakes the nest; its F joins the y=14 line to the second row.
     rebuild: true,
     pieces: [
-      ...run(40, 41, 31, 41, 3, 2),
+      // Over the south-west turrets' line by a bridge.
+      ...run(40, 41, 31, 41, 3, 2).map((b) => (b.x === 33 ? { t: "bridge", x: b.x, y: b.y, d: 0 } : b)),
       ...run(30, 41, 30, 38, 0, 2),
       { t: "belt", x: 30, y: 37, d: 3, mk: 2 },
       ...module(28, 39, "lig6").map((p) => (p.t === "ligase" ? { ...p, mk: 3 } : p)),
@@ -212,7 +216,7 @@ export const STEPS = [
       // Its carbon: split off the y=25 line, down x=39 over the antidote line, west along y=35.
       { t: "split", x: 39, y: 25, d: 3, mk: 1 },
       ...run(39, 26, 39, 34, 2, 1).map((b) => (b.y === 31 ? { t: "bridge", x: b.x, y: b.y, d: 0 } : b)),
-      ...run(39, 35, 29, 35, 3, 1),
+      ...run(39, 35, 29, 35, 3, 1).map((b) => (b.x === 33 ? { t: "bridge", x: b.x, y: b.y, d: 0 } : b)),
       // The magazines: up x=28, west along y=22 to two splitters and their guns.
       ...run(28, 34, 28, 23, 0, 2),
       ...run(28, 22, 25, 22, 3, 2),
@@ -223,7 +227,12 @@ export const STEPS = [
       { t: "split", x: 22, y: 22, d: 3, mk: 2 },
       { t: "turret", x: 22, y: 21, d: 3, tag: "tourelle avant nord" },
       { t: "turret", x: 22, y: 23, d: 3, tag: "tourelle avant sud" },
-      { t: "turret", x: 21, y: 22, d: 3, tag: "tourelle avant" },
+      // Twelve cells from the nest, within a sting's reach: with no creature in sight, they shoot the nest itself.
+      { t: "belt", x: 21, y: 22, d: 3, mk: 2 },
+      { t: "split", x: 20, y: 22, d: 3, mk: 2 },
+      { t: "sting", x: 20, y: 21, d: 3, tag: "dard du nid nord" },
+      { t: "sting", x: 20, y: 23, d: 3, tag: "dard du nid sud" },
+      { t: "turret", x: 19, y: 22, d: 3, tag: "tourelle avant" },
       // The guarded F: a large harvester, its F north and east along y=14 into the line to the second row.
       { t: "borer", x: 15, y: 21, d: 0, mk: 1, tag: "foreuse gardée" },
       ...run(16, 20, 16, 15, 0, 2),

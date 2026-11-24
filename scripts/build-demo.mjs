@@ -54,7 +54,7 @@ try {
     const samples = [];
     for (let i = 0; i < 20 * seconds; i++) {
       step(0.05);
-      if (i % 200 === 199) samples.push({ t: Math.round(G.time), nest: G.breaches.filter((b) => b.state !== "sleep").map((b) => `${b.x},${b.y}:${b.state}:${b.left}:${Math.round(b.hp ?? 0)}`).join(" "), enemies: G.enemies.length, guns: allCells().filter((c) => isGun(c) && c.x < 30).map((c) => `${c.type}@${c.x},${c.y}:${Math.round(c.hp)}:${Object.values(c.ammo).reduce((a, n) => a + n, 0)}`).join(" "), fed: G.goals.map((g) => `${g.item}:${g.fed}/${g.count}`).join(" "), ...Object.fromEntries(Object.entries(tagged).map(([k, c]) => [k, c.stock?.length ?? 0])) });
+      if (i % 200 === 199) samples.push({ t: Math.round(G.time), nest: G.breaches.filter((b) => b.state !== "sleep").map((b) => `${b.x},${b.y}:${b.state}:${b.left}:${Math.round(b.hp ?? b.life ?? 0)}`).join(" "), enemies: G.enemies.length, guns: allCells().filter((c) => isGun(c) && c.x < 30).map((c) => `${c.type}@${c.x},${c.y}:${Math.round(c.hp)}:${Object.values(c.ammo).reduce((a, n) => a + n, 0)}`).join(" "), fed: G.goals.map((g) => `${g.item}:${g.fed}/${g.count}`).join(" "), ...Object.fromEntries(Object.entries(tagged).map(([k, c]) => [k, c.stock?.length ?? 0])) });
     }
     const jammed = allCells().filter((c) => c.type === "belt" && c.item && c.t >= 0.999).length;
     return {
