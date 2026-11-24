@@ -1,10 +1,10 @@
 ## item_006_split_the_game_script_into_es_modules - Split the game script into ES modules
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 60%
+> Progress: 100%
 > Complexity: High
 > Theme: Architecture
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -31,6 +31,13 @@
 - AC2: The browser tests reach the game only through the window API.
 - AC3: All existing tests pass and the demo base looks and plays the same.
 
+# Implementation notes (2026-11-24)
+- index.html loads `src/game/main.js` as a module: Vite serves it in dev, and `scripts/bundle-game.mjs` bundles it for the built site and the browser tests.
+- The interface is split by concern: `actions.js`, `render.js` (2D view and camera), `input.js`, `keys.js`, `view.js` (2D or 3D), `hud.js`, `saves.js`, `planet.js`, `audio.js`, `lab.js`. Only function declarations moved: they run nothing when a module loads, so the load order cannot change what the game does. Constants, state and the top-level wiring stay in `main.js`, in their original order.
+- A binding replaced from another module goes through that module's setter object (`mainSet`, `hudSet`, ...).
+- The window API (`WINDOW_API` at the top of `main.js`) exposes, live, every name the browser tests, build scripts and other page scripts use; the tests reach the game only through it.
+- Left for later: constants and state still live in `main.js` beside the wiring; moving them needs their load order checked one by one.
+
 # AC Traceability
 - request-AC3 -> This backlog slice. Proof: AC1: index.html loads the game from src modules through Vite in dev and in the built site.
 - request-AC5 -> This backlog slice. Proof: AC2: The browser tests reach the game only through the window API.
@@ -52,4 +59,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-
