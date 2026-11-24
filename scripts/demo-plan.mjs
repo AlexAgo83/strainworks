@@ -190,6 +190,47 @@ export const STEPS = [
     wires: [["console FFCFNF", "lig4"], ["lig4", "lig4.a"], ["lig4", "lig4.b"], ["lig4", "lig4.c"],
       ["console FFCFNF", "lig5"], ["lig5", "lig5.a"], ["lig5", "lig5.b"], ["lig5", "lig5.c"], ["console FFCFNF", "assembleur"]],
   },
+  {
+    name: "Avant-poste nord-ouest",
+    // The F field west of the base lies inside the north-west nest's circle (family SSC, 70 creatures). An outpost
+    // at the circle's edge holds it: the idle C and S cysts feed a small bus west, an MK3 module on a console set
+    // to CCS, the antidote of SSC, makes the genes, an Encapsulator boxes magazines with carbon split off the y=25
+    // line, and the magazines climb x=28 to three turrets, a sting and a maw. A large harvester on the guarded
+    // field wakes the nest; its F joins the y=14 line to the second row.
+    rebuild: true,
+    pieces: [
+      ...run(40, 41, 31, 41, 3, 2),
+      ...run(30, 41, 30, 38, 0, 2),
+      { t: "belt", x: 30, y: 37, d: 3, mk: 2 },
+      ...module(28, 39, "lig6").map((p) => (p.t === "ligase" ? { ...p, mk: 3 } : p)),
+      { t: "belt", x: 26, y: 37, d: 3, mk: 2 },
+      { t: "burn", x: 25, y: 37, d: 0, mk: 2 },
+      { t: "desk", x: 26, y: 40, d: 0, extra: { mode: "hand", gene: "CCS" }, tag: "console CCS" },
+      { t: "belt", x: 28, y: 37, d: 0, mk: 2 },
+      { t: "belt", x: 28, y: 36, d: 0, mk: 2 },
+      { t: "pack", x: 28, y: 35, d: 0, mk: 3, extra: { box: "A", flip: true }, tag: "encapsuleur CCS" },
+      // Its carbon: split off the y=25 line, down x=39 over the antidote line, west along y=35.
+      { t: "split", x: 39, y: 25, d: 3, mk: 1 },
+      ...run(39, 26, 39, 34, 2, 1).map((b) => (b.y === 31 ? { t: "bridge", x: b.x, y: b.y, d: 0 } : b)),
+      ...run(39, 35, 29, 35, 3, 1),
+      // The magazines: up x=28, west along y=22 to two splitters and their guns.
+      ...run(28, 34, 28, 23, 0, 2),
+      ...run(28, 22, 25, 22, 3, 2),
+      { t: "split", x: 24, y: 22, d: 3, mk: 2 },
+      { t: "sting", x: 24, y: 21, d: 3, tag: "dard" },
+      { t: "maw", x: 24, y: 23, d: 3, tag: "gueule" },
+      { t: "belt", x: 23, y: 22, d: 3, mk: 2 },
+      { t: "split", x: 22, y: 22, d: 3, mk: 2 },
+      { t: "turret", x: 22, y: 21, d: 3, tag: "tourelle avant nord" },
+      { t: "turret", x: 22, y: 23, d: 3, tag: "tourelle avant sud" },
+      { t: "turret", x: 21, y: 22, d: 3, tag: "tourelle avant" },
+      // The guarded F: a large harvester, its F north and east along y=14 into the line to the second row.
+      { t: "borer", x: 15, y: 21, d: 0, mk: 1, tag: "foreuse gardée" },
+      ...run(16, 20, 16, 15, 0, 2),
+      ...run(16, 14, 40, 14, 1, 2),
+    ],
+    wires: [["console CCS", "lig6"], ["lig6", "lig6.a"], ["lig6", "lig6.b"], ["lig6", "lig6.c"]],
+  },
 ];
 
 // A Ligase module on a westward bus at y=ly-2: the bus turns down its east side, under it and up its west side,
