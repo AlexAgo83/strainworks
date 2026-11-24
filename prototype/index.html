@@ -1730,7 +1730,7 @@ const EN = {
   "caisses": "boxes",
   "Écran": "Screen",
   "Relie-le à un nerf : il affiche en grand l’antidote que son réseau demande, et clignote quand il change.": "Wire it to a nerve: it shows the antidote its network asks for, big, and flashes when it changes.",
-  "Un nerf relie deux éléments parmi tourelles, radars, relais, feux, trieurs et Ligases.": "A nerve links two of turrets, radars, relays, gates, sorters and Ligases.",
+  "Un nerf relie deux éléments parmi tourelles, radars, relais, feux, trieurs, Ligases, écrans et le cœur.": "A nerve links two of turrets, radars, relays, gates, sorters, Ligases, screens and the core.",
   "Trois entrées : 1 à gauche, 2 derrière, 3 à droite. Leur ordre écrit le gène. Reliée à un nerf, elle vide ses entrées quand l’antidote demandé change.": "Three inputs: 1 on the left, 2 behind, 3 on the right. Their order writes the gene. On a nerve, it empties its inputs when the antidote asked for changes.",
   "Inverseur": "Inverter",
   "Un gène entre derrière, il ressort devant dans l’ordre inverse : SFN devient NFS. 1, 2 ou 3 par seconde selon son rang.": "A gene goes in at the back and comes out at the front in reverse order: SFN becomes NFS. 1, 2 or 3 a second by rank.",
@@ -3268,7 +3268,7 @@ function joinPort(c, travel) {
   const from = (travel + 2) % 4;
   return [0, 1].find(port => joinSide(c, port) === from) ?? -1;
 }
-const NERVE = {reach:24, hp:30, hold:4, ends:[...Object.keys(GUNS),'gate','sort','radar','relay','ligase','screen']};
+const NERVE = {reach:24, hp:30, hold:4, ends:[...Object.keys(GUNS),'gate','sort','radar','relay','ligase','screen','core']};
 let NET = new Map(), wiring = null;
 function carries(w) {
   return w.hp > 0 && built(w) && [w.a, w.b].every(id => G.cells[id] && built(G.cells[id]));
@@ -3294,6 +3294,9 @@ function sense() {
       count[gene] = (count[gene] || 0) + 1;
     }
     const list = Object.keys(count).sort((a, b) => count[b] - count[a]);
+    // The core on the net adds what it still asks for, after the threats: a quiet net makes the core's recipe.
+    const core = [...group].some(id => G.cells[id]?.type === 'core');
+    if (core) for (const gene of coreWants()) if (!list.includes(gene)) list.push(gene);
     // One gene leads for all three positions, until none of its creatures is left, or they would mix into hybrids.
     const held = turrets.find(c => c.focus && (count[c.focus] || G.time - c.focusAt < NERVE.hold))?.focus;
     const focus = held || list[0] || '';
@@ -3302,7 +3305,7 @@ function sense() {
       if (count[focus]) c.focusAt = G.time;
     }
     if (focus && !count[focus]) list.push(focus);
-    const net = {list, focus, turrets:turrets.length, radars:radars.length};
+    const net = {list, focus, turrets:turrets.length, radars:radars.length, core};
     for (const id of group) NET.set(id, net);
     // A Ligase on the nerve drops the bases it was given for the last antidote, so it never makes a mix of two.
     for (const id of group) {
@@ -3315,15 +3318,20 @@ function sense() {
   }
 }
 function netOf(c) { return NET.get(key(c.x, c.y)); }
+// The genes the core still asks for this stage, in recipe order.
+function coreWants() {
+  const open = G.goals ? G.goals.filter(g => g.fed < g.count).map(g => g.item) : [STAGES[G.stage]?.item].filter(Boolean);
+  return [...new Set(open.map(contentOf))];
+}
 // Unwired, cut or without a turret, the setting the player left applies.
-function listens(c) { return (c.type === 'gate' || c.type === 'sort') && (netOf(c)?.turrets > 0 || netOf(c)?.radars > 0); }
+function listens(c) { return (c.type === 'gate' || c.type === 'sort') && (netOf(c)?.turrets > 0 || netOf(c)?.radars > 0 || Boolean(netOf(c)?.core)); }
 function asked(c, item) {
   const net = netOf(c), place = c.read || 0;
   return place ? item.length === 1 && Boolean(net.focus) && net.focus[place - 1] === item : boxOf(item) !== 'T' && net.list.includes(contentOf(item));
 }
 function wireUp(a, b) {
   const ok = c => c && NERVE.ends.includes(c.type);
-  if (!ok(a) || !ok(b) || a === b) return refuse(L('Un nerf relie deux éléments parmi tourelles, radars, relais, feux, trieurs et Ligases.'));
+  if (!ok(a) || !ok(b) || a === b) return refuse(L('Un nerf relie deux éléments parmi tourelles, radars, relais, feux, trieurs, Ligases, écrans et le cœur.'));
   if (span(a, b) > NERVE.reach) return refuse(L`Trop loin : ${Math.ceil(span(a, b))} cases, 24 au plus. Pose un relais entre les deux.`);
   const ka = key(a.x, a.y), kb = key(b.x, b.y);
   if (G.wires.some(w => (w.a === ka && w.b === kb) || (w.a === kb && w.b === ka))) return refuse(L('Ils sont déjà reliés.'));
