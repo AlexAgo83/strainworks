@@ -5,7 +5,7 @@
 <p align="center"><b>Write the living. Make it a factory. Survive its mutations.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.38-B7F34A" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.2.0-B7F34A" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-2E8B57" alt="License" />
   <img src="https://img.shields.io/badge/Babylon.js-9-BB464B" alt="Babylon.js" />
   <img src="https://img.shields.io/badge/status-prototype-66D9EA" alt="Status" />
@@ -34,8 +34,13 @@ A factory game crossed with tower defense, in the browser and on the phone, in E
   nerves carry it, and sorters, gates, Ligases and joiners switch your lines to the right gene by themselves.
 - **The enemy evolves.** From stage 4 a new family is born every five minutes. The lines you built for the
   old ones still have to hold.
-- **The core grows.** Six stages, from Cellule to Éclosion, each opening new machines and defences, richer
-  deposits and longer logistics: maglev worms that haul like trains, veins that pump, isotope far out in the dark.
+- **Every game has its own genes.** Each game draws three base genes the core feeds on all along; every stage's
+  recipe is built on them, so what you build early keeps serving, and the core's panel draws each recipe for you.
+- **The core grows.** Six stages, from Cellule to Éclosion, each asking for a mechanic you already have and
+  opening new machines and defences, richer deposits and longer logistics: maglev worms that haul like trains,
+  veins that pump, isotope far out in the dark.
+- **The threat comes to you.** From stage 2, announced swarms march on the base, growing with time and with
+  what you build; nests guard the richest deposits and pay well when they fall.
 - **Every threat has its answer.** Turrets, stings and maws, a glue pool that slows, a mister for swarms, a
   harpoon that runs through a titan, all in three ranks.
 - **Nothing appears by magic.** Drones fly to every site, build it, dismantle it, repair it. You watch them work.
