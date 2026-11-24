@@ -8,7 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 17:35:14
+> Indicators reviewed: 2026-11-24 17:44:10
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -39,7 +39,7 @@
 - Mechanics: each stage requires one mechanic the game already has (sorting, nerves, burner, turrets, drones, outposts); no new mechanic for now.
 - Lines and room: recipes with fewer inputs (base genes act as intermediates) and more free ground round the core. Copy and paste of a block is deferred.
 - Purpose: two layers, both drawn per game. The base genes are drawn at the start of each game from a designed pool, matched to the deposits on that map, and stay fixed until the game ends; the recipes above them are drawn only from those base genes and earlier stages' products, so each game differs while every recipe builds on what the player already makes. The guide speaks of "this game's base genes", simulation tests check that every draw is feasible and balanced, and the demo keeps one fixed draw. The final goal (what the antidote cures) is shown.
-- Pace: a time acceleration button (x2, x4); counts stay as they are, since continuous consumption takes weight off fixed counts.
+- Pace: the game already has a x1/x3 speed button; the tester found it by chance and played at x3 from mid-game, and waits still felt long. It is shown from the start and gains a faster step; counts stay as they are, since continuous consumption takes weight off fixed counts.
 - Line drawing (item_013): the simple cases are fixed first (no link to a harvester a line passes beside, a bridge dismantles without breaking the line before it); the drawing rule itself waits for the tester's live walkthrough.
 - Order: the modularization (req_002, steps 2 to 5) finishes first; this play test work, design included, follows on the split and tested simulation. Each decision above becomes its own backlog item when that work starts.
 
