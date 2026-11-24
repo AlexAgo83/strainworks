@@ -128,8 +128,31 @@ function pastThePlanet() {
   });
 }
 
+// STRAINWORKS_GPU=1 draws on the host's graphics card through WSL's D3D12 driver instead of SwiftShader, for local runs
+// on a machine that has one. Unset, as on CI, nothing changes.
+export const GPU = Boolean(process.env.STRAINWORKS_GPU);
+const gpu = () => GPU
+  ? {
+      args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-gl=angle", "--use-angle=gl-egl"],
+      env: { ...process.env, GALLIUM_DRIVER: "d3d12", EGL_PLATFORM: "surfaceless", LD_LIBRARY_PATH: ["/usr/lib/wsl/lib", process.env.LD_LIBRARY_PATH].filter(Boolean).join(":") },
+    }
+  : {};
+// The WebGL renderer a launched browser draws with, to check which one a run used.
+export async function renderer(browser) {
+  const page = await browser.newPage();
+  try {
+    return await page.evaluate(() => {
+      const gl = document.createElement("canvas").getContext("webgl2") || document.createElement("canvas").getContext("webgl");
+      const info = gl?.getExtension("WEBGL_debug_renderer_info");
+      return gl ? gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) : "no WebGL";
+    });
+  } finally {
+    await page.close();
+  }
+}
+
 export async function launch() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, ...gpu() });
   return {
     close: () => browser.close(),
     async newContext({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, line = true, recipes = false, cards = false, ...options } = {}) {

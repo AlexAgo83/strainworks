@@ -122,6 +122,10 @@ npm run check
 
 When a rule changes on purpose, rerun with `npm test -- -u` and read the snapshot diff before committing it: that diff is the gameplay change.
 
+The test browser draws WebGL with SwiftShader, on the CPU. On WSL2 with a GPU driver, `STRAINWORKS_GPU=1` makes it
+render WebGL through Mesa's D3D12 backend (ANGLE over EGL) instead, and `tests/prototype/gpu.test.mjs` checks once a
+run that it does. CI leaves it unset.
+
 ### Layout
 
 | Path | Content |
