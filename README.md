@@ -5,7 +5,7 @@
 <p align="center"><b>Write the living. Make it a factory. Survive its mutations.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.27-B7F34A" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.1.28-B7F34A" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-2E8B57" alt="License" />
   <img src="https://img.shields.io/badge/Babylon.js-9-BB464B" alt="Babylon.js" />
   <img src="https://img.shields.io/badge/status-prototype-66D9EA" alt="Status" />
