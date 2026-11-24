@@ -203,3 +203,39 @@ it("brings an older planet over once, and a whole planet back through a file", a
 		await browser.close();
 	}
 });
+
+it("tells each open hexagon's ring and starts a station there with its difficulty (item_027)", async () => {
+	const browser = await launch();
+	try {
+		const { page, errors } = await open(browser);
+		const out = await page.evaluate(() => {
+			foundGame();
+			paused = true;
+			const home = slotId;
+			const families = G.families.length;
+			G.won = G.time;
+			save();
+			slotKey = null;
+			// The hatching's mutation chosen first: one card at a time.
+			const list = readList();
+			list.planet.offer = null;
+			list.planet.owed = 0;
+			writeList(list);
+			const beside = neighbours(home).find((n) => n !== DEMO_HEX);
+			openPlanet();
+			pickHex(beside);
+			const sub = document.querySelector("#slot-sub").textContent;
+			const card = [document.querySelector("#unlock").open, document.querySelector("#unlock-title").textContent];
+			closeCard();
+			foundGame(beside);
+			paused = true;
+			return { sub, card, ring: G.ring, more: G.families.length - families };
+		});
+		expect(out.sub).toBe("Anneau 1 : 1 famille de créatures de plus, essaims +25 %, gisements −10 %.");
+		expect(out.card).toEqual([true, "Anneaux"]);
+		expect([out.ring, out.more]).toEqual([1, 1]);
+		expect(errors).toEqual([]);
+	} finally {
+		await browser.close();
+	}
+});

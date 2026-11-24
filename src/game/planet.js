@@ -2,7 +2,7 @@
 import { G, STAGES, spotHash } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { playSound } from "./audio.js";
-import { MUTATIONS, anyPurified, isOpen, purified, takeMutation } from "./conquest.js";
+import { MUTATIONS, anyPurified, isOpen, purified, ringOfHex, ringText, takeMutation } from "./conquest.js";
 import { offerConcept } from "./unlock.js";
 import { forgetEvent, replay, showMenu, tell } from "./hud.js";
 import { $, ART, CURVE_KEY, BABYLON_HASH, BABYLON_SRC, CELLS_OF_GLOBE, DEMO_HEX, EARN, FILE, GLOBE_SHADER, LENS, NARROW, PERF, PERF_KINDS, PREFERRED, STILL, VIEW_KEY, arrows, canvas, cross3, demoMoved, dot3, drag, fx, fxRandom, gesture, loadDemo, made3d, mainSet, orbit, perfZero, slotId, slotKey, station3d, switching, ui, unit3, view, view3d, within } from "./main.js";
@@ -359,7 +359,11 @@ export function projectSlot(note = '', bad = false) {
   $('slot-kicker').textContent = incoming ? L('Fichier reçu') : locked ? L('Hexagone infecté') : !game && state && purified(state, id) ? L('Hexagone purifié') : !game && state && anyPurified(state) ? L('Hexagone ouvert') : !game ? L('Hexagone libre') : game.demo ? L('Démo · repart à neuf à chaque lancement') : game.over ? L('Station tombée') : game.fight ? L('En combat') : L('Partie en cours');
   $('slot-kicker').classList.toggle('fight', Boolean(game?.fight && !game.over && !game.demo));
   $('slot-name').textContent = incoming?.length > 1 ? L`${incoming.length} parties` : shown ? shown.name : locked ? L('Terre infectée') : L('Terre vierge');
-  $('slot-sub').textContent = incoming?.length > 1 ? L('Elles prendront les hexagones libres autour de celui-ci.') : shown ? stageText(shown) : locked ? L('Fais éclore une souche sur un hexagone voisin pour l’ouvrir.') : L('Fonde une station, ou greffes-y une partie exportée.');
+  const ring = state && anyPurified(state) ? ringOfHex(state, id) : 0, ringed = !shown && !locked && ring > 0;
+  $('slot-sub').textContent = incoming?.length > 1 ? L('Elles prendront les hexagones libres autour de celui-ci.') : shown ? stageText(shown) : locked ? L('Fais éclore une souche sur un hexagone voisin pour l’ouvrir.') : ringed ? ringText(ring) : L('Fonde une station, ou greffes-y une partie exportée.');
+  // The first open hexagon farther out: what a ring is.
+  // Not over a mutation still to choose: one card at a time.
+  if (ringed && orbit.on && !state.offer?.length) offerConcept('ring');
   const six = dotsOf(Array.from({length:6}, (_, i) => [66 + Math.cos(i * Math.PI / 3) * 63, 66 + Math.sin(i * Math.PI / 3) * 63]));
   const color = locked ? '#8A3040' : !shown ? '#B7F34A' : shown.over ? '#FF6B74' : '#66D9EA';
   const inner = shown ? settlementSVG((u, v) => [66 + u * 55, 66 - v * 55], shown, id, .85) : locked ? '<circle cx="66" cy="66" r="14" fill="#3A1820" stroke="#8A3040" stroke-width="2"/><circle cx="60" cy="62" r="3" fill="#8A3040"/><circle cx="71" cy="70" r="4" fill="#8A3040"/>' : '<path d="M52 66h28M66 52v28" stroke="#B7F34A" stroke-width="3"/>';

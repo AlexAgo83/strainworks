@@ -54,5 +54,22 @@ export const CONCEPTS = {
       if (t > .65) circle(g, 2.5, 2.6, 1.3 + (t - .65) * 1.5, null, `rgba(183,243,74,${Math.max(0, .6 - (t - .65) * 2)})`, .06);
     },
   },
+  ring:{
+    kicker:L('Planète'), title:L('Anneaux'),
+    lines:[L('Plus un hexagone est loin de ta première souche, plus il est dur.'), L('Tes mutations de souche sont là pour tenir l’anneau suivant.')],
+    facts:[['+1', L('famille de créatures par anneau')], ['+25 %', L('de créatures dans chaque essaim')], ['−10 %', L('de débit sur les gisements, jusqu’à l’anneau 3')]],
+    draw(g, t) {
+      // The first hexagon, then ring after ring lighting up, each a shade more hostile.
+      const step = Math.floor(ease(t / .8) * 3.999);
+      for (let q = -3; q <= 3; q++) for (let r = -3; r <= 3; r++) {
+        if (Math.abs(q + r) > 3) continue;
+        const x = 2.5 + R * .62 * 1.5 * q, y = 2.5 + R * .62 * Math.sqrt(3) * (r + q / 2), k = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+        const lit = k <= step;
+        hex(g, x, y, R * .58, k === 0 ? '#5E8A2A' : lit ? ['', '#4A3A1E', '#5A2E1E', '#6A2228'][k] : INFECTED, k === 0 ? '#D8FF8A' : lit ? ['', '#F0A03C', '#F07A3C', '#FF6B74'][k] : null, .035);
+        if (lit && k > 0) for (let e = 0; e < k; e++) circle(g, x - .12 + e * .12, y, .045, '#FF6B74');
+      }
+      circle(g, 2.5, 2.5, .1, LIVING);
+    },
+  },
 };
 export const conceptIds = () => Object.keys(CONCEPTS);

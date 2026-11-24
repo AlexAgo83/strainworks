@@ -1,6 +1,6 @@
 // The planet's conquest (req_001): a hatching purifies its hexagon and opens the hexagons beside it. The state
 // lives beside the games list, never in a game: free mode, its threat and its losses cannot touch it.
-import { CORE, G, hatchDrones, put, spotHash } from "../sim/sim.ts";
+import { CORE, G, RING, applyRing, hatchDrones, put, spotHash } from "../sim/sim.ts";
 import { L } from "../sim/text.ts";
 import { CELLS_OF_GLOBE, dot3 } from "./main.js";
 
@@ -43,8 +43,26 @@ export function takeMutation(state, id, seed = 0) {
   if (next.length) state.offer = next; else { delete state.offer; state.owed = 0; }
   return true;
 }
-// A new station starts with what the planet holds; the game keeps its own copy, so a later choice changes later games.
-export function strainStart(held) {
+// Steps from the planet's first purified hexagon, across the globe; 0 before any hatching.
+export function ringOfHex(state, id) {
+  if (state.first == null) return 0;
+  const seen = new Map([[Number(state.first), 0]]), queue = [Number(state.first)];
+  while (queue.length) {
+    const at = queue.shift();
+    if (at === Number(id)) return seen.get(at);
+    for (const n of neighbours(at)) if (!seen.has(n)) { seen.set(n, seen.get(at) + 1); queue.push(n); }
+  }
+  return 0;
+}
+// What a ring changes, in a few words for the planet.
+export function ringText(ring) {
+  const k = Math.min(RING.most, ring);
+  if (!k) return L`Anneau ${ring} : comme la première station.`;
+  return L`Anneau ${ring}${ring > RING.most ? L` (comme l’anneau ${RING.most})` : ''} : ${k * RING.families} famille${k > 1 ? 's' : ''} de créatures de plus, essaims +${Math.round(k * RING.swarm * 100)} %, gisements −${Math.round(k * RING.deposit * 100)} %.`;
+}
+// A new station starts with its ring's difficulty and what the planet holds; the game keeps its own copy.
+export function strainStart(held, ring = 0) {
+  if (ring) applyRing(ring);
   const muts = Object.fromEntries(Object.entries(held || {}).filter(([id, n]) => MUTATIONS[id] && n > 0).map(([id, n]) => [id, Math.min(n, MUTATIONS[id].cap)]));
   if (!Object.keys(muts).length) return;
   G.mutations = muts;

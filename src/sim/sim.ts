@@ -549,7 +549,7 @@ export const rankCost = (type, mk = 1) => { const cost = RANKS[type]?.cost[mk - 
 export function perSecond(c) {
   if (hasTrait(c.type, 'rate')) return rankOf(c);
   if (c.type !== 'mine' && c.type !== 'borer') return 1;
-  return rankOf(c) * (c.type === 'borer' ? BORER.harvesters : 1) * Math.min(richCap(), richUnder(c) || 1) * (1 + .15 * (G?.mutations?.harvest || 0));
+  return rankOf(c) * (c.type === 'borer' ? BORER.harvesters : 1) * Math.min(richCap(), richUnder(c) || 1) * (1 + .15 * (G?.mutations?.harvest || 0)) * (1 - RING.deposit * ringOf());
 }
 export function dropRise(c) {
   if (c.up == null) return;
@@ -1542,6 +1542,20 @@ export function flow(dt) {
 // Stage 4 lets the families grow to eight. MAX_FAMILIES is what a saved game may hold.
 export const MUTATION = {every:300, spread:2};
 export const familyCap = () => G.stage >= 3 ? 8 : 6;
+// A hexagon's ring on the planet (item_027): each step away from the first purified hexagon brings one more enemy
+// family from the start, swarms a quarter bigger and deposits a tenth poorer, up to the third ring.
+export const RING = {most:3, families:1, swarm:.25, deposit:.1};
+export const ringOf = () => Math.min(RING.most, Math.max(0, Number(G?.ring) || 0));
+export function applyRing(ring) {
+  G.ring = Math.max(0, Math.floor(Number(ring) || 0));
+  for (let i = 0; i < ringOf() * RING.families && G.families.length < familyCap(); i++) {
+    let born = '', tries = 0;
+    // A new family, never one of this game's base genes: those the core eats, not an enemy.
+    do born = mutate(G.families[Math.floor(Math.random() * G.families.length)]);
+    while ((G.families.includes(born) || born[0] === born[2] || G.base?.includes(born)) && ++tries < 60);
+    if (tries < 60) G.families.push(born);
+  }
+}
 // A family one base away from an old one, never a palindrome: swapping entries 1 and 3 must always matter.
 // want: the family to bring, for a stage that asks its antidote; it joins the families if new.
 export function breed(b, want = null) {
@@ -1698,7 +1712,7 @@ export function planSwarm(at) {
   const w = G.swarm, angle = Math.random() * Math.PI * 2, core = centreOf(coreCell() || {x:CORE.x, y:CORE.y, type:'core'});
   w.next = at; w.from = {x:Math.round(core.x + Math.cos(angle) * SWARM.far), y:Math.round(core.y + Math.sin(angle) * SWARM.far)};
   w.gene = G.families[Math.floor(Math.random() * G.families.length)];
-  w.size = swarmSize(w.wave ? G.time - w.start : 0, baseSize());
+  w.size = Math.min(SWARM.most, Math.round(swarmSize(w.wave ? G.time - w.start : 0, baseSize()) * (1 + RING.swarm * ringOf())));
   hooks.playSound('assault_alarm', 2);
   hooks.tell(L`Essaim en approche du ${bearing(w.from)}, dans ${Math.round(at - G.time)} s : ${w.size} créatures. Leur antidote : ${opposite(w.gene)}.`, {at:w.from, gene:w.gene, bad:true});
 }

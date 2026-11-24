@@ -4,7 +4,7 @@ import { L } from "../sim/text.ts";
 import { forgetEvents, paintGuide, showIntro, startGuide, tell } from "./hud.js";
 import { choose, refresh } from "./input.js";
 import { $, BATCHES, CELLS_OF_GLOBE, DEMO_HEX, DEMO_KEY, FILE, GAME_KEY, INTRO_KEY, LIMIT, LIST_KEY, MATTER, MAX_FAMILIES, MOST_DRONES, NAMES, NERVE_COLORS, OLD_SAVE, PREFERRED, SAVE, UPGRADES, demoMoved, dot3, downloads, drag, gesture, hovered, mainSet, owed, paused, repaid, saveFailed, slotId, slotKey, slotName, slotSaved, ui } from "./main.js";
-import { anyPurified, drawOffer, isOpen, planetOf, purify, strainStart } from "./conquest.js";
+import { anyPurified, drawOffer, isOpen, planetOf, purify, ringOfHex, strainStart } from "./conquest.js";
 import { noteOnPlanet } from "./planet.js";
 import { home } from "./render.js";
 import { begin, load } from "./view.js";
@@ -145,7 +145,7 @@ export function foundGame(wanted) {
     if (stored(key) !== null) key += `:${Date.now()}`;
   }
   openSlot(id, key, newName(list));
-  settleIn(); begin(); strainStart(list.planet.mutations); save(); startGuide(); paintGuide();
+  settleIn(); begin(); strainStart(list.planet.mutations, ringOfHex(list.planet, id)); save(); startGuide(); paintGuide();
   // Every new game opens on its goal; 'off' is only for tests and captures.
   if (stored(INTRO_KEY) !== 'off') showIntro(true);
   return true;
@@ -297,6 +297,7 @@ export function checkGame(game) {
   if (game.won != null && !count(game.won)) return false;
   if (game.lab != null && !(plain(game.lab) && Object.entries(game.lab).every(([id, n]) => Object.hasOwn(UPGRADES, id) && Number.isInteger(n) && n >= 0 && n <= 4))) return false;
   if (game.goals != null && !(list(game.goals, g => plain(g) && thing(g.item) && count(g.count) && count(g.fed)) && game.goals.length <= 6)) return false;
+  if (game.ring != null && !(Number.isInteger(game.ring) && game.ring >= 0 && game.ring < 200)) return false;
   if (game.mutations != null && !(plain(game.mutations) && Object.entries(game.mutations).every(([id, n]) => /^[a-z]{2,20}$/.test(id) && Number.isInteger(n) && n >= 0 && n <= 9))) return false;
   if (game.needs != null && !(list(game.needs, n => plain(n) && ['sort', 'nerve', 'turret', 'outpost'].includes(n.need) && count(n.count) && count(n.fed)) && game.needs.length <= 2)) return false;
   return true;

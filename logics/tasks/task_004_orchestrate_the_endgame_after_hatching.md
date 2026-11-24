@@ -8,7 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-11-24 23:56:47
+> Indicators reviewed: 2026-11-25 00:11:54
 
 # AI Context
 - Summary: Delivery order of the endgame: planet state, then saves, mutations, rings and the region victory, after the mockups are approved.
@@ -23,7 +23,7 @@
 - [x] 1. Operator approves the planet screen and mutation choice mockups (docs/design/endgame-planet.html, docs/design/endgame-mutations.html); no code before.
 - [x] 2. item_025 planet state and purification, with item_029 migration in the same release so no existing planet breaks.
 - [x] 3. item_026 mutations pool and choice screen.
-- [ ] 4. item_027 difficulty by ring, balanced with simulation tests against the mutations reachable by then.
+- [x] 4. item_027 difficulty by ring, balanced with simulation tests against the mutations reachable by then.
 - [ ] 5. item_028 region victory.
 - [ ] 6. Each slice: tests from scratch, commit, push once CI is green, release when the operator asks.
 
@@ -49,7 +49,7 @@
 - (no validation recorded yet)
 
 # Report
-- 2026-11-24: mockups approved (no retroactive mutations, the proposed pool, the real globe). item_025 and item_029 done: planet state, purification at hatching, open neighbours, migration and planet export; the concept cards framework with the Purification card. item_026 done: the six strain mutations, the choice dialog at hatching and on the planet, the Strain mutation card.
+- 2026-11-24: mockups approved (no retroactive mutations, the proposed pool, the real globe). item_025 and item_029 done: planet state, purification at hatching, open neighbours, migration and planet export; the concept cards framework with the Purification card. item_026 done: the six strain mutations, the choice dialog at hatching and on the planet, the Strain mutation card. item_027 done: rings by distance from the first purified hexagon, one more family, bigger swarms and poorer deposits up to ring 3, shown on the planet with the Rings card.
 
 # Links
 - Request: `req_001_design_the_endgame_after_hatching`
