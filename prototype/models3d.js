@@ -323,6 +323,17 @@ window.createModels3D = (B, scene) => {
 
     // A gantry with a two-lamp head, and an arm that drops on red.
     // The radar pylon: three legs, a mast, a dish that turns, glowing rings, and a wave across the ground.
+    screen(c, x, y) {
+      const a = facing(c.dir), live = built(c), gene = live ? netOf(c)?.focus || '' : '';
+      const flash = live ? Math.max(0, 1 - (G.time - (c.shownAt ?? -9)) / 0.6) : 0;
+      add('hull', 'dark', x, y, 0.06, 0.5, 0.12, 0.5);
+      add('tube', 'steel2', x, y, 0.5, 0.1, 0.9, 0.1);
+      add('hull', 'steel', x, y, 1.05, 0.9, 0.62, 0.12, a + Math.PI / 2);
+      add('hull', flash > 0.3 ? 'pale' : 'black', ...from(x, y, a, 0.07), 1.05, 0.8, 0.52, 0.03, a + Math.PI / 2);
+      if (gene) for (let i = 0; i < 3; i++) base(gene[i], ...from(x, y, a, 0.1, (i - 1) * 0.24), 1.05, 0.12, i);
+      else if (live) add('hull', 'cyan', ...from(x, y, a, 0.1), 1.05, 0.26, 0.05, 0.03 + Math.sin(clock * 3) * 0.01, a + Math.PI / 2);
+      add('ring', 'cyan', x, y, 1.42, 0.12, 0.4, 0.12);
+    },
     relay(c, x, y) {
       add('hull', 'dark', x, y, 0.06, 0.5, 0.12, 0.5);
       for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU + 0.3; limb('steel2', ...from(x, y, a, 0.3), 0.02, x, y, 0.5, 0.05); }
@@ -332,6 +343,24 @@ window.createModels3D = (B, scene) => {
       add('bead', 'N2', x, y, 1.62, 0.2 + beat * 0.05);
       add('ring', 'cyan', x, y, 1.62, 0.36 + beat * 0.08, 0.5, 0.36 + beat * 0.08, 0, LYING);
       for (const s of [-1, 1]) { limb('steel', x, y, 1.5, ...from(x, y, 0, s * 0.22), 1.42, 0.035); add('bead', 'cyan', ...from(x, y, 0, s * 0.22), 1.42, 0.07); }
+    },
+    lab(c, x, y) {
+      const live = built(c);
+      add('hull', 'dark', x, y, 0.1, 1.9, 0.2, 1.9);
+      add('hull', 'steel', x, y, 0.3, 1.6, 0.2, 1.6);
+      for (const [dx, dy] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) add('tube', 'steel2', x + dx, y + dy, 0.6, 0.12, 0.6, 0.12);
+      add('sac', 'glass', x, y, 0.75, 1.3, 0.9, 1.3);
+      add('hull', 'steel2', x, y, 0.5, 0.9, 0.1, 0.5);
+      for (let i = 0; i < 5; i++) {
+        const f = (i - 2) * 0.17, glow = live ? 0.5 + 0.5 * Math.sin(clock * 3 + i) : 0;
+        add('tube', 'glass', x + f, y - 0.05, 0.68, 0.09, 0.28, 0.09);
+        add('bead', live ? ['S', 'F', 'C', 'N', 'acid'][i] : 'off', x + f, y - 0.05, 0.62 + glow * 0.06, 0.07);
+      }
+      if (live) add('ring', 'acid', x, y, 1.22, 0.7 + Math.sin(clock * 2) * 0.04, 0.5, 0.7, 0, LYING);
+      add('hull', 'steel2', x + 0.55, y + 0.55, 1.05, 0.5, 0.06, 0.5);
+      add('ring', 'cyan', x + 0.55, y + 0.55, 1.1, 0.4, 0.4, 0.4, 0, LYING);
+      add('bead', live ? 'cyan' : 'off', x - 0.6, y + 0.6, 1.3, 0.12);
+      limb('steel2', x - 0.6, y + 0.6, 0.4, x - 0.6, y + 0.6, 1.25, 0.05);
     },
     radar(c, x, y) {
       for (let i = 0; i < 3; i++) {
@@ -515,6 +544,24 @@ window.createModels3D = (B, scene) => {
     },
 
     // A press over a carousel of six, with a hopper of carbon on one side.
+    flip(c, x, y) {
+      const out = facing(c.dir), live = built(c);
+      footing(x, y);
+      add('hull', 'steel', x, y, 0.25, 0.72, 0.24, 0.62, out);
+      add('tube', 'dark', x, y, 0.42, 0.56, 0.1, 0.56);
+      add('tube', 'glass', x, y, 0.5, 0.52, 0.06, 0.52);
+      // The three bases on the disc trade places: the first and the last swing round each other.
+      const gene = c.item || c.ports[0][0] || c.last || '', k = live && gene ? (clock * 1.4) % 1 : 0, swap = Math.sin(k * Math.PI);
+      for (let i = 0; i < 3; i++) {
+        const side = (i - 1) * 0.17, lift = i === 1 ? 0 : swap * 0.12, along = i === 1 ? 0 : (i ? -1 : 1) * swap * 0.12;
+        add('bead', gene[i] || 'off', ...from(x, y, out, along, side * (1 - 2 * k)), 0.6 + lift, 0.1);
+      }
+      const spin = live ? clock * 3 : 0;
+      for (let i = 0; i < 10; i++) add('bead', 'cyan', ...from(x, y, spin + (i / 12) * TAU, 0.32), 0.56, 0.03 + i * 0.004);
+      add('cone', 'cyan', ...from(x, y, spin + (10 / 12) * TAU, 0.32), 0.56, 0.08, 0.1, 0.08, spin + (10 / 12) * TAU + Math.PI / 2, Math.PI / 2);
+      intake(x, y, (c.dir + 2) % 4, c.ports[0].length);
+      nozzle(x, y, c.dir, 0.25);
+    },
     unpack(c, x, y) {
       const out = facing(c.dir), back = out + Math.PI, side = facing((c.dir + 1) % 4);
       const working = built(c) && (c.ports[1].length > 0 || c.item);

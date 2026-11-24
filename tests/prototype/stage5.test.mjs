@@ -1,8 +1,8 @@
-// Stage 5, Noyau: isotope far out, the heavy capsule, a fourth drone.
+// Stage 5, Noyau: isotope far out, the heavy capsule, a drone at half price in the lab.
 import { expect, it } from "vitest";
 import { launch, pageHTML } from "./harness.mjs";
 
-it("deals isotope far out, packs heavy capsules and hatches a fourth drone", async () => {
+it("deals isotope far out, packs heavy capsules and halves the next drone", async () => {
   const browser = await launch();
   try {
     const page = await browser.newPage();
@@ -38,14 +38,14 @@ it("deals isotope far out, packs heavy capsules and hatches a fourth drone", asy
       c.clock = 1.5;
       flow(0.01);
       const made = c.item;
-      // Entering Noyau hatches a fourth drone and its pill.
+      // Entering Noyau halves the next drone's price; the six places of the panel show the three held.
       G.stage = 3;
       G.fed = 29;
       eat(STAGES[3].item);
       paintDrones();
-      return { far: far > 0, near, locked, open, side, made, stage: STAGES[G.stage].name, drones: G.drones.length, pills: document.querySelectorAll("#drones .pip:not([hidden])").length };
+      return { far: far > 0, near, locked, open, side, made, stage: STAGES[G.stage].name, drones: G.drones.length, discount: G.labDiscount === true, held: document.querySelectorAll("#drones .pip:not(.locked)").length };
     });
-    expect(seen).toEqual({ far: true, near: 0, locked: false, open: true, side: [true, true, false, true, false], made: "H:SFSFFF", stage: "Noyau", drones: 4, pills: 4 });
+    expect(seen).toEqual({ far: true, near: 0, locked: false, open: true, side: [true, true, false, true, false], made: "H:SFSFFF", stage: "Noyau", drones: 3, discount: true, held: 3 });
     expect(errors).toEqual([]);
   } finally {
     await browser.close();
