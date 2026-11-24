@@ -5,7 +5,7 @@
 <p align="center"><b>Write the living. Make it a factory. Survive its mutations.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.37-B7F34A" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.1.38-B7F34A" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-2E8B57" alt="License" />
   <img src="https://img.shields.io/badge/Babylon.js-9-BB464B" alt="Babylon.js" />
   <img src="https://img.shields.io/badge/status-prototype-66D9EA" alt="Status" />
@@ -14,7 +14,7 @@
 <h3 align="center"><a href="https://strainworks.onrender.com">▶ Play now at strainworks.onrender.com</a></h3>
 <p align="center">No install, no account. On a desktop or a phone, installable and playable offline.</p>
 
-<p align="center"><img src="docs/media/strainworks-factory.gif" alt="An antidote factory running by itself off its nerve: three listening sorters feed a Ligase, which feeds a turret and a mister" /></p>
+<p align="center"><img src="docs/media/strainworks-factory.gif" alt="The demo's antidote factory: three Ligase modules on their consoles, fed by listening sorters off one bus, send capsules to the core" /></p>
 
 You run a station that industrializes life. You mine organic bases, splice them into genes, weave the genes
 into DNA and feed it to a hungry core. Out in the fog, the breaches you woke send creatures built from the
@@ -40,12 +40,12 @@ A factory game crossed with tower defense, in the browser and on the phone, in E
   harpoon that runs through a titan, all in three ranks.
 - **Nothing appears by magic.** Drones fly to every site, build it, dismantle it, repair it. You watch them work.
 
-![An awake nest sends its wave toward the base and its antidote factory](docs/media/strainworks-assault.gif)
+![The north-west outpost holds its awakened nest with antidote magazines](docs/media/strainworks-assault.gif)
 
 ## A small planet of games
 
 Every game is a hexagon on a living planet that fills up as you play. Pick one up where you left it, export it,
-copy it, share it as a file. A demo hexagon opens a stage 5 base that runs by itself, fresh every time.
+copy it, share it as a file. A demo hexagon opens a stage 6 base that runs by itself, fresh every time, in the middle of a fight.
 The game installs as an app and plays offline, in 2D or in 3D with a
 small-planet curvature, on a desktop or a phone.
 
@@ -54,7 +54,7 @@ small-planet curvature, on a desktop or a phone.
   <img src="docs/media/strainworks-stats.png" alt="The Statistics sheet" width="49%" />
 </p>
 
-<p align="center"><img src="docs/media/strainworks-overview.gif" alt="The demo base in 3D: the core, the antidote factory, the maglev worm loop and its silos" /></p>
+<p align="center"><img src="docs/media/strainworks-overview.gif" alt="The demo base in 3D: the core, its harvesters, two factory rows and the north-west outpost" /></p>
 
 ## Play
 
