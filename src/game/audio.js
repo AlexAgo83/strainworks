@@ -2,7 +2,7 @@
 import { G } from "../sim/sim.ts";
 import { L, LANG } from "../sim/text.ts";
 import { LANG_KEY } from "./lang.js";
-import { $, DUCKED, LAB_FILES, MUSIC, MUSIC_KEY, SFX_KEY, SOUNDS, SOUND_FILE, SOUND_LEVEL, cam, duck, music, musicRandom, orbit, screenAt, sfx, shuffleCalm, trackOf, view } from "./main.js";
+import { $, sound, DUCKED, LAB_FILES, MUSIC, MUSIC_KEY, SFX_KEY, SOUNDS, SOUND_FILE, SOUND_LEVEL, cam, duck, music, musicRandom, orbit, screenAt, sfx, shuffleCalm, trackOf, view } from "./main.js";
 import { keepForReload } from "./planet.js";
 import { keep } from "./saves.js";
 
@@ -55,7 +55,7 @@ export function musicTick() {
   // About 1.5 s of crossfade: the piece playing rises to the volume chosen, the other falls and stops.
   music.players.forEach((a, i) => {
     const ducked = performance.now() < (music.duckUntil || 0) ? .35 : 1;
-    const goal = want && i === music.live && music.on && !document.hidden ? music.volume * ducked : 0, was = music.level[i];
+    const goal = want && i === music.live && music.on && (!document.hidden || sound.background) ? music.volume * sound.master * ducked : 0, was = music.level[i];
     const level = music.level[i] = Math.max(0, Math.min(1, was + Math.sign(goal - was) * Math.min(Math.abs(goal - was), .07)));
     // Through a gain where the browser has Web Audio: an iPhone ignores the volume of an audio element.
     if (music.gains) music.gains[i].gain.value = level; else a.volume = level;
@@ -77,7 +77,7 @@ export function startSound() {
   try {
     const Context = window.AudioContext || window.webkitAudioContext, ctx = new Context();
     music.gains = music.players.map(a => { const gain = ctx.createGain(); gain.gain.value = 0; ctx.createMediaElementSource(a).connect(gain).connect(ctx.destination); return gain; });
-    sfx.ctx = ctx; sfx.out = ctx.createGain(); sfx.out.gain.value = sfx.on ? sfx.volume : 0; sfx.out.connect(ctx.destination);
+    sfx.ctx = ctx; sfx.out = ctx.createGain(); sfx.out.gain.value = sfx.on ? sfx.volume * sound.master : 0; sfx.out.connect(ctx.destination);
     loadSounds();
     ctx.resume?.();
   } catch (_) { music.gains = null; }
@@ -87,7 +87,7 @@ export function paintSfx() {
   $('sfx-volume').value = Math.round(sfx.volume * 100);
   $('sfx-on').setAttribute('aria-pressed', sfx.on);
   $('sfx-on').textContent = sfx.on ? L('Activés') : L('Coupés');
-  if (sfx.out) sfx.out.gain.value = sfx.on ? sfx.volume : 0;
+  if (sfx.out) sfx.out.gain.value = sfx.on ? sfx.volume * sound.master : 0;
 }
 export function keepSfx() { try { localStorage.setItem(SFX_KEY, JSON.stringify({volume:sfx.volume, on:sfx.on})); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ } }
 export function loadSounds() {

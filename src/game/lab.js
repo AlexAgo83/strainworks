@@ -6,7 +6,7 @@ import { musicTick, playSound, startSound } from "./audio.js";
 import { animateHud } from "./hud.js";
 import { refresh, setCursor } from "./input.js";
 import { followEdge, glide } from "./keys.js";
-import { $, LAB, LAB_FILES, LAB_GENES, LAB_PIECES, SOUNDS, armed, before, buildable, cam, drawnAt, labTake, mainSet, music, orbit, owed, paused, planetOwed, restartText, resting, savedAt, sfx, shownAt, slotId, slotKey, speed, view } from "./main.js";
+import { $, sound, LAB, LAB_FILES, LAB_GENES, LAB_PIECES, SOUNDS, armed, before, buildable, cam, drawnAt, labTake, mainSet, music, orbit, owed, paused, planetOwed, restartText, resting, savedAt, sfx, shownAt, slotId, slotKey, speed, view } from "./main.js";
 import { drawPlanet, leavePlanet, perfFrame } from "./planet.js";
 import { draw, resize } from "./render.js";
 import { save, settleIn } from "./saves.js";
@@ -180,7 +180,7 @@ export function frame(now) {
     return;
   }
   if (LAB.on) { if (!paused && !document.hidden) G.time += elapsed; }
-  else if (!paused && !document.hidden) {
+  else if (!paused && (!document.hidden || sound.background)) {
     if (!G.over) G.played = (G.played ?? G.time) + elapsed;
     mainSet.owed(owed + (elapsed*speed));
     while (owed >= STEP) { step(STEP); mainSet.owed(owed - (STEP)); }

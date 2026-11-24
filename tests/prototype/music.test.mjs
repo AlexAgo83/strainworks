@@ -53,9 +53,9 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
     const menu = await page.evaluate(() => [music.volume, music.on, document.querySelector("#music-on").textContent, JSON.parse(localStorage.getItem("strainworks-music"))]);
     // Effects: one at a time per sound, silent when far from the screen, a volume and a switch kept like the music's.
     const effects = await page.evaluate(() => {
-      // At half the music's volume by default, and placed by what the player looks at.
+      // At half the music’s quiet first volume by default, and placed by what the player looks at.
       // The music was set to 20 above; the effects kept their default, half of the music's default.
-      const defaults = sfx.volume === 0.25;
+      const defaults = sfx.volume === 0.15;
       cam.zoom = 40;
       const middle = placeOf({ x: cam.x - 0.5, y: cam.y - 0.5 }), left = placeOf({ x: cam.x - 0.5 - view.w / 2 / cam.zoom * 0.8, y: cam.y - 0.5 });
       cam.zoom = 12;

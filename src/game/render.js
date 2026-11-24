@@ -185,7 +185,8 @@ export function drawCell(g, c, inputs = []) {
     const paint = ['#263E46','#6B4A22','#553372'][(type === 'belt' ? rankOf(c) : 1) - 1];
     rect(g,-.22,-.22,.44,.44,paint);
     for (const side of sides) rect(g,[-.22,.22,-.22,-.5][side],[-.5,-.22,.22,-.22][side],side % 2 ? .28 : .44,side % 2 ? .44 : .28,paint);
-    if (type === 'gate') lamp(g,c); else arrow(g,c.dir,.12,'#5E828C');
+    // A larger, brighter arrow: the way a belt runs reads at a glance.
+    if (type === 'gate') lamp(g,c); else arrow(g,c.dir,.17,'#A8D4DC');
     return;
   }
   if (type === 'bridge') {
@@ -202,7 +203,8 @@ export function drawCell(g, c, inputs = []) {
   } else if (type === 'ligase') {
     for (let port = 0; port < 3; port++) {
       const side = portSide(c,port), x = DX[side]*.35, y = DY[side]*.35, has = c.ports[port].length;
-      circle(g,x,y,.13, has > 1 ? '#8E3048' : '#0B1417', has ? '#FF8FA2' : '#8B989C');
+      // A filled input is green, an empty one grey: neither reads as an error.
+      circle(g,x,y,.13, has > 1 ? '#2F4A1C' : '#0B1417', has ? '#B7F34A' : '#8B989C');
       const base = c.ports[port][0] || c.last[port];
       if (base) { g.globalAlpha = has ? 1 : .35; glyph(g,base,x,y,.1); g.globalAlpha = 1; }
     }
@@ -345,7 +347,7 @@ export function drawCell(g, c, inputs = []) {
   } else if (type === 'join') {
     for (const port of [0,1]) {
       const side = joinSide(c,port), x = DX[side]*.28, y = DY[side]*.28, has = c.ports[port].length;
-      circle(g,x,y,.17,'#0B1417',has ? '#FF8FA2' : '#8B989C');
+      circle(g,x,y,.17,'#0B1417',has ? '#B7F34A' : '#8B989C');
       const gene = c.ports[port][0] || (c.last ? c.last.slice(port * 3,port * 3 + 3) : '');
       if (gene) { g.globalAlpha *= has ? 1 : .35; sequence(g,gene,x,y,.28,.06); g.globalAlpha = built(c) ? 1 : .4; }
     }

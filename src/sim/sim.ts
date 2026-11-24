@@ -40,7 +40,7 @@ export const TYPES = {
   turret:{name:L('Tourelle'), help:L('Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.'), hp:180},
   cyst:{name:L('Kyste'), help:L('Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut. Relié à un nerf, il dit au feu le plus proche s’il est plein ou bas.'), hp:80},
   bridge:{name:L('Pont'), help:L('Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Chaque voie va au rythme de ses propres tapis.'), hp:40},
-  borer:{name:L('Grand récolteur'), help:L('4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.'), hp:180},
+  borer:{name:L('Grand récolteur'), help:L('4 cases d’un même gisement. Tire comme 6 récolteurs : 6 bases par seconde, 12 en MK2, 18 en MK3, et sort par ses 8 bords : branche plusieurs tapis.'), hp:180},
   vault:{name:L('Grand kyste'), help:L('4 cases, 360 objets, 720 en MK2, 1440 en MK3. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.'), hp:200},
   split2:{name:L('Diviseur 2'), help:L('Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.'), hp:40},
   split:{name:L('Diviseur 3'), help:L('Entrée derrière. Répartit à tour de rôle vers les trois autres côtés branchés.'), hp:40},
@@ -643,7 +643,7 @@ export function finishJob({c, field}) {
   if (c.a) { G.wires = G.wires.filter(w => w !== c); sense(); }
   else if (c.path) { dropWorm(c, true); hooks.wormGone(c); }
   else if (G.tracks[key(c.x, c.y)] === c) delete G.tracks[key(c.x, c.y)];
-  else remove(c.x, c.y);
+  else { remove(c.x, c.y); if (c.leaves) put(c.leaves, c.x, c.y, c.dir); }
 }
 // Where a drone has to be. Along a vein or a nerve, that advances with the work.
 export function workAt({c, field}) {
@@ -1393,8 +1393,12 @@ export function flow(dt) {
         const doors = edgesOf(c);
         let out = 0;
         for (let i = 0; i < doors.length && out < c.stock.length; i++) {
-          const at = (c.turn + i) % doors.length;
-          if (offer(c, c.stock[0], doors[at].dir, () => { c.stock.shift(); c.turn = (at + 1) % doors.length; }, 0, doors[at])) out++;
+          const at = (c.turn + i) % doors.length, door = doors[at], to = ahead(door, door.dir);
+          // A line drawn from the harvester takes from it: a belt heading away, or one starting there. A line only
+          // passing along its side, fed from behind, does not.
+          const behind = to && isBelt(to) && to.dir !== door.dir ? ahead(to, (to.dir + 2) % 4) : null;
+          if (behind && behind !== c) continue;
+          if (offer(c, c.stock[0], door.dir, () => { c.stock.shift(); c.turn = (at + 1) % doors.length; }, 0, door)) out++;
         }
       }
       if (c.type === 'vault' && c.stock.length) {

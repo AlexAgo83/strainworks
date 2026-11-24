@@ -1,10 +1,10 @@
 // Tools, placing and dismantling, line drawing and the pointer.
-import { BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
+import { perSecond, BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
 import { DEC, L } from "../sim/text.ts";
 import { breachesIn, build, diagnose, incubate, itemName, keepIt, keepVein, known, layTrack, link, netSummary, netWires, portSide, raise, rowOf, scrap, scrapVein, setHeading, siteFor, sourceName, wireUp } from "./actions.js";
 import { playSound } from "./audio.js";
 import { markOf, openFamily, paintHud, paintInfo, paintRanks, refuse, replay } from "./hud.js";
-import { $, BATCHES, CURSORS, DESK_NAMES, FAMILY_OF, HOLD_MS, ICONS, JOKER, MATTER, NARROW, NEEDS, NERVE_COLORS, PREVIEW, RANK_NEED, SHAPE, STILL, TURN, WAYS, cam, canRise, canvas, chain, costInHand, crossing, cursor, drag, flat, freshOn, gesture, heading, holdsAnything, hovered, inHand, inside, isSource, levelOf, linking, listening, mainSet, named, note, paused, piecesOf, placeable, playNear, pointers, price, rankOpen, ruinAt, selected, tabbed, tileAt, tileKey, tool, trackAt, ui, upCost, view, view3d, whyNot, wiring, wormId } from "./main.js";
+import { $, handRank, KEYS, keyName, BATCHES, CURSORS, DESK_NAMES, FAMILY_OF, HOLD_MS, ICONS, JOKER, MATTER, NARROW, NEEDS, NERVE_COLORS, PREVIEW, RANK_NEED, SHAPE, STILL, TURN, WAYS, cam, canRise, canvas, chain, costInHand, crossing, cursor, drag, flat, freshOn, gesture, heading, holdsAnything, hovered, inHand, inside, isSource, levelOf, linking, listening, mainSet, named, note, paused, piecesOf, placeable, playNear, pointers, price, rankOpen, ruinAt, selected, tabbed, tileAt, tileKey, tool, trackAt, ui, upCost, view, view3d, whyNot, wiring, wormId } from "./main.js";
 import { arrow, circle, drawCell, glyph, polygon, rect, worldAt } from "./render.js";
 
 export function geneMark(gene) {
@@ -79,6 +79,18 @@ export function emptyOut(c) {
   if (c.packets) c.packets = [];
   if (c.outs) c.outs = [null, null, null];
 }
+const fmtRate = n => String(Math.round(n * 10) / 10).replace('.', DEC);
+// Mirrors a machine left for right, from its sheet or the key: false for a piece that has no sides to swap.
+export function mirror(c) {
+  if (c.type === 'ligase') { c.flip = !c.flip; c.ports.reverse(); c.portDue?.reverse(); c.last = [...c.last].reverse().join(''); }
+  else if (c.type === 'join') {
+    c.flip = !c.flip; c.ports = [c.ports[1], c.ports[0], []];
+    if (c.portDue) c.portDue = [c.portDue[1], c.portDue[0], []];
+    c.last = c.last ? c.last.slice(3) + c.last.slice(0, 3) : '';
+  } else if (c.type === 'pack' || c.type === 'unbind' || c.type === 'unjoin') c.flip = !c.flip;
+  else return false;
+  return true;
+}
 export function showActions() {
   ui.at = '';
   $('actions').replaceChildren();
@@ -100,8 +112,14 @@ export function showActions() {
   if (c.type === 'core') {
     return;
   }
-  if (hasTrait(c.type, 'turn')) button(L('Tourner'), () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
-  if (c.type === 'ligase') button(L('Inverser 1↔3'), () => { c.flip = !c.flip; c.ports.reverse(); c.portDue?.reverse(); c.last = [...c.last].reverse().join(''); });
+  // Each action names its key, so the keys are learnt where they act.
+  if (hasTrait(c.type, 'turn')) button(L`Tourner (${keyName(KEYS.rotate)})`, () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
+  if (c.type !== 'core' && $('tools').querySelector(`[data-type="${c.type}"]`)) button(L`En prendre un autre (${keyName(KEYS.pick)})`, () => {
+    if (RANKS[c.type]) handRank[c.type] = rankOf(c);
+    choose(c.type);
+    if (hasTrait(c.type, 'turn')) setHeading(c.dir);
+  });
+  if (c.type === 'ligase') button(L`Inverser 1↔3 (${keyName(KEYS.mirror)})`, () => mirror(c));
   if (c.type === 'bridge') [0, 1].forEach(axis => {
     const set = c.ways?.[axis] ?? null, name = axis ? 'Voie ↔' : 'Voie ↕';
     button(`${name} : ${set == null ? 'auto' : ['↑','→','↓','←'][set]}`, () => { turnWay(c, axis); showActions(); });
@@ -112,7 +130,8 @@ export function showActions() {
     button(L('Vider'), () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
   }
   // Any machine holding something can be emptied; pumps and encapsulators keep their own, which empty more.
-  if (!hasTrait(c.type, 'ownEmpty') && holdsAnything(c)) button(L('Vider'), () => { emptyOut(c); refresh(); showActions(); });
+  // Offered as long as the machine can hold something, emptied or not: a player empties again.
+  if (!hasTrait(c.type, 'ownEmpty') && (holdsAnything(c) || c.ports || c.stock || hasTrait(c.type, 'single'))) button(L('Vider'), () => { emptyOut(c); refresh(); showActions(); });
   if (c.type === 'desk') {
     button(L`Priorité : ${DESK_NAMES[c.mode || 'most']}`, () => { c.mode = DESK.modes[(DESK.modes.indexOf(c.mode || 'most') + 1) % DESK.modes.length]; sense(); showActions(); });
     if (c.mode === 'hand') {
@@ -123,16 +142,12 @@ export function showActions() {
   if (c.type === 'pocket') button(c.unload ? L('Poche : vide') : L('Poche : charge'), () => { c.unload = !c.unload; showActions(); });
   if (c.type === 'pack') {
     button(L`Recette : ${BOX[c.box].name}`, () => { const order = unlocked(4) ? ['T', 'A', 'H'] : ['T', 'A']; setRecipe(c, order[(order.indexOf(c.box) + 1) % order.length]); showActions(); });
-    button(L`Carbone : ${c.flip ? L('à droite') : L('à gauche')}`, () => { c.flip = !c.flip; showActions(); });
+    button(L`Carbone : ${c.flip ? L('à droite') : L('à gauche')} (${keyName(KEYS.mirror)})`, () => { mirror(c); showActions(); });
     button(L('Vider'), () => { c.ports = [[], [], []]; c.item = null; c.last = ''; });
   }
   // Mirrored, the left output goes right and the right one left.
-  if (c.type === 'unbind' || c.type === 'unjoin') button(L('Inverser gauche↔droite'), () => { c.flip = !c.flip; });
-  if (c.type === 'join') button(L('Inverser 1↔2'), () => {
-    c.flip = !c.flip; c.ports = [c.ports[1], c.ports[0], []];
-    if (c.portDue) c.portDue = [c.portDue[1], c.portDue[0], []];
-    c.last = c.last ? c.last.slice(3) + c.last.slice(0, 3) : '';
-  });
+  if (c.type === 'unbind' || c.type === 'unjoin') button(L`Inverser gauche↔droite (${keyName(KEYS.mirror)})`, () => mirror(c));
+  if (c.type === 'join') button(L`Inverser 1↔2 (${keyName(KEYS.mirror)})`, () => mirror(c));
   if (c.type === 'radar') {
     const modes = ['creatures', 'nests', 'both'], names = {creatures:L('Détecte : créatures'), nests:L('Détecte : nids'), both:L('Détecte : nids et créatures')};
     button(names[c.watch || 'creatures'], () => { c.watch = modes[(modes.indexOf(c.watch || 'creatures') + 1) % modes.length]; showActions(); });
@@ -195,7 +210,9 @@ export function showActions() {
   if (RANKS[c.type] || c.type === 'gate') {
     if (c.up != null) button(L('Annuler l’amélioration'), () => { dropRise(c); showActions(); });
     else if (RANKS[c.type]) for (const mk of [2, 3]) {
-      if (canRise(c, mk)) button(L`Passer en MK${mk} · ${upCost(c, mk)} ADN`, () => { raise([c], mk); showActions(); });
+      // What the rank gives, where the machine has a rate: from now to after.
+      const gain = perSecond(c) !== perSecond({...c, mk}) ? L` · ${fmtRate(perSecond(c))} → ${fmtRate(perSecond({...c, mk}))}/s` : '';
+      if (canRise(c, mk)) button(L`Passer en MK${mk} · ${upCost(c, mk)} ADN${gain}`, () => { raise([c], mk); showActions(); });
       else if (!rankOpen(mk) && rankOf(c) < mk) button(L`MK${mk} : stade ${RANK_NEED[mk - 1] + 1}`, () => refuse(L`Le rang MK${mk} s’ouvre au stade ${RANK_NEED[mk - 1] + 1}.`));
     }
     const row = isBelt(c) ? rowOf(c) : [];
@@ -325,6 +342,8 @@ export function wipe(x,y) {
   const id = tileKey(x,y), w = G.worms.find(o => o.path.includes(id));
   if (w) return scrap(w, () => dropWorm(w, true));
   const top = cellAt(x,y) || ruinAt(x,y);
+  // A bridge taken down on its own gives its line back: a belt the way it ran. Swept with a line, it goes with it.
+  if (top?.type === 'bridge' && !drag) top.leaves = 'belt';
   if (top) return scrap(top, () => remove(top.x,top.y));
   if (G.tracks[id]) scrap(G.tracks[id], () => { delete G.tracks[id]; });
 }
@@ -394,7 +413,8 @@ export function place(x,y) {
   }
   if (tool === 'erase') return wipe(x,y);
   if (old) {
-    if (old.type === tool && hasTrait(tool, 'retap')) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
+    // A first tap on a piece like the one in hand selects it; only a second tap turns it, never by surprise.
+    if (old.type === tool && hasTrait(tool, 'retap') && selected === key(old.x, old.y)) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
     // A bridge may replace a belt, to make a crossing on an existing line.
     else if (old.type === 'belt' && hasTrait(tool, 'onBelt')) { dropRise(old); G.dna += refund(old); build(tool,x,y,old.dir); }
     select(key(old.x,old.y));
@@ -642,8 +662,8 @@ export function preview() {
   }
   if (old) {
     if (drawing) return to('select');
-    // The ghost shows the way it faces now; a tap turns it.
-    if (old.type === tool && hasTrait(tool, 'retap')) return to('turn', {type:tool, dir:old.dir, label:L('Tourner')});
+    // The ghost shows the way it faces now; a tap on the selected piece turns it.
+    if (old.type === tool && hasTrait(tool, 'retap') && selected === key(old.x, old.y)) return to('turn', {type:tool, dir:old.dir, label:L('Tourner')});
     if (old.type === 'belt' && hasTrait(tool, 'onBelt')) return to('build', {type:tool, dir:old.dir});
     return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
   }

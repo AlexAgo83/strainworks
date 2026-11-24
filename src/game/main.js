@@ -5,7 +5,7 @@ import { L, LANG, LOCALE } from "../sim/text.ts";
 import { actionsSet, packWarning, breachesIn, build, buyLab, creatureAt, diagnose, dronePose, feeders, fieldsIn, incubate, keepIt, known, layTrack, link, netSummary, netWires, portSide, radarWave, raise, rankFollowers, recipe, rowOf, scrap, scrapVein, setHeading, shownNests, siteFor, stagePart, wireUp } from "./actions.js";
 import { audioSet, keepMusic, keepSfx, musicTick, paintMusic, paintPlaylist, paintSfx, placeOf, playSound, setLang, shuffleMusic, startSound } from "./audio.js";
 import { addPip, problems, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, tell, toggleFamily, travelTo } from "./hud.js";
-import { button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
+import { mirror, button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
 import { glide, keysSet, loadKeys, paintKeys, pipette } from "./keys.js";
 import { frame, labSet, startLab } from "./lab.js";
 import { drawPlanet, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn } from "./planet.js";
@@ -375,6 +375,7 @@ const WINDOW_API = {
   spark: [() => spark],
   spawn: [() => spawn],
   speed: [() => speed, v => { speed = v; }],
+  sound: [() => sound],
   splitExits: [() => splitExits],
   stagePart: [() => stagePart],
   stamp: [() => stamp],
@@ -656,6 +657,8 @@ export const ACTIONS = [
   ['right', L('Vue vers la droite'), 'KeyD'],
   ['pick', L('Pipette : reprendre le bâtiment survolé'), 'KeyQ'],
   ['rotate', L('Tourner, avec Maj dans l’autre sens'), 'KeyR'],
+  ['mirror', L('Inverser gauche et droite'), 'KeyH'],
+  ['reverse', L('Retourner : demi-tour'), 'KeyV'],
   ['pause', L('Pause et reprise'), 'Space'],
 ];
 export const RESERVED = /^(Escape|Tab|Enter|Arrow|Digit|Numpad|Shift|Control|Alt|Meta|F\d)/;
@@ -799,7 +802,16 @@ document.addEventListener('keydown', event => {
   if (idle) { showMenu(true); return; }
   choose('hand');
 });
-$('speed').onclick = () => { speed = speed === 1 ? 3 : 1; $('speed').textContent = '×' + speed; refresh(); };
+// Three speeds, in turn. The button says the next one, so a player sees there is more than one.
+const SPEEDS = [1, 3, 6];
+function paintSpeed() {
+  const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+  $('speed').textContent = '×' + speed;
+  $('speed').title = L`Vitesse ×${speed} : touche pour ×${next}`;
+  $('speed').setAttribute('aria-label', $('speed').title);
+}
+$('speed').onclick = () => { speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; paintSpeed(); refresh(); };
+paintSpeed();
 export let armed = 0;
 export const restartText = text => { $('restart').querySelector('span').textContent = text; };
 export let held = 0;
@@ -819,6 +831,16 @@ $('again').onclick = () => {
   if (foundGame()) return;
   openPlanet();
 };
+// H mirrors the machine under the pointer, or the one selected; V turns it round.
+document.addEventListener('keydown', event => {
+  const act = actionOf(event);
+  if ((act !== 'mirror' && act !== 'reverse') || modalOpen()) return;
+  event.preventDefault();
+  const p = hovered && preview(), c = (p && cellAt(p.x, p.y)) || (selected && G.cells[selected]);
+  if (!c) return;
+  if (act === 'mirror' ? mirror(c) : hasTrait(c.type, 'turn') && (c.dir = (c.dir + 2) % 4, true)) { playSound('rotate'); showActions(); }
+  else refuse(act === 'mirror' ? L('Rien à inverser ici.') : L('Cette pièce ne se tourne pas.'));
+});
 document.addEventListener('keydown', event => {
   if (actionOf(event) !== 'rotate' || modalOpen()) return;
   event.preventDefault();
@@ -1161,7 +1183,21 @@ export const musicRandom = n => crypto.getRandomValues(new Uint32Array(1))[0] % 
 export const shuffleCalm = () => shuffleMusic(MUSIC.calm);
 shuffleCalm();
 shuffleMusic(MUSIC.fight);
-export const music = {manual:null, volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, theme:musicRandom(2), fight:-1, fightUntil:0, force:null};
+// The master volume scales the music and the effects. Hidden, the game pauses unless the player asked it to go on.
+const SOUND_KEY = 'strainworks-sound';
+export const sound = {master:1, background:false};
+try {
+  const saved = JSON.parse(localStorage.getItem(SOUND_KEY));
+  if (saved) { sound.master = Math.max(0, Math.min(1, Number(saved.master ?? 1) || 0)); sound.background = saved.background === true; }
+} catch (_) { /* blocked storage or an unreadable value: the default stays */ }
+function keepSound() { try { localStorage.setItem(SOUND_KEY, JSON.stringify(sound)); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ } }
+function paintSound() {
+  $('master-volume').value = Math.round(sound.master * 100);
+  $('background-play').setAttribute('aria-pressed', sound.background);
+  $('background-play').textContent = sound.background ? L('Le jeu continue') : L('En pause');
+}
+// A first start plays the music quietly: the player turns it up.
+export const music = {manual:null, volume:.3, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, theme:musicRandom(2), fight:-1, fightUntil:0, force:null};
 try {
   const saved = JSON.parse(localStorage.getItem(MUSIC_KEY));
   if (saved) { music.volume = Math.max(0, Math.min(1, Number(saved.volume) || 0)); music.on = saved.on !== false; }
@@ -1196,13 +1232,16 @@ $('playlist').onclick = event => {
 $('playlist-auto').onclick = () => { music.manual = music.manual == null ? (music.src || '') : null; musicTick(); paintPlaylist(); };
 $('music-volume').oninput = () => { music.volume = Number($('music-volume').value) / 100; if (music.volume > 0) music.on = true; keepMusic(); paintMusic(); musicTick(); };
 $('music-on').onclick = () => { music.on = !music.on; keepMusic(); paintMusic(); musicTick(); };
+$('master-volume').oninput = () => { sound.master = Number($('master-volume').value) / 100; keepSound(); paintSfx(); musicTick(); };
+$('background-play').onclick = () => { sound.background = !sound.background; keepSound(); paintSound(); };
+paintSound();
 paintMusic();
 // One audio context for the music and the effects, made on a press as browsers want.
 // @ts-expect-error: loose typing, tightened module by module (item_007)
 addEventListener('click', event => { if (event.target.closest?.('button')) playSound('click'); }, {capture:true});
 // Hidden, it stops at once: a phone slows or freezes the fade's timer, and the piece would play on behind the lock screen.
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) { musicTick(); return; }
+  if (!document.hidden || sound.background) { musicTick(); return; }
   music.players.forEach((a, i) => { a.pause(); music.level[i] = 0; if (music.gains) music.gains[i].gain.value = 0; });
 });
 if (!LAB.on) for (const kind of ['pointerdown', 'keydown']) addEventListener(kind, startSound, {once:true, capture:true});
@@ -1213,6 +1252,16 @@ for (const kind of ['pointerup', 'touchend', 'click', 'keydown']) addEventListen
   if (music.on && music.src && music.manual !== '') music.players[music.live].play().catch(() => {});
 }, {capture:true, passive:true});
 setInterval(musicTick, 100);
+// Hidden, the browser stops drawing frames: when the player asked the game to go on, a timer steps it instead.
+let hiddenAt = performance.now();
+setInterval(() => {
+  const now = performance.now(), elapsed = Math.min(1.5, (now - hiddenAt) / 1000);
+  hiddenAt = now;
+  if (!document.hidden || !sound.background || paused || orbit.on || LAB.on || !G || G.over) return;
+  G.played = (G.played ?? G.time) + elapsed;
+  owed += elapsed * speed;
+  while (owed >= STEP) { step(STEP); owed -= STEP; }
+}, 500);
 
 // ---- Effects: drawn by Web Audio, a little different each time, never more than ten at once.
 // By default the effects play at half the music's volume.

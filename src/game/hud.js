@@ -141,8 +141,10 @@ export function layoutHud() {
   const menuButton = $('menu-toggle');
   if (narrow) {
     if (menuButton.parentElement !== $('time')) $('time').append(menuButton);
-    if (speedButton.parentElement !== $('zoom')) $('zoom').append(speedButton);
     if (pauseButton.parentElement !== $('time')) $('time').insertBefore(pauseButton, $('menu-toggle'));
+    // On a short screen the side toggle sits on the zoom row: the speed goes beside the pause instead.
+    if (innerHeight > 520) { if (speedButton.parentElement !== $('zoom')) $('zoom').append(speedButton); }
+    else if (speedButton.parentElement !== $('time') || speedButton.nextElementSibling !== pauseButton) $('time').insertBefore(speedButton, pauseButton);
   } else {
     for (const b of [pauseButton, speedButton]) if (b.parentElement !== $('zoom')) $('zoom').append(b);
     if (menuButton.parentElement !== $('brief')) $('brief').insertBefore(menuButton, $('families'));
@@ -798,6 +800,9 @@ export function followSelection() {
   info.classList.toggle('docked', !p);
   $('tether').toggleAttribute('hidden', !p);
   $('events').classList.remove('under');
+  // The card never runs under the dock or above the screen: past the room it has, it scrolls.
+  const room = view.h - s.top - s.bottom - (p ? 0 : $('actions').offsetHeight + 12);
+  card.style.maxHeight = `${Math.max(120, Math.floor(room))}px`;
   if (!p) {
     card.style.left = card.style.top = '';
     for (const el of petals) { el.style.left = el.style.top = ''; el.classList.remove('left'); }

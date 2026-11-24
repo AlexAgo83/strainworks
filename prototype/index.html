@@ -81,8 +81,10 @@
    </div>
    <div class="page" data-page="audio" hidden>
     <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Audio</h2></div>
+    <div class="row"><span>Général</span><span class="choice"><input id="master-volume" type="range" min="0" max="100" step="5" aria-label="Volume général"></span></div>
     <div class="row"><span>Musique</span><span class="choice"><input id="music-volume" type="range" min="0" max="100" step="5" aria-label="Volume de la musique"><button id="music-on" class="tip" aria-pressed="true">Activée</button></span></div>
     <div class="row"><span>Effets</span><span class="choice"><input id="sfx-volume" type="range" min="0" max="100" step="5" aria-label="Volume des effets"><button id="sfx-on" class="tip" aria-pressed="true">Activés</button></span></div>
+    <div class="row"><span>Fenêtre cachée</span><span class="choice"><button id="background-play" class="tip" aria-pressed="false">En pause</button></span></div>
     <button class="row go" data-go="playlist"><span>Playlist</span><b aria-hidden="true">›</b></button>
    </div>
    <div class="page" data-page="playlist" hidden>

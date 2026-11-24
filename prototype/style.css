@@ -219,7 +219,7 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 .reticle { animation:spin 9s linear infinite; }
 #info { position:absolute; z-index:3; }
 #info.bloom { inset:0; }
-#card { position:relative; pointer-events:auto; }
+#card { position:relative; pointer-events:auto; overflow-y:auto; overscroll-behavior:contain; }
 #info.bloom #card { position:absolute; left:0; top:0; width:280px; }
 .card-body { position:relative; padding:14px 18px 16px; }
 .card-head { display:flex; align-items:center; gap:11px; min-width:0; }
