@@ -1,6 +1,6 @@
 # Strainworks 0.2.0
 
-Release date: not released yet.
+Release date: 2026-11-24.
 
 The first play test changed the game's shape: each game now stands on its own base genes, every stage asks for a
 mechanic and a fight, swarms come to the base, and the core says plainly what it wants. Older games keep their
