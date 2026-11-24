@@ -1,10 +1,10 @@
 ## item_007_lint_and_type_all_game_code_and_generate_the_babylon_cdn_pin - Lint and type all game code, and generate the Babylon CDN pin
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 20%
 > Complexity: Medium
 > Theme: Quality
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.

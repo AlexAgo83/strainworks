@@ -1,10 +1,10 @@
 ## item_004_move_the_css_the_english_dictionary_and_the_sprite_sheet_out_of_the_page - Move the CSS, the English dictionary and the sprite sheet out of the page
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: Low
 > Theme: Architecture
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -51,4 +51,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-

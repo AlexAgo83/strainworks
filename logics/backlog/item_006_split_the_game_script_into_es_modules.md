@@ -1,10 +1,10 @@
 ## item_006_split_the_game_script_into_es_modules - Split the game script into ES modules
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 20%
 > Complexity: High
 > Theme: Architecture
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
