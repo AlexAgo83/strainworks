@@ -49,7 +49,7 @@ export const TYPES = {
   sting:{name:L('Dard'), help:L('Longue portée : 13 cases. Un tir par seconde, qui fait deux fois les dégâts. Fragile, garde-le derrière.'), hp:120},
   maw:{name:L('Gueule'), help:L('Courte portée : 4 cases. Deux coups à la fois, 2,5 fois par seconde. Elle encaisse, mais elle dévore les gènes.'), hp:260},
   wall:{name:L('Mur'), help:L('Bloque et encaisse. Les créatures doivent le casser pour passer.'), hp:260},
-  erase:{name:L('Démonter'), help:L('Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.')}
+  erase:{name:L('Démonter'), help:L('Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Glisse depuis le sol nu pour démonter toute une zone. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.')}
 };
 // What each piece does, read by hasTrait(): every type, the core included, declares its traits here and nowhere else.
 // turn: turns in place; capped: its rank caps a line's; ring: rank drawn as rings; rate: makes rank items a second;

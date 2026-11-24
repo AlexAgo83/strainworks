@@ -478,6 +478,13 @@ export function bridgeOver(c, dir) {
 export function stretch(to) {
   if (!drag?.path) return extend(to);
   drag.to = to;
+  if (drag.area) {
+    const a = drag.path[0], was = drag.path.length, cells = [];
+    for (let y = Math.min(a.y, to.y); y <= Math.max(a.y, to.y); y++) for (let x = Math.min(a.x, to.x); x <= Math.max(a.x, to.x); x++) if (x !== a.x || y !== a.y) cells.push({x, y});
+    drag.path.length = 1; drag.path.push(...cells);
+    if (drag.path.length !== was) sayPath();
+    return;
+  }
   const path = drag.path, legs = drag.legs ||= [{start:0, axis:null}];
   while (legs.length > 1) {
     const corner = path[legs.at(-1).start], before = legs.at(-2).axis;
@@ -531,15 +538,19 @@ export function flipCorner() {
 }
 export function sayPath() {
   const path = drag.path;
-  if (tool === 'erase') { say(L`Démontage : ${path.length} cases. Lâche pour démonter, Échap pour annuler.`); return; }
+  if (tool === 'erase') { say(drag.area ? L`Démontage de zone : ${path.filter(p => cellAt(p.x, p.y) || ruinAt(p.x, p.y)).length} bâtiments. Lâche pour démonter, Échap pour annuler.` : L`Démontage : ${path.length} cases. Lâche pour démonter, Échap pour annuler.`); return; }
   const fresh = path.filter(freshOn).length;
   say(L`Tracé : ${fresh} cases, ${fresh * costInHand(tool)} ADN. Lâche pour construire, Échap pour annuler.`);
 }
 export function commitPath() {
-  const path = drag.path, cross = new Set(path.filter((p, i) => crossing(path, i)).map(p => key(p.x, p.y))), s = path[0];
+  const path = drag.path, area = drag.area, cross = new Set(path.filter((p, i) => crossing(path, i)).map(p => key(p.x, p.y))), s = path[0];
   mainSet.drag({x:s.x, y:s.y, moved:false, existing:Boolean(cellAt(s.x, s.y)), cross});
-  if (tool === 'erase') wipe(s.x, s.y);
-  for (const p of path.slice(1)) { if (!drag) break; extend(p); }
+  // A zone is wiped cell by cell, never walked between: a big building is asked once, the next asks change nothing.
+  if (tool === 'erase' && area) for (const p of path) wipe(p.x, p.y);
+  else {
+    if (tool === 'erase') wipe(s.x, s.y);
+    for (const p of path.slice(1)) { if (!drag) break; extend(p); }
+  }
   mainSet.drag(null);
 }
 export function drawPath(g) {

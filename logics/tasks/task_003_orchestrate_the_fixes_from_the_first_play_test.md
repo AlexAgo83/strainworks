@@ -8,7 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-11-24 20:27:16
+> Indicators reviewed: 2026-11-24 20:36:43
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -60,7 +60,7 @@
 - (no validation recorded yet)
 
 # Report
-- 2026-11-24: the hunger rule counts half (operator decision); item_022, the core panel one demand at a time, done; item_023, the unlock card, done; item_018, the economy: harvester limit, surplus halved, dearer ranks (AC1 waits for the operator's ceiling).
+- 2026-11-24: the hunger rule counts half (operator decision); item_022, the core panel one demand at a time, done; item_023, the unlock card, done; item_018, the economy: harvester limit, surplus halved, dearer ranks (AC1 waits for the operator's ceiling); item_017's rest: Démonter over a zone and the guide on this game's first base gene.
 
 # Links
 - Request: `req_003_act_on_the_first_play_test`

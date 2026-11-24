@@ -4,7 +4,7 @@ import { DEC, L, LOCALE } from "../sim/text.ts";
 import { buyLab, diagnose, packTrouble, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
 import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, write } from "./input.js";
-import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, GUIDE_GENE, MATTER, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
+import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
 
 export function paint(id, html, el = $(id)) {
@@ -436,9 +436,9 @@ export function paintSheet(c) {
   for (const el of sheet.querySelectorAll('[data-model]')) showModel(el, el.dataset.model);
 }
 export function builtNow() {
-  const n = {S:0, F:0, ligase:0};
+  const n = {S:0, F:0, C:0, N:0, ligase:0};
   for (const c of allCells()) {
-    if (c.type === 'mine' && (matterUnder(c) === 'S' || matterUnder(c) === 'F')) n[matterUnder(c)]++;
+    if (c.type === 'mine' && n[matterUnder(c)] != null) n[matterUnder(c)]++;
     if (c.type === 'ligase') n.ligase++;
   }
   return n;
@@ -497,13 +497,12 @@ export function guideLigase() {
 // Each step is checked on the game itself: a base that reached its input, a gene the core ate.
 export function guideDone(step, now) {
   const base = G.guide.base, want = GUIDE[step], fed = G.fed >= 1 || G.stage > 0, placed = now.ligase >= base.ligase + 1;
-  if (step === 0) return now.S >= base.S + 1;
-  if (step === 1) return now.F >= base.F + 1;
-  if (step === 2) return now.S >= base.S + 2;
+  // A harvester a base of the gene: the second of a base it holds twice counts on top of the first.
+  if (step <= 2) { const gene = guideGene(), b = gene[step]; return now[b] >= (base[b] || 0) + [...gene.slice(0, step + 1)].filter(x => x === b).length; }
   if (step === 3) return tool === 'ligase' || placed || fed;
   if (step === 4) return placed || fed;
   // Read as the input is now: its base waiting there, or a gene already made from all three.
-  if (want.port != null) { const lig = guideLigase(); return Boolean(lig?.ports[want.port].includes(GUIDE_GENE[want.port]) || lig?.last) || fed; }
+  if (want.port != null) { const lig = guideLigase(); return Boolean(lig?.ports[want.port].includes(guideGene()[want.port]) || lig?.last) || fed; }
   return fed;
 }
 // What stands in the way, said in the step: a wrong base in an input, or why no gene reaches the core.
@@ -513,8 +512,8 @@ export function guideHint(want) {
   if (ui.guideNoRoute === 'mine') return L('Aucune sortie de récolteur ne mène librement à cette entrée : touche un récolteur et Tourner pour que sa flèche regarde la Ligase, fais de la place, ou déplace la Ligase.');
   if (ui.guideNoRoute) return L('Aucun chemin libre jusque-là : fais de la place, ou déplace la Ligase.');
   if (want.port != null) {
-    const wrong = lig.ports[want.port].find(b => b !== GUIDE_GENE[want.port]);
-    return wrong ? L`L’entrée ${want.port + 1} reçoit ${named(wrong)} : il lui faut ${named(GUIDE_GENE[want.port])}. Démonte ce tapis et relie le bon récolteur.` : '';
+    const wrong = lig.ports[want.port].find(b => b !== guideGene()[want.port]);
+    return wrong ? L`L’entrée ${want.port + 1} reçoit ${named(wrong)} : il lui faut ${named(guideGene()[want.port])}. Démonte ce tapis et relie le bon récolteur.` : '';
   }
   if (!want.core) return '';
   // The red line the diagnosis draws is the player's: it is put back as it was.

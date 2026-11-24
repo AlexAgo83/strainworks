@@ -641,6 +641,8 @@ canvas.addEventListener('pointermove', event => {
       if (!drag.existing && !placeable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
+    // Démonter from bare ground takes the whole rectangle the finger opens; from a building, its line (item_017).
+    if (tool === 'erase') drag.area = !cellAt(from.x, from.y) && !ruinAt(from.x, from.y) && !G.tracks[tileKey(from.x, from.y)] && !G.worms.some(w => w.path.includes(tileKey(from.x, from.y)));
     if (hasTrait(tool, 'traced')) { drag.path = [tool === 'track' ? {...from, ...tileAt(from.x, from.y)} : {...from}]; sayPath(); }
   }
   if (gesture.mode === 'pan') pan(p.x - last.x,p.y - last.y);
@@ -887,18 +889,19 @@ $('sheet').addEventListener('click', event => {
 });
 
 // ---- The guided start: five steps to a first line feeding the core, each checked on what is built.
+// The gene the guide teaches: this game's first base gene, or the Motor (SFS) of older games and the demo.
+export const guideGene = () => G.base?.[0] || 'SFS';
 export const GUIDE = [
-  {family:'rec', pick:'mine', model:'mine', base:'S', list:L('Un récolteur sur'), title:L('Pose un récolteur sur'), why:L('Le cœur veut ce gène : il faut deux fois cette base pour une de l’autre.')},
-  {family:'rec', pick:'mine', model:'mine', base:'F', list:L('Un récolteur sur'), title:L('Puis un récolteur sur'), why:L('Elle ira au milieu du gène, par l’arrière de la Ligase.')},
-  {family:'rec', pick:'mine', model:'mine', base:'S', list:L('Un second récolteur sur'), title:L('Un second récolteur sur'), why:L('Deux de l’une et une de l’autre : la Ligase ne fait jamais attendre un tapis.')},
-  {family:'fab', pick:'ligase', model:'ligase', list:L('Prendre la Ligase'), title:L('Prends la Ligase'), why:L('Elle assemble trois bases en un gène, dans l’ordre : S, F, S. Le cœur mange ce gène.')},
+  {family:'rec', pick:'mine', model:'mine', get base() { return guideGene()[0]; }, list:L('Un récolteur sur'), title:L('Pose un récolteur sur'), get why() { return L`Le cœur veut ${guideGene()}, le premier gène de base de cette partie : un récolteur par base, dans l’ordre.`; }},
+  {family:'rec', pick:'mine', model:'mine', get base() { return guideGene()[1]; }, list:L('Un récolteur sur'), title:L('Puis un récolteur sur'), why:L('Elle ira au milieu du gène, par l’arrière de la Ligase.')},
+  {family:'rec', pick:'mine', model:'mine', get base() { return guideGene()[2]; }, list:L('Un récolteur sur'), title:L('Et un récolteur sur'), why:L('Une base par entrée : la Ligase ne fait jamais attendre un tapis.')},
+  {family:'fab', pick:'ligase', model:'ligase', list:L('Prendre la Ligase'), title:L('Prends la Ligase'), get why() { return L`Elle assemble trois bases en un gène, dans l’ordre : ${guideGene()}. Le cœur mange ce gène.`; }},
   {family:'fab', pick:'ligase', model:'ligase', place:true, list:L('Poser la Ligase'), title:L('Pose la Ligase ici'), why:L('Entre tes récolteurs et le cœur. Sa sortie, la flèche, doit regarder le cœur : R pour la tourner avant de la poser.')},
-  {family:'tra', pick:'belt', model:'belt', port:0, base:'S', list:L('Récolteur → entrée 1'), title:L('Relie à l’entrée 1 un récolteur sur'), why:L('Prends un tapis et glisse du récolteur jusqu’à l’entrée 1 de la Ligase, en suivant le tracé.')},
-  {family:'tra', pick:'belt', model:'belt', port:1, base:'F', list:L('Récolteur → entrée 2'), title:L('Relie à l’entrée 2 un récolteur sur'), why:L('Même geste vers l’entrée 2 : la base du milieu du gène.')},
-  {family:'tra', pick:'belt', model:'belt', port:2, base:'S', list:L('Récolteur → entrée 3'), title:L('Relie à l’entrée 3 un récolteur sur'), why:L('Et vers l’entrée 3 : la Ligase assemble le gène dès que ses trois entrées sont servies.')},
+  {family:'tra', pick:'belt', model:'belt', port:0, get base() { return guideGene()[0]; }, list:L('Récolteur → entrée 1'), title:L('Relie à l’entrée 1 un récolteur sur'), why:L('Prends un tapis et glisse du récolteur jusqu’à l’entrée 1 de la Ligase, en suivant le tracé.')},
+  {family:'tra', pick:'belt', model:'belt', port:1, get base() { return guideGene()[1]; }, list:L('Récolteur → entrée 2'), title:L('Relie à l’entrée 2 un récolteur sur'), why:L('Même geste vers l’entrée 2 : la base du milieu du gène.')},
+  {family:'tra', pick:'belt', model:'belt', port:2, get base() { return guideGene()[2]; }, list:L('Récolteur → entrée 3'), title:L('Relie à l’entrée 3 un récolteur sur'), why:L('Et vers l’entrée 3 : la Ligase assemble le gène dès que ses trois entrées sont servies.')},
   {family:'tra', pick:'belt', model:'belt', core:true, list:L('La Ligase jusqu’au cœur'), title:L('Relie la Ligase au cœur'), why:L('Un tapis de la sortie de la Ligase jusqu’au cœur : il mange le gène, et le premier atelier tourne.')}
 ];
-export const GUIDE_GENE = ['S', 'F', 'S'];
 // ---- The goal: three moving pictures, shown once on a first game and again from the menu. The game waits behind it.
 export const INTRO_KEY = 'strainworks-intro';
 export const intro = {at:0, timer:0, was:false};

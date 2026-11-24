@@ -690,7 +690,7 @@ const EN = {
   "Tissu": "Tissue",
   "Diviseur 3, Trieur et Encapsuleur": "Splitter 3, Sorter and Encapsulator",
   "Cellule": "Cell",
-  "Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.": "Tap or sweep what you want to remove: a drone comes to undo it, as long as it took to place. Turrets and walls give back their DNA at the end, minus the damage.",
+  "Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Glisse depuis le sol nu pour démonter toute une zone. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.": "Tap or sweep what you want to remove: a drone comes to undo it, as long as it took to place. Drag from bare ground to take down a whole area. Turrets and walls give back their DNA at the end, minus the damage.",
   "Bloque et encaisse. Les créatures doivent le casser pour passer.": "Blocks and takes hits. Creatures must break it to get through.",
   "Mur": "Wall",
   "Courte portée : 4 cases. Deux coups à la fois, 2,5 fois par seconde. Elle encaisse, mais elle dévore les gènes.": "Short range: 4 cells. Two shots at once, 2.5 times a second. It takes hits, but it devours genes.",
@@ -965,4 +965,9 @@ const EN = {
   "Touche un bâtiment pour revoir sa carte.": "Touch a building to see its card again.",
   "Ce gisement nourrit déjà {} récolteurs. Partage la sortie de l’un d’eux avec un diviseur, ou passe-le en MK2.": "This deposit already feeds {} harvesters. Share one's output with a splitter, or rank it up to MK2.",
   "Gisement plein : {} récolteurs": "Deposit full: {} harvesters",
+  "Et un récolteur sur": "And a harvester on",
+  "Une base par entrée : la Ligase ne fait jamais attendre un tapis.": "One base an input: the Ligase never keeps a belt waiting.",
+  "Le cœur veut {}, le premier gène de base de cette partie : un récolteur par base, dans l’ordre.": "The core wants {}, this game's first base gene: one harvester a base, in order.",
+  "Elle assemble trois bases en un gène, dans l’ordre : {}. Le cœur mange ce gène.": "It joins three bases into a gene, in order: {}. The core eats that gene.",
+  "Démontage de zone : {} bâtiments. Lâche pour démonter, Échap pour annuler.": "Area teardown: {} buildings. Let go to take them down, Escape to cancel.",
 };
