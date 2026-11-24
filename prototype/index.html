@@ -1729,6 +1729,9 @@ const EN = {
   "Il réclame": "It asks for",
   "Brûleur": "Burner",
   "Bras": "Arm",
+  "boucle trop courte, il lui faut plus de {} cases": "loop too short, it needs more than {} cells",
+  "Soutes des vers": "Worm holds",
+  "Une soute de plus par ver, jusqu’à 5": "One more hold per worm, up to 5",
   "Couleur du réseau : {}": "Network colour: {}",
   "bleu": "blue",
   "vert": "green",
@@ -2159,7 +2162,7 @@ const splitExits = c => SPLIT[c.type].map(turn => (c.dir + turn) % 4);
 const BIG = {borer:true, vault:true, lab:true, glue:true};
 const BORER = {harvesters:6, hold:24};
 // A building's side in cells: its own (the core's 3) or 2 for the big ones.
-const sizeOf = c => c.size || (BIG[c.type] ? 2 : 1);
+const sizeOf = c => c.size || (isBig(c.type) ? 2 : 1);
 const centreOf = c => ({x:c.x + sizeOf(c) / 2, y:c.y + sizeOf(c) / 2});
 function footprint(c) {
   const cells = [];
@@ -2180,7 +2183,7 @@ function covering(list, x, y) {
   if (one) return one;
   for (const [i, j] of [[1, 0], [0, 1], [1, 1]]) {
     const big = list[(x - i) + ',' + (y - j)];
-    if (big && BIG[big.type]) return big;
+    if (big && isBig(big.type)) return big;
   }
   // The core's plinth: its nine cells answer as the core.
   if (Math.abs(x - CORE.x) <= 1 && Math.abs(y - CORE.y) <= 1) {
@@ -2202,7 +2205,7 @@ function siteFor(type, x, y) {
     const site = {type, x:x - i, y:y - j}, cells = footprint(site);
     const bare = cells.find(p => !placeable(p.x, p.y));
     if (bare) site.why = whyNot(bare.x, bare.y);
-    else if (cells.some(p => cellAt(p.x, p.y))) site.why = L('Il faut 2 × 2 cases libres');
+    else if (cells.some(p => cellAt(p.x, p.y) || (G.bigTracks && trackAt(p.x, p.y)))) site.why = L('Il faut 2 × 2 cases libres');
     else if (type === 'lab' && allCells().some(c => c.type === 'lab')) site.why = L('Le Laboratoire est unique');
     else if (type === 'borer') {
       const kind = depositAt(site.x, site.y);
@@ -2601,6 +2604,7 @@ const UPGRADES = {
   speed:{name:L('Vitesse des drones'), what:L('+20 % par niveau'), prices:[80, 200, 400], stages:[1, 3, 5]},
   repair:{name:L('Réparation'), what:L('Les bâtiments se réparent 30 % plus vite par niveau'), prices:[70, 180, 360], stages:[2, 3, 5]},
   reach:{name:L('Portée des défenses'), what:L('+10 % de portée par niveau'), prices:[120, 280, 520], stages:[3, 4, 6]},
+  holds:{name:L('Soutes des vers'), what:L('Une soute de plus par ver, jusqu’à 5'), prices:[300, 600], stages:[5, 5]},
   sight:{name:L('Vision'), what:L('Le brouillard se lève 25 % plus loin par niveau'), prices:[50, 120, 240], stages:[1, 2, 4]}
 };
 const labLevel = id => G?.lab?.[id] || 0;
@@ -3080,6 +3084,7 @@ function fresh() {
   put('core', CORE.x - 1, CORE.y - 1, 0).size = 3;
   survey();
   if (drawsRecipes()) G.goals = drawGoals(0);
+  if (drawsRecipes()) G.bigTracks = true;
   // Tests replaying games recorded on the first line older versions gave lay it again here.
   window.startLine?.();
   nest();
@@ -3178,19 +3183,35 @@ function pulse(dt) {
   }
 }
 // A trail is scent on the ground: one way out per cell, under whatever stands there.
+// Worm tracks: one cell in games from before, a 2 by 2 tile in new ones, kept by its corner on even cells.
+// Pockets follow (2 by 2) and every worm capacity doubles with the tile.
+const trackSize = () => G?.bigTracks ? 2 : 1;
+const tileAt = (x, y) => { const s = trackSize(); return {x:x - ((x % s) + s) % s, y:y - ((y % s) + s) % s}; };
+const tileKey = (x, y) => { const p = tileAt(x, y); return key(p.x, p.y); };
+const trackAt = (x, y) => G.tracks[tileKey(x, y)];
+const tileCentre = id => id.split(',').map(n => Number(n) + trackSize() / 2);
+const wormHolds = () => 3 + labLevel('holds');
+const holdCap = () => WORM.hold * trackSize();
+const pocketCap = c => WORM.pocket * sizeOf(c);
+const isBig = type => Boolean(BIG[type] || (type === 'pocket' && G?.bigTracks));
+// A pocket touching a track on any side of its footprint.
+const touchesTrack = c => footprint(c).some(p => [0, 1, 2, 3].some(d => trackAt(p.x + DX[d], p.y + DY[d])));
 function layTrack(x, y, dir) {
+  ({x, y} = tileAt(x, y));
   const old = G.tracks[key(x, y)];
   if (old) { old.dir = dir; return old; }
   return G.tracks[key(x, y)] = {x, y, dir, left:BUILD.track, order:G.seq = (G.seq || 0) + 1};
 }
 function trackAfter(id) {
-  const at = G.tracks[id], next = at && G.tracks[key(at.x + DX[at.dir], at.y + DY[at.dir])];
+  const s = trackSize(), at = G.tracks[id], next = at && G.tracks[key(at.x + DX[at.dir] * s, at.y + DY[at.dir] * s)];
   return next && built(next) ? next : null;
 }
 function pocketsAt(id) {
   const at = G.tracks[id];
   if (!at) return [];
-  return [(at.dir + 1) % 4, (at.dir + 3) % 4].map(d => ahead(at, d)).filter(c => c?.type === 'pocket' && built(c));
+  // The cell just out of the tile on each side of its way: a pocket covering it serves this tile.
+  const s = trackSize(), out = d => cellAt(at.x + (DX[d] > 0 ? s : DX[d]), at.y + (DY[d] > 0 ? s : DY[d]));
+  return [(at.dir + 1) % 4, (at.dir + 3) % 4].map(out).filter(c => c?.type === 'pocket' && built(c));
 }
 // A pocket in a bend touches two cells of trail: it serves the first of them along the station.
 function stationHead(id) {
@@ -3199,13 +3220,13 @@ function stationHead(id) {
   return !next || !pocketsAt(key(next.x, next.y)).length;
 }
 function incubate(x, y) {
-  const cost = price('worm'), id = key(x, y);
+  const cost = price('worm'), id = tileKey(x, y);
   if (!G.tracks[id]) return refuse(L('Un ver s’incube sur une piste : trace-la d’abord avec l’outil Piste.'));
   if (G.worms.some(w => w.path.includes(id))) return refuse(L('Un ver occupe déjà cette case.'));
   if (cost > G.dna) return refuse(L`Il manque ${cost - G.dna} ADN pour ce ver.`);
   G.dna -= cost;
   const w = {id:G.seq = (G.seq || 0) + 1, path:[id], t:0, hp:WORM.hp, left:BUILD.worm, docked:false, rule:'auto',
-    holds:[0,1,2].map(() => ({kind:'', n:0, part:0}))};
+    holds:Array.from({length:wormHolds()}, () => ({kind:'', n:0, part:0}))};
   w.order = w.id;
   G.worms.push(w);
   say(L`Ver en incubation, ${cost} ADN. Il ne part qu’une fois éclos.`);
@@ -3220,16 +3241,16 @@ function transfer(w, dt) {
   w.holds.forEach((hold, i) => {
     const at = w.path[i + 1];
     if (!at) return;
-    hold.part = Math.min(4, (hold.part || 0) + dt * WORM.load);
+    hold.part = Math.min(4, (hold.part || 0) + dt * WORM.load * trackSize());
     for (const c of pocketsAt(at)) {
       const kind = c.stock[0] || '';
       while (hold.part >= 1 - 1e-6) {
         if (c.unload) {
-          if (!hold.n || c.stock.length >= WORM.pocket || (c.stock.length && c.stock[0] !== hold.kind)) break;
+          if (!hold.n || c.stock.length >= pocketCap(c) || (c.stock.length && c.stock[0] !== hold.kind)) break;
           intoStock(c, hold.kind, [0, 1, 2, 3].find(d => key(c.x - DX[d], c.y - DY[d]) === at) ?? 0); hold.n--;
           if (!hold.n) hold.kind = '';
         } else {
-          if (!settled(c.stock, c.due) || hold.n >= WORM.hold || (hold.n && hold.kind !== kind)) break;
+          if (!settled(c.stock, c.due) || hold.n >= holdCap() || (hold.n && hold.kind !== kind)) break;
           hold.kind = c.stock.shift(); hold.n++;
         }
         hold.part--; moved = true;
@@ -3244,31 +3265,34 @@ function mayLeave(w) {
   w.holds.forEach((hold, i) => {
     for (const c of pocketsAt(w.path[i + 1])) {
       aligned++;
-      if (c.unload ? hold.n > 0 : hold.n < WORM.hold) done = false;
+      if (c.unload ? hold.n > 0 : hold.n < holdCap()) done = false;
     }
   });
   return !aligned || done || (w.rule === 'auto' && G.time - w.lastMove >= WORM.idle);
 }
 function crawl(dt) {
   for (const w of G.worms) {
+    // Holds bought at the Laboratory join every worm.
+    while (w.holds.length < wormHolds()) w.holds.push({kind:'', n:0, part:0});
     if (!built(w)) continue;
+    const long = w.holds.length + 2;
     if (w.docked) {
       if (transfer(w, dt)) w.lastMove = G.time;
       if (!mayLeave(w)) continue;
       w.docked = false; w.t = 0;
     }
-    w.t += dt * WORM.speed;
+    w.t += dt * WORM.speed / trackSize();
     while (w.t >= 1 - 1e-6) {
       const next = trackAfter(w.path[0]);
       if (!next) { w.t = 1; w.stuck = L('la piste s’arrête ici'); break; }
       const id = key(next.x, next.y);
       if (G.worms.some(o => o !== w && o.path.includes(id))) { w.t = 1; w.stuck = L('un autre ver occupe la piste'); break; }
-      if (w.path.slice(0, 4).includes(id)) { w.t = 1; w.stuck = L('boucle trop courte, il lui faut plus de 5 cases'); break; }
+      if (w.path.slice(0, long - 1).includes(id)) { w.t = 1; w.stuck = L`boucle trop courte, il lui faut plus de ${long} cases`; break; }
       w.was = w.path.slice();
-      w.path.unshift(id); w.path.length = Math.min(5, w.path.length);
+      w.path.unshift(id); w.path.length = Math.min(long, w.path.length);
       w.t = Math.max(0, w.t - 1); w.stuck = '';
       // It stops when its first hold faces the last pocket of a row.
-      if (w.path.length === 5 && stationHead(w.path[1])) {
+      if (w.path.length === long && stationHead(w.path[1])) {
         w.docked = true; w.since = w.lastMove = G.time;
         for (const hold of w.holds) hold.part = 0;
         break;
@@ -3463,7 +3487,7 @@ function accepts(c, item, travel) {
     case 'flip': return item.length === 3 && !boxOf(item) && c.ports[0].length < 2;
     case 'join': { const port = strandPort(c, item) ?? joinPort(c, travel); return item.length === 3 && port >= 0 && c.ports[port].length < 2; }
     case 'cyst': case 'vault': return c.stock.length < capOf(c);
-    case 'pocket': return c.stock.length < WORM.pocket && (!c.stock.length || c.stock[0] === item);
+    case 'pocket': return c.stock.length < pocketCap(c) && (!c.stock.length || c.stock[0] === item);
     case 'pump': { if (c.stock.length >= VEIN.cap) return false; const kind = veinKind(c); return !kind || kind === item; }
     case 'glue': return item.length === 3 && !boxOf(item) && c.stock.length < GLUE.hold;
     case 'harpoon': return boxOf(item) === 'A' && (c.ammo[contentOf(item)] || 0) + PACK.size <= PACK.magazines;
@@ -4132,8 +4156,8 @@ function diagnose(c) {
   }
   if (c.type === 'pocket') {
     const kind = c.stock[0], what = kind ? itemName(kind) : L('vide');
-    if (![0,1,2,3].some(d => G.tracks[key(c.x + DX[d], c.y + DY[d])])) return L('Poche sans piste : elle doit toucher une piste.');
-    return L`Poche qui ${c.unload ? L('vide le ver et sort sur ses côtés libres') : L('charge le ver')}, ${what} : ${c.stock.length} sur ${WORM.pocket}. Une seule matière par poche, 16/s.`;
+    if (!touchesTrack(c)) return L('Poche sans piste : elle doit toucher une piste.');
+    return L`Poche qui ${c.unload ? L('vide le ver et sort sur ses côtés libres') : L('charge le ver')}, ${what} : ${c.stock.length} sur ${pocketCap(c)}. Une seule matière par poche, 16/s.`;
   }
   if (c.type === 'pump') {
     const kind = veinKind(c), what = kind ? itemName(kind) : L('vide');
@@ -4498,7 +4522,7 @@ function drawCell(g, c, inputs = []) {
     if (kind) sequence(g,kind,0,0,.64,.17);
   } else if (type === 'pocket') {
     circle(g,0,0,.32,'#17301D','#C9F77A',.06);
-    circle(g,0,0,.08 + Math.min(1,c.stock.length / WORM.pocket) * .2,'#4E7F2D');
+    circle(g,0,0,.08 + Math.min(1,c.stock.length / pocketCap(c)) * .2,'#4E7F2D');
     const kind = c.stock[0];
     if (kind) sequence(g,kind,0,0,.64,.16);
   } else if (type === 'screen') {
@@ -4801,16 +4825,18 @@ function drawBreach(b) {
   ctx.globalAlpha = 1;
 }
 function drawTracks() {
+  const s = trackSize();
   for (const c of Object.values(G.tracks)) {
-    const x = c.x + .5, y = c.y + .5, color = c.out != null ? '#FF6B6B' : built(c) ? '#B7F34A' : '#55D6E8';
+    const x = c.x + s / 2, y = c.y + s / 2, color = c.out != null ? '#FF6B6B' : built(c) ? '#B7F34A' : '#55D6E8';
     ctx.globalAlpha = built(c) ? .8 : .4;
-    for (const k of [0,.33,.66]) circle(ctx,x + DX[c.dir] * k,y + DY[c.dir] * k,k ? .07 : .11,color);
+    if (s > 1) { ctx.strokeStyle = color; ctx.lineWidth = .1; for (const o of [-.9, .9]) { ctx.beginPath(); ctx.moveTo(x - DX[c.dir] - DY[c.dir] * o,y - DY[c.dir] + DX[c.dir] * o); ctx.lineTo(x + DX[c.dir] - DY[c.dir] * o,y + DY[c.dir] + DX[c.dir] * o); ctx.stroke(); } }
+    for (const k of [0,.33,.66]) circle(ctx,x + DX[c.dir] * k * s,y + DY[c.dir] * k * s,(k ? .07 : .11) * s,color);
     if (cam.zoom >= 14 && (c.x + c.y) % 3 === 0) { ctx.save(); ctx.translate(x,y); arrow(ctx,c.dir,.36,color); ctx.restore(); }
   }
   ctx.globalAlpha = 1;
 }
 function drawWorms() {
-  const centre = id => id.split(',').map(n => Number(n) + .5);
+  const centre = tileCentre, s = trackSize();
   for (const w of G.worms) {
     const moving = built(w) && !w.docked && !w.stuck, k = moving ? Math.min(1,w.t + owed * WORM.speed) : 0;
     const next = moving && trackAfter(w.path[0]);
@@ -4821,10 +4847,10 @@ function drawWorms() {
       const to = i ? w.path[i - 1] : next && key(next.x,next.y);
       if (moving && to) { const [tx,ty] = centre(to); x += (tx - x) * k; y += (ty - y) * k; }
       const hold = w.holds[i - 1];
-      circle(ctx,x,y,hold ? .5 : .38,hold ? '#2A4A22' : '#4E7F2D','#C9F77A',.07);
+      circle(ctx,x,y,(hold ? .5 : .38) * s,hold ? '#2A4A22' : '#4E7F2D','#C9F77A',.07);
       if (!i) { circle(ctx,x - .12,y,.07,'#D5FAFF'); circle(ctx,x + .12,y,.07,'#D5FAFF'); }
       if (hold?.n) {
-        circle(ctx,x,y,.14 + hold.n / WORM.hold * .26,'#17301D');
+        circle(ctx,x,y,(.14 + hold.n / holdCap() * .26) * s,'#17301D');
         sequence(ctx,hold.kind,x,y,.76,.2);
       }
       if (w.id === wormId) circle(ctx,x,y,.58,null,'#B7F34A',.05);
@@ -5217,7 +5243,7 @@ function remove(x,y) {
 }
 // Démonter takes what is on top first: worm, building, then trail.
 function wipe(x,y) {
-  const id = key(x,y), w = G.worms.find(o => o.path.includes(id));
+  const id = tileKey(x,y), w = G.worms.find(o => o.path.includes(id));
   if (w) return scrap(w, () => dropWorm(w, true));
   const top = cellAt(x,y) || ruinAt(x,y);
   if (top) return scrap(top, () => remove(top.x,top.y));
@@ -5257,19 +5283,19 @@ function place(x,y) {
   // A gate on a nerve is not a switch any more.
   if (old?.type === 'gate' && tool !== 'erase' && G.wires.some(w => w.a === id || w.b === id)) return select(id);
   if (old?.type === 'gate' && tool !== 'erase') { old.open = !old.open; select(id); return; }
-  const worm = G.worms.find(w => w.path.includes(id));
+  const worm = G.worms.find(w => w.path.includes(tileKey(x, y)));
   if (worm && (tool === 'hand' || tool === 'worm')) return selectWorm(worm);
   if (tool === 'worm') return incubate(x,y);
   if (tool === 'track') {
     if (!placeable(x,y)) return refuse(`${whyNot(x,y)}.`);
-    const t = G.tracks[id];
+    const t = trackAt(x, y);
     if (t) { t.dir = (t.dir + 1) % 4; setHeading(t.dir); } else layTrack(x,y,heading);
     return say(TYPES.track.help);
   }
   if (tool === 'hand') {
     if (old) return select(key(old.x,old.y));
     select(null); say(TYPES.hand.help);
-    if (G.tracks[id]) return say(trackAfter(id) || !built(G.tracks[id]) ? L('Piste de phéromones. Pose une poche contre elle, ou un ver dessus.') : L('Fin de piste : les vers s’arrêtent ici. Referme la boucle.'));
+    if (trackAt(x, y)) return say(trackAfter(tileKey(x, y)) || !built(trackAt(x, y)) ? L('Piste de phéromones. Pose une poche contre elle, ou un ver dessus.') : L('Fin de piste : les vers s’arrêtent ici. Referme la boucle.'));
     if (!known(x,y)) return say(L('Zone inconnue. Construis dans sa direction : tes structures y verront.'));
     const b = breachesIn(x,y,x,y).find(h => h.state !== 'spent' && known(h.x,h.y) && Math.hypot(h.x - x, h.y - y) < 3);
     if (!b) return;
@@ -5285,7 +5311,7 @@ function place(x,y) {
     select(key(old.x,old.y));
     return;
   }
-  if (BIG[tool]) {
+  if (isBig(tool)) {
     const site = siteFor(tool,x,y);
     if (site.why) return refuse(`${site.why}.`);
     const due = costInHand(tool);
@@ -5349,7 +5375,8 @@ function stretch(to) {
     const gone = legs.pop();
     legs.at(-1).axis = gone.was; drag.flip = false;
   }
-  const leg = legs.at(-1), a = path[leg.start], dx = to.x - a.x, dy = to.y - a.y;
+  const leg = legs.at(-1), a = path[leg.start], step = tool === 'track' ? trackSize() : 1;
+  const dx = Math.trunc((to.x - a.x) / step), dy = Math.trunc((to.y - a.y) / step);
   if (leg.axis == null && (dx || dy)) leg.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
   const axis = leg.axis || 'x', other = axis === 'x' ? 'y' : 'x';
   const along = axis === 'x' ? dx : dy, across = axis === 'x' ? dy : dx;
@@ -5363,7 +5390,7 @@ function stretch(to) {
   runs.forEach(([ax, n], i) => {
     const dir = ax === 'x' ? (n > 0 ? 1 : 3) : (n > 0 ? 2 : 0);
     for (let k = 0; k < Math.abs(n); k++) {
-      const next = {x:last.x + DX[dir], y:last.y + DY[dir], dir};
+      const next = {x:last.x + DX[dir] * step, y:last.y + DY[dir] * step, dir};
       if (!inside(next.x, next.y)) break;
       path.push(next); last = next;
     }
@@ -5392,7 +5419,7 @@ function flipCorner() {
   playSound('rotate');
   return true;
 }
-const freshOn = p => tool === 'track' ? !G.tracks[key(p.x, p.y)] : !cellAt(p.x, p.y);
+const freshOn = p => tool === 'track' ? !trackAt(p.x, p.y) : !cellAt(p.x, p.y);
 function sayPath() {
   const path = drag.path;
   if (tool === 'erase') { say(L`Démontage : ${path.length} cases. Lâche pour démonter, Échap pour annuler.`); return; }
@@ -5415,22 +5442,24 @@ function drawPath(g) {
     const fresh = !erase && freshOn(p), over = !erase && tool === 'belt' && crossing(path, i);
     if (fresh) spent += costInHand(tool);
     const color = erase ? PREVIEW.scrap : fresh && spent > G.dna ? PREVIEW.no : over ? PREVIEW.turn : PREVIEW.build;
-    g.beginPath(); g.rect(p.x + .04, p.y + .04, .92, .92);
+    const side = tool === 'track' ? trackSize() : 1;
+    g.beginPath(); g.rect(p.x + .04, p.y + .04, side - .08, side - .08);
     g.fillStyle = color + '33'; g.fill(); g.strokeStyle = color + 'CC'; g.lineWidth = 1.5 / cam.zoom; g.stroke();
-    if (fresh || over) { g.save(); g.globalAlpha = .75; g.translate(p.x + .5, p.y + .5); arrow(g, path[i + 1]?.dir ?? p.dir ?? 0, .4, color); g.restore(); }
+    if (fresh || over) { g.save(); g.globalAlpha = .75; g.translate(p.x + side / 2, p.y + side / 2); arrow(g, path[i + 1]?.dir ?? p.dir ?? 0, .4, color); g.restore(); }
   });
 }
 function extend(to) {
   if (drag?.vein || drag?.nerve) { drag.aim = to; return; }
   while (drag && (drag.x !== to.x || drag.y !== to.y)) {
     const horizontal = Math.abs(to.x-drag.x) >= Math.abs(to.y-drag.y);
-    const dir = horizontal ? (to.x > drag.x ? 1 : 3) : (to.y > drag.y ? 2 : 0);
-    const x = drag.x + DX[dir], y = drag.y + DY[dir];
+    const dir = horizontal ? (to.x > drag.x ? 1 : 3) : (to.y > drag.y ? 2 : 0), step = tool === 'track' ? trackSize() : 1;
+    const x = drag.x + DX[dir] * step, y = drag.y + DY[dir] * step;
     if (!inside(x,y)) return;
     if (tool === 'erase') { wipe(x,y); drag.x = x; drag.y = y; drag.moved = true; continue; }
     if (tool === 'track') {
-      if (!placeable(drag.x,drag.y) || !placeable(x,y)) { drag = null; return; }
-      const here = G.tracks[key(drag.x,drag.y)], joins = G.tracks[key(x,y)];
+      const clear = (tx, ty) => footprint({x:tx, y:ty, size:step}).every(c => placeable(c.x, c.y) && (step === 1 || !cellAt(c.x, c.y)));
+      if (!clear(drag.x,drag.y) || !clear(x,y)) { drag = null; return; }
+      const here = trackAt(drag.x,drag.y), joins = trackAt(x,y);
       if (drag.moved && drag.onTrack && here && here.dir !== dir) { refuse(L('La piste rejoint la ligne existante. Une case n’a qu’une sortie.')); drag = null; return; }
       layTrack(drag.x,drag.y,dir);
       if (drag.start && x === drag.start.x && y === drag.start.y) { say(L('Boucle fermée. Pose des poches contre elle, puis un ver dessus.')); drag = null; return; }
@@ -5502,9 +5531,9 @@ function preview() {
     return to('link', {from:fromWire});
   }
   if (tool === 'wire') return NERVE.ends.includes(old?.type) ? to('link') : no(L('Tourelle, feu ou trieur'));
-  const worm = G.worms.find(w => w.path.includes(id));
+  const worm = G.worms.find(w => w.path.includes(tileKey(x, y)));
   if (tool === 'erase') {
-    const ruin = ruinAt(x, y), track = G.tracks[id], top = worm || old || ruin || track;
+    const ruin = ruinAt(x, y), track = trackAt(x, y), top = worm || old || ruin || track;
     if (!top) return to('none');
     if (top.type === 'core') return no(L('Le cœur ne se démonte pas'));
     if (top.out != null) return to('none', {label:L('Déjà dans la file')});
@@ -5516,19 +5545,19 @@ function preview() {
   if (worm && (tool === 'hand' || tool === 'worm')) return to('select', {worm, label:L('Ver')});
   if (tool === 'worm') {
     const cost = price('worm'), ghost = {type:'worm', cost};
-    if (!G.tracks[id]) return no(L('Sur une piste seulement'), ghost);
+    if (!trackAt(x, y)) return no(L('Sur une piste seulement'), ghost);
     if (worm) return no(L('Case occupée'), ghost);
     return cost > G.dna ? no(L`Il manque ${cost - G.dna} ADN`, ghost) : to('build', ghost);
   }
   if (tool === 'track') {
     if (!free()) return no(hive);
-    const track = G.tracks[id];
-    if (!track) return to('build', {type:'track', dir:heading});
+    const track = trackAt(x, y), tile = trackSize() > 1 ? {...tileAt(x, y), size:2} : {};
+    if (!track) return to('build', {type:'track', dir:heading, ...tile});
     return drawing ? to('select') : to('turn', {type:'track', dir:track.dir, label:L('Tourner')});
   }
   if (tool === 'hand') {
     if (old) return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
-    if (G.tracks[id]) return to('select', {label:L('Piste')});
+    if (trackAt(x, y)) return to('select', {label:L('Piste')});
     if (!known(x, y)) return to('none', {label:L('Zone inconnue')});
     const b = breachesIn(x, y, x, y).find(h => h.state !== 'spent' && known(h.x, h.y) && Math.hypot(h.x - x, h.y - y) < 3);
     if (b) return to('select', {label:L`Brèche niveau ${levelOf(b)} : ${b.left} créatures`});
@@ -5543,7 +5572,7 @@ function preview() {
     return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
   }
   const cost = costInHand(tool), ghost = {type:tool, mk:inHand(tool), dir:drawing && drag?.heading != null ? drag.heading : heading, cost};
-  if (BIG[tool]) {
+  if (isBig(tool)) {
     const site = siteFor(tool, x, y), big = {...ghost, x:site.x, y:site.y, size:2};
     if (site.why) return no(site.why, big);
     return cost > G.dna ? no(L`Il manque ${cost - G.dna} ADN`, big) : to('build', big);
@@ -5561,7 +5590,7 @@ function drawPreview(g, models) {
   if (drag?.path && gesture?.mode === 'draw') { drawPath(g); drawPorts(g, null); return; }
   const p = preview();
   if (!p) { drawPorts(g, null); return; }
-  const {x, y, act} = p, color = PREVIEW[act], size = p.size || (p.type && BIG[p.type] ? 2 : 1), mx = x + size / 2, my = y + size / 2;
+  const {x, y, act} = p, color = PREVIEW[act], size = p.size || (p.type && isBig(p.type) ? 2 : 1), mx = x + size / 2, my = y + size / 2;
   const at = `${x},${y},${act},${p.type},${size}`, now = performance.now();
   if (at !== drawPreview.at) {
     drawPreview.at = at; drawPreview.since = now;
@@ -5637,7 +5666,7 @@ function portsOf(c) {
       return way == null ? [] : [into((way + 2) % 4), out(way, {guessed:c.ways?.[axis] == null})];
     });
     case 'pump': return round.filter(d => !c.to || ahead(c, d)?.type !== 'pump').map(d => c.to ? into(d) : out(d));
-    case 'pocket': return round.filter(d => !G.tracks[key(c.x + DX[d], c.y + DY[d])]).map(d => c.unload ? out(d) : into(d));
+    case 'pocket': return round.filter(d => !trackAt(c.x + DX[d], c.y + DY[d])).map(d => c.unload ? out(d) : into(d));
     case 'track': return [out(c.dir)];
     case 'unpack': return [into(back, {label:L('caisses')}), out(c.dir), out((c.dir + 1) % 4, {label:L('carbone K')})];
     case 'flip': case 'arm': return [into(back), out(c.dir)];
@@ -5651,7 +5680,7 @@ function drawPorts(g, p) {
   const shown = [], picked = tool === 'hand' && selected ? G.cells[selected] : null;
   if (p?.type && p.act !== 'link') shown.push(cell(p.type, p.x, p.y, p.dir ?? 0));
   else if (p && p.act !== 'scrap') {
-    const under = cellAt(p.x, p.y) || (p.worm ? null : G.tracks[key(p.x, p.y)] && {...G.tracks[key(p.x, p.y)], type:'track', x:p.x, y:p.y});
+    const under = cellAt(p.x, p.y) || (p.worm ? null : trackAt(p.x, p.y) && {...trackAt(p.x, p.y), type:'track', x:p.x, y:p.y});
     if (under) shown.push(under);
   }
   if (picked && !shown.some(c => c.x === picked.x && c.y === picked.y)) shown.push(picked);
@@ -5778,7 +5807,7 @@ canvas.addEventListener('pointermove', event => {
       if (!drag.existing && !placeable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
-    if (TRACED.includes(tool)) { drag.path = [{...from}]; sayPath(); }
+    if (TRACED.includes(tool)) { drag.path = [tool === 'track' ? {...from, ...tileAt(from.x, from.y)} : {...from}]; sayPath(); }
   }
   if (gesture.mode === 'pan') pan(p.x - last.x,p.y - last.y);
   else if (drag) { const to = position(p); if (inside(to.x,to.y)) stretch(to); }
@@ -6492,7 +6521,7 @@ function paintDrones() {
 function cellsOf(c, worm) {
   const sac = (n, max, what = '') => `<span class="sac"><i style="width:${Math.min(100, n / max * 100)}%"></i><span>${Math.floor(n)} / ${max}${what}</span></span>`;
   const alveole = (inner, more = '') => `<span class="cellule ${inner ? 'full' : ''} ${more}">${inner}</span>`;
-  if (worm) return worm.holds.map(h => sac(h.n, WORM.hold)).join('');
+  if (worm) return worm.holds.map(h => sac(h.n, holdCap())).join('');
   if (!c) return '';
   if (c.type === 'ligase') return c.ports.map(p => alveole(p.length ? markOf(p[0]) : '', p.length ? '' : 'next')).join('');
   if (c.type === 'join') return c.ports.slice(0, 2).map(p => p.length ? geneMark(p[0]) : alveole('', 'next')).join('<span>+</span>');
@@ -6505,7 +6534,7 @@ function cellsOf(c, worm) {
   if (c.type === 'cyst' || c.type === 'vault') return sac(c.stock.length, capOf(c));
   if (c.type === 'borer') return sac(c.stock.length, BORER.hold);
   if (c.type === 'pump') return sac(c.stock.length, VEIN.cap);
-  if (c.type === 'pocket') return sac(c.stock.length, WORM.pocket);
+  if (c.type === 'pocket') return sac(c.stock.length, pocketCap(c));
   if (c.type === 'sort' || c.type === 'gate') {
     const id = key(c.x, c.y);
     if (G.wires.some(w => w.a === id || w.b === id)) return [1, 2, 3].map(at => `<span class="cellule ${!c.read || c.read === at ? 'lit' : ''}">${at}</span>`).join('');
@@ -7647,11 +7676,12 @@ function checkGame(game) {
     if (!plain(game.ruins)) return false;
     for (const [id, c] of Object.entries(game.ruins)) if (!place(c) || id !== key(c.x, c.y) || !known(c) || !rank(c) || (c.to != null && !where(c.to)) || (c.dir != null && !side(c.dir))) return false;
   }
+  if (game.bigTracks != null && typeof game.bigTracks !== 'boolean') return false;
   if (game.tracks != null) {
     if (!plain(game.tracks)) return false;
     for (const [id, t] of Object.entries(game.tracks)) if (!place(t) || id !== key(t.x, t.y) || !side(t.dir)) return false;
   }
-  if (game.worms != null && !list(game.worms, w => plain(w) && count(w.hp) && list(w.path, where) && w.path.length > 0 && w.path.length <= 5 && list(w.holds, h => plain(h) && count(h.n) && (!h.kind || thing(h.kind))) && w.holds.length === 3)) return false;
+  if (game.worms != null && !list(game.worms, w => plain(w) && count(w.hp) && list(w.path, where) && w.path.length > 0 && w.path.length <= 7 && list(w.holds, h => plain(h) && count(h.n) && (!h.kind || thing(h.kind))) && w.holds.length >= 3 && w.holds.length <= 5)) return false;
   if (game.wires != null && !list(game.wires, w => plain(w) && where(w.a) && where(w.b) && count(w.hp) && (w.color == null || (Number.isInteger(w.color) && w.color >= 0 && w.color < NERVE_COLORS.length)))) return false;
   if (game.enemies != null && !list(game.enemies, e => spot(e) && code(e.gene) && (e.kind == null || Object.hasOwn(KINDS, e.kind)) && Number.isFinite(e.hp) && count(e.max) && (!e.goal || spot(e.goal)))) return false;
   if (game.shots != null && !list(game.shots, s => spot(s) && [1, 2, 5, 12].includes(s.hurt) && Number.isFinite(s.tx) && Number.isFinite(s.ty))) return false;

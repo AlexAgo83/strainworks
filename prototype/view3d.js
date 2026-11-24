@@ -310,12 +310,12 @@ window.createView3D = (glCanvas) => {
       g.shadowBlur = 0;
     }
     for (const w of G.worms) {
-      const [x, y] = w.path[0].split(',').map(Number);
-      if (w.hp < WORM.hp - 0.5) bar(x + 0.5, up(y, 0.7), w.hp / WORM.hp, '#FF6B6B');
+      const [x, y] = tileCentre(w.path[0]);
+      if (w.hp < WORM.hp - 0.5) bar(x, up(y - 0.5, 0.7), w.hp / WORM.hp, '#FF6B6B');
       if (w.id !== wormId) continue;
       for (const id of w.path) {
-        const [cx, cy] = id.split(',').map(Number);
-        circle(g, cx + 0.5, cy + 0.5, 0.58, null, '#B7F34A', 0.05);
+        const [cx, cy] = tileCentre(id);
+        circle(g, cx, cy, 0.58 * trackSize(), null, '#B7F34A', 0.05);
       }
     }
     if (cam.zoom >= 9) {
@@ -365,8 +365,8 @@ window.createView3D = (glCanvas) => {
     g.setLineDash([]);
     for (const w of G.worms) {
       if (w.out == null) continue;
-      const [wx, wy] = w.path[0].split(',').map(Number);
-      circle(g, wx + 0.5, wy + 0.5, 0.62, null, '#FF6B6B', 0.06);
+      const [wx, wy] = tileCentre(w.path[0]);
+      circle(g, wx, wy, 0.62 * trackSize(), null, '#FF6B6B', 0.06);
     }
     sceneSigns(g);
     const from = (linking && G.cells[linking]) || (wiring && G.cells[wiring]);

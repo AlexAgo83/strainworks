@@ -825,7 +825,8 @@ window.createModels3D = (B, scene) => {
 
     // A mouth against the trail: lips, teeth, and the heap it holds.
     pocket(c, x, y) {
-      const full = Math.min(1, c.stock.length / WORM.pocket);
+      if (sizeOf(c) > 1) return this.silo(c, x, y);
+      const full = Math.min(1, c.stock.length / pocketCap(c));
       footing(x, y, 0.82);
       add('sac', 'skin', x, y, 0.26, 0.78, 0.46, 0.78, c.y);
       add('stain', 'black', x, y, 0.42, 0.46, 0.04, 0.46);
@@ -840,9 +841,26 @@ window.createModels3D = (B, scene) => {
         const [px, py] = i ? from(x, y, i * 2.1, 0.12) : [x, y];
         cargo(c.stock[0], px, py, 0.46 + i * 0.04, i, 0.26);
       }
-      for (let d = 0; d < 4; d++) {
-        if (!G.tracks[key(c.x + DX[d], c.y + DY[d])]) continue;
+      for (let d = 0; d < 4 && sizeOf(c) === 1; d++) {
+        if (!trackAt(c.x + DX[d], c.y + DY[d])) continue;
         limb('skin2', x + DX[d] * 0.2, y + DY[d] * 0.2, 0.3, x + DX[d] * 0.56, y + DY[d] * 0.56, 0.12, 0.2, 'taper');
+      }
+    },
+
+    silo(c, x, y) {
+      // A 2x2 silo: a tank, its glass level in the colour of what it holds, rings, an arm reaching to the way.
+      const level = c.stock.length / pocketCap(c), kind = c.stock.length ? contentOf(c.stock[0])[0] || 'off' : 'off';
+      add('hull', 'dark', x, y, 0.1, 1.9, 0.2, 1.9);
+      add('tube', 'steel', x, y, 0.9, 1.5, 1.6, 1.5);
+      add('tube', 'glass', x, y, 0.2 + 0.9 * Math.max(0.05, level), 1.35, 1.7 * Math.max(0.05, level), 1.35);
+      if (c.stock.length) add('tube', kind, x, y, 0.15 + 0.75 * level, 1.2, 1.5 * level, 1.2);
+      for (const h of [0.5, 1.1, 1.6]) add('ring', 'steel2', x, y, h, 1.6, 0.4, 1.6, 0, LYING);
+      add('ring', c.unload ? 'amber' : 'cyan', x, y, 1.75 + Math.sin(clock * 2 + x) * 0.05, 1.2, 0.5, 1.2, 0, LYING);
+      for (let d = 0; d < 4; d++) {
+        const ex = c.x + (DX[d] > 0 ? 2 : DX[d]), ey = c.y + (DY[d] > 0 ? 2 : DY[d]);
+        if (!trackAt(ex, ey)) continue;
+        limb('steel2', x + DX[d] * 0.7, y + DY[d] * 0.7, 1.4, x + DX[d] * 1.25, y + DY[d] * 1.25, 0.8, 0.1);
+        if (c.stock.length) add('bead', kind, x + DX[d] * 1.25, y + DY[d] * 1.25, 0.75, 0.16);
       }
     },
 
@@ -1421,8 +1439,9 @@ window.createModels3D = (B, scene) => {
       }
     }
     add.ghost = false;
+    if (G.bigTracks) maglev();
     // The trail: paired glands, a wave of scent running along them.
-    for (const t of Object.values(G.tracks)) {
+    for (const t of G.bigTracks ? [] : Object.values(G.tracks)) {
       const a = facing(t.dir);
       const x = t.x + 0.5;
       const y = t.y + 0.5;
@@ -1551,22 +1570,110 @@ window.createModels3D = (B, scene) => {
     }
   }
 
+  // ---- Big tracks: a 2-cell maglev way, two rails with lit edges, sleepers, a pulse running along.
+  function maglev() {
+    const before = new Map();
+    for (const t of Object.values(G.tracks)) before.set(key(t.x + DX[t.dir] * 2, t.y + DY[t.dir] * 2), t);
+    for (const t of Object.values(G.tracks)) {
+      const ready = built(t), cx = t.x + 1, cy = t.y + 1, din = before.get(key(t.x, t.y))?.dir ?? t.dir, dout = t.dir;
+      const rail = t.out != null ? 'alarm' : ready ? 'steel2' : 'site', lit = t.out != null ? 'alarm' : ready ? 'cyan' : 'site';
+      // The centre line of the tile as a point at u in 0..1, with the way it runs there.
+      let at;
+      if (din === dout || (din + 2) % 4 === dout) {
+        const a = facing(dout);
+        at = (u) => ({ x: cx + DX[dout] * (u * 2 - 1), y: cy + DY[dout] * (u * 2 - 1), a });
+      } else {
+        const ox = cx - DX[din] + DX[dout], oy = cy - DY[din] + DY[dout], ax = -DX[dout], ay = -DY[dout], bx = DX[din], by = DY[din];
+        // From the entry edge (corner + a) to the exit edge (corner + b), a quarter circle round the tile corner.
+        at = (u) => {
+          const k = (u * Math.PI) / 2, px = ox + ax * Math.cos(k) + bx * Math.sin(k), py = oy + ay * Math.cos(k) + by * Math.sin(k);
+          return { x: px, y: py, a: Math.atan2(-ay * Math.sin(k) + by * Math.cos(k), -ax * Math.sin(k) + bx * Math.cos(k)) };
+        };
+      }
+      const pieces = fine ? 8 : 2;
+      for (let i = 0; i < pieces; i++) {
+        const p = at(i / pieces), n = at((i + 1) / pieces);
+        for (const side of [-1, 1]) {
+          limb(rail, ...from(p.x, p.y, p.a, 0, side * 0.95), 0.16, ...from(n.x, n.y, n.a, 0, side * 0.95), 0.16, 0.16);
+          if (fine) limb(lit, ...from(p.x, p.y, p.a, 0, side * 0.84), 0.25, ...from(n.x, n.y, n.a, 0, side * 0.84), 0.25, 0.04);
+        }
+        if (fine && i % 2 === 0) add('hull', 'dark', p.x, p.y, 0.05, 0.14, 0.05, 1.7, p.a);
+        if (fine && ready) {
+          const pulse = Math.max(0, Math.sin((t.x + t.y + i / pieces * 2) * 0.7 - clock * 5));
+          if (pulse > 0.85) add('hull', 'cyan', p.x, p.y, 0.08, 0.3, 0.02, 0.1, p.a);
+        }
+      }
+      if (din !== dout && (din + 2) % 4 !== dout && fine) {
+        const [px, py] = [cx - DX[din] + DX[dout], cy - DY[din] + DY[dout]];
+        add('tube', 'steel2', px, py, 0.45, 0.22, 0.9, 0.22);
+        add('ring', lit, px, py, 0.95 + Math.sin(clock * 3 + px) * 0.04, 0.4, 0.5, 0.4, 0, LYING);
+      }
+    }
+  }
+  // A big worm: armoured nose with a sensor eye, glass pods lit by their load, beating joints, a fading trail.
+  function bigWorm(w, spots, moving) {
+    const lift = 0.42 + Math.sin(clock * 4) * 0.03, k = 1.5;
+    const angleAt = (i) => {
+      const [x, y] = spots[i], b = spots[i - 1], a = spots[i + 1];
+      return b ? Math.atan2(b[1] - y, b[0] - x) : a ? Math.atan2(y - a[1], x - a[0]) : facing(G.tracks[w.path[0]]?.dir ?? 1);
+    };
+    if (fine && moving) {
+      // The trail: a glassy ribbon and drifting motes along the way behind the tail.
+      const [tx, ty] = spots[spots.length - 1], ta = angleAt(spots.length - 1);
+      for (let j = 1; j <= 14; j++) {
+        const fade = 1 - j / 15, [px, py] = from(tx, ty, ta, -0.6 - j * 0.28);
+        add('box', j < 6 ? 'holo' : 'membraneGlass', px, py, 0.32 + Math.sin(j * 0.8 + clock * 4) * 0.08, 0.34, 0.02, 0.55 * fade, ta);
+        add('bead', j % 3 ? 'N2' : 'acid', ...from(px, py, ta, 0, Math.sin(j * 1.7 + clock * 2) * 0.8 * (1 - fade)), 0.35 + (1 - fade) * 1.1, 0.08 * fade + 0.03);
+      }
+    }
+    for (let i = spots.length - 1; i >= 0; i--) {
+      const [x, y] = spots[i], a = angleAt(i), hh = lift + Math.sin(clock * 5 - i * 0.7) * 0.04;
+      add('stain', 'husk', x, y, 0.02, 1.1 * k, 0.02, 1.4 * k, a);
+      if (!i) {
+        add('sac', 'steel', x, y, hh + 0.1, 1.5 * k, 0.75 * k, 1.25 * k, a);
+        add('shell', 'steel2', ...from(x, y, a, 0.2 * k), hh + 0.32 * k, 1.0 * k, 0.4 * k, 1.0 * k, a);
+        add('bead', 'cyan', ...from(x, y, a, 0.68 * k), hh + 0.18 * k, 0.26 * k);
+        add('ring', 'cyan', ...from(x, y, a, 0.55 * k), hh + 0.18 * k, 0.5 * k, 0.6 * k, 0.5 * k, a, LYING);
+        for (const sd of [-1, 1]) add('hull', 'cyan', ...from(x, y, a, -0.1 * k, sd * 0.62 * k), hh + 0.15 * k, 0.6 * k, 0.04, 0.06, a);
+        continue;
+      }
+      const hold = w.holds[i - 1];
+      if (!hold) {
+        add('taper', 'steel2', ...from(x, y, a, 0.2 * k), hh + 0.05, 0.6 * k, 0.6 * k, 0.6 * k, a, LYING);
+        add('bead', 'N2', ...from(x, y, a, -0.2 * k), hh, 0.2 * k);
+        continue;
+      }
+      const full = hold.n / holdCap(), kind = hold.n ? contentOf(hold.kind)[0] || 'off' : 'off';
+      add('hull', 'steel', x, y, hh - 0.08, 0.95 * k, 0.22 * k, 1.35 * k, a);
+      add('box', 'glass', x, y, hh + 0.3 * k, 0.8 * k, 0.55 * k, 1.15 * k, a);
+      if (hold.n) add('box', kind, x, y, hh + (0.2 + full * 0.12) * k, 0.7 * k, (0.3 * full + 0.02) * k, 1.0 * k, a);
+      if (hold.n && fine) cargo(hold.kind, x, y, hh + 0.62 * k, a, 0.5);
+      add('hull', 'chitin', x, y, hh + 0.6 * k, 0.85 * k, 0.07, 1.2 * k, a);
+      for (const sd of [-1, 1]) add('hull', 'cyan', ...from(x, y, a, 0, sd * 0.6 * k), hh + 0.05, 0.85 * k, 0.04, 0.05, a);
+      const after = spots[i - 1];
+      if (after) {
+        const beat = 0.5 + 0.5 * Math.sin(clock * 6 - i);
+        add('ring', beat > 0.6 ? 'cyan' : 'N', (x + after[0]) / 2, (y + after[1]) / 2, hh + 0.15 * k, 0.7 * k, 0.5, 0.7 * k, a, LYING);
+      }
+    }
+  }
   // ---- What moves
   function worms() {
     for (const w of G.worms) {
       const moving = built(w) && !w.docked && !w.stuck;
-      const k = moving ? Math.min(1, w.t + owed * WORM.speed) : 0;
+      const k = moving ? Math.min(1, w.t + owed * WORM.speed / trackSize()) : 0;
       const next = moving && trackAfter(w.path[0]);
       const spots = w.path.map((id, i) => {
-        const [x, y] = id.split(',').map((n) => Number(n) + 0.5);
+        const [x, y] = tileCentre(id);
         const to = i ? w.path[i - 1] : next && key(next.x, next.y);
         if (!moving || !to) return [x, y];
-        const [tx, ty] = to.split(',').map((n) => Number(n) + 0.5);
+        const [tx, ty] = tileCentre(to);
         return [x + (tx - x) * k, y + (ty - y) * k];
       });
       const track = G.tracks[w.path[0]];
       add.ghost = w.cut || (aimed?.act === 'scrap' && aimed.worm === w) ? 'scrap' : !built(w);
       add.solid = add.ghost ? woven(w) * 0.7 : 0;
+      if (G.bigTracks) { bigWorm(w, spots, moving); add.ghost = false; add.solid = 0; continue; }
       for (let i = spots.length - 1; i >= 0; i--) {
         const [x, y] = spots[i];
         const before = spots[i - 1];
@@ -1604,7 +1711,7 @@ window.createModels3D = (B, scene) => {
         // A cargo segment: bone saddle, see-through belly, as full as its hold.
         add('sac', 'skin', x, y, h - 0.06, 0.94, 0.56, 0.84, a);
         for (const s of [-1, 1]) add('shell', 'bone', ...from(x, y, a, 0, s * 0.3), h + 0.06, 0.6, 0.24, 0.26, a);
-        const full = hold.n / WORM.hold;
+        const full = hold.n / holdCap();
         if (hold.n) {
           add('ring', 'acid', x, y, h + 0.2, 0.3 + full * 0.3);
           cargo(hold.kind, x, y, h + 0.3, a, 0.46);
