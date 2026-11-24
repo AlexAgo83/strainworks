@@ -866,4 +866,11 @@ const EN = {
   "{} ADN": "{} DNA",
   " · {} ADN": " · {} DNA",
   " · +{} ADN": " · +{} DNA",
+  "chargeurs": "magazines",
+  "capsules": "capsules",
+  "capsules lourdes": "heavy capsules",
+  "Le cœur demande des {} de {} : passe en {}.": "The core wants {} of {}: switch to {}.",
+  "{} dans la boîte, {} attend dehors : vide-la pour changer de gène.": "{} in the box, {} waits outside: empty it to change genes.",
+  "{} pour rien": "{} working for nothing",
+  "{} : {}": "{}: {}",
 };

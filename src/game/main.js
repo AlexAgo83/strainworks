@@ -2,9 +2,9 @@ import { LANG_SET } from "./lang.js";
 import { hooks } from "../sim/hooks.ts";
 import { BASE, BIG, BORER, BOX, CALM, CORE, DEPOSIT, DESK, DRONE, DX, DY, FIELDS, G, GLUE, GUNS, GUN_RANK, H, NERVE, NORTH, OUTER, PACK, PRICE, RADAR, RANKS, REAPER, RICH, SIGHT, STAGES, START_DRONES_OF, STEP, TRAITS, TYPES, VEIN, W, WORM, accepts, ahead, allCells, armReach, asked, at, boxOf, built, buried, capOf, carbonSide, carries, cell, cellAt, centreOf, connects, contentOf, coreCell, coreWants, corpseSunk, covering, damage, depositAt, digest, drains, drawGoals, dropRise, eachSector, earn, eat, edgesOf, exitOf, fill, fire, fits, flow, follows, footprint, forgetCells, fresh, fullHp, gateOpen, glueOver, grow, hasTrait, hatchDrones, heardOf, holdCap, hungry, inSight, isBelt, isBig, isGun, isSplit, joinSide, key, labLevel, leaking, lift, listens, live, look, makePatch, matterUnder, mealRate, menace, minable, mutation, mutationTarget, nearest, nest, nestBy, netOf, network, opposite, outSide, owned, paceOf, packTakes, passingBy, patchOf, patches, perSecond, perch, pocketCap, puff, pulse, pumps, put, rankCost, rankOf, reachOf, receive, refund, remove, repair, richAt, richness, sector, sectors, sense, setRecipe, sideExit, sight, simSet, sites, sizeOf, span, spawn, splitExits, spotHash, stamp, stationHead, step, survey, tierAt, trackAfter, trackSize, unlocked, wake, waveGene, wayOf, workAt, workTime } from "../sim/sim.ts";
 import { L, LANG, LOCALE } from "../sim/text.ts";
-import { actionsSet, breachesIn, build, buyLab, creatureAt, diagnose, dronePose, feeders, fieldsIn, incubate, keepIt, known, layTrack, link, netSummary, netWires, portSide, radarWave, raise, rankFollowers, recipe, rowOf, scrap, scrapVein, setHeading, shownNests, siteFor, stagePart, wireUp } from "./actions.js";
+import { actionsSet, packWarning, breachesIn, build, buyLab, creatureAt, diagnose, dronePose, feeders, fieldsIn, incubate, keepIt, known, layTrack, link, netSummary, netWires, portSide, radarWave, raise, rankFollowers, recipe, rowOf, scrap, scrapVein, setHeading, shownNests, siteFor, stagePart, wireUp } from "./actions.js";
 import { audioSet, keepMusic, keepSfx, musicTick, paintMusic, paintPlaylist, paintSfx, placeOf, playSound, setLang, shuffleMusic, startSound } from "./audio.js";
-import { addPip, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, tell, toggleFamily, travelTo } from "./hud.js";
+import { addPip, problems, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, tell, toggleFamily, travelTo } from "./hud.js";
 import { button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
 import { glide, keysSet, loadKeys, paintKeys, pipette } from "./keys.js";
 import { frame, labSet, startLab } from "./lab.js";
@@ -167,6 +167,8 @@ const WINDOW_API = {
   damage: [() => damage],
   depositAt: [() => depositAt],
   diagnose: [() => diagnose],
+  packWarning: [() => packWarning],
+  problems: [() => problems],
   digest: [() => digest],
   drag: [() => drag, v => { drag = v; }],
   drains: [() => drains],

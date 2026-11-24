@@ -1,7 +1,7 @@
 // The 2D view: the map, its pieces, items, creatures and effects drawn on the canvas, and the camera.
 import { CORE, CROSS, DESK, DX, DY, G, NERVE, NEST, PACK, RADAR, REAPER, VEIN, WORM, allCells, armReach, boxOf, built, buried, capOf, carbonSide, carries, cellAt, centreOf, contentOf, coreCell, corpseSunk, depositAt, exitOf, forgetCells, hasTrait, healing, heardOf, holdCap, inSight, isBelt, isGun, isSplit, joinSide, key, leaking, listens, matterUnder, paceOf, patchOf, pocketCap, pumps, rankOf, richAt, richCap, sizeOf, trackAfter, trackSize } from "../sim/sim.ts";
 import { L } from "../sim/text.ts";
-import { creatureAt, dronePose, feeders, fieldsIn, known, portSide, radarWave, shownNests, stagePart } from "./actions.js";
+import { packWarning, creatureAt, dronePose, feeders, fieldsIn, known, portSide, radarWave, shownNests, stagePart } from "./actions.js";
 import { drawFog, layoutHud, sceneSigns } from "./hud.js";
 import { drawPreview } from "./input.js";
 import { $, LIMIT, NERVE_COLORS, STILL, cam, canvas, ctx, drag, flat, flinchOf, formOf, gateGreen, gesture, linking, mainSet, motionTime, nestHurt, orbit, owed, selected, tileCentre, ui, view, view3d, wiring, wormId } from "./main.js";
@@ -420,6 +420,7 @@ export function draw() {
     const base = depositAt(c.x,c.y);
     if (base && c.type !== 'mine' && c.type !== 'borer') { rect(ctx,c.x,c.y + .7,.32,.3,'#05090B'); glyph(ctx,base,c.x + .16,c.y + .85,.12); }
     if (isGun(c) && !Object.values(c.ammo).some(n => n)) circle(ctx,x,y,.48,null,'#FF6B6B',.07);
+    if (packWarning(c)) circle(ctx,x,y,.48,null,'#FF6B6B',.07);
   }
   if (cam.zoom >= 11) for (const c of cells) for (const p of passing(c)) {
     // Swallowed: a lump that goes through.

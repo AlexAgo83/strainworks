@@ -1,7 +1,7 @@
 // The interface around the map: panels, the core card, the guide, the goal and the statistics.
 import { BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, PACK, RANKS, STAGES, TYPES, VEIN, WORM, allCells, bearing, boxOf, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, jobId, key, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
-import { buyLab, diagnose, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
+import { buyLab, diagnose, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
 import { choose, geneMark, orderHTML, pickedWorm, say, stockOf, write } from "./input.js";
 import { $, ARROW, CARBON, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GUIDE, GUIDE_GENE, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
@@ -1014,6 +1014,7 @@ export function problems() {
     if (!built(c)) continue;
     const name = TYPES[c.type]?.name || '';
     if (isGun(c) && !Object.values(c.ammo).some(n => n)) out.push([c, 'red', L`${name} à sec`, L('plus de munitions')]);
+    else if (packWarning(c)) out.push([c, 'red', L`${name} pour rien`, packWarning(c)]);
     else if (hasTrait(c.type, 'produce') && !c.made?.length) {
       if (c.item) out.push([c, 'amber', L`${name} bloqué`, L('sortie pleine')]);
       else if (c.ports) {

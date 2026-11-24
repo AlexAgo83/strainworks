@@ -1,5 +1,5 @@
 // What the player does to the game: building, ranks, the lab's upgrades, nerves and stages, as the interface asks.
-import { BELT_SPEED, BORER, BOX, BUILD, BUILDERS, CORE, DRONE, FIELDS, G, GUNS, H, INNER, NERVE, NEST, NET, RADAR, RANKS, SECTOR, STAGES, STEP, TYPES, VEIN, W, WATCHES, WHEN, WORM, accepts, ahead, allCells, asked, atHome, bitAt, boxOf, built, capOf, carbonSide, cellAt, connects, contentOf, depositAt, dice, drains, dropRise, eachSector, edgesOf, exitOf, fill, footprint, gateCondition, gateOpen, gateStore, hasTrait, heardOf, inSight, isBelt, isGun, isSplit, jobId, joinSide, keepsNest, key, leaking, listens, matterUnder, mouthPace, netOf, paceOf, paces, packTakes, perSecond, perch, pocketCap, pumps, put, refund, richAt, richCap, richUnder, richness, sideExit, simSet, sites, span, splitExits, unlink, unlocked, veinKind, wayOf, workTime, wormHolds } from "../sim/sim.ts";
+import { BELT_SPEED, liftable, BORER, BOX, BUILD, BUILDERS, CORE, DRONE, FIELDS, G, GUNS, H, INNER, NERVE, NEST, NET, RADAR, RANKS, SECTOR, STAGES, STEP, TYPES, VEIN, W, WATCHES, WHEN, WORM, accepts, ahead, allCells, asked, atHome, bitAt, boxOf, built, capOf, carbonSide, cellAt, connects, contentOf, depositAt, dice, drains, dropRise, eachSector, edgesOf, exitOf, fill, footprint, gateCondition, gateOpen, gateStore, hasTrait, heardOf, inSight, isBelt, isGun, isSplit, jobId, joinSide, keepsNest, key, leaking, listens, matterUnder, mouthPace, netOf, paceOf, paces, packTakes, perSecond, perch, pocketCap, pumps, put, refund, richAt, richCap, richUnder, richness, sideExit, simSet, sites, span, splitExits, unlink, unlocked, veinKind, wayOf, workTime, wormHolds } from "../sim/sim.ts";
 import { DEC, L } from "../sim/text.ts";
 import { playSound } from "./audio.js";
 import { refuse, tell } from "./hud.js";
@@ -337,6 +337,22 @@ export function upstream(c, side) {
   }
   return path;
 }
+// An encapsulator working for nothing: its box is one the core does not ask for this gene while another box is,
+// or a second gene waits at its door until a box of the first one is full. Said on the map and in its sheet.
+const BOXES_ASKED = {A:L('chargeurs'), T:L('capsules'), H:L('capsules lourdes')};
+export function packWarning(c) {
+  if (c?.type !== 'pack' || !built(c)) return null;
+  const [goods] = c.ports, from = feeders(c, (c.dir + 2) % 4)[0]?.c, waiting = from && liftable(from)[0];
+  const gene = goods[0] || (c.last ? contentOf(c.last) : null) || (waiting && !boxOf(waiting) ? waiting : null);
+  if (gene) {
+    const open = (G.goals || []).filter(g => g.fed < g.count).map(g => g.item);
+    const other = Object.keys(BOX).find(box => box !== c.box && open.includes(`${box}:${gene}`));
+    if (other && !open.includes(`${c.box}:${gene}`)) return L`Le cœur demande des ${BOXES_ASKED[other]} de ${gene} : passe en ${BOX[other].name.toLowerCase()}.`;
+  }
+  if (goods.length && waiting && !boxOf(waiting) && waiting !== goods[0] && !packTakes(c, waiting, 0))
+    return L`${goods[0]} dans la boîte, ${waiting} attend dehors : vide-la pour changer de gène.`;
+  return null;
+}
 export function diagnose(c) {
   mainSet.chain([]);
   if (c.out != null) {
@@ -443,6 +459,8 @@ export function diagnose(c) {
     return L`${head} Sans veine au départ, elle se vide sur ses quatre côtés, au rythme de chaque tapis.`;
   }
   if (c.type === 'pack') {
+    const warning = packWarning(c);
+    if (warning) return L`${TYPES.pack.name} : ${warning}`;
     const [goods, carbon] = c.ports, box = BOX[c.box];
     const head = L`Encapsuleur, ${box.name.toLowerCase()}${goods.length ? ' de ' + goods[0] : ''} : ${Math.min(goods.length, fill(c.box))} sur ${fill(c.box)}${box.isotope ? L`, isotope ${carbon.filter(k => k === 'I').length} sur ${box.isotope}` : ''}, carbone ${Math.min(carbon.length, box.carbon)} sur ${box.carbon}.`;
     if (c.item && !(ahead(c) && accepts(ahead(c), c.item, c.dir))) {
