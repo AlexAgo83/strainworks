@@ -52,6 +52,8 @@ it("builds each stage on the base genes, counts each item for its own, and keeps
 				// Another recipe's item does not count for this one; a recipe met takes no more.
 				eat(a.item);
 				const counted = [a.fed, b?.fed ?? 0];
+				// The stage's mechanic (item_019) taken as done: this test is about the recipes.
+				for (const n of G.needs || []) n.fed = n.count;
 				for (const g of G.goals)
 					while (g.fed < g.count) {
 						feed();

@@ -264,6 +264,7 @@ export function checkGame(game) {
   if (game.won != null && !count(game.won)) return false;
   if (game.lab != null && !(plain(game.lab) && Object.entries(game.lab).every(([id, n]) => Object.hasOwn(UPGRADES, id) && Number.isInteger(n) && n >= 0 && n <= 4))) return false;
   if (game.goals != null && !(list(game.goals, g => plain(g) && thing(g.item) && count(g.count) && count(g.fed)) && game.goals.length <= 6)) return false;
+  if (game.needs != null && !(list(game.needs, n => plain(n) && ['sort', 'nerve', 'turret', 'outpost'].includes(n.need) && count(n.count) && count(n.fed)) && game.needs.length <= 2)) return false;
   return true;
 }
 // Either one game, a whole planet, or a bare save.

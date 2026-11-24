@@ -970,4 +970,11 @@ const EN = {
   "Le cœur veut {}, le premier gène de base de cette partie : un récolteur par base, dans l’ordre.": "The core wants {}, this game's first base gene: one harvester a base, in order.",
   "Elle assemble trois bases en un gène, dans l’ordre : {}. Le cœur mange ce gène.": "It joins three bases into a gene, in order: {}. The core eats that gene.",
   "Démontage de zone : {} bâtiments. Lâche pour démonter, Échap pour annuler.": "Area teardown: {} buildings. Let go to take them down, Escape to cancel.",
+  "Un trieur envoie de côté ce qui correspond à son filtre : chaque objet trié compte.": "A sorter sends aside what matches its filter: each item sorted counts.",
+  "Un feu ou un trieur commandé par un nerf : chaque objet qu’il laisse passer ou trie compte.": "A light or a sorter driven by a nerve: each item it lets through or sorts counts.",
+  "Charge des tourelles en chargeurs d’antidote : chaque créature tuée par son antidote compte.": "Load turrets with antidote magazines: each creature killed by its antidote counts.",
+  "Un récolteur sur un gisement gardé, à portée d’un nid : chaque seconde où il tient compte.": "A harvester on a guarded deposit, within a nest's reach: each second it holds counts.",
+  "Avant-poste": "Outpost",
+  "Ce stade demande": "This stage asks for",
+  "Voir comment il marche": "See how it works",
 };

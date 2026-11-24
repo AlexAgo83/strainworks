@@ -773,7 +773,7 @@ export function eat(item) {
     if (!goal) { earn('core', holds * contentOf(item).length / SURPLUS); hooks.playNear('dna', coreCell() || CORE, .4); return; }
     const part = hungryFor().length ? HUNGRY_SHARE : 1;
     goal.fed = Math.min(goal.count, goal.fed + part); G.fed += part;
-    if (G.goals.every(g => g.fed >= g.count)) grow();
+    if (stageDone()) grow();
     hooks.playNear('eat', coreCell() || CORE, .25);
     return;
   }
@@ -855,6 +855,19 @@ export function inputLines(item) {
   return lines + (box ? 1 : 0) + (BOX[box]?.isotope ? 1 : 0);
 }
 export const MOST_LINES = 3;
+// From stage 2 each stage of a drawn game also asks for a mechanic the game already has, counted as it works
+// (item_019): items a sorter sends aside, items a nerve lets through, creatures a turret kills with their antidote,
+// seconds a harvester holds out by a nest. A stage grows once its recipes and its mechanic are both done.
+export const MECHANICS = [null, {need:'sort', count:30}, {need:'nerve', count:30}, {need:'turret', count:10}, {need:'outpost', count:120}, null];
+export const drawNeeds = stage => { const m = G.base && MECHANICS[stage]; return m ? [{...m, fed:0}] : []; };
+export const needsMet = () => (G.needs || []).every(n => n.fed >= n.count);
+const stageDone = () => (G.goals || []).every(g => g.fed >= g.count) && needsMet();
+export function credit(need, amount = 1) {
+  const n = (G.needs || []).find(o => o.need === need && o.fed < o.count);
+  if (!n) return;
+  n.fed = Math.min(n.count, n.fed + amount);
+  if (G.goals && stageDone()) grow();
+}
 export function drawGoals(stage) {
   if (G.base) return layeredGoals(stage);
   if (stage === 0) return [{item:STAGES[0].item, count:STAGES[0].count, fed:0}];
@@ -879,7 +892,7 @@ export function grow() {
   hooks.select(null);
   hooks.tell(L`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
   if (G.stage === 3) { G.mutant = mutation(G.base ? opposite(G.base[2]) : null); G.mutateAt = G.time + MUTATION.every; }
-  if (G.goals) G.goals = drawGoals(G.stage);
+  if (G.goals) { G.goals = drawGoals(G.stage); G.needs = drawNeeds(G.stage); }
   if (G.stage === STAGES.length && G.won == null) G.won = G.time;
   if (G.stage === 4) G.labDiscount = true;
 }
@@ -889,7 +902,7 @@ export function fresh() {
   // The core alone, on a 3x3 plinth fed from any of its twelve faces: the guide has the player build the first line.
   put('core', CORE.x - 1, CORE.y - 1, 0).size = 3;
   survey();
-  if (hooks.drawsRecipes()) { G.base = drawBase(); G.baseAt = {}; G.goals = drawGoals(0); }
+  if (hooks.drawsRecipes()) { G.base = drawBase(); G.baseAt = {}; G.goals = drawGoals(0); G.needs = drawNeeds(0); }
   if (hooks.drawsRecipes()) G.bigTracks = true;
   // Tests replaying games recorded on the first line older versions gave lay it again here.
   hooks.testLine();
@@ -1453,8 +1466,8 @@ export function flow(dt) {
       if (c.outs) c.outs.forEach((item, i) => { if (item) offer(c, item, outSide(c, i), () => { c.outs[i] = null; }); });
       if (c.type === 'unpack' && c.ports[2].length) offer(c, c.ports[2][0], (c.dir + 1) % 4, () => { c.ports[2].shift(); });
       // A listening gate lets out what it let in, so a change of mind never traps an item.
-      if (isBelt(c) && (c.type === 'belt' || c.open || listens(c)) && c.item && c.t >= .999) offer(c, c.item, c.dir, () => { c.item = null; }, c.t - 1);
-      if (c.type === 'sort' && c.item && c.t >= .999) offer(c, c.item, exitOf(c), () => { c.item = null; }, c.t - 1);
+      if (isBelt(c) && (c.type === 'belt' || c.open || listens(c)) && c.item && c.t >= .999) offer(c, c.item, c.dir, () => { if (c.type === 'gate' && listens(c)) credit('nerve'); c.item = null; }, c.t - 1);
+      if (c.type === 'sort' && c.item && c.t >= .999) { const out = exitOf(c); offer(c, c.item, out, () => { if (out !== c.dir) credit(listens(c) ? 'nerve' : 'sort'); c.item = null; }, c.t - 1); }
       if (c.type === 'borer' && c.stock.length) {
         const doors = edgesOf(c);
         let out = 0;
@@ -1589,6 +1602,17 @@ export function wake(found, cause) {
   hooks.forgetEvent(hungry());
   hooks.tell(L`Brèche réveillée au ${bearing(b)} : ${b.left} créatures dedans. Premier assaut dans 30 s${b.born ? L(', avec une nouvelle famille') : ''}.${b.id ? L(' Elle vise l’avant-poste qui l’a réveillée.') : ''}`, {at:b, gene:b.born, bad:true});
 }
+// A harvester standing within a nest's reach, the nest not destroyed: an outpost on a guarded deposit.
+export function outpostHeld() {
+  const near = new Set<any>(G.breaches);
+  for (const c of allCells()) {
+    if ((c.type !== 'mine' && c.type !== 'borer') || !built(c)) continue;
+    const sx = Math.floor(c.x / SECTOR), sy = Math.floor(c.y / SECTOR);
+    for (let i = -1; i < 2; i++) for (let j = -1; j < 2; j++) { const b = sector(sx + i, sy + j)?.breach; if (b) near.add(G.breaches.find(o => o.id && o.id === b.id) || b); }
+    for (const b of near) if (b.state !== 'spent' && Math.hypot(c.x - b.x, c.y - b.y) <= b.r) return true;
+  }
+  return false;
+}
 export function disturb() {
   const cells = allCells().filter(c => c.type !== 'core');
   const veins = cells.filter(c => c.type === 'pump' && G.cells[c.to]).map(c => [c, G.cells[c.to]]);
@@ -1658,7 +1682,7 @@ export function menace(dt) {
   const spent = G.breaches.filter(b => b.state === 'spent').length;
   G.threat = Math.min(10, awake.length + spent * .5 + G.made / 1000);
   if (G.stage >= 3 && !G.over && G.time >= (G.mutateAt ?? Infinity)) { G.mutateAt = G.time + MUTATION.every; mutation(); }
-  if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) disturb();
+  if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) { disturb(); if (G.needs?.length && outpostHeld()) credit('outpost', .5); }
   for (const b of awake) {
     if (b.pending && b.left && G.time >= b.spit) { spawn(b, b.gene, b.swarm ? 'swarm' : null); b.swarm = false; b.pending--; b.spit = G.time + 1.4; }
     nestHp(b);
@@ -1828,6 +1852,7 @@ export function fire(dt) {
       target.hitAt = G.time;
       if (target.hp <= 0) {
         G.kills++; earn('kills', 1);
+        if (ammo === opposite(target.gene)) credit('turret');
         // The body stays a minute and a half, then sinks; a hundred at most, the oldest going first.
         (G.corpses ||= []).push({x:target.x, y:target.y, gene:target.gene, kind:target.kind, at:G.time, a:Math.atan2(target.y - c.y - .5, target.x - c.x - .5)});
         if (G.corpses.length > CORPSE.most) G.corpses.shift();

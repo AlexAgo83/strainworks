@@ -879,6 +879,8 @@ foldSide(stored(SIDE_KEY) === 'off');
 export const machineOf = (type, label) => `<span class="porthole model machine" data-model="${type}" role="img" aria-label="${label}"></span>`;
 // A row or a tab of the core's sheet, touched.
 $('sheet').addEventListener('click', event => {
+  const card = event.target.closest('[data-card]');
+  if (card) { showCard(card.dataset.card, false); return; }
   const row = event.target.closest('[data-goal]'), tab = event.target.closest('[data-sheet-tab]'), up = event.target.closest('[data-up]'), labTab = event.target.closest('[data-lab-tab]');
   if (up) buyLab(up.dataset.up);
   else if (labTab) ui.labTab = labTab.dataset.labTab;
@@ -952,7 +954,7 @@ $('dna-more').onclick = () => { G.dna += 100; refresh(); };
 // Developer: the stage under way is completed as if its recipes were all delivered.
 $('next-stage').onclick = () => {
   if (G.stage >= STAGES.length) return refuse(L('Le dernier stade est déjà achevé.'));
-  if (G.goals) for (const g of G.goals) g.fed = g.count;
+  if (G.goals) for (const g of [...G.goals, ...(G.needs || [])]) g.fed = g.count;
   showMenu(false); grow(); refresh();
 };
 $('won-planet').onclick = () => { $('victory').hidden = true; openPlanet(); };

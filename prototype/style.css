@@ -1090,3 +1090,6 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
   #unlock canvas { width:220px; height:220px; }
   #unlock .unlock-body { padding:16px 18px; }
 }
+#sheet .demand .machine { width:30px; height:30px; }
+#sheet .asked h4 .machine { width:34px; height:34px; }
+#sheet .need-what { margin:0; color:var(--muted); font-size:13px; line-height:1.4; }

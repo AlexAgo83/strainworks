@@ -3,7 +3,7 @@ import { HARVESTERS_PER_DEPOSIT, depositFull, perSecond, hungryFor, BASE, BOX, D
 import { DEC, L } from "../sim/text.ts";
 import { breachesIn, build, diagnose, incubate, itemName, keepIt, keepVein, known, layTrack, link, netSummary, netWires, portSide, raise, rowOf, scrap, scrapVein, setHeading, siteFor, sourceName, wireUp } from "./actions.js";
 import { playSound } from "./audio.js";
-import { markOf, openFamily, paintHud, paintInfo, paintRanks, refuse, replay } from "./hud.js";
+import { markOf, mechanicName, openFamily, paintHud, paintInfo, paintRanks, refuse, replay } from "./hud.js";
 import { $, handRank, KEYS, keyName, BATCHES, CURSORS, DESK_NAMES, FAMILY_OF, HOLD_MS, ICONS, JOKER, MATTER, NARROW, NEEDS, NERVE_COLORS, PREVIEW, RANK_NEED, SHAPE, STILL, TURN, WAYS, cam, canRise, canvas, chain, costInHand, crossing, cursor, drag, flat, freshOn, gesture, heading, holdsAnything, hovered, inHand, inside, isSource, levelOf, linking, listening, mainSet, named, note, paused, piecesOf, placeable, playNear, pointers, price, rankOpen, ruinAt, selected, tabbed, tileAt, tileKey, tool, trackAt, ui, upCost, view, view3d, whyNot, wiring, wormId } from "./main.js";
 import { arrow, circle, drawCell, glyph, polygon, rect, worldAt } from "./render.js";
 
@@ -275,6 +275,9 @@ export function orderHTML() {
   if (G.goals && (G.goals.length > 1 || (G.base && G.goals.length))) {
     // The next recipe to make, and how many others wait: the whole list is in the core's sheet.
     const open = G.goals.filter(g => g.fed < g.count), next = open[0] || G.goals[0], gene = geneMark(contentOf(next.item));
+    // Recipes done, the mechanic left: it is what the stage waits for.
+    const need = !open.length && (G.needs || []).find(n => n.fed < n.count);
+    if (need) return `<b>${L`Stade ${G.stage + 1} · ${want.name}`}</b><div class="wanted"><span>${mechanicName(need.need)}</span><output>${Math.floor(need.fed)} / ${need.count}</output></div>`;
     const more = open.length > 1 ? `<span class="more" title="${L('Toutes les recettes sont dans la fiche du cœur')}">+${open.length - 1}</span>` : '';
     const hunger = G.base && hungryFor().length ? `<span class="unit hungry">${L`faim de ${hungryFor().map(geneMark).join(' ')} : livraisons comptées à moitié`}</span>` : '';
     return `<b>${L`Stade ${G.stage + 1} · ${want.name}`}</b><div class="wanted">${boxOf(next.item) ? `<span class="crate">${gene}</span>` : gene}<output>${Math.floor(next.fed)} / ${next.count}</output>${more}</div>${hunger}`;

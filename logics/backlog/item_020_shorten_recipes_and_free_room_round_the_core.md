@@ -1,7 +1,7 @@
 ## item_020_shorten_recipes_and_free_room_round_the_core - Shorten recipes and free room round the core
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95%
 > Confidence: 90%
 > Progress: 100%

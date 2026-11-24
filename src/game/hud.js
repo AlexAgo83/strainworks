@@ -293,6 +293,14 @@ function troubleFor(item) {
   for (const c of allCells()) { const t = packTrouble(c); if (t && t.gene === contentOf(item)) return {c, ...t}; }
   return null;
 }
+// The mechanic a stage asks for (item_019): its building, what counts, the card that teaches it.
+export const MECHANIC = {
+  sort:{type:'sort', unit:'', what:L('Un trieur envoie de côté ce qui correspond à son filtre : chaque objet trié compte.')},
+  nerve:{type:'wire', unit:'', what:L('Un feu ou un trieur commandé par un nerf : chaque objet qu’il laisse passer ou trie compte.')},
+  turret:{type:'turret', unit:'', what:L('Charge des tourelles en chargeurs d’antidote : chaque créature tuée par son antidote compte.')},
+  outpost:{type:'mine', unit:' s', what:L('Un récolteur sur un gisement gardé, à portée d’un nid : chaque seconde où il tient compte.')},
+};
+export const mechanicName = need => need === 'outpost' ? L('Avant-poste') : TYPES[MECHANIC[need].type].name;
 // The goals the sheet shows: drawn recipes, or the one an older stage asks for.
 function sheetGoals(want) {
   if (G.goals && (G.goals.length > 1 || (G.base && G.goals.length))) return G.goals;
@@ -369,18 +377,24 @@ export function coreSheet() {
   if (!want) return '';
   const goals = sheetGoals(want);
   if (ui.goalStage !== G.stage) { ui.goalStage = G.stage; ui.goalPick = null; ui.sheetTab = 'asks'; }
-  const first = Math.max(0, goals.findIndex(g => g.fed < g.count)), pick = goals[ui.goalPick ?? -1] ? ui.goalPick : first, chosen = goals[pick];
+  const all = goals.length + (G.base && G.goals ? (G.needs || []).length : 0);
+  const first = Math.max(0, goals.findIndex(g => g.fed < g.count)), pick = (ui.goalPick ?? -1) >= 0 && ui.goalPick < all ? ui.goalPick : first, chosen = goals[Math.min(pick, goals.length - 1)];
   const hungry = G.base ? hungryFor() : [], made = madeNow();
   const part = stagePart() ?? 1;
   const steps = STAGES.map((_, i) => `<i class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"${i === G.stage ? ` style="--part:${(part * 100).toFixed(0)}%"` : ''}></i>`).join('');
   const info = ui.sheetTab === 'info';
   const head = `<div class="core-head"><span><b>${L`Stade ${G.stage + 1}`}</b><small>${L`sur ${STAGES.length} · ${want.name}`}</small></span><span class="steps" aria-hidden="true">${steps}</span>`
     + `<button class="stage-info${hungry.length ? ' alert' : ''}" data-sheet-tab="info" aria-pressed="${info}" aria-label="${L('Le stade : l’histoire, les gènes de base et ce qu’il débloque')}">i</button></div>`;
+  const needs = G.base && G.goals ? G.needs || [] : [];
   const tabs = `<div class="demands" role="tablist">${goals.map((g, i) => {
     const met = g.fed >= g.count, blocked = !met && troubleFor(g.item);
     return `<button role="tab" class="demand${met ? ' met' : ''}${blocked ? ' alert' : ''}" data-goal="${i}" aria-selected="${!info && i === pick}">${picture(g.item)}${met ? '<b class="tick">✓</b>' : ''}<small>${kindOf(g.item)}</small></button>`;
+  }).join('')}${needs.map((n, k) => {
+    const i = goals.length + k, met = n.fed >= n.count;
+    return `<button role="tab" class="demand need${met ? ' met' : ''}" data-goal="${i}" aria-selected="${!info && i === pick}">${machineOf(MECHANIC[n.need].type, mechanicName(n.need))}${met ? '<b class="tick">✓</b>' : ''}<small>${mechanicName(n.need)}</small></button>`;
   }).join('')}</div>`;
   if (info) return head + tabs + stageInfo(want, hungry);
+  if (pick >= goals.length && needs[pick - goals.length]) return head + tabs + needView(needs[pick - goals.length]);
   const trouble = troubleFor(chosen.item), met = chosen.fed >= chosen.count, done = Math.min(1, chosen.fed / chosen.count);
   const figure = n => n.toFixed(1).replace('.', DEC);
   const count = chosen.rate ? `${Math.floor(chosen.fed)}<small> / ${chosen.count} s</small>` : `${Math.floor(chosen.fed)}<small> / ${chosen.count}</small>`;
@@ -392,6 +406,13 @@ export function coreSheet() {
   const legendKey = `<div class="key"><span>${L('tu le produis')}</span><span class="miss">${L('à faire')}</span></div>`;
   return head + tabs + demand + recipeSVG(chosen.item, made, trouble, chosen.fed) + warns.join('') + legendKey;
 }
+// A mechanic asked: its count, what counts, and the card that shows how it works.
+function needView(n) {
+  const m = MECHANIC[n.need], met = n.fed >= n.count, done = Math.min(1, n.fed / n.count);
+  return `<div class="asked"><h4><small>${L('Ce stade demande')}</small>${machineOf(m.type, mechanicName(n.need))}<span>${mechanicName(n.need)}</span></h4><span class="count">${met ? '✓' : `${Math.floor(n.fed)}<small> / ${n.count}${m.unit}</small>`}</span></div>`
+    + `<div class="gauge${met ? ' done' : ''}"><i style="width:${(done * 100).toFixed(1)}%"></i></div>`
+    + `<p class="need-what">${m.what}</p><button type="button" class="tip" data-card="${m.type === 'wire' ? 'wire' : m.type}">${L('Voir comment il marche')}</button>`;
+}
 // Out of the main view: what it is all for, where the organism stands, the base genes and what comes next.
 function stageInfo(want, hungry) {
   const frieze = `<div class="frieze">${STAGES.map((s, i) => `<span class="${i < G.stage ? 'done' : i === G.stage ? 'now' : ''}"><i>${i < G.stage ? '✓' : i + 1}</i>${s.name}</span>`).join('')}</div>`;
@@ -401,7 +422,8 @@ function stageInfo(want, hungry) {
   if (G.stage + 1 > 1 && G.stage + 1 <= 3) gives.push(['mine', L`Gisements ×${G.stage + 1 === 2 ? '2' : L('4 à ×8')}`]);
   for (const mk of [2, 3]) if (RANK_NEED[mk - 1] === G.stage + 1) gives.push(['belt', L`Rang MK${mk}`]);
   const giving = `<h3>${L('Débloque')}</h3>` + (gives.length ? `<div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : `<p class="unit">${want.gives}</p>`);
-  return `<div class="stage-page">${story}${frieze}${base}${giving}</div>`;
+  const asks = (G.base && G.needs?.length) ? `<h3>${L('Ce stade demande')}</h3><p class="unit">${G.needs.map(n => mechanicName(n.need)).join(', ')}</p>` : '';
+  return `<div class="stage-page">${story}${frieze}${base}${asks}${giving}</div>`;
 }
 export function labSheet() {
   const tab = LAB_TABS[ui.labTab] ? ui.labTab : 'drones';

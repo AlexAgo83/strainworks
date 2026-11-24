@@ -2,9 +2,9 @@
 > From version: 0.1.38
 > Schema version: 1.0
 > Status: Ready
-> Understanding: 90%
+> Understanding: 95%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -29,6 +29,14 @@
 # Acceptance criteria
 - AC1: Each stage's goal cannot be met without its mechanic, checked in a simulation test per stage.
 - AC2: The stage card names it.
+
+# Operator decision (2026-11-24)
+- Stage 2 requires the sorter, stage 3 the nerves, stage 4 the turrets with the antidote magazines, stage 5 an outpost near a nest (the guarded rich deposits).
+
+# Implementation notes (2026-11-24)
+- `MECHANICS`, `drawNeeds`, `credit` and `outpostHeld` in `src/sim/sim.ts`; a drawn game keeps `G.needs` beside `G.goals`, and a stage grows once both are met. What counts: items a sorter sends to its side (stage 2, 30); items a gate or a sorter steered by a nerve lets through or sorts (stage 3, 30); creatures a turret kills with their antidote (stage 4, 10); seconds a built harvester stands within reach of a nest not destroyed (stage 5, 120). Older saves have no `G.needs`; `checkGame` validates it.
+- The core's sheet shows the mechanic as a tab with its count, what counts, and a button opening the building's card; the stage page lists it; the header names it once the recipes are done.
+- Proof: `tests/sim/mechanics.test.ts` (each stage's mechanic, growth held until it is met, counted only when it works), `tests/prototype/mechanic-tab.test.mjs`.
 
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: Each stage's goal cannot be met without its mechanic, checked in a simulation test per stage.
