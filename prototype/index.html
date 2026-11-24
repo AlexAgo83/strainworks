@@ -317,6 +317,58 @@ const TYPES = {
   wall:{name:L('Mur'), help:L('Bloque et encaisse. Les créatures doivent le casser pour passer.'), hp:260},
   erase:{name:L('Démonter'), help:L('Touche ou balaie ce que tu veux retirer : un drone vient le défaire, le temps de la pose. Tourelles et murs rendent leur ADN à la fin, moins les dégâts.')}
 };
+// What each piece does, read by hasTrait(): every type, the core included, declares its traits here and nowhere else.
+// turn: turns in place; capped: its rank caps a line's; ring: rank drawn as rings; rate: makes rank items a second;
+// outFront / inBack: hands on ahead, takes from behind, along a bridge; source / listen: speaks on or listens to a nerve;
+// single: holds one item out; stock: a stock others take from; reserve: its stock counts as reserve; intake: takes into its stock;
+// notFront: takes from any side but its front; backOnly: takes only from behind; anySide: takes from every side;
+// make: produces, with a rate shown; lineEnd: where a traced line starts; fork: sends a line several ways;
+// aimless: placed with no heading; ownEmpty: empties its own way; retap: turned by placing it again; onBelt: may replace a belt;
+// produce: a line in the statistics; traced / drawn: the tool traces a path / draws by dragging; noCell: never a saved cell; noSpecimen: not in the lab view.
+const TRAITS = {
+  hand:'aimless noCell noSpecimen',
+  belt:'turn traced outFront inBack notFront aimless retap drawn',
+  gate:'turn listen outFront inBack notFront onBelt',
+  lab:'',
+  screen:'turn listen',
+  desk:'turn source',
+  relay:'',
+  radar:'source',
+  mine:'turn outFront single make lineEnd retap produce',
+  pump:'stock anySide intake aimless ownEmpty reserve drawn',
+  track:'traced aimless drawn noCell noSpecimen',
+  pocket:'stock intake lineEnd aimless reserve',
+  worm:'aimless noCell noSpecimen',
+  ligase:'turn ring listen rate outFront single notFront make lineEnd retap produce',
+  pack:'turn ring listen rate outFront single make lineEnd ownEmpty retap produce',
+  glue:'anySide intake',
+  mist:'',
+  harpoon:'',
+  arm:'turn',
+  burn:'ring anySide',
+  unbind:'turn rate backOnly make',
+  unjoin:'turn rate backOnly make',
+  reaper:'turn single',
+  flip:'turn rate single backOnly make',
+  unpack:'turn rate single backOnly make',
+  join:'turn ring listen rate outFront single make lineEnd retap produce',
+  turret:'ring aimless',
+  cyst:'turn outFront source stock notFront intake reserve retap',
+  bridge:'fork aimless onBelt',
+  borer:'stock lineEnd produce',
+  vault:'turn outFront source stock notFront intake ownEmpty reserve retap',
+  split2:'turn capped ring inBack fork retap onBelt',
+  split:'turn capped ring outFront inBack fork retap onBelt',
+  sort:'turn capped ring listen outFront inBack fork retap onBelt',
+  wire:'aimless drawn noCell',
+  sting:'ring aimless',
+  maw:'ring aimless',
+  wall:'ring aimless',
+  erase:'traced aimless drawn noCell noSpecimen',
+  core:'source anySide ownEmpty'
+};
+const TRAIT_SETS = Object.fromEntries(Object.entries(TRAITS).map(([type, words]) => [type, new Set(words.split(' ').filter(Boolean))]));
+const hasTrait = (type, trait) => Boolean(TRAIT_SETS[type]?.has(trait));
 const VEIN = {reach:24, speed:16, pulse:.5, load:8, cap:48, hp:50};
 const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 const STAGES = [
@@ -746,7 +798,6 @@ function richAt(x, y) {
 let wormId = null;
 // The way the next piece faces is the player's, kept from one piece, one game and one visit to the next.
 const HEADING_KEY = 'strainworks-heading';
-const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','vault','split2','split','sort','unpack','flip','unbind','unjoin','reaper','desk','screen','arm'];
 const WAYS = [L('haut'), L('droite'), L('bas'), L('gauche')];
 let heading = 0;
 try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) {}
@@ -903,9 +954,7 @@ const RANKS = {
   harpoon:{cost:[0, 260, 650], time:5},
   wall:{cost:[0, 24, 80], time:2}
 };
-const CAPPED = new Set(['split2', 'split', 'sort']);
 // The ones whose drawing does not show their rank itself: one ring a rank above the first.
-const RINGED = new Set([...CAPPED, 'ligase', 'join', 'pack', 'burn', 'turret', 'sting', 'maw', 'wall']);
 const GUN_RANK = [1, 1.5, 2], WALL_RANK = [1, 2, 3];
 const HOLD = {cyst:[60, 120, 240], vault:[360, 720, 1440]};
 const capOf = c => HOLD[c.type][rankOf(c) - 1];
@@ -915,7 +964,7 @@ const rankCost = (type, mk = 1) => RANKS[type]?.cost[mk - 1] || 0;
 const upCost = (c, mk) => rankCost(c.type, mk) - rankCost(c.type, rankOf(c));
 const canRise = (c, mk) => Boolean(RANKS[c.type]) && c.up == null && c.out == null && rankOf(c) < mk && rankOpen(mk);
 function perSecond(c) {
-  if (['ligase', 'join', 'pack', 'unpack', 'flip', 'unbind', 'unjoin'].includes(c.type)) return rankOf(c);
+  if (hasTrait(c.type, 'rate')) return rankOf(c);
   if (c.type !== 'mine' && c.type !== 'borer') return 1;
   return rankOf(c) * (c.type === 'borer' ? BORER.harvesters : 1) * Math.min(richCap(), richUnder(c) || 1);
 }
@@ -951,7 +1000,7 @@ let uncapped = false;
 function rankFollowers() {
   if (G.ranked) return;
   G.ranked = true;
-  const list = allCells().filter(c => CAPPED.has(c.type) && c.mk == null);
+  const list = allCells().filter(c => hasTrait(c.type, 'capped') && c.mk == null);
   uncapped = true; paces.clear();
   const ranks = list.map(c => paceOf(c) / BELT_SPEED);
   uncapped = false; paces.clear();
@@ -967,7 +1016,7 @@ function paceOf(c, axis = 0) {
   const group = new Map([[id(c, axis), [c, axis % 2]]]);
   let slow = Infinity, cap = Infinity;
   for (const [one, ax] of group.values()) {
-    if (CAPPED.has(one.type) && !uncapped) cap = Math.min(cap, rankOf(one));
+    if (hasTrait(one.type, 'capped') && !uncapped) cap = Math.min(cap, rankOf(one));
     for (let d = 0; d < 4; d++) {
     if (one.type === 'bridge' && d % 2 !== ax) continue;
     const n = ahead(one, d);
@@ -1347,11 +1396,11 @@ function wayOf(c, axis) {
     let before = c, after = c;
     do before = ahead(before, (dir + 2) % 4); while (before?.type === 'bridge');
     do after = ahead(after, dir); while (after?.type === 'bridge');
-    if (before && ['belt','gate','mine','ligase','join','pack','cyst','vault','split','sort'].includes(before.type) && before.dir === dir) return dir;
+    if (before && hasTrait(before.type, 'outFront') && before.dir === dir) return dir;
     if (before?.type === 'sort' && sideExit(before) === dir) return dir;
     if (before?.type === 'split2' && splitExits(before).includes(dir)) return dir;
     if (before && drains(before)) return dir;
-    if (after && ['belt','gate','split2','split','sort'].includes(after.type) && after.dir === dir) return dir;
+    if (after && hasTrait(after.type, 'inBack') && after.dir === dir) return dir;
   }
   return null;
 }
@@ -1609,8 +1658,7 @@ function sight(turrets, radars) {
 // What a listener hears: its network as a whole, or the one source on it the player chose.
 let VIEW = new Map();
 const heardOf = c => VIEW.get(key(c.x, c.y)) || netOf(c);
-const LISTENERS = ['gate', 'sort', 'ligase', 'join', 'pack', 'screen'];
-const isSource = c => Boolean(c) && (isGun(c) || ['radar', 'core', 'cyst', 'vault', 'desk'].includes(c.type));
+const isSource = c => Boolean(c) && (isGun(c) || hasTrait(c.type, 'source'));
 // Once per tick: each network gets the antidotes its turrets need, the most needed first.
 function sense() {
   NET = new Map(); NET_HOPS = new Map(); VIEW = new Map();
@@ -1669,7 +1717,7 @@ function sense() {
       if (src.type === 'desk' && src.mode === 'hand' && src.gene) return {...net, list:[src.gene], focus:src.gene, source:src, live:true};
       return {...net, source:src};
     };
-    for (const id of group) if (LISTENERS.includes(G.cells[id]?.type)) VIEW.set(id, viewOf(G.cells[id]));
+    for (const id of group) if (hasTrait(G.cells[id]?.type), 'listen') VIEW.set(id, viewOf(G.cells[id]));
     // A Ligase on the nerve drops the bases it was given for the last antidote, so it never makes a mix of two.
     for (const id of group) {
       const c = G.cells[id], heard = VIEW.get(id);
@@ -1705,14 +1753,14 @@ function armReach(c) {
 // What lies ready in a cell, in the order it would leave: the item on a rail, a machine's output, a stock.
 function liftable(src) {
   if (!src || !built(src)) return [];
-  if (isBelt(src) || isSplit(src) || src.type === 'sort' || ['mine','ligase','join','pack','unpack','flip','reaper'].includes(src.type)) return src.item ? [src.item] : [];
-  if (['cyst','vault','pocket','pump','borer'].includes(src.type)) return src.stock.slice(0, settled(src.stock, src.due));
+  if (isBelt(src) || isSplit(src) || src.type === 'sort' || hasTrait(src.type, 'single')) return src.item ? [src.item] : [];
+  if (hasTrait(src.type, 'stock')) return src.stock.slice(0, settled(src.stock, src.due));
   return [];
 }
 function lift(arm, src) {
   const out = [], fits = item => !arm.pick || item === arm.pick || contentOf(item) === arm.pick;
   if (!src || !built(src)) return out;
-  if (['cyst','vault','pocket','pump','borer'].includes(src.type)) {
+  if (hasTrait(src.type, 'stock')) {
     let ready = liftable(src).length;
     for (let i = 0; i < ready && out.length < armHolds(arm);) {
       if (fits(src.stock[i])) { out.push(src.stock.splice(i, 1)[0]); ready--; } else i++;
@@ -1800,15 +1848,15 @@ function wireUp(a, b) {
 function connects(c, travel) {
   if (!c) return false;
   const back = (travel + 2) % 4;
-  if (['belt','gate','ligase','cyst','vault'].includes(c.type)) return back !== c.dir;
+  if (hasTrait(c.type, 'notFront')) return back !== c.dir;
   if (isSplit(c) || c.type === 'sort') return travel === c.dir;
   if (c.type === 'bridge') { const way = c.ways?.[travel % 2]; return way == null || way === travel; }
   if (c.type === 'pocket') return !c.unload;
   if (c.type === 'join') return joinPort(c, travel) >= 0;
   if (c.type === 'pack') return packPort(c, travel) >= 0;
   // The unpacker takes its box from behind only.
-  if (['unpack', 'flip', 'unbind', 'unjoin'].includes(c.type)) return travel === c.dir;
-  return isGun(c) || ['core','pump','burn','glue'].includes(c.type);
+  if (hasTrait(c.type, 'backOnly')) return travel === c.dir;
+  return isGun(c) || hasTrait(c.type, 'anySide');
 }
 function accepts(c, item, travel) {
   if (!built(c) || !connects(c, travel)) return false;
@@ -1861,10 +1909,10 @@ function receive(c, item, travel, carry = 0) {
   if (c.type === 'gate' && c.batch) c.passed = (c.passed || 0) + 1;
   if (isBelt(c) || isSplit(c) || c.type === 'sort') { c.item = item; c.t = carry; }
   else if (c.type === 'ligase') intoPort(c, portOf(c, travel), item, travel);
-  else if (['cyst','vault','pump','pocket','glue'].includes(c.type)) intoStock(c, item, travel);
+  else if (hasTrait(c.type, 'intake')) intoStock(c, item, travel);
   else if (c.type === 'join') intoPort(c, strandPort(c, item) ?? joinPort(c, travel), item, travel);
   else if (c.type === 'pack') intoPort(c, packPort(c, travel), item, travel);
-  else if (['unpack', 'flip', 'unbind', 'unjoin'].includes(c.type)) intoPort(c, 0, item, travel);
+  else if (hasTrait(c.type, 'backOnly')) intoPort(c, 0, item, travel);
   else if (isGun(c)) { c.gulp = {item, from:travel, t:G.time}; const gene = contentOf(item); c.ammo[gene] = (c.ammo[gene] || 0) + (boxOf(item) ? PACK.size : 1); }
   else if (c.type === 'bridge') c.lanes[travel % 2] = {item, dir:travel, t:carry};
   else if (c.type === 'burn') { c.gulp = {item, from:travel, t:G.time}; c.busy = Math.max(c.busy || 0, G.time - STEP) + 1 / (BELT_SPEED * rankOf(c)); c.burnt = (c.burnt || 0) + 1; }
@@ -1895,7 +1943,7 @@ function flow(dt) {
       c.clock = Math.min(c.clock, 1);
     }
     if (c.type === 'reaper') { reap(c); continue; }
-    if (!['mine','ligase','join','pack','unpack','flip','unbind','unjoin'].includes(c.type)) continue;
+    if (!hasTrait(c.type, 'make')) continue;
     c.made = c.made.filter(t => t > G.time - 10);
     if (c.item) {
       // Faster than a first belt, it goes on working through the beat it waits for the rail.
@@ -1963,7 +2011,7 @@ function flow(dt) {
         }
         if (c.hold?.length && armReach(c) >= 1) offer(c, c.hold[0], c.dir, () => { c.hold.shift(); if (!c.hold.length) c.doneAt = G.time; });
       }
-      if (['mine','ligase','join','pack','unpack','flip','reaper'].includes(c.type) && c.item) offer(c, c.item, c.dir, () => { c.item = null; });
+      if (hasTrait(c.type, 'single') && c.item) offer(c, c.item, c.dir, () => { c.item = null; });
       // Left, ahead, right.
       if (c.outs) c.outs.forEach((item, i) => { if (item) offer(c, item, outSide(c, i), () => { c.outs[i] = null; }); });
       if (c.type === 'unpack' && c.ports[2].length) offer(c, c.ports[2][0], (c.dir + 1) % 4, () => { c.ports[2].shift(); });
@@ -2430,13 +2478,13 @@ function upstream(c, side) {
     const {c:from, dir} = links[0], id = key(from.x, from.y) + dir;
     if (seen.has(id)) break;
     seen.add(id); path.push(from);
-    if (['mine','borer','ligase','join','pack','pocket'].includes(from.type)) break;
+    if (hasTrait(from.type, 'lineEnd')) break;
     if (from.type === 'pump') {
       const back = pumps().find(p => p.to === key(from.x, from.y));
       links = back ? [{c:back, dir}] : feeders(from);
       continue;
     }
-    links = feeders(from, ['bridge','split2','split','sort'].includes(from.type) ? ((from.type === 'bridge' ? dir : from.dir) + 2) % 4 : null);
+    links = feeders(from, hasTrait(from.type, 'fork') ? ((from.type === 'bridge' ? dir : from.dir) + 2) % 4 : null);
   }
   return path;
 }
@@ -3028,7 +3076,7 @@ function draw() {
   for (const c of cells) {
     const size = sizeOf(c);
     ctx.save(); ctx.translate(c.x + size / 2,c.y + size / 2); ctx.scale(size,size); if (!built(c)) ctx.globalAlpha = .4; drawCell(ctx,c,isBelt(c) ? feeders(c).map(f => (f.dir + 2) % 4) : []);
-    if (RINGED.has(c.type)) for (let i = 1; i < rankOf(c); i++) circle(ctx,0,0,.36 + i * .06,null,i > 1 ? '#C77DFF' : '#F0A03C',.04);
+    if (hasTrait(c.type, 'ring')) for (let i = 1; i < rankOf(c); i++) circle(ctx,0,0,.36 + i * .06,null,i > 1 ? '#C77DFF' : '#F0A03C',.04);
     ctx.restore();
   }
   for (const c of cells) {
@@ -3421,14 +3469,14 @@ function showActions() {
     return;
   }
   if (!c) {
-    if (!['hand','erase','belt','wall','bridge','turret','sting','maw','track','worm','pocket','pump','wire'].includes(tool))
+    if (!hasTrait(tool, 'aimless'))
       button(L`Sens : ${WAYS[heading]}`, () => { setHeading((heading + 1) % 4); showActions(); });
     return;
   }
   if (c.type === 'core') {
     return;
   }
-  if (TURNS.includes(c.type)) button(L('Tourner'), () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
+  if (hasTrait(c.type, 'turn')) button(L('Tourner'), () => { c.dir = (c.dir + 1) % 4; if (tool === c.type) setHeading(c.dir); });
   if (c.type === 'ligase') button(L('Inverser 1↔3'), () => { c.flip = !c.flip; c.ports.reverse(); c.portDue?.reverse(); c.last = [...c.last].reverse().join(''); });
   if (c.type === 'bridge') [0, 1].forEach(axis => {
     const set = c.ways?.[axis] ?? null, name = axis ? 'Voie ↔' : 'Voie ↕';
@@ -3440,7 +3488,7 @@ function showActions() {
     button(L('Vider'), () => { for (const p of network(c)) { p.stock = []; p.packets = []; } });
   }
   // Any machine holding something can be emptied; pumps and encapsulators keep their own, which empty more.
-  if (!['core', 'pump', 'pack', 'vault'].includes(c.type) && holdsAnything(c)) button(L('Vider'), () => { emptyOut(c); refresh(); showActions(); });
+  if (!hasTrait(c.type, 'ownEmpty') && holdsAnything(c)) button(L('Vider'), () => { emptyOut(c); refresh(); showActions(); });
   if (c.type === 'desk') {
     button(L`Priorité : ${DESK_NAMES[c.mode || 'most']}`, () => { c.mode = DESK.modes[(DESK.modes.indexOf(c.mode || 'most') + 1) % DESK.modes.length]; sense(); showActions(); });
     if (c.mode === 'hand') {
@@ -3499,12 +3547,12 @@ function showActions() {
       button(L`S’ouvre sur : ${WHEN[c.when || 'gene'].name}`, () => { c.when = order[(order.indexOf(c.when || 'gene') + 1) % order.length]; c.passed = 0; sense(); showActions(); });
       if (c.when && c.when !== 'gene') button(c.batch ? L`Lot : ${c.batch} à chaque ouverture` : L('Lot : sans limite'), () => { c.batch = BATCHES[(BATCHES.indexOf(c.batch || 0) + 1) % BATCHES.length]; c.passed = 0; showActions(); });
     }
-    if (['gate', 'sort', 'ligase', 'join', 'pack', 'screen'].includes(c.type) && !(c.type === 'gate' && c.when && c.when !== 'gene')) {
+    if (hasTrait(c.type, 'listen') && !(c.type === 'gate' && c.when && c.when !== 'gene')) {
       button(c.read ? L`Lit : position ${c.read}` : L('Lit : gène entier'), () => { c.read = ((c.read || 0) + 1) % ((heardOf(c)?.focus?.length || 3) > 3 ? 7 : 4); showActions(); });
     }
     if (c.type === 'gate') button(L`Si coupé : ${c.open ? 'vert' : 'rouge'}`, () => { c.open = !c.open; showActions(); });
     if (c.type === 'cyst' || c.type === 'vault') button(L`Plein à : ${Math.ceil(capOf(c) * (c.level ?? .5))} / ${capOf(c)}`, () => { c.level = [.25, .5, .75, 1][([.25, .5, .75, 1].indexOf(c.level ?? .5) + 1) % 4]; sense(); showActions(); });
-    if (LISTENERS.includes(c.type)) {
+    if (hasTrait(c.type), 'listen') {
       const src = c.source && G.cells[c.source];
       button(L`Écoute : ${sourceName(c, src)}. Changer`, () => {
         listening = key(c.x, c.y); select(null);
@@ -3591,7 +3639,7 @@ function stockOf(gene) {
   let n = 0;
   for (const c of allCells()) {
     if (isGun(c)) n += c.ammo[gene] || 0;
-    if (['cyst','vault','pump','pocket'].includes(c.type)) for (const item of c.stock) { if (item === gene) n++; else if (item === `A:${gene}`) n += PACK.size; }
+    if (hasTrait(c.type, 'reserve')) for (const item of c.stock) { if (item === gene) n++; else if (item === `A:${gene}`) n += PACK.size; }
   }
   return n;
 }
@@ -3733,9 +3781,9 @@ function place(x,y) {
   }
   if (tool === 'erase') return wipe(x,y);
   if (old) {
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
+    if (old.type === tool && hasTrait(tool, 'retap')) { old.dir = (old.dir + 1) % 4; setHeading(old.dir); }
     // A bridge may replace a belt, to make a crossing on an existing line.
-    else if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) { dropRise(old); G.dna += refund(old); build(tool,x,y,old.dir); }
+    else if (old.type === 'belt' && hasTrait(tool, 'onBelt')) { dropRise(old); G.dna += refund(old); build(tool,x,y,old.dir); }
     select(key(old.x,old.y));
     return;
   }
@@ -3788,7 +3836,6 @@ function bridgeOver(c, dir) {
   return b;
 }
 // Belts, trails and dismantling are drawn first: the line is only a path, shown as a ghost, built when let go.
-const TRACED = ['belt', 'track', 'erase'];
 // A line runs straight. It turns only once the pointer is TURN cells off its way, the corner level with the pointer:
 // a diagonal gives one L, never stairs. A turn really taken is kept and the next leg starts at its corner;
 // back on the line before a corner, that turn is taken up again. drag.flip lays the L the other leg first (R).
@@ -3995,8 +4042,8 @@ function preview() {
   if (old) {
     if (drawing) return to('select');
     // The ghost shows the way it faces now; a tap turns it.
-    if (old.type === tool && ['belt','mine','ligase','join','pack','cyst','vault','split2','split','sort'].includes(tool)) return to('turn', {type:tool, dir:old.dir, label:L('Tourner')});
-    if (old.type === 'belt' && ['bridge','split2','split','sort','gate'].includes(tool)) return to('build', {type:tool, dir:old.dir});
+    if (old.type === tool && hasTrait(tool, 'retap')) return to('turn', {type:tool, dir:old.dir, label:L('Tourner')});
+    if (old.type === 'belt' && hasTrait(tool, 'onBelt')) return to('build', {type:tool, dir:old.dir});
     return to('select', {label:old.type === 'core' ? L('Cœur') : TYPES[old.type].name});
   }
   const cost = costInHand(tool), ghost = {type:tool, mk:inHand(tool), dir:drawing && drag?.heading != null ? drag.heading : heading, cost};
@@ -4056,7 +4103,7 @@ function drawPreview(g, models) {
     g.strokeStyle = color; g.lineWidth = 2 / cam.zoom; g.stroke();
   }
   const touched = gesture && !hovered, keys = act === 'build' && !touched && !NARROW.matches;
-  const piece = keys && p.type ? [TYPES[p.type]?.name + (p.mk > 1 ? ` MK${p.mk}` : ''), p.cost ? L`${p.cost} ADN` : '', p.dir != null && TURNS.includes(p.type) ? L('R tourner') : '', L('Échap lâcher')].filter(Boolean).join(' · ') : '';
+  const piece = keys && p.type ? [TYPES[p.type]?.name + (p.mk > 1 ? ` MK${p.mk}` : ''), p.cost ? L`${p.cost} ADN` : '', p.dir != null && hasTrait(p.type, 'turn') ? L('R tourner') : '', L('Échap lâcher')].filter(Boolean).join(' · ') : '';
   const text = p.why || p.label || piece || (p.cost ? L`${p.cost} ADN` : '');
   if (!text) return;
   // The words keep one size at every zoom, and stay on the board.
@@ -4224,7 +4271,7 @@ canvas.addEventListener('pointermove', event => {
   if (gesture.hold && Math.hypot(p.x - gesture.start.x,p.y - gesture.start.y) >= 8) stopHold();
   if (gesture.mode === 'tap') {
     if (Math.hypot(p.x - gesture.start.x,p.y - gesture.start.y) < 8) return;
-    if (!['belt','erase','pump','track','wire'].includes(tool)) { gesture.mode = 'pan'; pan(p.x - gesture.start.x,p.y - gesture.start.y); return; }
+    if (!hasTrait(tool, 'drawn')) { gesture.mode = 'pan'; pan(p.x - gesture.start.x,p.y - gesture.start.y); return; }
     gesture.mode = 'draw';
     const from = position(gesture.start);
     if (!inside(from.x,from.y)) return;
@@ -4238,7 +4285,7 @@ canvas.addEventListener('pointermove', event => {
       if (!drag.existing && !placeable(from.x,from.y)) { drag = null; return; }
       drag.vein = {...from}; drag.aim = {...from};
     }
-    if (TRACED.includes(tool)) { drag.path = [tool === 'track' ? {...from, ...tileAt(from.x, from.y)} : {...from}]; sayPath(); }
+    if (hasTrait(tool, 'traced')) { drag.path = [tool === 'track' ? {...from, ...tileAt(from.x, from.y)} : {...from}]; sayPath(); }
   }
   if (gesture.mode === 'pan') pan(p.x - last.x,p.y - last.y);
   else if (drag) { const to = position(p); if (inside(to.x,to.y)) stretch(to); }
@@ -4346,7 +4393,7 @@ function pipette() {
   if (!c || !$('tools').querySelector(`[data-type="${c.type}"]`)) { refuse(L('Pipette : survole un bâtiment à reprendre.')); return; }
   if (RANKS[c.type]) handRank[c.type] = rankOf(c);
   choose(c.type);
-  if (tool === c.type && TURNS.includes(c.type)) setHeading(c.dir);
+  if (tool === c.type && hasTrait(c.type, 'turn')) setHeading(c.dir);
 }
 document.addEventListener('keydown', event => {
   if (actionOf(event) !== 'pick' || event.repeat || modalOpen() || G.over) return;
@@ -4635,9 +4682,9 @@ function rotate(back) {
   const by = back ? 3 : 1, building = tool !== 'hand' && tool !== 'erase';
   const p = hovered && preview(), under = p && cellAt(p.x, p.y);
   // With a piece in hand the last one placed stays selected: it must not take the key from the next.
-  const c = under && (TURNS.includes(under.type) || under.type === 'bridge') ? under : !building && selected ? G.cells[selected] : null;
+  const c = under && (hasTrait(under.type, 'turn') || under.type === 'bridge') ? under : !building && selected ? G.cells[selected] : null;
   if (c?.type === 'bridge') turnWay(c, back ? 0 : 1);
-  else if (c && TURNS.includes(c.type)) {
+  else if (c && hasTrait(c.type, 'turn')) {
     c.dir = (c.dir + by) % 4;
     if (building) setHeading(c.dir);
   } else {
@@ -5447,7 +5494,7 @@ function paintInfo() {
     else if (c?.type === 'belt' || follows(c)) parts.push(`${paceOf(c)}/s`);
     if (c?.up != null) parts.push(L`vers MK${c.upTo}`);
     if (c && isGun(c)) parts.push(L`${String(Math.round(reachOf(c.type) * 10) / 10).replace('.', DEC)} cases`);
-    if (c && TURNS.includes(c.type)) parts.push(L(['vers le haut', 'vers la droite', 'vers le bas', 'vers la gauche'][c.dir]));
+    if (c && hasTrait(c.type, 'turn')) parts.push(L(['vers le haut', 'vers la droite', 'vers le bas', 'vers la gauche'][c.dir]));
     const life = worm ? [worm.hp, WORM.hp] : [c.hp, fullHp(c)];
     parts.push(life[0] < life[1] - .5 ? `${Math.ceil(life[0])} / ${life[1]} PV` : `${life[1]} PV`);
     $('card-sub').textContent = parts.join(' · ');
@@ -5790,6 +5837,7 @@ const STAT_TABS = [
   ['threat', L('Menace'), '<path d="M1 8h4l1.5-4 3 8 1.5-4h4"/>'],
   ['logi', L('Logistique'), '<path d="M1 5h10l-2-2M15 11H5l2 2"/>']
 ];
+// The statistics' order; which pieces produce is their 'produce' trait.
 const PRODUCERS = ['mine', 'borer', 'ligase', 'join', 'pack'];
 $('stats').querySelector('.tabs').innerHTML = STAT_TABS.map(([id, name, d]) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${d}</svg><span>${name}</span></button>`).join('');
 $('stats').querySelector('.tabs').onclick = event => {
@@ -5823,7 +5871,7 @@ function holeOf(type) {
 function production() {
   const lines = new Map();
   for (const c of allCells()) {
-    if (!PRODUCERS.includes(c.type) || !built(c)) continue;
+    if (!hasTrait(c.type, 'produce') || !built(c)) continue;
     const item = outputOf(c), id = `${c.type}|${item}`;
     const line = lines.get(id) || {type:c.type, item, n:0, now:0, max:0};
     line.n++; line.now += (c.made?.length || 0) * 6; line.max += perSecond(c) * 60;
@@ -5849,7 +5897,7 @@ function problems() {
     if (!built(c)) continue;
     const name = TYPES[c.type]?.name || '';
     if (isGun(c) && !Object.values(c.ammo).some(n => n)) out.push([c, 'red', L`${name} à sec`, L('plus de munitions')]);
-    else if (PRODUCERS.includes(c.type) && !c.made?.length) {
+    else if (hasTrait(c.type, 'produce') && !c.made?.length) {
       if (c.item) out.push([c, 'amber', L`${name} bloqué`, L('sortie pleine')]);
       else if (c.ports) {
         const empty = c.type === 'pack' ? (readyPort(c, 0) < PACK.size ? L('gènes manquants') : L('carbone manquant')) : L`entrée ${c.ports.findIndex((p, i) => !readyPort(c, i)) + 1} vide`;
@@ -6136,7 +6184,7 @@ function checkGame(game) {
   if (!plain(game.cells) || Object.keys(game.cells).length > FILE.cells || !coreIn(game.cells)) return false;
 
   const rank = c => c.mk == null || [1, 2, 3].includes(c.mk);
-  const known = c => c.type === 'core' || (Object.hasOwn(TYPES, c.type) && !['hand', 'erase', 'track', 'worm', 'wire'].includes(c.type));
+  const known = c => c.type === 'core' || (Object.hasOwn(TYPES, c.type) && !hasTrait(c.type, 'noCell'));
   const pieces = c => count(c.hp) && side(c.dir)
     && (c.to == null || where(c.to)) && (c.box == null || Object.hasOwn(BOX, c.box)) && (c.side == null || [1, 3].includes(c.side))
     && (c.read == null || (Number.isInteger(c.read) && c.read >= 0 && c.read <= 6)) && (c.want == null || /^([SFCNKI?]|[SFCN?]{3}|[SFCN?]{6})$/.test(c.want))
@@ -7339,7 +7387,7 @@ function labSpot() {
 }
 function labSpecimens() {
   return [['cell', 'core', 'Core'],
-    ...Object.keys(TYPES).filter(t => !['hand', 'erase', 'track', 'worm'].includes(t)).map(t => ['cell', t, `${TYPES[t].name} (${t})`]),
+    ...Object.keys(TYPES).filter(t => !hasTrait(t, 'noSpecimen')).map(t => ['cell', t, `${TYPES[t].name} (${t})`]),
     ...Object.keys(LAB_GENES).map(k => ['creature', k, `Creature ${k}, gene ${LAB_GENES[k]}`]),
     ...[0, 1, 2, 3].flatMap(form => [['nest', `${form}:sleep`, `Nest form ${form}, asleep`], ['nest', `${form}:wake`, `Nest form ${form}, awake`]]),
     ['drone', 'drone', 'Drone, hovering']];

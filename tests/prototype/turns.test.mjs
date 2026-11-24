@@ -16,7 +16,7 @@ it("lets the unpacker and the inverter turn, and points at their ways in and out
       G.open = true;
       const u = put("unpack", 20, 70, 1), f = put("flip", 22, 70, 1);
       const ways = (c) => portsOf(c).map((p) => `${p.out ? "out" : "in"}${p.dir}`).sort();
-      return { turns: ["unpack", "flip", "screen"].every((t) => TURNS.includes(t)), unpack: ways(u), flip: ways(f) };
+      return { turns: ["unpack", "flip", "screen"].every((t) => hasTrait(t, "turn")), unpack: ways(u), flip: ways(f) };
     });
     expect(out.turns).toBe(true);
     expect(out.unpack).toEqual(["in3", "out1", "out2"]);
