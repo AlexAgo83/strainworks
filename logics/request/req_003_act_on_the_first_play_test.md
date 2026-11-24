@@ -7,6 +7,7 @@
 > Complexity: High
 > Theme: Player experience
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 19:20:40
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -68,6 +69,12 @@
 - `item_013_make_drawing_and_dismantling_lines_follow_one_rule`
 - `item_014_stop_empty_inputs_from_reading_as_errors`
 - `item_015_review_room_carry_over_between_stages_waits_and_the_reason_to_fight`
+- `item_016_give_the_player_a_reason_to_fight`
+- `item_017_carry_production_over_between_stages_with_base_genes_drawn_per_game`
+- `item_018_tighten_the_economy_so_dna_and_ranks_matter`
+- `item_019_make_each_stage_require_a_mechanic_the_game_already_has`
+- `item_020_shorten_recipes_and_free_room_round_the_core`
+- `item_021_draw_recipes_from_the_base_genes_and_show_the_final_goal`
 
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |

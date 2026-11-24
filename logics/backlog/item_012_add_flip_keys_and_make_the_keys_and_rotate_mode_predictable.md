@@ -1,13 +1,14 @@
 ## item_012_add_flip_keys_and_make_the_keys_and_rotate_mode_predictable - Add flip keys and make the keys and rotate mode predictable
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Controls
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 19:28:07
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -31,6 +32,9 @@
 - AC2: The eyedropper key is shown in the dock's tooltips.
 - AC3: A test covers a click in rotate mode.
 
+# Implementation notes (2026-11-24)
+- H mirrors and V turns round the machine under the pointer or selected; the sheet's turn, mirror and take-another buttons name their key; a first tap with a like piece in hand selects, a second turns.
+
 # AC Traceability
 - request-AC5 -> This backlog slice. Proof: AC1: H and V swap the sides of every machine that has a swap button.
 
@@ -51,4 +55,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-

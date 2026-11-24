@@ -8,7 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 17:44:10
+> Indicators reviewed: 2026-11-24 19:21:31
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -42,6 +42,11 @@
 - Pace: the game already has a x1/x3 speed button; the tester found it by chance and played at x3 from mid-game, and waits still felt long. It is shown from the start and gains a faster step; counts stay as they are, since continuous consumption takes weight off fixed counts.
 - Line drawing (item_013): the simple cases are fixed first (no link to a harvester a line passes beside, a bridge dismantles without breaking the line before it); the drawing rule itself waits for the tester's live walkthrough.
 - Order: the modularization (req_002, steps 2 to 5) finishes first; this play test work, design included, follows on the split and tested simulation. Each decision above becomes its own backlog item when that work starts.
+
+# Follow-up (2026-11-24)
+- The decisions became items 016 (reason to fight), 017 (base genes drawn per game, carried over), 018 (economy), 019 (one existing mechanic per stage), 020 (shorter recipes, room round the core) and 021 (recipes from base genes, final goal shown).
+- Done in the quick fixes: the speed button names its next speed and gains a x6 step; on a short screen it moves beside the pause, where the side toggle cannot cover it.
+- Two proposals wait for the operator: the base gene pool and the final goal text.
 
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: A design note records a decision for each point.

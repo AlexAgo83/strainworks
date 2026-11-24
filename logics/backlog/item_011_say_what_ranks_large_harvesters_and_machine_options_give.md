@@ -1,13 +1,14 @@
 ## item_011_say_what_ranks_large_harvesters_and_machine_options_give - Say what ranks, large harvesters and machine options give
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Interface
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 19:28:07
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -30,6 +31,9 @@
 - AC1: Each rank button shows what it changes in numbers.
 - AC2: Empty stays offered after use.
 
+# Implementation notes (2026-11-24)
+- Rank buttons show the rate before and after for machines with a rate; the large harvester's help gives 6, 12 and 18 bases a second; Empty stays offered after use; the sheet offers 'En prendre un autre' with its key.
+
 # AC Traceability
 - request-AC4 -> This backlog slice. Proof: AC1: Each rank button shows what it changes in numbers.
 
@@ -50,4 +54,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-

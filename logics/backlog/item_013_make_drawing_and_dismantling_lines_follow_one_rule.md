@@ -8,7 +8,7 @@
 > Complexity: High
 > Theme: Controls
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 17:43:51
+> Indicators reviewed: 2026-11-24 19:28:07
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -35,6 +35,9 @@
 # Findings (2026-11-24)
 - A large harvester empties onto every belt along its eight edges, so a line drawn past it takes its output without being drawn from it (reproduced: 37 items in 10 s into a passing line).
 - The drawing rule (an L whose corner moves until a turn is held for two cells, a one-cell step near the start turning at once) is deterministic but invisible; the tester's live walkthrough decides what to change.
+
+# Implementation notes (2026-11-24)
+- Simple cases done: a large harvester feeds only a line drawn from it (heading away or starting there), not one passing along its side; a bridge dismantled on its own gives its belt back. The drawing rule itself waits for the tester's walkthrough, so this item stays open.
 
 # AC Traceability
 - request-AC6 -> This backlog slice. Proof: AC1: Tests cover extend, turn, branch, passing beside a harvester and dismantling a bridge.

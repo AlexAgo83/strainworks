@@ -1,13 +1,14 @@
 ## item_010_fit_the_core_s_sheet_and_the_panels_on_small_screens - Fit the core's sheet and the panels on small screens
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Interface
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 19:28:07
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -29,6 +30,9 @@
 - AC1: At 1280 by 720 every row of the core's sheet can be reached.
 - AC2: No sheet overlaps the dock.
 
+# Implementation notes (2026-11-24)
+- The machine card's height is bounded by the room between the top and the dock, and it scrolls past it; checked at 1280x720, 844x390 and 390x844, where the speed button also stays uncovered.
+
 # AC Traceability
 - request-AC3 -> This backlog slice. Proof: AC1: At 1280 by 720 every row of the core's sheet can be reached.
 
@@ -49,4 +53,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-

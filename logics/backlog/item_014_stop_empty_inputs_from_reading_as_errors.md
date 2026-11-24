@@ -1,13 +1,14 @@
 ## item_014_stop_empty_inputs_from_reading_as_errors - Stop empty inputs from reading as errors
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: Low
 > Theme: Interface
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 19:28:08
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -26,6 +27,9 @@
 
 # Acceptance criteria
 - AC1: An empty Ligase input is drawn without red in 2D and 3D.
+
+# Implementation notes (2026-11-24)
+- Filled inputs are drawn green and empty ones grey, never red; belt arrows are larger and brighter.
 
 # AC Traceability
 - request-AC7 -> This backlog slice. Proof: AC1: An empty Ligase input is drawn without red in 2D and 3D.
@@ -47,4 +51,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-
