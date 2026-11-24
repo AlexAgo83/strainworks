@@ -1,0 +1,100 @@
+{
+  "title": "Modularize the single-file prototype",
+  "references": [
+    "prototype/index.html",
+    "prototype/view3d.js",
+    "vite.config.mjs",
+    "tsconfig.json",
+    "biome.json",
+    "logics/backlog/item_002_port_the_simulation_with_equal_behavior.md"
+  ],
+  "request": {
+    "complexity": "High",
+    "theme": "Architecture",
+    "needs": [
+      "Split the game out of one 9,500-line page into ES modules and TypeScript, through the Vite already installed, with no UI framework.",
+      "Keep the game the player sees unchanged and the 92 existing browser tests green at every step.",
+      "Bring all game code under the linter and the type checker, and stop pinning the Babylon CDN by hand.",
+      "Track progress step by step; the operator implements every step in operator sessions, not missions."
+    ],
+    "context": [
+      "Audit of 2026-11-24 on 0.1.38: prototype/index.html is 9,500 lines and 680 KB: about 1,040 lines of CSS, an inline base64 sprite sheet, an 870-line English dictionary and about 7,000 lines of one global script (387 functions, 305 top-level let/const, mutable state G, ui, NET, cam).",
+      "Biome lints src, tests, scripts and site; tsc checks src only, which holds a declaration file and fr.json: the game code is neither linted nor typed.",
+      "41 distinct hand-written lists of building types stand for traits (produces, turns, listens to a nerve, wears a rank ring); adding a building means finding each one.",
+      "20 empty catch blocks; some guard browser storage, others may hide bugs.",
+      "92 Playwright tests drive the game through its globals (put, step, G), one file at a time; CI takes about 5 minutes; there is no fast unit test of the simulation.",
+      "The Babylon CDN version and SRI hash are written by hand in index.html: the Dependabot bump to 9.37.1 broke every 3D test until both were updated.",
+      "Measured on the 591-building demo in headless Chromium without a GPU: 2.5 ms a simulation step, 25 ms a 2D frame drawn in software; device measurements come before any optimization.",
+      "The simulation split (step 3) is item_002_port_the_simulation_with_equal_behavior, already ready under req_000; this request orders it among the other steps."
+    ],
+    "acceptance_criteria": [
+      "AC1: The CSS, the English dictionary and the sprite sheet live in their own files, and index.html holds markup and the game script only.",
+      "AC2: One building trait table replaces the hand-written type lists, and adding a building touches that table instead of scattered lists.",
+      "AC3: The game script is split into ES modules under src (render, interface, planet, audio, saves) served by Vite, with a small window API the existing tests use.",
+      "AC4: Biome and tsc cover all game code, the Babylon CDN pin is generated from the installed package at build, and every empty catch is either justified in a comment or removed.",
+      "AC5: Every step keeps the 92 existing tests green and the game the player sees unchanged, checked on the demo base."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Move the CSS, the English dictionary and the sprite sheet out of the page",
+      "priority": "High",
+      "complexity": "Low",
+      "theme": "Architecture",
+      "request_acs": ["AC1", "AC5"],
+      "problem": ["Inert content makes up about a fifth of index.html and hides the code around it."],
+      "scope_in": ["The main stylesheet, the base64 model sprite sheet and the EN dictionary as separate files loaded by the page and the built site.", "The site build and its offline cache list them."],
+      "scope_out": ["Any change to the styles, the texts or the models."],
+      "acceptance_criteria": ["AC1: index.html no longer contains the stylesheet, the sprite sheet data or the EN dictionary.", "AC2: The built site plays offline with the new files cached, checked by tests/site.test.mjs.", "AC3: All 92 tests pass unchanged."]
+    },
+    {
+      "title": "Replace the building type lists with one trait table",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Architecture",
+      "request_acs": ["AC2", "AC5"],
+      "problem": ["41 hand-written type lists carry building traits; a new building silently misses some of them."],
+      "scope_in": ["Traits on each TYPES entry (or one table beside it) and helpers reading them.", "Every literal type list that stands for a trait replaced by a trait query."],
+      "scope_out": ["Lists that are data, such as the order of a tray or a tutorial step."],
+      "acceptance_criteria": ["AC1: No literal list of building types stands for a trait outside the trait table.", "AC2: A test checks that every building type declares its traits.", "AC3: All existing tests pass unchanged."]
+    },
+    {
+      "title": "Split the game script into ES modules",
+      "priority": "Medium",
+      "complexity": "High",
+      "theme": "Architecture",
+      "request_acs": ["AC3", "AC5"],
+      "problem": ["One global script of about 7,000 lines shares mutable state across 387 functions; nothing can be read, tested or reused alone."],
+      "scope_in": ["Modules under src for the 2D render, the interface, the planet screen, music and effects, saves and import/export, built by Vite.", "A small window API exposing what the browser tests call, so they keep working during and after the move."],
+      "scope_out": ["A UI framework, an ECS or a state library.", "The simulation itself, moved by item_002."],
+      "acceptance_criteria": ["AC1: index.html loads the game from src modules through Vite in dev and in the built site.", "AC2: The browser tests reach the game only through the window API.", "AC3: All existing tests pass and the demo base looks and plays the same."]
+    },
+    {
+      "title": "Lint and type all game code, and generate the Babylon CDN pin",
+      "priority": "Medium",
+      "complexity": "Medium",
+      "theme": "Quality",
+      "request_acs": ["AC4", "AC5"],
+      "problem": ["The game code escapes Biome and tsc, the CDN pin is copied by hand, and empty catch blocks may hide failures."],
+      "scope_in": ["Biome and tsc on all of src and the remaining prototype scripts in npm run check.", "The Babylon CDN URL and SRI hash derived from the installed babylonjs package at build.", "Each empty catch justified in a one-line comment or replaced by real handling."],
+      "scope_out": ["A rewrite of working code for style alone."],
+      "acceptance_criteria": ["AC1: npm run check lints and typechecks every game module.", "AC2: Bumping babylonjs needs no manual edit for the 3D tests to pass.", "AC3: No empty catch remains without a comment saying why."]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Orchestrate the modularization of the prototype",
+    "plan": [
+      "Step 1: move the CSS, the EN dictionary and the sprite sheet out of index.html; run the full suite; commit.",
+      "Step 2: replace the type lists with the trait table; run the full suite; commit.",
+      "Step 3: run item_002_port_the_simulation_with_equal_behavior: src/sim in TypeScript without DOM or renderer, with fast Node unit tests; commit.",
+      "Step 4: split the remaining script into src modules behind a window test API; check the demo base on screen; commit.",
+      "Step 5: Biome and tsc on all game code, generated Babylon CDN pin, empty catches reviewed; commit.",
+      "After each step: record progress in this task, push to main once CI is green, and release only when the operator asks."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/modularize_the_prototype.json",
+    "mode": "summary-only",
+    "profile": "normal"
+  }
+}
