@@ -2004,7 +2004,7 @@ const EN = {
   "Grand kyste": "Large cyst",
   "4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.": "4 cells of one same deposit. Pulls like 6 harvesters and outputs by its 8 edges: connect several belts.",
   "Grand récolteur": "Large harvester",
-  "Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.": "Two flows cross without mixing. Tap it to set the direction of each lane. It runs at the pace of the slowest belt touching it.",
+  "Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Chaque voie va au rythme de ses propres tapis.": "Two flows cross without mixing. Tap it to set the direction of each lane. Each lane runs at the pace of its own belts.",
   "Pont": "Bridge",
   "Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut. Relié à un nerf, il dit au feu le plus proche s’il est plein ou bas.": "Stores 60 items, 120 at MK2, 240 at MK3, and lets them out by the arrow. Fill it before an assault. On a nerve, it tells the nearest gate whether it is full or low.",
   "Kyste": "Cyst",
@@ -2213,7 +2213,7 @@ const TYPES = {
   join:{name:L('Assembleur'), help:L('Gène 1 à gauche, gène 2 à droite : un brin de deux gènes sort devant, le premier en tête.'), hp:60},
   turret:{name:L('Tourelle'), help:L('Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.'), hp:180},
   cyst:{name:L('Kyste'), help:L('Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut. Relié à un nerf, il dit au feu le plus proche s’il est plein ou bas.'), hp:80},
-  bridge:{name:L('Pont'), help:L('Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.'), hp:40},
+  bridge:{name:L('Pont'), help:L('Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Chaque voie va au rythme de ses propres tapis.'), hp:40},
   borer:{name:L('Grand récolteur'), help:L('4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.'), hp:180},
   vault:{name:L('Grand kyste'), help:L('4 cases, 360 objets, 720 en MK2, 1440 en MK3. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.'), hp:200},
   split2:{name:L('Diviseur 2'), help:L('Entrée derrière. Répartit à tour de rôle entre la gauche et la droite. Le tout droit est fermé.'), hp:40},
@@ -2851,7 +2851,7 @@ function exitsOf(c) {
   if (c.type === 'bridge') return [0, 1].map(axis => wayOf(c, axis)).filter(way => way != null);
   return isBelt(c) ? [c.dir] : [];
 }
-// A bridge, gate, splitter or sorter runs as slow as the slowest rail it joins. Those side by side share one pace.
+// A bridge lane, gate, splitter or sorter runs as slow as the slowest rail it joins. Those side by side share one pace.
 let paces = new Map();
 const follows = c => Boolean(c) && (c.type === 'gate' || c.type === 'bridge' || c.type === 'sort' || isSplit(c));
 // Splitters and sorters of a game from before their ranks take the rank of their rails, free, so nothing slows down.
@@ -2865,30 +2865,34 @@ function rankFollowers() {
   uncapped = false; paces.clear();
   list.forEach((c, i) => { if (ranks[i] > 1) c.mk = ranks[i]; });
 }
-function paceOf(c) {
+function paceOf(c, axis = 0) {
   if (c.type === 'belt') return BELT_SPEED * rankOf(c);
   if (!follows(c)) return BELT_SPEED;
-  if (paces.has(c)) return paces.get(c);
-  const group = new Set([c]);
+  // A bridge's two lanes run apart, each at the pace of its own rails; axis 0 is vertical, 1 horizontal.
+  const id = (one, ax) => one.type === 'bridge' ? `${key(one.x, one.y)}|${ax % 2}` : key(one.x, one.y);
+  const exits = (one, ax) => one.type === 'bridge' ? [wayOf(one, ax)].filter(way => way != null) : exitsOf(one);
+  if (paces.has(id(c, axis))) return paces.get(id(c, axis));
+  const group = new Map([[id(c, axis), [c, axis % 2]]]);
   let slow = Infinity, cap = Infinity;
-  for (const one of group) {
+  for (const [one, ax] of group.values()) {
     if (CAPPED.has(one.type) && !uncapped) cap = Math.min(cap, rankOf(one));
     for (let d = 0; d < 4; d++) {
+    if (one.type === 'bridge' && d % 2 !== ax) continue;
     const n = ahead(one, d);
     if (!n || (n.type !== 'belt' && !follows(n))) continue;
     const back = (d + 2) % 4;
-    if (!(exitsOf(one).includes(d) && connects(n, d)) && !(exitsOf(n).includes(back) && connects(one, back))) continue;
-    if (n.type === 'belt') slow = Math.min(slow, rankOf(n)); else group.add(n);
+    if (!(exits(one, ax).includes(d) && connects(n, d)) && !(exits(n, d % 2).includes(back) && connects(one, back))) continue;
+    if (n.type === 'belt') slow = Math.min(slow, rankOf(n)); else if (!group.has(id(n, d))) group.set(id(n, d), [n, d % 2]);
     }
   }
   const pace = BELT_SPEED * Math.min(slow === Infinity ? 1 : slow, cap);
-  for (const one of group) paces.set(one, pace);
+  for (const at of group.keys()) paces.set(at, pace);
   return pace;
 }
 // A storage gives at the pace of the rail it gives to.
 function mouthPace(door, dir) {
   const to = ahead(door, dir);
-  return to && (to.type === 'belt' || follows(to)) ? paceOf(to) : BELT_SPEED;
+  return to && (to.type === 'belt' || follows(to)) ? paceOf(to, dir) : BELT_SPEED;
 }
 // The row a belt is in: on through bridges and gates, up to a machine or to where another row takes over.
 function rowOf(c) {
@@ -3784,7 +3788,7 @@ function flow(dt) {
   crawl(dt);
   for (const c of cells) {
     if (isBelt(c) || isSplit(c) || c.type === 'sort') c.t = c.item ? advance(c.t, dt * paceOf(c)) : 0;
-    if (c.type === 'bridge' && (c.lanes[0] || c.lanes[1])) { const by = dt * paceOf(c); for (const lane of c.lanes) if (lane) lane.t = advance(lane.t, by); }
+    if (c.type === 'bridge') c.lanes.forEach((lane, axis) => { if (lane) lane.t = advance(lane.t, dt * paceOf(c, axis)); });
     if (c.type === 'cyst') c.t = advance(c.t, dt * mouthPace(c, c.dir));
     // Two mouths, each at the pace of a belt.
     if (c.type === 'vault') {
@@ -3921,7 +3925,7 @@ function flow(dt) {
       const opened = o.to.gapAt === G.time;
       let carry = Math.max(0, o.carry, opened ? o.to.gap : 0);
       if (o.carry > 0 && (o.to.type === 'belt' || follows(o.to))) {
-        const slow = paceOf(o.to), fast = o.from.type === 'cyst' || o.from.type === 'vault' ? slow : paceOf(o.from);
+        const slow = paceOf(o.to, o.dir), fast = o.from.type === 'cyst' || o.from.type === 'vault' ? slow : paceOf(o.from, o.dir);
         // Onto a slower rail a head start is the same time, so less of a cell, and never more than the room left.
         if (fast > slow) carry = opened ? o.to.gap : o.carry * slow / fast;
       }
@@ -4552,7 +4556,7 @@ function circle(g, x, y, r, fill, stroke, width = .04) {
 // Where an item is in its cell: a curve from the edge it came in by to the edge it leaves by.
 // With the middle as control point a straight cell gives a constant speed.
 function along(c, travel, out, progress) {
-  const t = Math.min(1, progress + owed * paceOf(c)), u = 1 - t;
+  const t = Math.min(1, progress + owed * paceOf(c, out)), u = 1 - t;
   const from = travel < 0 || travel === (out + 2) % 4 ? out : travel;
   return {
     x:c.x + .5 - DX[from] * .5 * u * u + DX[out] * .5 * t * t,
@@ -7340,7 +7344,8 @@ function paintInfo() {
     $('card-title').textContent = type === 'core' ? L('Cœur') : TYPES[type].name + (RANKS[type] ? ` MK${rankOf(c)}` : '');
     const parts = [];
     if (c?.type === 'pack') parts.push(BOX[c.box].name);
-    if (c?.type === 'belt' || follows(c)) parts.push(`${paceOf(c)}/s`);
+    if (c?.type === 'bridge') parts.push(`${paceOf(c, 0)}/s ↕ ${paceOf(c, 1)}/s ↔`);
+    else if (c?.type === 'belt' || follows(c)) parts.push(`${paceOf(c)}/s`);
     if (c?.up != null) parts.push(L`vers MK${c.upTo}`);
     if (c && isGun(c)) parts.push(L`${String(Math.round(reachOf(c.type) * 10) / 10).replace('.', DEC)} cases`);
     if (c && TURNS.includes(c.type)) parts.push(L(['vers le haut', 'vers la droite', 'vers le bas', 'vers la gauche'][c.dir]));

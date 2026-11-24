@@ -109,8 +109,7 @@ export const STEPS = [
       { t: "belt", x: 47, y: 29, d: 2, mk: 1 },
       // The capsules: west, south down x=44 over the bus twice, east into the core.
       ...run(46, 30, 45, 30, 3, 1),
-      // MK3 down x=44: a bridge goes at the pace of the slowest belt it touches, and the bus crosses here.
-      ...run(44, 30, 44, 51, 2, 3).map((b) => (b.y === 32 || b.y === 40 ? { t: "bridge", x: b.x, y: b.y, d: 0 } : b)),
+      ...run(44, 30, 44, 51, 2, 1).map((b) => (b.y === 32 || b.y === 40 ? { t: "bridge", x: b.x, y: b.y, d: 0 } : b)),
       ...run(44, 52, 46, 52, 1, 1),
     ],
     wires: [["console CFF", "lig3"], ["lig3", "lig3.a"], ["lig3", "lig3.b"], ["lig3", "lig3.c"]],

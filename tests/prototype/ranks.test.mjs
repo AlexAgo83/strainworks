@@ -396,3 +396,31 @@ it("makes transformers and burners faster and defences stronger by rank, and kee
     await browser.close();
   }
 });
+
+it("runs each lane of a bridge at the pace of its own rails", async () => {
+  const browser = await launch();
+  try {
+    const { page, errors } = await open(browser);
+    const out = await page.evaluate(() => {
+      // An MK3 line east and an MK1 line south cross on a bridge: what each delivers a second.
+      lab();
+      const east = put("cyst", 14, 80, 1), south = put("cyst", 19, 76, 2);
+      for (const x of [15, 16, 17, 18, 20, 21, 22]) put("belt", x, 80, 1).mk = 3;
+      for (const y of [77, 78, 79, 81, 82, 83]) put("belt", 19, y, 2);
+      const bridge = put("bridge", 19, 80, 0);
+      const ends = [put("vault", 23, 80, 1), put("vault", 19, 84, 2)];
+      const got = [0, 0];
+      for (let i = 0; i < 800; i++) {
+        east.stock = Array(40).fill("S");
+        south.stock = Array(40).fill("F");
+        step(STEP);
+        ends.forEach((end, k) => { if (i >= 400) got[k] += end.stock.length; end.stock = []; });
+      }
+      return { lanes: [paceOf(bridge, 1), paceOf(bridge, 0)], delivered: got.map((n) => Math.round(n / 20)) };
+    });
+    expect(out).toEqual({ lanes: [12, 4], delivered: [12, 4] });
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});
