@@ -2,9 +2,9 @@
 > From version: 0.1.38
 > Schema version: 1.0
 > Status: Ready
-> Understanding: 90%
-> Confidence: 85%
-> Progress: 0%
+> Understanding: 95%
+> Confidence: 90%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -29,6 +29,15 @@
 # Acceptance criteria
 - AC1: The longest stage recipe needs at most an agreed number of input lines.
 - AC2: The ground round the core keeps an agreed free area at the start.
+
+# Operator decision (2026-11-24)
+- A recipe takes at most 3 input lines, this game's base genes counting as intermediates, and a 16 x 16 square round the core is free of deposits and obstacles.
+
+# Implementation notes (2026-11-24)
+- `inputLines` and `MOST_LINES` in `src/sim/sim.ts`: a base gene already made is one line, any other gene its three bases, a box adds carbon, a heavy box its isotope too.
+- Recipes changed to fit: the heavy capsule of stages 5 and 6 holds one base gene (`H:c`, three lines) instead of a strand of two (four). The family born on entering stage 4 is the one the third base gene answers, so the antidote magazines asked there are magazines of a base gene (two lines). That family may be a palindrome, unlike the ones bred at random.
+- `CLEARING` and `inClearing`: in new games no deposit cell is drawn in the 16 x 16 square round the core; nests already stood farther. Older saves keep their deposits.
+- Proof: `tests/sim/room.test.ts` (every recipe of every stage over 200 seeds, the stage 4 antidote, the square over 20 seeds).
 
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: The longest stage recipe needs at most an agreed number of input lines.

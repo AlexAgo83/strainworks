@@ -39,7 +39,8 @@ it("builds every stage's recipe on the base genes", () => {
   expect(items(2)).toEqual([`T:${a}${b}`, b + c]);
   expect(items(3)[1]).toBe(`T:${b}${c}`);
   expect(items(3)[0]).toMatch(/^A:/);
-  expect(items(4)).toContain(`H:${a}${b}`);
+  // A heavy capsule of one base gene since item_020: three lines, the gene, carbon and isotope.
+  expect(items(4)).toContain(`H:${c}`);
   for (let stage = 1; stage <= 5; stage++)
     for (const item of items(stage).filter((i: string) => !i.startsWith("A:")))
       expect(sim.contentOf(item).match(/.{3}/g)?.every((gene: string) => G.base.includes(gene))).toBe(true);

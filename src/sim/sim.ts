@@ -189,6 +189,9 @@ export const OUTER = [
   ['F',12,20,7,6], ['S',78,18,7,6], ['N',10,78,7,7], ['C',80,80,7,7]
 ];
 export let FIELDS = [], DEPOSIT = {}, RICH = {};
+// A 16 x 16 square round the core stays free of deposits and nests in new games, room to build (item_020).
+export const CLEARING = 8;
+export const inClearing = (x, y) => x >= CORE.x - CLEARING && x < CORE.x + CLEARING && y >= CORE.y - CLEARING && y < CORE.y + CLEARING;
 export function richness(x, y) { const d = Math.hypot(x - CORE.x - .5, y - CORE.y - .5); return d < 18 ? 1 : d < 34 ? 2 : 4; }
 // Round the base one nest is enough: the one the first turret faces. The others start this far from the core.
 export const CALM = 30;
@@ -257,7 +260,7 @@ export function survey() {
   for (const field of FIELDS) {
     const own = nests.get(field), rich = richness(field[1] + field[3] / 2, field[2] + field[4] / 2);
     const patch = makePatch(field, (i, j) => {
-      if (DEPOSIT[i + ',' + j] || Math.hypot(i - CORE.x, j - CORE.y) < 4) return false;
+      if (DEPOSIT[i + ',' + j] || Math.hypot(i - CORE.x, j - CORE.y) < 4 || (G.far && inClearing(i, j))) return false;
       const mine = inRect(field, i, j);
       if (!mine && FIELDS.some(other => other !== field && inRect(other, i, j))) return false;
       // A bare cell between two deposits, or they read as one.
@@ -829,7 +832,8 @@ export function drawBase() {
 export const eaten = () => (G.base || []).slice(0, Math.min(BASE_COUNT, G.stage + 1));
 export function hungryFor() { return eaten().filter(gene => !(G.time - (G.baseAt?.[gene] ?? -1e9) <= BASE_WINDOW)); }
 // The stages built on the base genes: one, then a strand of two, its capsule and a strand reusing a gene, the
-// antidote that asks for the fight, then a heavy capsule.
+// antidote that asks for the fight (the family born at stage 4 is the one the third base gene answers), then a
+// heavy capsule of one gene.
 export function layeredGoals(stage) {
   const [a, b, c] = G.base, anti = `A:${opposite(G.mutant || G.families[G.families.length - 1])}`;
   const plans = [
@@ -837,11 +841,20 @@ export function layeredGoals(stage) {
     [[a + b, 30]],
     [[`T:${a}${b}`, 10], [b + c, 30]],
     [[anti, 40], [`T:${b}${c}`, 10]],
-    [[`H:${a}${b}`, 8], [`T:${b}${c}`, 16], [anti, 30]],
-    [[`H:${a}${b}`, 12], [`T:${b}${c}`, 16], [anti, 40]],
+    [[`H:${c}`, 8], [`T:${b}${c}`, 16], [anti, 30]],
+    [[`H:${c}`, 12], [`T:${b}${c}`, 16], [anti, 40]],
   ];
   return (plans[stage] || []).map(([item, count]) => ({item, count, fed:0}));
 }
+// How many lines a recipe takes to the machines that make it (item_020): this game's base genes are already made,
+// one line each; any other gene takes its three bases; a box adds its carbon, a heavy one its isotope too. A base
+// gene asked on its own takes its three bases.
+export function inputLines(item) {
+  const box = boxOf(item), genes = contentOf(item).match(/.{3}/g) || [];
+  const lines = genes.length === 1 && !box ? 3 : genes.reduce((n, gene) => n + (G.base?.includes(gene) ? 1 : 3), 0);
+  return lines + (box ? 1 : 0) + (BOX[box]?.isotope ? 1 : 0);
+}
+export const MOST_LINES = 3;
 export function drawGoals(stage) {
   if (G.base) return layeredGoals(stage);
   if (stage === 0) return [{item:STAGES[0].item, count:STAGES[0].count, fed:0}];
@@ -865,7 +878,7 @@ export function grow() {
   coreCell().hp = 100;
   hooks.select(null);
   hooks.tell(L`${done.name} achevé : le cœur grandit. ${done.gives}, +${GROWTH_BONUS} ADN.`);
-  if (G.stage === 3) { G.mutant = mutation(); G.mutateAt = G.time + MUTATION.every; }
+  if (G.stage === 3) { G.mutant = mutation(G.base ? opposite(G.base[2]) : null); G.mutateAt = G.time + MUTATION.every; }
   if (G.goals) G.goals = drawGoals(G.stage);
   if (G.stage === STAGES.length && G.won == null) G.won = G.time;
   if (G.stage === 4) G.labDiscount = true;
@@ -1510,7 +1523,9 @@ export function flow(dt) {
 export const MUTATION = {every:300, spread:2};
 export const familyCap = () => G.stage >= 3 ? 8 : 6;
 // A family one base away from an old one, never a palindrome: swapping entries 1 and 3 must always matter.
-export function breed(b) {
+// want: the family to bring, for a stage that asks its antidote; it joins the families if new.
+export function breed(b, want = null) {
+  if (want) { if (!G.families.includes(want)) G.families.push(want); if (b) b.genes.push(want); return want; }
   if (G.families.length >= familyCap()) return '';
   let born;
   do { born = mutate(G.families[Math.floor(Math.random() * G.families.length)]); } while (G.families.includes(born) || born[0] === born[2]);
@@ -1533,10 +1548,10 @@ export function mutationTarget() {
   return pool.find((o, i) => (roll -= weights[i]) <= 0) || pool[pool.length - 1];
 }
 // Stage 4 on: a mutation now and then, on a breach still alive.
-export function mutation() {
+export function mutation(want = null) {
   hooks.playSound('mutation');
   const b = mutationTarget();
-  const born = breed(b);
+  const born = breed(b, want);
   if (born && b) b.mutations = (b.mutations || 0) + 1;
   if (born) hooks.tell(L`Mutation${b ? L` au ${bearing(b)}` : ''} : une nouvelle famille, son antidote est ${opposite(born)}.`, {at:b, gene:born, bad:true});
   return born;

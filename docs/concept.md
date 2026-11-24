@@ -345,6 +345,10 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
   Before, every gene paid 1 whatever it was, so income grew without bound with production and prices never held.
   The performance graph shows ADN a minute by source, to tune these figures by playing.
 - A dip in rate at stage 2 loses the time it lasted, never the whole minute.
+- **Room and recipes (Decided, 2026-11-24, item_020)**: a 16 x 16 square round the core is free of deposits and
+  nests in new games. A recipe takes at most three input lines, this game's base genes counting as one line each:
+  the heavy capsule holds one base gene, and the family born at stage 4 is the one a base gene answers, so its
+  antidote magazines are magazines of that base gene.
 - **Hunger (Decided, 2026-11-24)**: in a game with drawn base genes, the core eats them continuously. While one it
   eats has not arrived in the last 30 seconds, stage deliveries count half, not nothing.
 - The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.
