@@ -1105,7 +1105,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <div class="row"><span>Commandes</span><button id="help" class="tip">Voir</button></div>
     <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip" aria-label="Français" lang="fr">FR</button><button id="lang-en" class="tip" aria-label="English" lang="en">EN</button></span></div>
     <button class="row go" data-go="dev"><span>Développeur</span><b aria-hidden="true">›</b></button>
-    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.32</span></a>
+    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.33</span></a>
    </div>
    <div class="page" data-page="graphics" hidden>
     <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Graphismes</h2></div>
@@ -3657,10 +3657,12 @@ function flow(dt) {
       const given = c.type !== 'borer' && drains(c) ? settled(c.stock, c.due) : 0;
       if (given) {
         // One matter, so each side may take one in the same pass. Two pumps side by side need a vein.
+        // Every outer face counts: a 2 x 2 silo empties on all its free sides, not only round its first cell.
         let out = 0;
-        for (let i = 0; i < 4 && out < given; i++) {
-          const dir = (c.turn + i) % 4;
-          if (!(c.type === 'pump' && ahead(c, dir)?.type === 'pump') && offer(c, c.stock[0], dir, () => { c.stock.shift(); c.turn = (dir + 1) % 4; })) out++;
+        const doors = edgesOf(c);
+        for (let i = 0; i < doors.length && out < given; i++) {
+          const at = (c.turn + i) % doors.length, door = doors[at];
+          if (!(c.type === 'pump' && ahead(door, door.dir)?.type === 'pump') && offer(c, c.stock[0], door.dir, () => { c.stock.shift(); c.turn = (at + 1) % doors.length; }, 0, door)) out++;
         }
       }
       if (c.type === 'cyst' && c.t >= .999 && settled(c.stock, c.due)) offer(c, c.stock[0], c.dir, carry => { c.stock.shift(); c.t = carry; }, c.t - 1);

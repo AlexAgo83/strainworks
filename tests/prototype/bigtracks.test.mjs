@@ -48,3 +48,28 @@ it("runs a worm round a loop of big tiles and loads it from a silo", async () =>
     await browser.close();
   }
 });
+
+it("empties an unloading 2 by 2 silo on every free side, not only round its first cell", async () => {
+  const browser = await launch();
+  try {
+    const page = await browser.newPage();
+    await page.route("**/*", (route) => (route.request().url().startsWith("http://proto.test") ? route.fulfill({ body: pageHTML(), contentType: "text/html" }) : route.abort()));
+    await page.goto("http://proto.test/prototype/");
+    const out = await page.evaluate(() => {
+      begin();
+      paused = true;
+      Object.assign(G, { open: true, bigTracks: true, enemies: [], breaches: [] });
+      const silo = put("pocket", 40, 30, 0);
+      Object.assign(silo, { unload: true, stock: Array(20).fill("C") });
+      // Only the east face has a belt: before, a 2 x 2 silo looked east from its first cell, into itself.
+      const belt = put("belt", 42, 31, 1);
+      put("belt", 43, 31, 1);
+      for (let i = 0; i < 20 * 3; i++) step(0.05);
+      return { left: silo.stock.length, moving: Boolean(belt.item || cellAt(43, 31).item) };
+    });
+    expect(out.left).toBeLessThan(20);
+    expect(out.moving).toBe(true);
+  } finally {
+    await browser.close();
+  }
+});
