@@ -1,14 +1,14 @@
 ## item_008_reproduce_and_fix_the_stage_4_assembler_and_encapsulator_case - Reproduce and fix the stage 4 assembler and encapsulator case
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Gameplay
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 17:43:51
+> Indicators reviewed: 2026-11-24 18:54:24
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -30,10 +30,15 @@
 - AC1: A test reproduces the case.
 - AC2: The machine either works or says in its sheet what it waits for.
 
-# Findings (2026-11-24, reproduced in simulation)
-- An encapsulator set to magazine ('A') refuses two-gene strands: the strand waits on the belt forever, nothing is made, and the line backs up to the Ligase, whose full inputs show the red rings.
-- An encapsulator fed two different genes on one line takes the first, then the second waits outside until a box of the first is complete, which never comes: a permanent jam.
-- Set to capsule ('T'), or fed one gene, the same setup works: this matches "the same setup, one works and the other does not". Neither case says anything on the board or in the sheet.
+# Findings (2026-11-24)
+- Root cause of the tester's stage 4 case, found on the tester's own save (kept outside the repository): neither encapsulator was jammed. Both were set to capsule. One goal asked capsules of its gene and was filled; the other asked magazines of FCS, and its encapsulator made capsules of FCS that the core ate without counting them. The sheet said "Il tourne." for both. Measured on the save: in 30 s the core ate 10 capsules of FCS for a magazine goal left at 0/40, and 11 capsules of FFS that took that goal from 26/30 to 30/30.
+- Two other silent stops were reproduced earlier: an encapsulator set to magazine refusing two-gene strands, and a second, different gene waiting at the door until a box of the first is full. The sheet explained both once the machine was selected, but nothing showed on the map.
+- Operator decision: a signal only, no rule change; the core still accepts any box it is sent.
+
+# Implementation notes (2026-11-24)
+- `packWarning` in `src/game/actions.js`: an encapsulator whose box matches no open goal for its gene while another box would says "Le cœur demande des chargeurs de FCS : passe en chargeur."; one with a second gene waiting says which gene is inside and which waits outside.
+- Shown as a red ring on the map (like a dry turret), first in its sheet, and in the statistics' problem list. English lines added to `prototype/en.js`.
+- `tests/prototype/pack-warning.test.mjs` rebuilds both cases from scratch.
 
 # AC Traceability
 - request-AC1 -> This backlog slice. Proof: AC1: A test reproduces the case.
