@@ -1,5 +1,5 @@
 // The interface around the map: panels, the core card, the guide, the goal and the statistics.
-import { BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, PACK, RANKS, STAGES, TYPES, VEIN, WORM, allCells, bearing, boxOf, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, jobId, key, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
+import { eaten, hungryFor, BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, PACK, RANKS, STAGES, TYPES, VEIN, WORM, allCells, bearing, boxOf, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, jobId, key, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { buyLab, diagnose, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
@@ -283,7 +283,7 @@ export function stepsOf(item) {
 export function coreSheet() {
   const want = STAGES[G.stage];
   if (!want) return '';
-  if (G.goals && G.goals.length > 1) return goalsSheet(want);
+  if (G.goals && (G.goals.length > 1 || (G.base && G.goals.length))) return goalsSheet(want);
   if (!want.rate) return goalsSheet(want, [{item:want.item, count:want.count, fed:G.fed}]);
   const box = boxOf(want.item), body = contentOf(want.item), genes = body.match(/.{3}/g);
   const figure = n => n.toFixed(1).replace('.', DEC);
@@ -326,8 +326,12 @@ export function goalsSheet(want, goals = G.goals) {
   const giving = gives.length ? `<div class="gives">${gives.map(([type, name]) => `<span>${machineOf(type, name).replace(' machine', '')}${name}</span>`).join('')}</div>` : `<p class="unit">${want.gives}</p>`;
   const tab = ui.sheetTab === 'gives' ? 'gives' : 'asks';
   const tabs = `<div class="sheet-tabs" role="tablist"><button role="tab" data-sheet-tab="asks" aria-selected="${tab === 'asks'}">${L('Il réclame')}</button><button role="tab" data-sheet-tab="gives" aria-selected="${tab === 'gives'}">${L('Débloque')}</button></div>`;
-  const body = tab === 'gives' ? giving : `<div class="asks">${rows}</div><h3>${L('Recette')}</h3>${stepsOf(chosen.item).join('')}${hints}`;
-  return frieze + tabs + body;
+  // The base genes the core eats, each green while it came in the last half minute: a hungry core counts nothing.
+  const hungry = hungryFor(), base = G.base ? `<h3>${L('Gènes de base')}</h3><div class="base-genes">${eaten().map(gene => `<span class="${hungry.includes(gene) ? 'hungry' : 'fed'}">${picture(gene)}</span>`).join('')}</div>${hungry.length ? `<p class="unit hungry">${L`Le cœur a faim de ${hungry.join(', ')} : rien ne compte tant qu’il n’en reçoit pas.`}</p>` : ''}` : '';
+  const body = tab === 'gives' ? giving : `${base}<div class="asks">${rows}</div><h3>${L('Recette')}</h3>${stepsOf(chosen.item).join('')}${hints}`;
+  // What it is all for, and where the organism stands.
+  const story = `<p class="story">${L('La souche est malade. Une mutation la ronge de l’intérieur et chaque brèche en crache une forme nouvelle. Tu écris son antidote, gène après gène, jusqu’à ce que l’organisme guérisse et éclose.')}</p><p class="unit">${L`Stade ${G.stage + 1} sur ${STAGES.length} : ${STAGES[G.stage]?.name ?? ''}`}</p>`;
+  return story + frieze + tabs + body;
 }
 export function labSheet() {
   const tab = LAB_TABS[ui.labTab] ? ui.labTab : 'drones';

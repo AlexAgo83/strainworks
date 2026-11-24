@@ -220,6 +220,10 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #info { position:absolute; z-index:3; }
 #info.bloom { inset:0; }
 #card { position:relative; pointer-events:auto; overflow-y:auto; overscroll-behavior:contain; }
+#card .story { margin:6px 0 2px; color:var(--muted); font-size:12px; font-style:italic; }
+#card .base-genes { display:flex; gap:8px; }
+#card .base-genes .hungry { opacity:.45; outline:1px solid var(--alarm); border-radius:8px; }
+#card .unit.hungry, #order .unit.hungry { color:var(--alarm); }
 #info.bloom #card { position:absolute; left:0; top:0; width:280px; }
 .card-body { position:relative; padding:14px 18px 16px; }
 .card-head { display:flex; align-items:center; gap:11px; min-width:0; }

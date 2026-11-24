@@ -745,9 +745,10 @@ export function eat(item) {
   // nothing; what it does not ask for pays a third of a gene's worth.
   const holds = boxOf(item) ? fill(boxOf(item)) : 1;
   const want = STAGES[G.stage];
+  if (G.base?.includes(item)) (G.baseAt ||= {})[item] = G.time;
   if (G.goals) {
-    // The first recipe this item still counts for; the stage grows once every one is met.
-    const goal = G.goals.find(g => g.item === item && g.fed < g.count);
+    // The first recipe this item still counts for; the stage grows once every one is met. A hungry core counts nothing.
+    const goal = hungryFor().length ? null : G.goals.find(g => g.item === item && g.fed < g.count);
     if (!goal) { earn('core', holds * contentOf(item).length / 9); hooks.playNear('dna', coreCell() || CORE, .4); return; }
     goal.fed++; G.fed++;
     if (G.goals.every(g => g.fed >= g.count)) grow();
@@ -790,7 +791,38 @@ export function drawGene(taken) {
   }
   return 'SFS';
 }
+// The base genes: three drawn per game from a designed pool, whose bases the map has, at least one of them near the
+// core. Each stage's recipe is built on them, and the core keeps eating them as long as the game lasts.
+export const BASE_POOL = ['SFS', 'FFF', 'SSS', 'CCF', 'CSC', 'NFN', 'SSN', 'FNF'];
+export const BASE_COUNT = 3;
+// The core counts a stage's deliveries only while every base gene it already eats came in the last BASE_WINDOW seconds.
+export const BASE_WINDOW = 30;
+export function drawBase() {
+  const have = new Set(Object.values(DEPOSIT)), near = new Set(INNER.map(([kind]) => kind));
+  const pool = BASE_POOL.filter(gene => [...gene].every(b => have.has(b)) && [...gene].some(b => near.has(b)));
+  const out = [];
+  while (out.length < BASE_COUNT && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  return out;
+}
+// The base genes the core eats at this stage: the first at the start, one more a stage, all three from the third.
+export const eaten = () => (G.base || []).slice(0, Math.min(BASE_COUNT, G.stage + 1));
+export function hungryFor() { return eaten().filter(gene => !(G.time - (G.baseAt?.[gene] ?? -1e9) <= BASE_WINDOW)); }
+// The stages built on the base genes: one, then a strand of two, its capsule and a strand reusing a gene, the
+// antidote that asks for the fight, then a heavy capsule.
+export function layeredGoals(stage) {
+  const [a, b, c] = G.base, anti = `A:${opposite(G.mutant || G.families[G.families.length - 1])}`;
+  const plans = [
+    [[a, 100]],
+    [[a + b, 30]],
+    [[`T:${a}${b}`, 10], [b + c, 30]],
+    [[anti, 40], [`T:${b}${c}`, 10]],
+    [[`H:${a}${b}`, 8], [`T:${b}${c}`, 16], [anti, 30]],
+    [[`H:${a}${b}`, 12], [`T:${b}${c}`, 16], [anti, 40]],
+  ];
+  return (plans[stage] || []).map(([item, count]) => ({item, count, fed:0}));
+}
 export function drawGoals(stage) {
+  if (G.base) return layeredGoals(stage);
   if (stage === 0) return [{item:STAGES[0].item, count:STAGES[0].count, fed:0}];
   const plan = RECIPES[stage];
   if (!plan) return [];
@@ -823,7 +855,7 @@ export function fresh() {
   // The core alone, on a 3x3 plinth fed from any of its twelve faces: the guide has the player build the first line.
   put('core', CORE.x - 1, CORE.y - 1, 0).size = 3;
   survey();
-  if (hooks.drawsRecipes()) G.goals = drawGoals(0);
+  if (hooks.drawsRecipes()) { G.base = drawBase(); G.baseAt = {}; G.goals = drawGoals(0); }
   if (hooks.drawsRecipes()) G.bigTracks = true;
   // Tests replaying games recorded on the first line older versions gave lay it again here.
   hooks.testLine();
