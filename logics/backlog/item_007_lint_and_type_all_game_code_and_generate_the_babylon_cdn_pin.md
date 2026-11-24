@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Quality
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-24 18:25:45
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -31,6 +32,11 @@
 - AC2: Bumping babylonjs needs no manual edit for the 3D tests to pass.
 - AC3: No empty catch remains without a comment saying why.
 
+# Implementation notes (2026-11-24)
+- Done: the Babylon CDN address and SRI hash are written at build from the installed babylonjs package (`scripts/babylon-pin.mjs`, used by `vite.config.mjs` in dev and by `scripts/bundle-game.mjs` for the site and the tests). Bumping babylonjs needs no other edit.
+- Done: each of the 20 empty catch blocks says why in a one-line comment (blocked or full storage, a pointer already gone, a browser without an audio session, an unreadable save).
+- Left: typing and linting the game code. `src/sim/sim.ts` starts with `@ts-nocheck` and is left out of Biome (131 lint errors at the move); `src/game/*.js` is neither linted nor type-checked. Typing them under the strict tsconfig is the remaining work of this item: measured on 2026-11-24, removing `@ts-nocheck` from `sim.ts` alone gives 761 errors (493 implicit any parameters, 116 assignments to functions from `simSet`), before the 10 interface modules.
+
 # AC Traceability
 - request-AC4 -> This backlog slice. Proof: AC1: npm run check lints and typechecks every game module.
 - request-AC5 -> This backlog slice. Proof: AC2: Bumping babylonjs needs no manual edit for the 3D tests to pass.
@@ -52,4 +58,3 @@
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-
