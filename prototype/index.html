@@ -224,10 +224,24 @@
       <dt>Maj+1, 2, 3…</dt><dd>dans une famille ou les statistiques ouvertes, prendre la machine ou l’onglet</dd>
       <dt>Échap</dt><dd>tout lâcher et revenir sur Inspecter</dd>
     </dl>
+    <h3>Bâtiments</h3>
+    <p class="keys-head">Touche un bâtiment pour revoir sa carte.</p>
+    <div id="building-cards"></div>
     <p class="keys-head">Clique une touche pour la changer.</p>
     <dl id="keys"></dl>
     <p id="keys-note" role="status"></p>
     <div class="choice"><button id="keys-reset" class="tip">Touches par défaut</button><button id="help-close" class="tip">Fermer</button></div>
+  </dialog>
+
+  <dialog id="unlock" aria-labelledby="unlock-title">
+    <div class="unlock-scene"><canvas id="unlock-scene" width="480" height="480" role="img"></canvas><span class="loop">En boucle</span></div>
+    <div class="unlock-body">
+      <span id="unlock-kicker" class="kicker">Nouveau bâtiment</span>
+      <h2 id="unlock-title"></h2>
+      <p id="unlock-what"></p>
+      <ul id="unlock-keys"></ul>
+      <div class="foot"><span class="later">À revoir dans l’aide, rubrique Bâtiments</span><button id="unlock-ok" type="button">Compris</button></div>
+    </div>
   </dialog>
 
   <dialog id="lang-pick" aria-labelledby="lang-title">

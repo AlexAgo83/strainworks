@@ -5,6 +5,7 @@ import { L, LANG, LOCALE } from "../sim/text.ts";
 import { actionsSet, packWarning, breachesIn, build, buyLab, creatureAt, diagnose, dronePose, feeders, fieldsIn, incubate, keepIt, known, layTrack, link, netSummary, netWires, portSide, radarWave, raise, rankFollowers, recipe, rowOf, scrap, scrapVein, setHeading, shownNests, siteFor, stagePart, wireUp } from "./actions.js";
 import { audioSet, keepMusic, keepSfx, musicTick, paintMusic, paintPlaylist, paintSfx, placeOf, playSound, setLang, shuffleMusic, startSound } from "./audio.js";
 import { addPip, problems, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, tell, toggleFamily, travelTo } from "./hud.js";
+import { cardTypes, closeCard, paintCardList, showCard } from "./unlock.js";
 import { mirror, button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
 import { glide, keysSet, loadKeys, paintKeys, pipette } from "./keys.js";
 import { frame, labSet, startLab } from "./lab.js";
@@ -168,6 +169,9 @@ const WINDOW_API = {
   depositAt: [() => depositAt],
   diagnose: [() => diagnose],
   packWarning: [() => packWarning],
+  showCard: [() => showCard],
+  closeCard: [() => closeCard],
+  CARD_TYPES: [() => cardTypes()],
   problems: [() => problems],
   digest: [() => digest],
   drag: [() => drag, v => { drag = v; }],
@@ -861,7 +865,7 @@ export let repaid = 0;
 export const LESS_MOTION = matchMedia('(prefers-reduced-motion: reduce)'), STILL = {wanted:false, get matches() { return this.wanted || LESS_MOTION.matches; }}, NARROW = matchMedia('(max-width:759px), (max-height:520px)');
 export const ui = {family:null, menu:false, html:{}, dna:null, stage:null, locked:new Map(), events:[], point:null, saidAt:0, refusedAt:-1e9, grown:0, travel:null, picked:'', pickedAt:0, safe:{left:8, top:8, right:8, bottom:8}, at:'', dry:[]};
 export const motionTime = () => STILL.matches ? 0 : performance.now() / 1000;
-export const modalOpen = () => $('commands').open || orbit.on;
+export const modalOpen = () => $('commands').open || $('unlock').open || orbit.on;
 $('menu').addEventListener('click', event => { const to = event.target.closest('[data-go]'); if (to) menuPage(to.dataset.go); });
 // Where floating things may go without landing under the interface.
 // Phones fold the side controls away under the chevron; the choice is kept.
@@ -921,7 +925,10 @@ $('threat-toggle').onclick = () => {
 $('menu-toggle').onclick = () => showMenu(!ui.menu);
 // @ts-expect-error: loose typing, tightened module by module (item_007)
 for (const [id, less] of [['motion-auto', false], ['motion-less', true]]) $(id).onclick = () => { setMotion(less); keep(MOTION_KEY, less ? 'less' : 'auto'); };
-$('help').onclick = () => { showMenu(false); $('commands').showModal(); };
+$('help').onclick = () => { showMenu(false); paintCardList(); $('commands').showModal(); };
+$('building-cards').addEventListener('click', event => { const b = event.target.closest('[data-card]'); if (b) showCard(b.dataset.card, false); });
+$('unlock-ok').onclick = closeCard;
+$('unlock').addEventListener('close', closeCard);
 // Not a form: the frame the game is served in may refuse to submit one.
 $('help-close').onclick = () => $('commands').close();
 $('open-all').onclick = () => {

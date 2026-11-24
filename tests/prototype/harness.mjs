@@ -111,6 +111,16 @@ function frenchUnlessPicked() {
   } catch (_) {}
 }
 
+// A building's card opens on its first pick once a stage opened it; a test that is not about it starts as a player
+// who has seen them all.
+function cardsSeen() {
+  document.addEventListener("DOMContentLoaded", () => {
+    try {
+      if (!localStorage.getItem("strainworks-cards") && typeof CARD_TYPES !== "undefined") localStorage.setItem("strainworks-cards", JSON.stringify(CARD_TYPES));
+    } catch (_) {}
+  });
+}
+
 // Tests of the game step past the opening screen into the last game played, or a first one.
 function pastThePlanet() {
   document.addEventListener("DOMContentLoaded", () => {
@@ -122,7 +132,7 @@ export async function launch() {
   const browser = await chromium.launch({ headless: true });
   return {
     close: () => browser.close(),
-    async newContext({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, line = true, recipes = false, ...options } = {}) {
+    async newContext({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, line = true, recipes = false, cards = false, ...options } = {}) {
       const context = await browser.newContext(options);
       if (!fog) await context.addInitScript(seenEverywhere);
       if (!planet) await context.addInitScript(pastThePlanet);
@@ -130,6 +140,7 @@ export async function launch() {
       if (lang) await context.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
       if (!intro) await context.addInitScript(() => localStorage.setItem("strainworks-intro", "off"));
+      if (!cards) await context.addInitScript(cardsSeen);
       // Recipes drawn at random only where a test asks: the others replay the recipes they were written on.
       if (!recipes) await context.addInitScript(() => localStorage.setItem("strainworks-recipes", "fixed"));
       if (line) await context.addInitScript(startLine);
@@ -137,7 +148,7 @@ export async function launch() {
       await context.addInitScript(layoutProbe);
       return context;
     },
-    async newPage({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, line = true, recipes = false, ...options } = {}) {
+    async newPage({ fog = false, planet = false, view3d = false, lang = "fr", intro = false, line = true, recipes = false, cards = false, ...options } = {}) {
       const page = await browser.newPage(options);
       if (!fog) await page.addInitScript(seenEverywhere);
       if (!planet) await page.addInitScript(pastThePlanet);
@@ -145,6 +156,7 @@ export async function launch() {
       if (lang) await page.addInitScript(lang === "fr" ? frenchUnlessPicked : (picked) => localStorage.setItem("strainworks-lang", picked), lang);
       // The goal card opens on a first game; a test that is not about it starts as a player who has seen it.
       if (!intro) await page.addInitScript(() => localStorage.setItem("strainworks-intro", "off"));
+      if (!cards) await page.addInitScript(cardsSeen);
       // Recipes drawn at random only where a test asks: the others replay the recipes they were written on.
       if (!recipes) await page.addInitScript(() => localStorage.setItem("strainworks-recipes", "fixed"));
       if (line) await page.addInitScript(startLine);

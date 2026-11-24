@@ -8,6 +8,7 @@ import { choose, preview, refresh, say, select, showActions, turnWay, write } fr
 import { $, BABYLON_HASH, BABYLON_SRC, FAMILIES, KEYS, NEEDS, OLD_SAVE, SAVE, VIEW_KEY, WAYS, armed, chain, handRank, heading, held, hovered, keyName, made3d, mainSet, modalOpen, orbit, paused, repaid, restartText, selected, slotKey, switching, tabbed, tool, ui, view3d, wormId } from "./main.js";
 import { arrow, circle, drawCell, home, polygon, rect } from "./render.js";
 import { save } from "./saves.js";
+import { offerCard } from "./unlock.js";
 
 export function script(src, integrity) {
   return new Promise((resolve, reject) => {
@@ -90,7 +91,8 @@ export function toolPod(type) {
   if (BIG[type]) { const tag = document.createElement('span'); tag.className = 'size'; tag.textContent = '2×2'; b.append(tag); }
   if (NEEDS[type]) { const tag = document.createElement('span'); tag.className = 'price lock'; tag.textContent = L`stade ${NEEDS[type] + 1}`; b.append(tag); }
   if (PRICE[type]) { const tag = document.createElement('span'); tag.className = 'price'; b.append(tag); }
-  b.onclick = () => choose(type);
+  // Picked for the first time once a stage opened it: its card.
+  b.onclick = () => { choose(type); if (tool === type) offerCard(type); };
   b.addEventListener('pointerenter', event => {
     if (event.pointerType !== 'mouse') return;
     write($('hint'), TYPES[type].help.split(/(?<=[.!?])\s/)[0]);
