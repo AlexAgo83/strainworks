@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mutation de souche</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mockup for item_026 (req_001): after a hatching, choose one permanent strain mutation among three. */
+:root{--night:#070C0E;--membrane:rgba(8,16,18,.96);--edge:#52707A;--line:rgba(82,112,122,.35);--ink:#E9F3EF;--muted:#A9BDB8;--dim:#6E8580;--acid:#B7F34A;--cyan:#66D9EA;--alarm:#FF6B74;--amber:#F0A03C;--display:'Chakra Petch',Verdana,sans-serif;--body:'Barlow',Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--body);display:flex;align-items:center;justify-content:center;padding:24px 16px;
+  background:radial-gradient(circle at 50% 30%,rgba(183,243,74,.10),transparent 55%),#070C0E}
+.sheet{width:min(960px,100%);border:1px solid var(--edge);border-radius:16px;background:var(--membrane);padding:26px 26px 22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.kicker{margin:0;font:600 12px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--acid)}
+h1{margin:4px 0 6px;font:700 28px/1.15 var(--display)}
+.lead{margin:0 0 20px;color:var(--muted);font-size:15px;line-height:1.45}.lead b{color:var(--ink)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{position:relative;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;border:1px solid var(--line);background:#0B1417;text-align:left;color:inherit;font:inherit}
+.card.on{border-color:var(--acid);background:#111F12;box-shadow:0 0 0 1px var(--acid) inset,0 0 30px rgba(183,243,74,.15)}
+.pic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#1D3317 0 60%,#0B1417 61%);border:1px solid #36592A}
+.card h2{margin:0;font:700 18px var(--display)}
+.card p{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
+.card .stack{margin-top:auto;font-size:12px;color:var(--dim)}.card .stack b{color:var(--cyan);font-weight:600}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}
+.foot p{margin:0;font-size:13px;color:var(--dim)}
+.take{min-height:46px;padding:0 28px;border-radius:999px;border:1px solid var(--acid);background:var(--acid);color:#0B1417;font:700 16px var(--display)}
+@media (max-width:700px){
+  .sheet{padding:20px 16px 18px}
+  h1{font-size:23px}
+  .cards{grid-template-columns:1fr;gap:10px}
+  .card{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:12px}
+  .pic{width:48px;height:48px}.pic svg{width:28px;height:28px}
+  .card h2{flex:1;font-size:16px}
+  .card p{flex-basis:100%;font-size:13px}
+  .card .stack{flex-basis:100%;margin:0}
+  .take{width:100%}
+}
+</style></head><body>
+<main class="sheet" role="dialog" aria-labelledby="title">
+  <p class="kicker">Éclosion · hexagone purifié</p>
+  <h1 id="title">Choisis une mutation de souche</h1>
+  <p class="lead">Elle reste <b>pour toutes tes prochaines stations</b> sur cette planète. Les hexagones voisins sont ouverts, et plus durs.</p>
+  <div class="cards">
+    <button class="card">
+      <span class="pic"><svg width="36" height="36" viewBox="0 0 36 36"><ellipse cx="18" cy="18" rx="12" ry="6" fill="none" stroke="#66D9EA" stroke-width="2"/><circle cx="18" cy="18" r="4.5" fill="#E9F3EF"/><circle cx="18" cy="18" r="2" fill="#B7F34A"/></svg></span>
+      <h2>Drone de plus</h2>
+      <p>Chaque nouvelle station démarre avec un drone supplémentaire.</p>
+      <span class="stack">Cumulable · <b>1 / 2</b> déjà pris</span>
+    </button>
+    <button class="card on" aria-pressed="true">
+      <span class="pic"><svg width="36" height="36" viewBox="0 0 36 36"><path d="M10 9c8 4 8 14 16 18M26 9c-8 4-8 14-16 18" fill="none" stroke="#B7F34A" stroke-width="2.4" stroke-linecap="round"/><path d="M13 13h10M13 23h10" stroke="#66D9EA" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <h2>Gène raccourci</h2>
+      <p>La première recette du cœur demande une base de moins.</p>
+      <span class="stack">Une seule fois</span>
+    </button>
+    <button class="card">
+      <span class="pic"><svg width="36" height="36" viewBox="0 0 36 36"><rect x="11" y="18" width="14" height="9" rx="2" fill="#2C3A3D" stroke="#A9BDB8" stroke-width="1.5"/><path d="M18 18V8" stroke="#E9F3EF" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="8" r="2.5" fill="#F0A03C"/></svg></span>
+      <h2>Tourelle prête</h2>
+      <p>La tourelle est débloquée dès le stade 1, sans attendre le cœur.</p>
+      <span class="stack">Une seule fois</span>
+    </button>
+  </div>
+  <div class="foot"><p>Trois tirées au hasard ; celles déjà au maximum ne sortent plus.</p><button class="take">Prendre Gène raccourci</button></div>
+</main>
+</body></html>

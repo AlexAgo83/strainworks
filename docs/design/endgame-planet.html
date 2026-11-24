@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Planète purifiée</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mockup for item_025, item_027 and item_028 (req_001): the planet screen with purified, open and locked hexagons and the region progress. */
+:root{--night:#070C0E;--membrane:rgba(8,16,18,.94);--edge:#52707A;--line:rgba(82,112,122,.35);--ink:#E9F3EF;--muted:#A9BDB8;--dim:#6E8580;--acid:#B7F34A;--cyan:#66D9EA;--alarm:#FF6B74;--amber:#F0A03C;--display:'Chakra Petch',Verdana,sans-serif;--body:'Barlow',Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 40% 45%,#0D1B1F 0,#070C0E 60%);color:var(--ink);font-family:var(--body);overflow:hidden}
+.top{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;z-index:2}
+.top h1{margin:0;font:700 20px var(--display);letter-spacing:.02em}.top h1 small{display:block;font:500 12px var(--body);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.node{width:44px;height:44px;border-radius:50%;border:1px solid var(--edge);background:var(--membrane);display:grid;place-items:center;color:var(--ink)}
+.stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+svg.globe{width:min(78vh,62vw);height:min(78vh,62vw)}
+.side{position:absolute;right:24px;top:80px;width:330px;display:flex;flex-direction:column;gap:12px;z-index:2}
+.panel{border:1px solid var(--edge);border-radius:12px;background:var(--membrane);padding:14px 16px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.label{font:600 11px var(--body);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px}
+.region{display:flex;gap:14px;align-items:center}
+.region .n{font:700 30px var(--display);white-space:nowrap}.region .n small{font-size:16px;color:var(--muted)}
+.region p{margin:0;font-size:13px;line-height:1.4;color:var(--muted)}.region p b{color:var(--ink)}
+.bar{margin-top:10px;height:5px;border-radius:3px;background:#1C2B2F;overflow:hidden}.bar i{display:block;height:100%;width:57%;background:var(--acid)}
+.mut{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 6px;border-radius:999px;border:1px solid var(--line);background:#0B1417;font-size:12px}
+.chip i{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,var(--acid) 0 35%,#2B4A1A 36%);display:block}
+.chip.x i{background:radial-gradient(circle,var(--cyan) 0 35%,#123A40 36%)}
+.hex h2{margin:0 0 2px;font:700 18px var(--display)}.hex h2 small{font:500 12px var(--body);color:var(--amber);margin-left:6px;letter-spacing:.04em}
+.hex ul{margin:8px 0 12px;padding:0;list-style:none;font-size:13px;line-height:1.55;color:var(--muted)}
+.hex li::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:8px;vertical-align:1px}
+.go{width:100%;min-height:44px;border-radius:999px;border:1px solid var(--acid);background:rgba(183,243,74,.12);color:var(--acid);font:700 15px var(--display)}
+.legend{position:absolute;left:24px;bottom:22px;display:flex;gap:16px;font-size:12px;color:var(--muted);z-index:2}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-2px;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.legend .p::before{background:var(--acid)}.legend .o::before{background:var(--cyan)}.legend .l::before{background:#3A2128}
+@media (max-width:700px){
+  body{overflow:auto}
+  .stage{position:relative;height:360px;margin-top:70px}
+  svg.globe{width:340px;height:340px}
+  .side{position:static;width:auto;margin:0 16px 16px}
+  .legend{position:static;margin:0 16px 20px;flex-wrap:wrap;gap:10px 16px}
+}
+</style></head><body>
+<div class="top"><h1><small>Planète · 4 souches écloses</small>Ta planète</h1><span class="node" aria-label="Réglages">⚙</span></div>
+<div class="stage"><svg class="globe" id="globe" viewBox="-1.08 -1.08 2.16 2.16" aria-label="Planète"></svg></div>
+<aside class="side">
+  <section class="panel">
+    <p class="label">Grande victoire · région</p>
+    <div class="region"><span class="n">4<small> / 7</small></span><p>Purifie <b>les 3 hexagones marqués</b> autour de la première souche pour libérer toute la région.</p></div>
+    <div class="bar"><i></i></div>
+  </section>
+  <section class="panel">
+    <p class="label">Mutations de souche · 4</p>
+    <div class="mut"><span class="chip"><i></i>Drone de plus</span><span class="chip"><i></i>Réserve d’ADN ×1</span><span class="chip x"><i></i>Tourelle prête</span><span class="chip x"><i></i>Récolte vive</span></div>
+  </section>
+  <section class="panel hex">
+    <p class="label">Hexagone ouvert</p>
+    <h2>Anneau 1<small>plus dur</small></h2>
+    <ul><li>4 familles de créatures au lieu de 3</li><li>Essaims plus forts, dès le stade 2</li><li>Gisements un peu plus pauvres</li></ul>
+    <button class="go">Fonder une station ici</button>
+  </section>
+</aside>
+<div class="legend"><span class="p">Purifié</span><span class="o">Ouvert : une station peut s’y poser</span><span class="l">Infecté, encore fermé</span></div>
+<script>
+// A hexagon grid draped on a sphere: purified ones living green, open ones outlined cyan, the rest infected.
+const R = 7, size = 0.105, cells = [];
+for (let q = -R; q <= R; q++) for (let r = -R; r <= R; r++) {
+  const x = size * 1.5 * q, y = size * Math.sqrt(3) * (r + q / 2);
+  if (Math.hypot(x, y) < 1.05) cells.push({q, r, x, y});
+}
+const key = (q, r) => q + ',' + r;
+const purified = new Set(['0,0', '1,0', '0,1', '-1,1']);
+const region = [[0,0],[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]].map(([q, r]) => key(q, r));
+const near = (q, r) => [[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]].map(([a, b]) => key(q + a, r + b));
+const open = new Set();
+for (const id of purified) { const [q, r] = id.split(',').map(Number); for (const n of near(q, r)) if (!purified.has(n)) open.add(n); }
+const shift = [-0.18, 0.12];
+const drape = ([x, y]) => { x += shift[0]; y += shift[1]; const d = Math.hypot(x, y), a = Math.min(d, 1.5) * Math.PI / 3.1, k = d ? Math.sin(a) / d : 1; return [x * k, y * k, Math.cos(a)]; };
+let out = '<defs><radialGradient id="sea" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#2A1A20"/><stop offset=".7" stop-color="#14090D"/><stop offset="1" stop-color="#050203"/></radialGradient><radialGradient id="glow" r=".5"><stop offset="0" stop-color="#B7F34A" stop-opacity=".35"/><stop offset="1" stop-color="#B7F34A" stop-opacity="0"/></radialGradient><radialGradient id="shade" cx="38%" cy="32%" r="75%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".75"/></radialGradient></defs>';
+out += '<circle r="1.04" fill="#66D9EA" opacity=".06"/><circle r="1" fill="url(#sea)"/>';
+out += '<circle cx="-0.15" cy="0.12" r=".42" fill="url(#glow)"/>';
+for (const c of cells) {
+  const pts = [], id = key(c.q, c.r);
+  let front = 0;
+  for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i, p = drape([c.x + size * .94 * Math.cos(a), c.y + size * .94 * Math.sin(a)]); front += p[2]; pts.push(p[0].toFixed(4) + ',' + p[1].toFixed(4)); }
+  if (front / 6 < 0.05) continue;
+  const lit = front / 6;
+  if (purified.has(id)) out += `<polygon points="${pts.join(' ')}" fill="#B7F34A" fill-opacity="${(.25 + .45 * lit).toFixed(2)}" stroke="#D8FF8A" stroke-width=".006"/>`;
+  else if (open.has(id)) out += `<polygon points="${pts.join(' ')}" fill="#66D9EA" fill-opacity=".10" stroke="#66D9EA" stroke-width="${id === '1,-1' ? .014 : .007}" ${region.includes(id) ? '' : 'stroke-dasharray=".02 .012"'}/>`;
+  else out += `<polygon points="${pts.join(' ')}" fill="#3A2128" fill-opacity="${(.35 + .4 * lit).toFixed(2)}" stroke="#4A2A31" stroke-width=".004"/>`;
+  if (region.includes(id) && !purified.has(id)) { const m = drape([c.x, c.y]); out += `<circle cx="${m[0].toFixed(3)}" cy="${m[1].toFixed(3)}" r=".018" fill="#B7F34A"/>`; }
+  if (purified.has(id)) { const m = drape([c.x, c.y]); out += `<circle cx="${m[0].toFixed(3)}" cy="${m[1].toFixed(3)}" r=".022" fill="#E9F3EF"/><circle cx="${m[0].toFixed(3)}" cy="${m[1].toFixed(3)}" r=".04" fill="none" stroke="#E9F3EF" stroke-opacity=".5" stroke-width=".004"/>`; }
+}
+out += '<circle r="1" fill="url(#shade)"/>';
+const sel = drape([size * 1.5, size * Math.sqrt(3) * (-1 + .5)]);
+out += `<text x="${(sel[0] + .02).toFixed(3)}" y="${(sel[1] - .1).toFixed(3)}" fill="#66D9EA" font-size=".055" font-family="Chakra Petch,Verdana" font-weight="700">ANNEAU 1</text>`;
+document.getElementById('globe').innerHTML = out;
+</script>
+</body></html>
