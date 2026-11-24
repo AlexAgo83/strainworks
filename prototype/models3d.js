@@ -324,15 +324,21 @@ window.createModels3D = (B, scene) => {
     // A gantry with a two-lamp head, and an arm that drops on red.
     // The radar pylon: three legs, a mast, a dish that turns, glowing rings, and a wave across the ground.
     screen(c, x, y) {
-      const a = facing(c.dir), live = built(c), gene = live ? netOf(c)?.focus || '' : '';
+      // A flat lit table seen from above: the asked gene in big bases, a strand on two rows, a flash when it changes.
+      const live = built(c), gene = live ? netOf(c)?.focus || '' : '';
       const flash = live ? Math.max(0, 1 - (G.time - (c.shownAt ?? -9)) / 0.6) : 0;
-      add('hull', 'dark', x, y, 0.06, 0.5, 0.12, 0.5);
-      add('tube', 'steel2', x, y, 0.5, 0.1, 0.9, 0.1);
-      add('hull', 'steel', x, y, 1.05, 0.9, 0.62, 0.12, a + Math.PI / 2);
-      add('hull', flash > 0.3 ? 'pale' : 'black', ...from(x, y, a, 0.07), 1.05, 0.8, 0.52, 0.03, a + Math.PI / 2);
-      if (gene) for (let i = 0; i < 3; i++) base(gene[i], ...from(x, y, a, 0.1, (i - 1) * 0.24), 1.05, 0.12, i);
-      else if (live) add('hull', 'cyan', ...from(x, y, a, 0.1), 1.05, 0.26, 0.05, 0.03 + Math.sin(clock * 3) * 0.01, a + Math.PI / 2);
-      add('ring', 'cyan', x, y, 1.42, 0.12, 0.4, 0.12);
+      add('hull', 'dark', x, y, 0.06, 0.6, 0.12, 0.6);
+      add('tube', 'steel2', x, y, 0.3, 0.14, 0.4, 0.14);
+      add('hull', 'steel', x, y, 0.52, 0.96, 0.08, 0.96);
+      add('hull', 'black', x, y, 0.57, 0.86, 0.02, 0.86);
+      for (const [dx, dy] of [[-0.45, 0], [0.45, 0], [0, -0.45], [0, 0.45]]) add('hull', flash > 0.3 ? 'pale' : 'cyan', x + dx, y + dy, 0.57, dx ? 0.04 : 0.9, 0.03, dx ? 0.9 : 0.04);
+      if (gene) {
+        const rows = gene.length > 3 ? [gene.slice(0, 3), gene.slice(3)] : [gene];
+        rows.forEach((row, r) => {
+          const ry = y + (rows.length > 1 ? (r ? 0.2 : -0.2) : 0);
+          for (let i = 0; i < row.length; i++) base(row[i], x + (i - 1) * 0.28, ry, 0.64, rows.length > 1 ? 0.11 : 0.15, 0);
+        });
+      } else if (live) add('hull', 'cyan', x, y, 0.6, 0.3, 0.02, 0.05 + Math.sin(clock * 3) * 0.02);
     },
     relay(c, x, y) {
       add('hull', 'dark', x, y, 0.06, 0.5, 0.12, 0.5);
@@ -544,6 +550,56 @@ window.createModels3D = (B, scene) => {
     },
 
     // A press over a carousel of six, with a hopper of carbon on one side.
+    glue(c, x, y) {
+      // A 2x2 pool in a steel lip, fed by a glass hopper; it bubbles while it holds genes, dries when empty.
+      const live = built(c), full = (c.stock?.length || 0) / GLUE.hold, wet = live && c.stock?.length;
+      const mk = rankOf(c), rim = ['steel2', 'rail2', 'rail3'][mk - 1];
+      add('hull', 'dark', x, y, 0.03, 1.96, 0.06, 1.96);
+      add('lip', rim, x, y, 0.08, 1.9, 0.5, 1.9);
+      add('stain', wet ? 'S' : 'husk', x, y, 0.07, 1.72, 0.02, 1.72);
+      add('sac', wet ? 'membraneGlass' : 'wreck', x, y, 0.06, 1.55, 0.06 + full * 0.06, 1.55);
+      if (wet) for (let i = 0; i < 9; i++) {
+        const k = (clock * 0.7 + i * 0.37) % 1, bx = x + Math.sin(i * 2.7) * 0.6, by = y + Math.cos(i * 1.9) * 0.6;
+        add('bead', i % 2 ? 'S2' : 'acid', bx, by, 0.1 + k * 0.06, 0.04 + Math.sin(k * Math.PI) * 0.07);
+      }
+      add('tube', 'steel', x - 0.78, y - 0.78, 0.35, 0.36, 0.7, 0.36);
+      add('tube', 'glass', x - 0.78, y - 0.78, 0.52, 0.3, 0.4 * Math.max(0.1, full), 0.3);
+      limb('steel2', x - 0.7, y - 0.7, 0.62, x - 0.4, y - 0.4, 0.2, 0.06);
+      if (c.gulp && G.time - c.gulp.t < 0.3) for (let i = 0; i < 3; i++) add('bead', 'ember', x + Math.sin(clock * 9 + i) * 0.5, y + Math.cos(clock * 7 + i) * 0.5, 0.3 + i * 0.1, 0.05);
+    },
+    mist(c, x, y) {
+      // A tower with a glass bulb of antidote and turning nozzles; the bulb dims after each puff.
+      const live = built(c), since = c.puffAt != null ? G.time - c.puffAt : 9, gene = c.puffGene || Object.keys(c.ammo).find(g => c.ammo[g] > 0) || '';
+      const mk = rankOf(c), ring = ['cyan', 'rail2', 'rail3'][mk - 1];
+      add('hull', 'dark', x, y, 0.05, 0.9, 0.1, 0.9);
+      add('skirt', 'steel', x, y, 0.3, 0.8, 0.5, 0.8);
+      add('tube', 'steel2', x, y, 0.85, 0.28, 0.7, 0.28);
+      add('sac', 'glass', x, y, 1.35, 0.6, 0.55, 0.6);
+      if (gene) add('sac', gene[0], x, y, 1.3, 0.45, 0.4 * Math.min(1, 0.5 + since / 2), 0.45);
+      for (let i = 0; i < 4; i++) {
+        const a = (live ? clock * 1.5 : 0) + (i * Math.PI) / 2;
+        add('cone', 'chrome', ...from(x, y, a, 0.32), 1.55, 0.08, 0.18, 0.08, a, Math.PI / 2);
+      }
+      add('ring', ring, x, y, 1.7 + Math.sin(clock * 4) * 0.03, 0.5, 0.5, 0.5, 0, LYING);
+    },
+    harpoon(c, x, y) {
+      // A ballista on a turning platform: bow arms, a string pulled back, a bolt loaded while it reloads.
+      const a = c.aim ?? -Math.PI / 2, gun = GUNS.harpoon, wait = Math.max(0, c.clock) * gun.pace * GUN_RANK[rankOf(c) - 1];
+      const loaded = Object.values(c.ammo).some(n => n > 0), mk = rankOf(c), bow = ['steel2', 'rail2', 'rail3'][mk - 1];
+      add('hull', 'dark', x, y, 0.05, 0.96, 0.1, 0.96);
+      add('tube', 'steel', x, y, 0.2, 0.84, 0.3, 0.84);
+      add('ring', bow, x, y, 0.36, 0.84, 0.4, 0.84, 0, LYING);
+      add('hull', 'steel2', ...from(x, y, a, 0.05), 0.55, 1.3, 0.2, 0.3, a);
+      const pull = built(c) ? Math.min(1, 1 - wait) : 1;
+      for (const sd of [-1, 1]) {
+        add('hull', 'chrome', ...from(x, y, a, 0.4, sd * 0.35), 0.6, 0.14, 0.09, 0.6, a + sd * 0.5);
+        limb(bow, ...from(x, y, a, 0.4, sd * 0.62), 0.6, ...from(x, y, a, -0.4 * pull, 0), 0.6, 0.025);
+      }
+      if (loaded && pull > 0.5) {
+        add('tube', 'chrome', ...from(x, y, a, 0.15), 0.7, 0.06, 1.1, 0.06, a, LYING);
+        add('cone', 'alarm', ...from(x, y, a, 0.75), 0.7, 0.11, 0.22, 0.11, a, LYING);
+      }
+    },
     arm(c, x, y) {
       // A round base, a two-segment arm turning from the back to the front, a gripper carrying what it holds.
       const live = built(c), reach = live ? armReach(c) : 0, back = facing((c.dir + 2) % 4), a = back - reach * Math.PI;
@@ -1383,12 +1439,13 @@ window.createModels3D = (B, scene) => {
       let a = G.cells[w.a];
       let b = G.cells[w.b];
       if (!a || !b) continue;
-      if (isGun(b)) [a, b] = [b, a];
+      // The message rides from the end nearer where it starts.
+      if ((NET_HOPS.get(w.b) ?? 0) < (NET_HOPS.get(w.a) ?? 0)) [a, b] = [b, a];
       const live = carries(w);
       const length = span(a, b);
       const at = (k) => [a.x + 0.5 + (b.x - a.x) * k, a.y + 0.5 + (b.y - a.y) * k, 0.9 - Math.sin(k * Math.PI) * Math.min(0.5, length * 0.05)];
       // Short straight pieces along the sag, a bead at every joint so the fibre reads as one thread.
-      const n = fine ? Math.max(6, Math.ceil(length * 2)) : 3, paint = !w.hp || w.out != null ? 'alarm' : live ? 'N' : 'site';
+      const n = fine ? Math.max(6, Math.ceil(length * 2)) : 3, paint = !w.hp || w.out != null ? 'alarm' : live ? NERVE_COLORS[w.color || 0].paint : 'site';
       for (let i = 0; i < n; i++) {
         limb(paint, ...at(i / n), ...at((i + 1) / n), 0.055);
         if (i) add('bead', paint, ...at(i / n), 0.06);
@@ -1397,8 +1454,10 @@ window.createModels3D = (B, scene) => {
       if (!gene) continue;
       const count = Math.max(1, Math.ceil(length / 4));
       for (let i = 0; i < count; i++) {
-        const [x, y, h] = at(((clock * 5) / Math.max(1, length) + i / count) % 1);
-        cargo(gene, x, y, h + 0.12, Math.atan2(b.y - a.y, b.x - a.x), 0.4);
+        const [x, y, h] = at(((clock * 5) / Math.max(1, length) + i / count) % 1), ang = Math.atan2(b.y - a.y, b.x - a.x);
+        // The bases themselves, small, in the shapes the sheets use; a strand's two genes split by a gap.
+        const step = 0.16, gap = gene.length > 3 ? 0.08 : 0, mid = ((gene.length - 1) * step + gap) / 2;
+        for (let j = 0; j < gene.length; j++) base(gene[j], ...from(x, y, ang, j * step + (j >= 3 ? gap : 0) - mid), h + 0.1, 0.07, j);
       }
     }
   }
@@ -1801,6 +1860,25 @@ window.createModels3D = (B, scene) => {
 
   function shots() {
     for (const s of G.shots) {
+      if (s.gun === 'mist') {
+        // A cloud blooming round the tower, then thinning.
+        const k = 1 - Math.max(0, s.until - G.time) / 0.7, R = s.reach * Math.min(1, k * 1.6), fade = 1 - k;
+        add('stain', 'N', s.x, s.y, 0.03, R * 2, 0.01, R * 2);
+        add('ring', 'N2', s.x, s.y, 0.35, R * 2, 0.6 * fade, R * 2, 0, LYING);
+        if (fine) for (let i = 0; i < 12; i++) {
+          const a = i * 2.39996, r = R * (0.3 + (i % 5) / 7);
+          add('ball', 'glass', s.x + Math.cos(a) * r, s.y + Math.sin(a) * r, 0.3 + (i % 3) * 0.15, 0.5 * fade, 0.3 * fade, 0.5 * fade);
+        }
+        continue;
+      }
+      if (s.gun === 'harpoon') {
+        // The bolt crossing its whole line, a bright trail behind it.
+        const k = 1 - Math.max(0, s.until - G.time) / 0.35, a = Math.atan2(s.ty - s.y, s.tx - s.x), [bx, by] = [s.x + (s.tx - s.x) * k, s.y + (s.ty - s.y) * k];
+        add('tube', 'chrome', bx, by, 0.7, 0.09, 1.4, 0.09, a, LYING);
+        add('cone', 'alarm', ...from(bx, by, a, 0.75), 0.7, 0.16, 0.32, 0.16, a, LYING);
+        for (let j = 1; j <= 10; j++) add('bead', j < 4 ? 'pale' : 'rail3', ...from(bx, by, a, -0.7 - j * 0.28), 0.7, 0.08 * (1 - j / 11));
+        continue;
+      }
       const paint = { 1: 'steel2', 2: 'pink', 5: 'amber', 12: 'acid' }[s.hurt];
       const a = Math.atan2(s.ty - s.y, s.tx - s.x);
       const far = s.gun === 'sting';

@@ -34,8 +34,16 @@ it("moves items with the arm, filters them, and burns what is sent to the burner
       const burner = put("burn", 22, 70, 0);
       from.stock = Array(6).fill("SFN");
       run(3);
-      return { moved, picked, left, fast, burnt: burner.burnt || 0, vein: NEEDS.pump, opens: NEEDS.arm };
+      // Off a belt: the item on the rail, never an empty hand.
+      delete G.cells[key(22, 70)]; forgetCells();
+      const belt = put("belt", 20, 72, 1), arm2 = put("arm", 21, 72, 1), into = put("cyst", 22, 72, 1);
+      belt.item = "SFN"; belt.t = 1;
+      run(2);
+      const offBelt = [...into.stock], held = (arm2.hold || []).filter((x) => x === undefined).length;
+      return { offBelt, held, moved, picked, left, fast, burnt: burner.burnt || 0, vein: NEEDS.pump, opens: NEEDS.arm };
     });
+    expect(out.offBelt).toEqual(["SFN"]);
+    expect(out.held).toBe(0);
     expect(out.moved).toBeGreaterThanOrEqual(3);
     expect(out.picked).toEqual(["CCN"]);
     expect(out.left).toEqual(["SFN", "SFN"]);
