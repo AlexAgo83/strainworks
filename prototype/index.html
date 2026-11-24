@@ -1727,6 +1727,7 @@ const EN = {
   "rien, personne à portée": "nothing, nobody in range",
   "{} sur nerf, demande : {}. En stock : {}.": "{} on a nerve, asks for: {}. In stock: {}.",
   "Il réclame": "It asks for",
+  "caisses": "boxes",
   "Écran": "Screen",
   "Relie-le à un nerf : il affiche en grand l’antidote que son réseau demande, et clignote quand il change.": "Wire it to a nerve: it shows the antidote its network asks for, big, and flashes when it changes.",
   "Un nerf relie deux éléments parmi tourelles, radars, relais, feux, trieurs et Ligases.": "A nerve links two of turrets, radars, relays, gates, sorters and Ligases.",
@@ -2515,7 +2516,7 @@ function richAt(x, y) {
 let wormId = null;
 // The way the next piece faces is the player's, kept from one piece, one game and one visit to the next.
 const HEADING_KEY = 'strainworks-heading';
-const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','vault','split2','split','sort'];
+const TURNS = ['belt','gate','mine','ligase','join','pack','cyst','vault','split2','split','sort','unpack','flip','screen'];
 const WAYS = [L('haut'), L('droite'), L('bas'), L('gauche')];
 let heading = 0;
 try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) {}
@@ -5418,6 +5419,8 @@ function portsOf(c) {
     case 'pump': return round.filter(d => !c.to || ahead(c, d)?.type !== 'pump').map(d => c.to ? into(d) : out(d));
     case 'pocket': return round.filter(d => !G.tracks[key(c.x + DX[d], c.y + DY[d])]).map(d => c.unload ? out(d) : into(d));
     case 'track': return [out(c.dir)];
+    case 'unpack': return [into(back, {label:L('caisses')}), out(c.dir), out((c.dir + 1) % 4, {label:L('carbone K')})];
+    case 'flip': return [into(back), out(c.dir)];
     case 'core': if (sizeOf(c) > 1) return edgesOf(c).map(d => ({...d, out:false})); return round.map(d => into(d));
     case 'turret': case 'sting': case 'maw': return round.map(d => into(d));
   }
