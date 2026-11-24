@@ -106,12 +106,12 @@ export const hasTrait = (type, trait) => Boolean(TRAIT_SETS[type]?.has(trait));
 export const VEIN = {reach:24, speed:16, pulse:.5, load:8, cap:48, hp:50};
 export const WORM = {speed:12, hold:40, load:16, pocket:120, hp:150, idle:2, timer:5};
 export const STAGES = [
-  {name:L('Cellule'), item:'SFS', count:100, gives:L('Diviseur 3, Trieur et Encapsuleur')},
-  {name:L('Tissu'), item:'T:CCF', rate:2, hold:60, gives:L('Veines, Nerfs, gisements ×2, Assembleur, Grand récolteur et Grand kyste')},
+  {name:L('Cellule'), item:'SFS', count:100, gives:L('Diviseur 3, Trieur, Encapsuleur, Nerfs et Assembleur')},
+  {name:L('Tissu'), item:'T:CCF', rate:2, hold:60, gives:L('gisements ×2, Grand récolteur et Grand kyste')},
   {name:L('Organe'), item:'T:SFSFFF', count:10, gives:L('Pistes, poches, vers et gisements ×4 à ×8')},
   // The magazine asked follows the family born on entering the stage.
-  {name:L('Système'), count:30, get item() { return `A:${opposite(G.mutant || G.families[G.families.length - 1])}`; }, gives:L('le Séparateur et une mutation toutes les 5 minutes, jusqu’à 8 familles')},
-  {name:L('Noyau'), item:'H:SFSFFF', count:6, gives:L('l’isotope, la capsule lourde, le Recycleur, la Déligase et un drone à moitié prix au Laboratoire')},
+  {name:L('Système'), count:30, get item() { return `A:${opposite(G.mutant || G.families[G.families.length - 1])}`; }, gives:L('le Séparateur, les Veines, l’isotope, la capsule lourde, un drone à moitié prix au Laboratoire, et une mutation toutes les 5 minutes, jusqu’à 8 familles')},
+  {name:L('Noyau'), item:'H:SFSFFF', count:6, gives:L('le Recycleur et la Déligase')},
   // The last: the organism hatches, the game is won, and it goes on in free mode.
   {name:L('Éclosion'), item:'H:SFSFFF', count:10, gives:L('la victoire, puis le mode libre')}
 ];

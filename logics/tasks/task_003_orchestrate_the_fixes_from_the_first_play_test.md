@@ -8,7 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-11-24 22:56:12
+> Indicators reviewed: 2026-11-24 23:53:15
 
 # AI Context
 - Summary: Delivery order and progress of the play test fixes; only the line drawing rule (item_013) remains.
@@ -63,6 +63,7 @@
 # Report
 - 2026-11-24: the hunger rule counts half (operator decision); item_022, the core panel one demand at a time, done; item_023, the unlock card, done; item_018, the economy: harvester limit, surplus halved, dearer ranks (AC1 waits for the operator's ceiling); item_017's rest: Démonter over a zone and the guide on this game's first base gene.
 - 2026-11-24, after 0.2.0: item_015 closed (the statistics name why a production stopped; the harvester-as-bridge suggestion declined); items 022 and 023 closed. Only item_013 stays open: its simple cases are done, the drawing rule waits for the tester's live walkthrough.
+- 2026-11-24, hotfix 0.2.1: at stage 2 the first swarm's defence guide asked for a nerve, which opened only at stage 3. Operator decision: the nerve opens at stage 2. A new audit test (`tests/prototype/unlock-audit.test.mjs`) checks, at every stage and from the game's own unlock tables, that the drawn and fixed recipes, the stage mechanic, both guides, the swarm antidotes and the stage texts name only what is open then. It also found the drawn stage 2 recipe asking a strand while the Assembleur opened at stage 3 (the Assembleur now opens at stage 2 too) and the stage texts naming Veins, the isotope, the heavy capsule and the half-price drone one stage early or late (texts corrected).
 
 # Links
 - Request: `req_003_act_on_the_first_play_test`

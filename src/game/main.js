@@ -1,10 +1,10 @@
 import { LANG_SET } from "./lang.js";
 import { hooks } from "../sim/hooks.ts";
-import { eaten, harvestersOn, hungryFor, BASE, BIG, BORER, BOX, CALM, CORE, DEPOSIT, DESK, DRONE, DX, DY, FIELDS, G, GLUE, GUNS, GUN_RANK, H, NERVE, NORTH, OUTER, PACK, PRICE, RADAR, RANKS, REAPER, RICH, SIGHT, STAGES, START_DRONES_OF, STEP, TRAITS, TYPES, VEIN, W, WORM, accepts, ahead, allCells, armReach, asked, at, boxOf, built, buried, capOf, carbonSide, carries, cell, cellAt, centreOf, connects, contentOf, coreCell, coreWants, corpseSunk, covering, damage, depositAt, digest, drains, drawGoals, dropRise, eachSector, earn, eat, edgesOf, exitOf, fill, fire, fits, flow, follows, footprint, forgetCells, fresh, fullHp, gateOpen, glueOver, grow, hasTrait, hatchDrones, heardOf, holdCap, hungry, inSight, isBelt, isBig, isGun, isSplit, joinSide, key, labLevel, leaking, lift, listens, live, look, makePatch, matterUnder, mealRate, menace, minable, mutation, mutationTarget, nearest, nest, nestBy, netOf, network, opposite, outSide, owned, paceOf, packTakes, passingBy, patchOf, patches, perSecond, perch, pocketCap, puff, pulse, pumps, put, rankCost, rankOf, reachOf, receive, refund, remove, repair, richAt, richness, sector, sectors, sense, setRecipe, sideExit, sight, simSet, sites, sizeOf, span, spawn, splitExits, spotHash, stamp, stationHead, step, survey, tierAt, trackAfter, trackSize, unlocked, wake, waveGene, wayOf, workAt, workTime } from "../sim/sim.ts";
+import { eaten, harvestersOn, hungryFor, layeredGoals, drawNeeds, RECIPES, SWARM, BASE, BIG, BORER, BOX, CALM, CORE, DEPOSIT, DESK, DRONE, DX, DY, FIELDS, G, GLUE, GUNS, GUN_RANK, H, NERVE, NORTH, OUTER, PACK, PRICE, RADAR, RANKS, REAPER, RICH, SIGHT, STAGES, START_DRONES_OF, STEP, TRAITS, TYPES, VEIN, W, WORM, accepts, ahead, allCells, armReach, asked, at, boxOf, built, buried, capOf, carbonSide, carries, cell, cellAt, centreOf, connects, contentOf, coreCell, coreWants, corpseSunk, covering, damage, depositAt, digest, drains, drawGoals, dropRise, eachSector, earn, eat, edgesOf, exitOf, fill, fire, fits, flow, follows, footprint, forgetCells, fresh, fullHp, gateOpen, glueOver, grow, hasTrait, hatchDrones, heardOf, holdCap, hungry, inSight, isBelt, isBig, isGun, isSplit, joinSide, key, labLevel, leaking, lift, listens, live, look, makePatch, matterUnder, mealRate, menace, minable, mutation, mutationTarget, nearest, nest, nestBy, netOf, network, opposite, outSide, owned, paceOf, packTakes, passingBy, patchOf, patches, perSecond, perch, pocketCap, puff, pulse, pumps, put, rankCost, rankOf, reachOf, receive, refund, remove, repair, richAt, richness, sector, sectors, sense, setRecipe, sideExit, sight, simSet, sites, sizeOf, span, spawn, splitExits, spotHash, stamp, stationHead, step, survey, tierAt, trackAfter, trackSize, unlocked, wake, waveGene, wayOf, workAt, workTime } from "../sim/sim.ts";
 import { L, LANG, LOCALE } from "../sim/text.ts";
 import { actionsSet, packWarning, breachesIn, build, buyLab, creatureAt, diagnose, dronePose, feeders, fieldsIn, incubate, keepIt, known, layTrack, link, netSummary, netWires, portSide, radarWave, raise, rankFollowers, recipe, rowOf, scrap, scrapVein, setHeading, shownNests, siteFor, stagePart, wireUp } from "./actions.js";
 import { audioSet, keepMusic, keepSfx, musicTick, paintMusic, paintPlaylist, paintSfx, placeOf, playSound, setLang, shuffleMusic, startSound } from "./audio.js";
-import { addPip, problems, showVictory, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, stopReason, tell, toggleFamily, travelTo } from "./hud.js";
+import { MECHANIC, addPip, problems, showVictory, animateHud, drawFog, foldSide, forgetEvent, forgetEvents, guideLigase, hudSet, layoutHud, menuPage, openFamily, paint, paintDrones, paintGuide, paintHud, paintInfo, paintMoments, paintSheet, paintStats, placeGuideSpot, refuse, replay, sceneSigns, setMotion, showIntro, showMenu, showStats, spark, startGuide, stopReason, tell, toggleFamily, travelTo } from "./hud.js";
 import { cardTypes, closeCard, offerConcept, paintCardList, paintConceptList, showCard, showConcept } from "./unlock.js";
 import { mirror, button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
 import { glide, keysSet, loadKeys, paintKeys, pipette } from "./keys.js";
@@ -117,6 +117,11 @@ const WINDOW_API = {
   SAVE: [() => SAVE],
   SIGHT: [() => SIGHT],
   STAGES: [() => STAGES],
+  layeredGoals: [() => layeredGoals],
+  drawNeeds: [() => drawNeeds],
+  RECIPES: [() => RECIPES],
+  SWARM: [() => SWARM],
+  MECHANIC: [() => MECHANIC],
   STEP: [() => STEP],
   STILL: [() => STILL],
   TOOLBAR: [() => TOOLBAR],
@@ -468,7 +473,9 @@ if (LANG === 'en') {
 export const LIMIT = 1e5;
 export const GENES = {SFS:L('Moteur'), FFF:L('Soute'), FSF:L('Bouche'), SSS:L('Racine'), CCF:L('Carapace'), CFC:L('Dard'), CCC:L('Lame'), CSC:L('Acide'), NFN:L('Œil'), SSN:L('Soin'), NSN:L('Flair'), FNF:L('Pulsation'), NNN:L('Mémoire'), NCN:L('Commande'), CNS:L('Mutation'), SNS:L('Instinct')};
 export const ruinAt = (x, y) => covering(G.ruins, x, y);
-export const NEEDS = {desk:2, reaper:5, unbind:5, unjoin:4, glue:1, mist:3, harpoon:4, arm:1, screen:2, flip:1, unpack:1, relay:2, radar:2, split:1, sort:1, pack:1, borer:2, vault:2, pump:4, join:2, wire:2, track:3, pocket:3, worm:3};
+// The stage index from which each building opens. The nerve and the Assembleur open at stage 2: its first swarm's
+// guide links a turret by a nerve, and its drawn recipe asks a strand (v0.2.1).
+export const NEEDS = {desk:2, reaper:5, unbind:5, unjoin:4, glue:1, mist:3, harpoon:4, arm:1, screen:2, flip:1, unpack:1, relay:2, radar:2, split:1, sort:1, pack:1, borer:2, vault:2, pump:4, join:1, wire:1, track:3, pocket:3, worm:3};
 // What lay there before the map breathed, to tell what an older game's harvesters stand on.
 export const CROWDED = [
   ...OUTER, ['S',34,44,4,3], ['F',28,52,3,4], ['F',41,67,4,3], ['S',66,50,3,4], ['C',20,42,5,5], ['N',74,42,5,5],
