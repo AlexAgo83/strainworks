@@ -3613,6 +3613,7 @@ function flow(dt) {
     };
     for (const c of cells) {
       if (c.type === 'arm' && built(c)) {
+        if (c.hold?.some(item => !item)) c.hold = c.hold.filter(Boolean);
         if (!c.hold?.length && pass === 0 && G.time - (c.doneAt ?? -9) >= armBeat(c) / 2) {
           const got = lift(c, ahead(c, (c.dir + 2) % 4));
           if (got.length) { c.hold = got; c.swingAt = G.time; c.last = got[0]; }
@@ -4552,7 +4553,7 @@ function drawCell(g, c, inputs = []) {
     const back = (c.dir + 2) % 4, a = Math.atan2(DY[back], DX[back]) - armReach(c) * Math.PI, tipX = Math.cos(a) * .36, tipY = Math.sin(a) * .36;
     g.beginPath(); g.moveTo(0,0); g.lineTo(tipX,tipY); g.strokeStyle = '#A3B8B3'; g.lineWidth = .09; g.lineCap = 'round'; g.stroke();
     circle(g,0,0,.09,'#A3B8B3');
-    if (c.hold?.length) sequence(g, c.hold[0], tipX, tipY, .3, .08);
+    if (c.hold?.[0]) sequence(g, c.hold[0], tipX, tipY, .3, .08);
     arrow(g,c.dir,.1,'#5E828C');
   } else if (type === 'burn') {
     rect(g,-.4,-.4,.8,.8,'#1A0F0B','#FF6A3C');
@@ -6259,7 +6260,7 @@ function load() {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && coreIn(saved.cells) && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
+    if (saved && !saved.over && coreIn(saved.cells) && Array.isArray(saved.families)) { G = saved; if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; for (const c of Object.values(G.cells)) if (Array.isArray(c.hold)) c.hold = c.hold.filter(Boolean); if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
   } catch (_) {}
   return false;
 }

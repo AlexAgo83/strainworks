@@ -614,8 +614,8 @@ window.createModels3D = (B, scene) => {
       limb('steel', ex, ey, 0.62 + lift, tx, ty, 0.42 + lift * 0.6, 0.07);
       add('bead', 'dark', ex, ey, 0.62 + lift, 0.09);
       for (const s2 of [-1, 1]) add('hull', 'steel2', ...from(tx, ty, a, 0.02, s2 * 0.07), 0.34 + lift * 0.6, 0.1, 0.12, 0.03, a);
-      if (c.hold?.length) add('bead', contentOf(c.hold[0])[0] || 'off', tx, ty, 0.3 + lift * 0.6, 0.11);
-      if (c.hold?.length > 1) add('bead', contentOf(c.hold[1])[0] || 'off', ...from(tx, ty, a, -0.12), 0.3 + lift * 0.6, 0.09);
+      if (c.hold?.[0]) add('bead', contentOf(c.hold[0])[0] || 'off', tx, ty, 0.3 + lift * 0.6, 0.11);
+      if (c.hold?.[1]) add('bead', contentOf(c.hold[1])[0] || 'off', ...from(tx, ty, a, -0.12), 0.3 + lift * 0.6, 0.09);
     },
     burn(c, x, y) {
       // A squat furnace: a grate on top, embers under it, a flare and smoke each time something goes in.
