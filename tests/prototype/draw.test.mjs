@@ -27,6 +27,8 @@ it("draws straight lines and L turns, never stairs, and flips the last corner", 
       const before = diagonal.map((c) => `${c.x},${c.y}`);
       flipCorner();
       const flipped = drag.path.map((c) => `${c.x},${c.y}`);
+      // A tight corner: one cell along, one across.
+      const tight = run([[1, 0], [1, 1]]).map((c) => [c.x - x0, c.y - y0]);
       // Back onto the first leg: the turn is undone.
       run([[6, 0], [6, 3], [5, 0]]);
       const undone = turns(drag.path);
@@ -35,12 +37,14 @@ it("draws straight lines and L turns, never stairs, and flips the last corner", 
         ell: { turns: turns(ell), corner: [ell[corner].x - x0, ell[corner].y - y0], end: [ell.at(-1).x - x0, ell.at(-1).y - y0] },
         diagonal: { turns: turns(diagonal), end: before.at(-1) === flipped.at(-1), changed: before.join() !== flipped.join(), flippedTurns: turns(drag.path) },
         undone,
+        tight,
       };
     });
     expect(out.wobble).toEqual({ cells: 9, turns: 0, endY: 0 });
     expect(out.ell).toEqual({ turns: 1, corner: [6, 0], end: [6, 5] });
     expect(out.diagonal).toMatchObject({ turns: 1, end: true, changed: true });
     expect(out.undone).toBe(0);
+    expect(out.tight).toEqual([[0, 0], [1, 0], [1, 1]]);
     expect(errors).toEqual([]);
   } finally {
     await browser.close();

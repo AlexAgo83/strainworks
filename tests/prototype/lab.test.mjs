@@ -25,7 +25,7 @@ it("shows each model alone and edits its state without saving", async () => {
     expect(first.options).toContain("creature|C");
     expect(first.options).toContain("nest|2:wake");
     expect(first.options).toContain("drone|drone");
-    expect(first.options.filter((o) => o.startsWith("cell|")).length).toBe(23);
+    expect(first.options.filter((o) => o.startsWith("cell|")).length).toBe(24);
     expect(first).toMatchObject({ kind: "cell", cells: ["core", "ligase"], saved: [], hud: "none", planet: false });
     // One specimen at a time; the JSON is the state, applied as written.
     await page.selectOption("#lab-list", "cell|turret");

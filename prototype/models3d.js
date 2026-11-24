@@ -515,6 +515,25 @@ window.createModels3D = (B, scene) => {
     },
 
     // A press over a carousel of six, with a hopper of carbon on one side.
+    unpack(c, x, y) {
+      const out = facing(c.dir), back = out + Math.PI, side = facing((c.dir + 1) % 4);
+      const working = built(c) && (c.ports[1].length > 0 || c.item);
+      footing(x, y);
+      add('hull', 'steel', x, y, 0.27, 0.76, 0.26, 0.64, out);
+      const [bx, by] = from(x, y, back, 0.24), open = working ? 0.6 + Math.sin(clock * 2.5) * 0.25 : 0.2;
+      add('box', 'dark', bx, by, 0.5, 0.34, 0.22, 0.46, out);
+      add('box', 'pink', bx, by, 0.62, 0.36, 0.03, 0.48, out);
+      add('box', 'steel2', ...from(bx, by, back, 0.16), 0.66 + open * 0.12, 0.05, 0.03, 0.46, out, open);
+      const turn = working ? clock * 2.6 : 0, inside = c.ports[1][0] || (c.last && contentOf(c.last)) || '';
+      add('gear', 'steel2', x, y, 0.45, 0.46, 0.08, 0.46, turn);
+      for (let i = 0; i < 6; i++) add('bead', i < c.ports[1].length && inside[i % 3] ? inside[i % 3] : 'off', ...from(x, y, turn + (i / 6) * TAU, 0.17), 0.5, 0.1);
+      if (c.item) cargo(c.item, ...from(x, y, out, 0.22), 0.5, out, 0.4);
+      const [hx, hy] = from(x, y, side, 0.34);
+      add('skirt', 'dark', hx, hy, 0.4, 0.3, 0.26, 0.3, side, Math.PI);
+      add('ring', 'hazard', hx, hy, 0.52, 0.3);
+      for (let i = 0; i < Math.min(3, c.ports[2].length); i++) base(c.ports[2][i], ...from(hx, hy, i * 2.1, i ? 0.08 : 0), 0.5, 0.08, i);
+      nozzle(x, y, c.dir, 0.25);
+    },
     pack(c, x, y) {
       const out = facing(c.dir);
       const [goods, carbon] = c.ports;
@@ -1467,13 +1486,92 @@ window.createModels3D = (B, scene) => {
     C: { long: 0.64, wide: 0.5, tall: 0.36, legs: 3, reach: 0.42 }, // armoured
     N: { long: 0.5, wide: 0.36, tall: 0.32, legs: 3, reach: 0.56 }, // stilts
   };
+  // A swarmling: one insect of a cloud, its three segments the colours of its gene, wings a blur, never still.
+  function swarmling(e, a, index) {
+    const t = clock + index * 0.73, z = e.z || 0, flinch = flinchOf(e);
+    // The cloud seethes: each one weaves round where the game puts it.
+    const wx = Math.sin(t * 5.1 + index) * 0.16 + Math.sin(t * 9.7 + index * 2) * 0.05;
+    const wy = Math.cos(t * 4.3 + index * 1.7) * 0.16;
+    const x = e.x + wx, y = e.y + wy, h = 0.45 + Math.sin(t * 7 + index) * 0.12 + z;
+    const head = a + Math.sin(t * 6 + index) * 0.5, s = 1.45 + flinch * 0.3;
+    add('stain', 'husk', x, y, 0.02, 0.22, 0.02, 0.16, head);
+    // A trail of fading motes where it just flew, in the colours of its gene.
+    for (let k = 1; k <= 7; k++) {
+      const back = t - k * 0.05, px = e.x + Math.sin(back * 5.1 + index) * 0.16 + Math.sin(back * 9.7 + index * 2) * 0.05;
+      const py = e.y + Math.cos(back * 4.3 + index * 1.7) * 0.16, ph = 0.45 + Math.sin(back * 7 + index) * 0.12 + z;
+      add('bead', e.gene[k % 3], px, py, ph, 0.1 * (1 - k / 8) * s);
+    }
+    // A pulse of light runs through the cloud, one insect after another.
+    const wave = Math.max(0, Math.sin(clock * 3 - index * 0.8));
+    if (wave > 0.6) add('bead', 'holo', x, y, h, 0.22 * s * wave);
+    add('sac', 'smoke', x, y, h, 0.42 * s, 0.3 * s, 0.42 * s, head);
+    add('bead', e.gene[0], ...from(x, y, head, -0.09 * s), h - 0.01, 0.11 * s);
+    add('bead', e.gene[1], x, y, h, 0.09 * s);
+    add('bead', e.gene[2], ...from(x, y, head, 0.08 * s), h + 0.01, 0.075 * s);
+    add('bead', 'alarm', ...from(x, y, head, 0.12 * s), h + 0.03, 0.03);
+    // Wings beat fast: the blur of two pale panes rising and falling.
+    const beat = Math.sin(clock * 60 + index * 3);
+    for (const side of [-1, 1]) add('box', 'glass', ...from(x, y, head, -0.01, side * 0.08), h + 0.05 + beat * 0.03, 0.12, 0.01, 0.07, head, side * (0.3 + beat * 0.6));
+    if (fine) for (const side of [-1, 1]) limb('chitin', x, y, h - 0.03, ...from(x, y, head, 0.03, side * 0.07), h - 0.1, 0.012);
+  }
+  // A titan: two cells wide, low and heavy like a giant crab, plated in the colours of its gene; slow steps shake the ground.
+  function titan(e, a, index) {
+    const z = e.z || 0, flinch = flinchOf(e), grow = 1 + flinch * 0.06, t = clock * 0.5 + index;
+    const breathe = 1 + Math.sin(t * 2.4) * 0.035;
+    const at = (f, side = 0) => from(e.x, e.y, a, f * grow, side * grow);
+    const sway = Math.sin(t * Math.PI * 2) * 0.06, h = 0.5 + Math.abs(Math.sin(t * Math.PI * 2)) * 0.03 + z;
+    add('stain', 'husk', e.x, e.y, 0.02, 2.6 * grow, 0.02, 2.2 * grow, a);
+    // Six legs splayed wide, knees high: one pair lifts at a time and falls with a ring on the ground.
+    for (const [f, phase] of [[0.65, 0], [0, 1 / 3], [-0.65, 2 / 3]]) for (const side of [-1, 1]) {
+      const k = (t + phase + (side > 0 ? 0.5 : 0)) % 1, up = k < 0.22 ? Math.sin((k / 0.22) * Math.PI) : 0;
+      const swing = k < 0.22 ? -0.25 + (k / 0.22) * 0.5 : 0.25 - ((k - 0.22) / 0.78) * 0.5;
+      const hip = at(f * 0.8, side * 0.6 + sway), knee = at(f * 0.95 + swing * 0.2, side * 1.05), foot = at(f * 1.1 + swing * 0.4, side * 1.6);
+      limb('chitin', ...hip, h + 0.08, ...knee, h + 0.32 + up * 0.18, 0.3, 'taper');
+      add('bead', e.gene[(f > 0 ? 0 : f < 0 ? 2 : 1)], ...knee, h + 0.34 + up * 0.18, 0.16);
+      limb('chitin', ...knee, h + 0.32 + up * 0.18, ...foot, 0.04 + up * 0.28 + z, 0.2, 'taper');
+      const landed = (k - 0.22 + 1) % 1;
+      if (landed < 0.16 && !z) add('wave', 'smoke', ...foot, 0.04, 0.3 + landed * 6, 1, 0.3 + landed * 6);
+    }
+    // A broad low body, then plates laid over it like armour, overlapping back to front.
+    add('sac', 'gore', ...at(0, sway), h + 0.1, 2.1 * breathe, 0.62, 1.7 * breathe, a);
+    for (let i = 0; i < 3; i++) {
+      const f = -0.6 + i * 0.5, glow = 0.85 + Math.sin(clock * 2 + i) * 0.15;
+      add('shell', 'chitin', ...at(f, sway), h + 0.3 + i * 0.05, 0.95 * breathe, 0.3, 1.6 - i * 0.12, a, flinch * 0.25 * (i - 1));
+      // The gene glows along each plate's crest and in two spots on it.
+      add('box', e.gene[2 - i], ...at(f + 0.3, sway), h + 0.44 + i * 0.05, 0.08, 0.05, (1.3 - i * 0.12) * glow, a);
+      for (const side of [-1, 1]) add('bead', e.gene[2 - i], ...at(f - 0.05, side * 0.32 + sway), h + 0.47 + i * 0.05, 0.13 * glow);
+      for (const side of [-1, 1]) add('horn', 'bone', ...at(f + 0.1, side * (0.62 - i * 0.05) + sway), h + 0.52 + i * 0.05, 0.16, 0.36, 0.16, a + side * 0.6);
+    }
+    for (let i = 0; i < 4; i++) add('horn', 'bone', ...at(-0.5 + i * 0.35, sway), h + 0.62, 0.2, 0.5 - Math.abs(i - 1.5) * 0.1, 0.2, a);
+    // Two vents breathe out gas: each puff rises, swells, drifts back and thins out.
+    for (const side of [-1, 1]) {
+      const [vx, vy] = at(-0.85, side * 0.42 + sway);
+      add('tube', 'chitin', vx, vy, h + 0.45, 0.16, 0.22, 0.16);
+      add('ring', 'infected', vx, vy, h + 0.57, 0.2, 0.5, 0.2, 0, LYING);
+      for (let k = 0; k < 4; k++) {
+        const life = (clock * 0.45 + k / 4 + (side > 0 ? 0.12 : 0) + index * 0.3) % 1;
+        const [gx, gy] = from(vx, vy, a + Math.PI, life * 0.9);
+        const size = 0.2 + life * 0.9;
+        if (life < 0.75) add('sac', life < 0.2 ? 'membraneGlass' : 'smoke', gx, gy + Math.sin(life * 6 + k) * 0.1, h + 0.6 + life * 1.2, size * 0.8, size * 0.65, size * 0.8, a);
+      }
+    }
+    // A wide head held low, mandibles working, two rows of red eyes.
+    const head = at(1.2, sway);
+    add('shell', 'chitin', ...head, h + 0.2, 0.8, 0.38, 1.0, a);
+    add('box', e.gene[0], ...from(head[0], head[1], a, 0.05), h + 0.36, 0.06, 0.04, 0.7, a);
+    add('sac', 'chitin', ...head, h + 0.05, 0.75, 0.4, 0.95, a);
+    const bite = Math.sin(clock * 3.2 + index) * 0.1;
+    for (const side of [-1, 1]) limb('bone', ...from(head[0], head[1], a, 0.3, side * 0.28), h, ...from(head[0], head[1], a, 0.85, side * (0.1 + bite)), h - 0.12, 0.16, 'taper');
+    for (let i = 0; i < 8; i++) add('bead', 'alarm', ...from(head[0], head[1], a, 0.42, (i % 4 - 1.5) * 0.14), h + 0.22 + Math.floor(i / 4) * 0.1, 0.07);
+    if (flinch > 0.2) add('bead', 'pale', e.x, e.y, h + 0.8, 0.6 * flinch);
+  }
   // The dead lie flat and dark on a stain for 20 s, legs folded, then sink into the ground.
   function corpses(area) {
     for (const d of G.corpses || []) {
       if (d.x < area.x0 - 1 || d.x > area.x1 + 1 || d.y < area.y0 - 1 || d.y > area.y1 + 1 || !inSight(d.x, d.y)) continue;
       const sunk = corpseSunk(d);
       if (sunk >= 1) continue;
-      const kind = silhouette(d.gene), { long, wide } = BODY[kind], low = 0.06 - sunk * 0.1, s = 1 - sunk * 0.4;
+      const kind = silhouette(d.gene), body = d.kind === 'swarm' ? 0.3 : d.kind === 'titan' ? 3 : 1, long = BODY[kind].long * body, wide = BODY[kind].wide * body, low = 0.06 - sunk * 0.1, s = 1 - sunk * 0.4;
       add('stain', 'black', d.x, d.y, 0.03, long * 1.6 * s, 0.03, wide * 2 * s, d.a);
       add('sac', 'gore', d.x, d.y, low, long * 0.85 * s, 0.12 * s, wide * 0.9 * s, d.a);
       if (!fine) continue;
@@ -1491,6 +1589,8 @@ window.createModels3D = (B, scene) => {
       if (e.x < area.x0 - 1 || e.x > area.x1 + 1 || e.y < area.y0 - 1 || e.y > area.y1 + 1 || !inSight(e.x, e.y)) return;
       const goal = e.goal || { x: CORE.x + 0.5, y: CORE.y + 0.5 };
       const a = Math.atan2(goal.y - e.y, goal.x - e.x);
+      if (e.kind === 'swarm') return swarmling(e, a, index);
+      if (e.kind === 'titan') return titan(e, a, index);
       const kind = silhouette(e.gene);
       const flinch = flinchOf(e), grow = (1 + flinch * 0.18) * (1 + (e.tier || 0) * 0.12);
       const t = clock * (kind === 'N' ? 1.5 : kind === 'C' ? 0.7 : 1) + index * 1.7, z = e.z || 0;

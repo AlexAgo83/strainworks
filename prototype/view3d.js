@@ -468,7 +468,8 @@ window.createView3D = (glCanvas) => {
       const back = 160;
       camera.position.copyFromFloats(cam.x, Math.sin(ELEVATION) * back, -cam.y - Math.cos(ELEVATION) * back);
       camera.setTarget(at(cam.x, 0, cam.y));
-      Object.assign(bend, { cx: cam.x, cy: cam.y, hw: halfW, hh: halfH / tilt, k: MAXK * Math.max(0, Math.min(1, Number(window.curve3d) || 0)) });
+      // The sides round over the screen's longer half: a narrow phone in portrait gets a gentle curve, not a fold.
+      Object.assign(bend, { cx: cam.x, cy: cam.y, hw: Math.max(halfW, halfH / tilt), hh: halfH / tilt, k: MAXK * Math.max(0, Math.min(1, Number(window.curve3d) || 0)) });
       // The shadow map follows what is on screen, so it stays sharp up close.
       const reach = Math.min(48, Math.max(halfW, halfH / tilt) + 4);
       sun.position.copyFromFloats(cam.x - 33, 60, -cam.y + 21);
