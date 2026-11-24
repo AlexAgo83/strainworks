@@ -304,7 +304,7 @@ it("wakes nothing when an older game meets the spread-out world", async () => {
   }
 });
 
-it("makes transformers faster and defences stronger by rank, and keeps older splitters at their pace", async () => {
+it("makes transformers and burners faster and defences stronger by rank, and keeps older splitters at their pace", async () => {
   const browser = await launch();
   try {
     const { page, errors } = await open(browser);
@@ -346,7 +346,7 @@ it("makes transformers faster and defences stronger by rank, and keeps older spl
       };
       result.turret = [1, 2, 3].map(firing);
       result.wall = [1, 2, 3].map((mk) => fullHp({ type: "wall", mk }));
-      result.costs = ["split", "sort", "ligase", "pack", "turret", "wall"].map((type) => [type, rankCost(type, 2), rankCost(type, 3)]);
+      result.costs = ["split", "sort", "ligase", "pack", "burn", "turret", "wall"].map((type) => [type, rankCost(type, 2), rankCost(type, 3)]);
       // A game from before these ranks: its splitter on MK3 rails becomes MK3 for free, and still passes 12.
       lab();
       let x = 15;
@@ -366,14 +366,30 @@ it("makes transformers faster and defences stronger by rank, and keeps older spl
         to.stock = [];
       }
       result.older = [old.mk, got / 20, G.dna === dna, G.ranked];
+      // Burners: what one clears a second at the end of MK3 rails, at each rank.
+      result.burn = [1, 2, 3].map((mk) => {
+        lab();
+        const from = put("cyst", 14, 80, 1);
+        for (let x = 15; x < 19; x++) put("belt", x, 80, 1).mk = 3;
+        const burner = put("burn", 19, 80, 0);
+        burner.mk = mk;
+        let before = 0;
+        for (let i = 0; i < 800; i++) {
+          from.stock = Array(40).fill("S");
+          step(STEP);
+          if (i === 399) before = burner.burnt || 0;
+        }
+        return Math.round(((burner.burnt || 0) - before) / 20);
+      });
       return result;
     });
     expect(out).toEqual({
       ligase: [10, 20, 30],
       turret: [[true, 180], [true, 270], [true, 360]],
       wall: [260, 520, 780],
-      costs: [["split", 10, 30], ["sort", 16, 40], ["ligase", 80, 200], ["pack", 150, 400], ["turret", 100, 250], ["wall", 24, 80]],
+      costs: [["split", 10, 30], ["sort", 16, 40], ["ligase", 80, 200], ["pack", 150, 400], ["burn", 30, 90], ["turret", 100, 250], ["wall", 24, 80]],
       older: [3, 12, true, true],
+      burn: [4, 8, 12],
     });
     expect(errors).toEqual([]);
   } finally {

@@ -5,8 +5,7 @@ import { launch, pageHTML } from "./harness.mjs";
 
 const demo = readFileSync(new URL("../../prototype/demo.js", import.meta.url), "utf8");
 
-// shortcut: the demo is withdrawn (DEMO_HEX = null); unskip once it is back.
-it.skip("moves a game off the demo hexagon and opens the demo fresh without saving it", async () => {
+it("moves a game off the demo hexagon and opens the demo fresh without saving it", async () => {
   const browser = await launch();
   try {
     const page = await browser.newPage();
@@ -41,7 +40,7 @@ it.skip("moves a game off the demo hexagon and opens the demo fresh without savi
     expect(out.movedDna).toBe(1234);
     expect(out.shown).toBe(true);
     expect(out.opened).toBe(true);
-    expect(out.stage).toBe(4);
+    expect(out.stage).toBe(5);
     expect(out.bigTracks).toBe(true);
     expect(out.saved).toBe(false);
     expect(out.kept).toBe(false);

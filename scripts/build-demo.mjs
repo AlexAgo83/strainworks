@@ -30,6 +30,7 @@ try {
     const bad = [], tagged = {};
     for (const step of plan) for (const p of step.pieces) {
       const probe = { type: p.t, x: p.x, y: p.y, size: isBig(p.t) ? 2 : 1 };
+      if (step.rebuild) for (const q of footprint(probe)) if (cellAt(q.x, q.y)) { delete G.cells[key(cellAt(q.x, q.y).x, cellAt(q.x, q.y).y)]; forgetCells(); }
       for (const q of footprint(probe)) if (cellAt(q.x, q.y) || trackAt(q.x, q.y) || !placeable(q.x, q.y)) bad.push(`${step.name}: ${p.t} ${p.x},${p.y} on ${q.x},${q.y}`);
       if (p.t === "mine" && !depositAt(p.x, p.y)) bad.push(`${step.name}: mine ${p.x},${p.y} off deposit`);
       if (p.t === "borer" && footprint(probe).some((q) => depositAt(q.x, q.y) !== depositAt(p.x, p.y) || !depositAt(q.x, q.y))) bad.push(`${step.name}: borer ${p.x},${p.y} not on 4 cells of one deposit`);
@@ -50,12 +51,13 @@ try {
     const samples = [];
     for (let i = 0; i < 20 * seconds; i++) {
       step(0.05);
-      if (i % 200 === 199) samples.push({ t: Math.round(G.time), ...Object.fromEntries(Object.entries(tagged).map(([k, c]) => [k, c.stock.length])) });
+      if (i % 200 === 199) samples.push({ t: Math.round(G.time), fed: G.goals.map((g) => `${g.item}:${g.fed}/${g.count}`).join(" "), ...Object.fromEntries(Object.entries(tagged).map(([k, c]) => [k, c.stock?.length ?? 0])) });
     }
     const jammed = allCells().filter((c) => c.type === "belt" && c.item && c.t >= 0.999).length;
     return {
       report: { bad, cells: allCells().length, nests: G.breaches.length, awake: G.breaches.filter((b) => b.state !== "sleep").length, ruins: Object.keys(G.ruins).length,
         borerRates: borers.map((c) => `${c.x},${c.y}:${perSecond(c)}/s held ${c.stock.length}`), jammedBelts: jammed, samples,
+        pack: Object.values(tagged).filter((c) => c.type === "pack").map((c) => ({ box: c.box, ports: c.ports.map((p) => p.length), item: c.item })),
         ligases: Object.entries(tagged).filter(([, c]) => c.type === "ligase").map(([k, c]) => ({ k, heard: c.heard, made: c.made?.length, last: c.last, focus: netOf(c)?.focus, ports: c.ports.map((p) => p.join("")) })),
         sorters: Object.entries(tagged).filter(([, c]) => c.type === "sort").map(([k, c]) => `${k}:${c.read}:${c.item || "-"}:${heardOf(c)?.focus}`),
         burnt: allCells().filter((c) => c.type === "burn").map((c) => c.burnt || 0), coreWants: coreWants() },

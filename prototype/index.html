@@ -1745,7 +1745,7 @@ const EN = {
   "Lancer la démo": "Play the demo",
   "Démo en chargement…": "Demo loading…",
   "Démo · repart à neuf à chaque lancement": "Demo · starts fresh every time",
-  "Démo : une base au stade 5 qui tourne seule. Rien n’est enregistré, elle repart à neuf à chaque lancement.": "Demo: a stage 5 base that runs by itself. Nothing is saved, it starts fresh every time.",
+  "Démo : une base au stade 6 qui tourne seule. Rien n’est enregistré, elle repart à neuf à chaque lancement.": "Demo: a stage 6 base that runs by itself. Nothing is saved, it starts fresh every time.",
   "Ta partie a été déplacée sur un hexagone voisin pour laisser place à la démo.": "Your game moved to a nearby hexagon to make room for the demo.",
   "boucle trop courte, il lui faut plus de {} cases": "loop too short, it needs more than {} cells",
   "Soutes des vers": "Worm holds",
@@ -1769,7 +1769,7 @@ const EN = {
   "Il prend derrière lui, sur un tapis, dans un stock ou en sortie de machine, et dépose devant lui. Touche-le pour ne prendre qu’une chose. MK2 deux fois plus vite, MK3 plus vite encore et deux à la fois.": "It lifts from behind it, off a belt, out of a store or a machine's output, and drops in front. Touch it to take only one thing. MK2 twice as fast, MK3 faster still and two at a time.",
   "Prend tout": "Takes anything",
   "Ne prend que {}": "Takes only {}",
-  "Tout ce qui entre par l’un de ses quatre côtés part en fumée, 4 par seconde. Rien en échange : il vide ce qui déborde.": "Anything that comes in on any of its four sides goes up in smoke, 4 a second. Nothing in return: it clears what overflows.",
+  "Tout ce qui entre par l’un de ses quatre côtés part en fumée, 4, 8 ou 12 par seconde selon son rang. Rien en échange : il vide ce qui déborde.": "Anything that comes in on any of its four sides goes up in smoke, 4, 8 or 12 a second by its rank. Nothing in return: it clears what overflows.",
   "caisses": "boxes",
   "Écran": "Screen",
   "Relie-le à un nerf : il affiche en grand l’antidote que son réseau demande, et clignote quand il change.": "Wire it to a nerve: it shows the antidote its network asks for, big, and flashes when it changes.",
@@ -2204,7 +2204,7 @@ const TYPES = {
   mist:{name:L('Brumisateur'), help:L('Toutes les deux secondes, un nuage d’antidote sur trois cases autour : il touche toute une Nuée d’un coup. Un gène par bouffée. MK2 et MK3 soufflent plus souvent et plus large.'), hp:70},
   harpoon:{name:L('Harpon'), help:L('Un carreau lent et lourd, à très longue portée, qui traverse toute une file. Il ne prend que des capsules d’antidote. La réponse au Titan. MK2 et MK3 tirent plus vite, MK3 plus large.'), hp:90},
   arm:{name:L('Bras'), help:L('Il prend derrière lui, sur un tapis, dans un stock ou en sortie de machine, et dépose devant lui. Touche-le pour ne prendre qu’une chose. MK2 deux fois plus vite, MK3 plus vite encore et deux à la fois.'), hp:50},
-  burn:{name:L('Brûleur'), help:L('Tout ce qui entre par l’un de ses quatre côtés part en fumée, 4 par seconde. Rien en échange : il vide ce qui déborde.'), hp:60},
+  burn:{name:L('Brûleur'), help:L('Tout ce qui entre par l’un de ses quatre côtés part en fumée, 4, 8 ou 12 par seconde selon son rang. Rien en échange : il vide ce qui déborde.'), hp:60},
   unbind:{name:L('Déligase'), help:L('L’inverse de la Ligase : un gène entre derrière, sa base 1 ressort à gauche, la 2 devant, la 3 à droite. 1, 2 ou 3 gènes par seconde selon son rang.'), hp:60},
   unjoin:{name:L('Séparateur'), help:L('L’inverse de l’Assembleur : un brin de deux gènes entre derrière, le gène 1 ressort à gauche, le gène 2 à droite.'), hp:60},
   reaper:{name:L('Recycleur'), help:L('Un seul par partie. Son rayon aspire les cadavres autour de lui et les analyse : une fois sur deux il recopie le gène de la créature, sinon il rend du carbone K. Le Laboratoire améliore la réplication et la portée.'), hp:120},
@@ -2800,6 +2800,8 @@ const RANKS = {
   unbind:{cost:[0, 80, 200], time:2},
   unjoin:{cost:[0, 80, 200], time:2},
   arm:{cost:[0, 40, 120], time:1.5},
+  // A burner clears what a belt of its rank brings: 4, 8 or 12 a second, the beat it misses between steps carried over.
+  burn:{cost:[0, 30, 90], time:1},
   // Defences: turrets fire faster and hold more, walls hold more.
   turret:{cost:[0, 100, 250], time:3},
   sting:{cost:[0, 200, 500], time:4},
@@ -2811,7 +2813,7 @@ const RANKS = {
 };
 const CAPPED = new Set(['split2', 'split', 'sort']);
 // The ones whose drawing does not show their rank itself: one ring a rank above the first.
-const RINGED = new Set([...CAPPED, 'ligase', 'join', 'pack', 'turret', 'sting', 'maw', 'wall']);
+const RINGED = new Set([...CAPPED, 'ligase', 'join', 'pack', 'burn', 'turret', 'sting', 'maw', 'wall']);
 const GUN_RANK = [1, 1.5, 2], WALL_RANK = [1, 2, 3];
 const HOLD = {cyst:[60, 120, 240], vault:[360, 720, 1440]};
 const capOf = c => HOLD[c.type][rankOf(c) - 1];
@@ -3769,7 +3771,7 @@ function receive(c, item, travel, carry = 0) {
   else if (['unpack', 'flip', 'unbind', 'unjoin'].includes(c.type)) intoPort(c, 0, item, travel);
   else if (isGun(c)) { c.gulp = {item, from:travel, t:G.time}; const gene = contentOf(item); c.ammo[gene] = (c.ammo[gene] || 0) + (boxOf(item) ? PACK.size : 1); }
   else if (c.type === 'bridge') c.lanes[travel % 2] = {item, dir:travel, t:carry};
-  else if (c.type === 'burn') { c.gulp = {item, from:travel, t:G.time}; c.busy = G.time + .25; c.burnt = (c.burnt || 0) + 1; }
+  else if (c.type === 'burn') { c.gulp = {item, from:travel, t:G.time}; c.busy = Math.max(c.busy || 0, G.time - STEP) + 1 / (BELT_SPEED * rankOf(c)); c.burnt = (c.burnt || 0) + 1; }
   else { c.gulp = {item, from:travel, t:G.time}; c.hp = Math.min(100, c.hp + .2); eat(item); }
 }
 
@@ -7939,7 +7941,7 @@ function openGame(id) {
     openSlot(id, DEMO_KEY, L('Démo')); settleIn();
     if (!load(JSON.stringify(window.DEMO_GAME))) { slotKey = slotId = null; return false; }
     try { NET = new Map(); choose('hand'); home(); refresh(); } catch (_) { slotKey = slotId = null; return false; }
-    tell(L('Démo : une base au stade 5 qui tourne seule. Rien n’est enregistré, elle repart à neuf à chaque lancement.'));
+    tell(L('Démo : une base au stade 6 qui tourne seule. Rien n’est enregistré, elle repart à neuf à chaque lancement.'));
     return true;
   }
   const game = readList().games[id];
@@ -8179,8 +8181,7 @@ const PREFERRED = (() => {
   return order;
 })();
 // The demo's hexagon: the one beside where a first game is founded.
-// shortcut: the demo is withdrawn until a sound base is built; set it back to PREFERRED[1] to bring it back.
-const DEMO_HEX = null;
+const DEMO_HEX = PREFERRED[1];
 
 const orbit = {on:false, yaw:0, pitch:0, to:null, pick:null, list:null, incoming:null, dirty:true, drag:null, gl:null, box:null, seenAt:0};
 function layoutPlanet() {
