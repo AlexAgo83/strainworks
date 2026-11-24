@@ -551,21 +551,21 @@ window.createModels3D = (B, scene) => {
 
     // A press over a carousel of six, with a hopper of carbon on one side.
     glue(c, x, y) {
-      // A 2x2 pool in a steel lip, fed by a glass hopper; it bubbles while it holds genes, dries when empty.
+      // A pool in a steel lip, fed by a glass hopper; it bubbles while it holds genes, dries when empty.
       const live = built(c), full = (c.stock?.length || 0) / GLUE.hold, wet = live && c.stock?.length;
       const mk = rankOf(c), rim = ['steel2', 'rail2', 'rail3'][mk - 1];
-      add('hull', 'dark', x, y, 0.03, 1.96, 0.06, 1.96);
-      add('lip', rim, x, y, 0.08, 1.9, 0.5, 1.9);
-      add('stain', wet ? 'S' : 'husk', x, y, 0.07, 1.72, 0.02, 1.72);
-      add('sac', wet ? 'membraneGlass' : 'wreck', x, y, 0.06, 1.55, 0.06 + full * 0.06, 1.55);
-      if (wet) for (let i = 0; i < 9; i++) {
-        const k = (clock * 0.7 + i * 0.37) % 1, bx = x + Math.sin(i * 2.7) * 0.6, by = y + Math.cos(i * 1.9) * 0.6;
-        add('bead', i % 2 ? 'S2' : 'acid', bx, by, 0.1 + k * 0.06, 0.04 + Math.sin(k * Math.PI) * 0.07);
+      add('hull', 'dark', x, y, 0.03, 0.96, 0.06, 0.96);
+      add('lip', rim, x, y, 0.08, 0.92, 0.3, 0.92);
+      add('stain', wet ? 'S' : 'husk', x, y, 0.07, 0.84, 0.02, 0.84);
+      add('sac', wet ? 'membraneGlass' : 'wreck', x, y, 0.06, 0.76, 0.06 + full * 0.06, 0.76);
+      if (wet) for (let i = 0; i < 5; i++) {
+        const k = (clock * 0.7 + i * 0.37) % 1, bx = x + Math.sin(i * 2.7) * 0.28, by = y + Math.cos(i * 1.9) * 0.28;
+        add('bead', i % 2 ? 'S2' : 'acid', bx, by, 0.1 + k * 0.06, 0.03 + Math.sin(k * Math.PI) * 0.04);
       }
-      add('tube', 'steel', x - 0.78, y - 0.78, 0.35, 0.36, 0.7, 0.36);
-      add('tube', 'glass', x - 0.78, y - 0.78, 0.52, 0.3, 0.4 * Math.max(0.1, full), 0.3);
-      limb('steel2', x - 0.7, y - 0.7, 0.62, x - 0.4, y - 0.4, 0.2, 0.06);
-      if (c.gulp && G.time - c.gulp.t < 0.3) for (let i = 0; i < 3; i++) add('bead', 'ember', x + Math.sin(clock * 9 + i) * 0.5, y + Math.cos(clock * 7 + i) * 0.5, 0.3 + i * 0.1, 0.05);
+      add('tube', 'steel', x - 0.36, y - 0.36, 0.3, 0.18, 0.5, 0.18);
+      add('tube', 'glass', x - 0.36, y - 0.36, 0.42, 0.14, 0.3 * Math.max(0.1, full), 0.14);
+      limb('steel2', x - 0.32, y - 0.32, 0.5, x - 0.18, y - 0.18, 0.2, 0.04);
+      if (c.gulp && G.time - c.gulp.t < 0.3) for (let i = 0; i < 3; i++) add('bead', 'ember', x + Math.sin(clock * 9 + i) * 0.25, y + Math.cos(clock * 7 + i) * 0.25, 0.3 + i * 0.1, 0.05);
     },
     mist(c, x, y) {
       // A tower with a glass bulb of antidote and turning nozzles; the bulb dims after each puff.

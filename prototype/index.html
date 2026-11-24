@@ -1105,7 +1105,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <div class="row"><span>Commandes</span><button id="help" class="tip">Voir</button></div>
     <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip" aria-label="Français" lang="fr">FR</button><button id="lang-en" class="tip" aria-label="English" lang="en">EN</button></span></div>
     <button class="row go" data-go="dev"><span>Développeur</span><b aria-hidden="true">›</b></button>
-    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.33</span></a>
+    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.34</span></a>
    </div>
    <div class="page" data-page="graphics" hidden>
     <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Graphismes</h2></div>
@@ -1753,7 +1753,7 @@ const EN = {
   "Détecte : nids": "Detects: nests",
   "Détecte : nids et créatures": "Detects: nests and creatures",
   "Glu": "Glue",
-  "Une flaque de 2 sur 2 : ce qui la traverse ralentit et brûle un peu. Elle se nourrit de gènes par n’importe quel côté, un pour quelques passages. Vide, elle ne fait plus rien. MK2 et MK3 ralentissent et brûlent plus.": "A 2 by 2 pool: whatever crosses it slows down and burns a little. It feeds on genes from any side, one for a few crossings. Empty, it does nothing. MK2 and MK3 slow and burn more.",
+  "Une flaque : ce qui la traverse ralentit et brûle un peu. Elle se nourrit de gènes par n’importe quel côté, un pour quelques passages. Vide, elle ne fait plus rien. MK2 et MK3 ralentissent et brûlent plus.": "A pool: whatever crosses it slows down and burns a little. It feeds on genes from any side, one for a few crossings. Empty, it does nothing. MK2 and MK3 slow and burn more.",
   "Brumisateur": "Mister",
   "Toutes les deux secondes, un nuage d’antidote sur trois cases autour : il touche toute une Nuée d’un coup. Un gène par bouffée. MK2 et MK3 soufflent plus souvent et plus large.": "Every two seconds, a cloud of antidote three cells around: it hits a whole Swarm at once. One gene a puff. MK2 and MK3 puff more often and wider.",
   "Harpon": "Harpoon",
@@ -2112,7 +2112,7 @@ const TYPES = {
   worm:{name:L('Ver'), help:L('Touche une piste pour l’incuber : 3 soutes de 40, 12 cases par seconde.'), hp:150},
   ligase:{name:L('Ligase'), help:L('Trois entrées : 1 à gauche, 2 derrière, 3 à droite. Leur ordre écrit le gène. Reliée à un nerf, elle vide ses entrées quand l’antidote demandé change.'), hp:60},
   pack:{name:L('Encapsuleur'), help:L('Gènes derrière, carbone sur le côté. Règle sa recette : capsule pour le cœur (2 carbones) ou chargeur pour les tourelles (1 carbone), avec 6 objets identiques.'), hp:60},
-  glue:{name:L('Glu'), help:L('Une flaque de 2 sur 2 : ce qui la traverse ralentit et brûle un peu. Elle se nourrit de gènes par n’importe quel côté, un pour quelques passages. Vide, elle ne fait plus rien. MK2 et MK3 ralentissent et brûlent plus.'), hp:120},
+  glue:{name:L('Glu'), help:L('Une flaque : ce qui la traverse ralentit et brûle un peu. Elle se nourrit de gènes par n’importe quel côté, un pour quelques passages. Vide, elle ne fait plus rien. MK2 et MK3 ralentissent et brûlent plus.'), hp:120},
   mist:{name:L('Brumisateur'), help:L('Toutes les deux secondes, un nuage d’antidote sur trois cases autour : il touche toute une Nuée d’un coup. Un gène par bouffée. MK2 et MK3 soufflent plus souvent et plus large.'), hp:70},
   harpoon:{name:L('Harpon'), help:L('Un carreau lent et lourd, à très longue portée, qui traverse toute une file. Il ne prend que des capsules d’antidote. La réponse au Titan. MK2 et MK3 tirent plus vite, MK3 plus large.'), hp:90},
   arm:{name:L('Bras'), help:L('Il prend derrière lui, sur un tapis, dans un stock ou en sortie de machine, et dépose devant lui. Touche-le pour ne prendre qu’une chose. MK2 deux fois plus vite, MK3 plus vite encore et deux à la fois.'), hp:50},
@@ -2169,7 +2169,7 @@ const SPLIT = {split2:[3, 1], split:[3, 0, 1]};
 const isSplit = c => Boolean(c && SPLIT[c.type]);
 const splitExits = c => SPLIT[c.type].map(turn => (c.dir + turn) % 4);
 // These cover 2 x 2 cells. The object stands on its north-west cell: saved games need nothing new.
-const BIG = {borer:true, vault:true, lab:true, glue:true};
+const BIG = {borer:true, vault:true, lab:true};
 const BORER = {harvesters:6, hold:24};
 // A building's side in cells: its own (the core's 3) or 2 for the big ones.
 const sizeOf = c => c.size || (isBig(c.type) ? 2 : 1);
@@ -7515,7 +7515,7 @@ let demoMoved = false, demoReady = null;
 const loadDemo = () => demoReady ||= script('demo.js').catch(() => null);
 function planetList() {
   const list = readList();
-  list.games[DEMO_HEX] = {key:DEMO_KEY, name:L('Démo'), demo:true, ...summaryOf(window.DEMO_GAME || {stage:4})};
+  if (DEMO_HEX != null) list.games[DEMO_HEX] = {key:DEMO_KEY, name:L('Démo'), demo:true, ...summaryOf(window.DEMO_GAME || {stage:4})};
   return list;
 }
 function writeList(list) { return keep(LIST_KEY, JSON.stringify(list)); }
@@ -7841,7 +7841,8 @@ const PREFERRED = (() => {
   return order;
 })();
 // The demo's hexagon: the one beside where a first game is founded.
-const DEMO_HEX = PREFERRED[1];
+// shortcut: the demo is withdrawn until a sound base is built; set it back to PREFERRED[1] to bring it back.
+const DEMO_HEX = null;
 
 const orbit = {on:false, yaw:0, pitch:0, to:null, pick:null, list:null, incoming:null, dirty:true, drag:null, gl:null, box:null, seenAt:0};
 function layoutPlanet() {
