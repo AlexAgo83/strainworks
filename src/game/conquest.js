@@ -54,6 +54,28 @@ export function ringOfHex(state, id) {
   }
   return 0;
 }
+// The grand victory (item_028): a region, one hexagon and all its neighbours (six, five round a pentagon), purified.
+export const regionOf = id => [Number(id), ...neighbours(id)];
+// The region closest to done: most hexagons purified, then fewest to go; null before any hatching.
+export function bestRegion(state) {
+  if (!anyPurified(state)) return null;
+  let best = null;
+  CELLS_OF_GLOBE.forEach((_, id) => {
+    const cells = regionOf(id), have = cells.filter(n => purified(state, n)).length;
+    if (!have) return;
+    const one = {center:id, have, need:cells.length, missing:cells.filter(n => !purified(state, n))};
+    if (!best || one.have > best.have || (one.have === best.have && one.missing.length < best.missing.length)) best = one;
+  });
+  return best;
+}
+// Once, the first time a region is whole: kept on the planet, never undone.
+export function crown(state, at) {
+  if (state.victory) return null;
+  const done = bestRegion(state);
+  if (!done || done.missing.length) return null;
+  state.victory = {center:done.center, at};
+  return done;
+}
 // What a ring changes, in a few words for the planet.
 export function ringText(ring) {
   const k = Math.min(RING.most, ring);
@@ -80,6 +102,7 @@ export function planetOf(raw) {
   for (const [name, n] of Object.entries(raw.mutations || {})) if (Object.hasOwn(MUTATIONS, name) && Number.isInteger(n) && n > 0) state.mutations[name] = Math.min(n, MUTATIONS[name].cap);
   if (Array.isArray(raw.offer)) { const offer = [...new Set(raw.offer.filter(id => Object.hasOwn(MUTATIONS, id)))].slice(0, 3); if (offer.length) state.offer = offer; }
   if (state.offer) state.owed = Number.isInteger(raw.owed) && raw.owed > 0 ? Math.min(raw.owed, 200) : 1;
+  if (raw.victory && CELLS_OF_GLOBE[raw.victory.center] && Number.isFinite(raw.victory.at)) state.victory = {center:Number(raw.victory.center), at:raw.victory.at};
   state.first = raw.first != null && CELLS_OF_GLOBE[raw.first] ? Number(raw.first) : null;
   if (state.first == null && Object.keys(state.purified).length) state.first = Number(Object.keys(state.purified)[0]);
   return state;

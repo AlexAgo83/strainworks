@@ -2,7 +2,7 @@
 import { G, STAGES, spotHash } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { playSound } from "./audio.js";
-import { MUTATIONS, anyPurified, isOpen, purified, ringOfHex, ringText, takeMutation } from "./conquest.js";
+import { MUTATIONS, anyPurified, bestRegion, isOpen, neighbours, purified, ringOfHex, ringText, takeMutation } from "./conquest.js";
 import { offerConcept } from "./unlock.js";
 import { forgetEvent, replay, showMenu, tell } from "./hud.js";
 import { $, ART, CURVE_KEY, BABYLON_HASH, BABYLON_SRC, CELLS_OF_GLOBE, DEMO_HEX, EARN, FILE, GLOBE_SHADER, LENS, NARROW, PERF, PERF_KINDS, PREFERRED, STILL, VIEW_KEY, arrows, canvas, cross3, demoMoved, dot3, drag, fx, fxRandom, gesture, loadDemo, made3d, mainSet, orbit, perfZero, slotId, slotKey, station3d, switching, ui, unit3, view, view3d, within } from "./main.js";
@@ -145,12 +145,20 @@ export function settlementSVG(to, game, seed, k) {
   spotted([0, 0], dead ? '#FF6B74' : '#B7F34A', core * .7, 'heartbeat');
   return out.join('');
 }
+// What the globe marks for the grand victory: the closest region's missing hexagons, and a whole region once won.
+export function regionMarks(state) {
+  const best = state && bestRegion(state);
+  if (!best) return null;
+  const won = state.victory ? [state.victory.center, ...neighbours(state.victory.center)] : [];
+  return {missing:new Set(state.victory ? [] : best.missing), done:new Set(won)};
+}
 export function drawGrid() {
   const {r, lens} = orbit.box, games = orbit.list.games;
   let grid = '', taken = '', picked = '', hovered = '';
   // The beam has soft edges: a blur, not a cut-out triangle.
   let defs = '<defs><filter id="beam-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter></defs>';
   const buttons = new Map([...$('games').children].map(b => [b.dataset.hex, b]));
+  const region = regionMarks(orbit.list.planet);
   CELLS_OF_GLOBE.forEach(({c, ring, size}, id) => {
     // @ts-expect-error: loose typing, tightened module by module (item_007)
     const v = turn(c), b = buttons.get(String(id));
@@ -164,8 +172,9 @@ export function drawGrid() {
     const shape = dotsOf(turned), game = games[id], state = orbit.list.planet;
     grid += `<polygon class="grid" points="${shape}" stroke-opacity="${(.06 + v[2] * .24).toFixed(2)}"/>`;
     // The conquest: purified ground turns living green, the open hexagons beside it are outlined, the rest infected.
-    if (state && purified(state, id)) grid += `<polygon class="purified" points="${shape}"/>`;
-    else if (state && anyPurified(state) && !game) grid += `<polygon class="${isOpen(state, id) ? 'open' : 'locked'}" points="${shape}"/>`;
+    if (state && purified(state, id)) grid += `<polygon class="purified${region?.done.has(id) ? ' crowned' : ''}" points="${shape}"/>`;
+    else if (state && anyPurified(state) && !game) grid += `<polygon class="${isOpen(state, id) ? 'open' : 'locked'}${region?.missing.has(id) ? ' needed' : ''}" points="${shape}"/>`;
+    if (game && region?.missing.has(id)) grid += `<polygon class="needed" points="${shape}"/>`;
     if (game) {
       const e1 = unit3(cross3([0, 1, .001], c)), e2 = cross3(c, e1);
       const to = (u, w) => onScreen(turn(unit3([0, 1, 2].map(k => c[k] + e1[k] * u * size + e2[k] * w * size))));
@@ -417,6 +426,12 @@ export function projectSlot(note = '', bad = false) {
     act(L('Effacer : maintenir'), 'bad', gone, true);
   }
   noteOnPlanet(note || (incoming ? L('Rien n’est écrit avant ta validation. Aucune partie n’est écrasée.') : ''), bad);
+  const best = state && bestRegion(state), won = state?.victory;
+  $('planet-region').hidden = !best;
+  if (best) $('planet-region').innerHTML = (won ? L`<span class="label">Grande victoire</span><b>${L('région purifiée')}</b>` : L`<span class="label">Grande victoire · région</span><b>${best.have} / ${best.need}</b>`)
+    + `<span class="what">${won ? L('La planète continue : d’autres régions attendent.') : L`Purifie ${best.missing.length > 1 ? L`les ${best.missing.length} hexagones marqués` : L('l’hexagone marqué')} pour libérer toute la région.`}</span><i style="width:${(best.have / best.need * 100).toFixed(0)}%"></i>`;
+  // Once a region is under way (two hexagons of it purified): what the grand victory is. Not over another choice.
+  if (best?.have >= 2 && orbit.on && !state.offer?.length) offerConcept('region');
   const held = Object.entries(state?.mutations || {});
   $('planet-mutations').hidden = !held.length;
   $('planet-mutations').innerHTML = held.length ? L`<span class="label">Mutations de souche</span>` + held.map(([id, n]) => `<span class="chip">${mutationPic(id)}${MUTATIONS[id].name}${n > 1 ? ` ×${n}` : ''}</span>`).join('') : '';

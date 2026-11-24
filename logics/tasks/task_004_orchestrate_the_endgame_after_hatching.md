@@ -8,7 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-11-25 00:11:54
+> Indicators reviewed: 2026-11-25 00:15:00
 
 # AI Context
 - Summary: Delivery order of the endgame: planet state, then saves, mutations, rings and the region victory, after the mockups are approved.
@@ -24,7 +24,7 @@
 - [x] 2. item_025 planet state and purification, with item_029 migration in the same release so no existing planet breaks.
 - [x] 3. item_026 mutations pool and choice screen.
 - [x] 4. item_027 difficulty by ring, balanced with simulation tests against the mutations reachable by then.
-- [ ] 5. item_028 region victory.
+- [x] 5. item_028 region victory.
 - [ ] 6. Each slice: tests from scratch, commit, push once CI is green, release when the operator asks.
 
 # Backlog
@@ -49,7 +49,13 @@
 - (no validation recorded yet)
 
 # Report
-- 2026-11-24: mockups approved (no retroactive mutations, the proposed pool, the real globe). item_025 and item_029 done: planet state, purification at hatching, open neighbours, migration and planet export; the concept cards framework with the Purification card. item_026 done: the six strain mutations, the choice dialog at hatching and on the planet, the Strain mutation card. item_027 done: rings by distance from the first purified hexagon, one more family, bigger swarms and poorer deposits up to ring 3, shown on the planet with the Rings card.
+- 2026-11-24: mockups approved (no retroactive mutations, the proposed pool, the real globe). item_025 and item_029 done: planet state, purification at hatching, open neighbours, migration and planet export; the concept cards framework with the Purification card. item_026 done: the six strain mutations, the choice dialog at hatching and on the planet, the Strain mutation card. item_027 done: rings by distance from the first purified hexagon, one more family, bigger swarms and poorer deposits up to ring 3, shown on the planet with the Rings card. item_028 done: the region's progress and missing hexagons on the planet, the grand victory once, the Grande victoire card.
+
+# Handoff (2026-11-25, session stopped on the usage limit)
+- Done: items 025, 026, 027, 028 and 029, each a committed slice with its tests; the concept cards (Purification, Mutation de souche, Anneaux, Grande victoire) and their help list.
+- Not run on the last slice (item_028): the capped full GPU suite. Run it first: targeted tests, lint and typecheck are green.
+- Next, operator requirement still open: audit the existing game for concept cards and add the missing ones (base genes and the core's hunger, swarms and the alarm, nests guarding rich deposits and their reward, the stage mechanic requirement, the harvester cap per deposit, the encapsulator warning), each shown the first time it is met and replayable from the help, French with en.js. Then close this task (req_001 closed itself with its last item).
+- Local main is ahead of origin/main by the endgame commits (mockups and corpus, then one commit per slice, and merges of origin/main); nothing pushed from this session.
 
 # Links
 - Request: `req_001_design_the_endgame_after_hatching`

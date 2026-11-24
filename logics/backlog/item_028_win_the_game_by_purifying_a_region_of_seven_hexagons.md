@@ -1,10 +1,10 @@
 ## item_028_win_the_game_by_purifying_a_region_of_seven_hexagons - Win the game by purifying a region of seven hexagons
 > From version: 0.2.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 85%
 > Confidence: 75%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -34,7 +34,13 @@ Without a final goal the conquest has no end the player can aim for.
 - AC3: Free mode threat cannot cause or undo the grand victory.
 
 # AC Traceability
-- request-AC1 -> This backlog slice. Proof: deferred to implementation; this slice's AC1.
+- request-AC1 -> This backlog slice. Proof: `tests/prototype/region.test.mjs`
+
+# Implementation notes (2026-11-25)
+- `bestRegion` and `crown` in `src/game/conquest.js`: a region is a hexagon and all its neighbours (seven, six round a pentagon); the closest one to done is shown on the planet (`#planet-region`: count, the hexagons it still needs, marked on the globe). The hatching that completes one crowns it once (`planet.victory`), turns the victory screen into "Grande victoire" with the region's strains and the mutations held, and shows the Grande victoire concept card; later hatchings are plain ones. Free mode never purifies, so it can neither give nor take the grand victory.
+- The Grande victoire card first shows once a region is under way (two of its hexagons purified), so it never covers the Purification, Mutation or Rings card met just before.
+- Not run: the full GPU suite on this slice (session stopped on the usage limit); targeted tests, lint and typecheck only.
+- Proof: `tests/prototype/region.test.mjs`.
 
 # Decision framing
 - Product framing: Not needed

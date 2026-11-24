@@ -12,7 +12,7 @@ import { frame, labSet, startLab } from "./lab.js";
 import { askCurve, drawGrid, drawPlanet, openMutations, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn, watchCurve } from "./planet.js";
 import { along, arrow, circle, crate, draw, drawCell, glyph, home, lamp, marker, pan, passing, reading, rect, renderSet, resize, worldAt, zoomAt } from "./render.js";
 import { checkGame, findGames, foundGame, freeHex, graftGames, keep, openGame, openSlot, parsed, planetList, readFileGames, readList, save, savesSet, stored, writeList } from "./saves.js";
-import { isOpen, neighbours, purified } from "./conquest.js";
+import { bestRegion, isOpen, neighbours, purified } from "./conquest.js";
 import { begin, chooseView, growDock, hold, jobDone, letGo, load, markView, noteEarned, onFresh, rotate, script, spacePauses, testLine, viewSet, wormGone } from "./view.js";
 
 import "./actions.js";
@@ -350,6 +350,7 @@ const WINDOW_API = {
   neighbours: [() => neighbours],
   isOpen: [() => isOpen],
   purified: [() => purified],
+  bestRegion: [() => bestRegion],
   reading: [() => reading],
   receive: [() => receive],
   recipe: [() => recipe],

@@ -1,7 +1,7 @@
 ## req_001_design_the_endgame_after_hatching - Design the endgame after hatching
 > From version: 0.1.28
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 80%
 > Complexity: Medium

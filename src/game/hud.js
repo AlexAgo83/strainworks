@@ -7,6 +7,7 @@ import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, wr
 import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, DEFENSE_GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gateGreen, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
 import { readList, save } from "./saves.js";
+import { MUTATIONS, regionOf as regionCells } from "./conquest.js";
 import { offerConcept } from "./unlock.js";
 
 export function paint(id, html, el = $(id)) {
@@ -870,7 +871,7 @@ export function showVictory() {
   box.querySelector('.stage').textContent = L`Victoire en ${minutes} min`;
   paint('victory-score', [[G.kills, L('créatures tuées')], [G.breaches.filter(b => b.state === 'spent').length, L('brèches vidées')], [made, L('gènes produits')], [G.families.length, L('familles affrontées')]].map(([n, what]) => `<span><b>${n}</b>${what}</span>`).join(''));
   // The hatching purifies this hexagon on the planet (req_001); saved now, so leaving at once keeps it.
-  ui.opened = null;
+  ui.opened = ui.grand = null;
   const kept = save();
   $('victory-planet').hidden = !kept;
   $('victory-planet').textContent = ui.opened?.length ? L`Hexagone purifié : ${ui.opened.length} hexagones voisins s’ouvrent sur la planète.` : L('Hexagone purifié sur la planète.');
@@ -878,7 +879,16 @@ export function showVictory() {
   box.hidden = false;
   playSound('stage_up');
   $('won-mutation').hidden = !readList().planet.offer?.length;
-  if (kept) offerConcept('purify');
+  // The hatching that completes a region: the grand victory, said once, with the strains that made it.
+  const grand = ui.grand, list = grand && readList();
+  box.classList.toggle('grand', Boolean(grand));
+  box.querySelector('h1').textContent = grand ? L('Grande victoire') : L('Éclosion');
+  if (grand) {
+    const names = Object.entries(list.games).filter(([id]) => regionCells(grand.center).includes(Number(id))).map(([, g]) => g.name);
+    const held = Object.entries(list.planet.mutations).map(([id, n]) => `${MUTATIONS[id].name}${n > 1 ? ` ×${n}` : ''}`);
+    $('victory-planet').textContent = L`Une région entière est purifiée : ${grand.need} hexagones. ${names.length ? L`Souches : ${names.join(', ')}.` : ''} ${held.length ? L`Mutations : ${held.join(', ')}.` : ''} La planète continue : d’autres régions attendent.`.replace(/\s+/g, ' ').trim();
+  }
+  if (kept) offerConcept(grand ? 'region' : 'purify');
 }
 export function paintDry() {
   ui.dry = G.over || !G.enemies.length ? [] : allCells().filter(c => isGun(c) && built(c) && !Object.values(c.ammo).some(n => n) && G.enemies.some(e => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < GUNS[c.type].range * 2)).slice(0, 4);

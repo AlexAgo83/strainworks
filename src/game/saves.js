@@ -4,7 +4,7 @@ import { L } from "../sim/text.ts";
 import { forgetEvents, paintGuide, showIntro, startGuide, tell } from "./hud.js";
 import { choose, refresh } from "./input.js";
 import { $, BATCHES, CELLS_OF_GLOBE, DEMO_HEX, DEMO_KEY, FILE, GAME_KEY, INTRO_KEY, LIMIT, LIST_KEY, MATTER, MAX_FAMILIES, MOST_DRONES, NAMES, NERVE_COLORS, OLD_SAVE, PREFERRED, SAVE, UPGRADES, demoMoved, dot3, downloads, drag, gesture, hovered, mainSet, owed, paused, repaid, saveFailed, slotId, slotKey, slotName, slotSaved, ui } from "./main.js";
-import { anyPurified, drawOffer, isOpen, planetOf, purify, ringOfHex, strainStart } from "./conquest.js";
+import { anyPurified, crown, drawOffer, isOpen, planetOf, purify, ringOfHex, strainStart } from "./conquest.js";
 import { noteOnPlanet } from "./planet.js";
 import { home } from "./render.js";
 import { begin, load } from "./view.js";
@@ -111,7 +111,7 @@ export function save() {
   if (G.won != null) {
     const opened = purify(list.planet, slotId, Date.now());
     // Each hatching owes one strain mutation, chosen on the victory screen or when the planet opens.
-    if (opened) { ui.opened = opened; list.planet.owed = (list.planet.owed || 0) + 1; list.planet.offer ||= drawOffer(list.planet, G.seed); if (!list.planet.offer.length) { delete list.planet.offer; list.planet.owed = 0; } }
+    if (opened) { ui.grand = crown(list.planet, Date.now()); ui.opened = opened; list.planet.owed = (list.planet.owed || 0) + 1; list.planet.offer ||= drawOffer(list.planet, G.seed); if (!list.planet.offer.length) { delete list.planet.offer; list.planet.owed = 0; } }
   }
   list.last = slotId;
   writeList(list);

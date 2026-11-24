@@ -116,7 +116,8 @@ export function drawScene(g, type) {
 export const CONCEPTS_KEY = 'strainworks-concepts';
 function met() { try { return JSON.parse(stored(CONCEPTS_KEY) || '[]'); } catch (_) { return []; } }
 export function offerConcept(id) {
-  if (!CONCEPTS[id] || met().includes(id)) return false;
+  // One card at a time: another one open now, this one waits for the next meeting.
+  if (!CONCEPTS[id] || met().includes(id) || $('unlock')?.open) return false;
   keep(CONCEPTS_KEY, JSON.stringify([...met(), id]));
   showConcept(id);
   return true;

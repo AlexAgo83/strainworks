@@ -71,5 +71,21 @@ export const CONCEPTS = {
       circle(g, 2.5, 2.5, .1, LIVING);
     },
   },
+  region:{
+    kicker:L('Planète'), title:L('Grande victoire'),
+    lines:[L('Purifie une région entière : un hexagone et tous ses voisins.'), L('C’est la grande victoire ; la planète continue ensuite.')],
+    facts:[['7', L('hexagones dans une région (6 autour d’un pentagone)')], ['✓', L('les hexagones marqués sont ceux qui manquent')], ['∞', L('le mode libre ne peut ni la donner ni la reprendre')]],
+    draw(g, t) {
+      // The six around light up one after another, then the whole region glows.
+      const lit = Math.floor(ease(t / .7) * 6.999);
+      for (const [i, [x, y]] of AROUND.entries()) {
+        const on = i < lit;
+        hex(g, x, y, R * .96, on ? '#5E8A2A' : INFECTED, on ? '#D8FF8A' : LIVING, on ? .05 : .04, on ? null : [.1, .07]);
+      }
+      hex(g, 2.5, 2.5, R * .96, '#5E8A2A', '#D8FF8A', .05);
+      if (t > .72) circle(g, 2.5, 2.5, R * 2.2 + (t - .72) * 1.2, null, `rgba(183,243,74,${Math.max(0, .8 - (t - .72) * 3)})`, .08);
+      circle(g, 2.5, 2.5, .16, LIVING);
+    },
+  },
 };
 export const conceptIds = () => Object.keys(CONCEPTS);

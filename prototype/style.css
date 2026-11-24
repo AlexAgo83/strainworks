@@ -1137,3 +1137,14 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
   #mutation-cards h3 { font-size:16px; }
   #mutation-take { width:100%; }
 }
+
+/* The grand victory (item_028): the region's progress on the planet, the hexagons it still needs, the region won. */
+#planet-region { position:relative; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:2px 12px; margin-top:8px; font-size:13px; }
+#planet-region[hidden] { display:none; }
+#planet-region .label { grid-column:1 / -1; color:var(--muted); font:600 11px var(--display); letter-spacing:.08em; text-transform:uppercase; }
+#planet-region b { font:700 24px var(--display); color:var(--ink); }
+#planet-region .what { color:var(--muted); line-height:1.35; }
+#planet-region i { grid-column:1 / -1; display:block; height:4px; border-radius:2px; background:var(--acid); max-width:100%; box-shadow:0 0 0 999px rgba(28,43,47,.0); }
+#hexes .needed { fill:none; stroke:var(--acid); stroke-width:2.4; stroke-dasharray:none; }
+#hexes .purified.crowned { fill:rgba(183,243,74,.5); stroke:#F3FFD0; stroke-width:2; }
+#victory.grand h1 { color:var(--acid); }
