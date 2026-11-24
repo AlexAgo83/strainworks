@@ -86,7 +86,7 @@ npm run dev
 
 The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. The page loads the game from `src/` as modules, so it runs through Vite (`npm run dev`) or from the built site (`npm run build`, then `npm run preview`), not as a file opened directly.
 
-A game opens in 3D, drawn with Babylon.js, unless the player picked 2D in the settings. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `src/game/main.js`: a test compares it with the installed package.
+A game opens in 3D, drawn with Babylon.js, unless the player picked 2D in the settings. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. The version and the hash are written at build from the installed `babylonjs` package (`scripts/babylon-pin.mjs`): bumping the package is the only edit, and a test compares the page with it.
 
 ### The model lab
 

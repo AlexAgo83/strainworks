@@ -67,11 +67,11 @@ export function paintMusic() {
   $('music-on').setAttribute('aria-pressed', music.on);
   $('music-on').textContent = music.on ? L('Activée') : L('Coupée');
 }
-export function keepMusic() { try { localStorage.setItem(MUSIC_KEY, JSON.stringify({volume:music.volume, on:music.on})); } catch (_) {} }
+export function keepMusic() { try { localStorage.setItem(MUSIC_KEY, JSON.stringify({volume:music.volume, on:music.on})); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ } }
 export function startSound() {
   if (music.started) return;
   // A media player, not a page sound: an iPhone in silent mode still plays it, as it does a video.
-  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* only some browsers have an audio session */ }
   try {
     const Context = window.AudioContext || window.webkitAudioContext, ctx = new Context();
     music.gains = music.players.map(a => { const gain = ctx.createGain(); gain.gain.value = 0; ctx.createMediaElementSource(a).connect(gain).connect(ctx.destination); return gain; });
@@ -87,7 +87,7 @@ export function paintSfx() {
   $('sfx-on').textContent = sfx.on ? L('Activés') : L('Coupés');
   if (sfx.out) sfx.out.gain.value = sfx.on ? sfx.volume : 0;
 }
-export function keepSfx() { try { localStorage.setItem(SFX_KEY, JSON.stringify({volume:sfx.volume, on:sfx.on})); } catch (_) {} }
+export function keepSfx() { try { localStorage.setItem(SFX_KEY, JSON.stringify({volume:sfx.volume, on:sfx.on})); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ } }
 export function loadSounds() {
   for (const [id, base] of Object.entries(SOUND_FILE)) {
     const take = new RegExp(`/${base}_\\d`);

@@ -102,7 +102,7 @@ export function breachesIn(x0, y0, x1, y1) {
 }
 export function setHeading(dir) {
   mainSet.heading(dir);
-  try { localStorage.setItem(HEADING_KEY, dir); } catch (_) {}
+  try { localStorage.setItem(HEADING_KEY, dir); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ }
 }
 export function itemName(item) {
   const box = boxOf(item);

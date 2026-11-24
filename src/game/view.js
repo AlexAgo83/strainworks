@@ -36,7 +36,7 @@ export async function show3D(on) {
     }
     mainSet.view3d(on ? made3d : null);
     $('gl').hidden = !on;
-    try { localStorage.setItem(VIEW_KEY, on ? '3d' : '2d'); } catch (_) {}
+    try { localStorage.setItem(VIEW_KEY, on ? '3d' : '2d'); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ }
   } catch (error) {
     mainSet.view3d(null); $('gl').hidden = true;
     tell(L('Vue 3D indisponible : il faut le réseau au premier chargement et WebGL. Le jeu continue en 2D.'));
@@ -54,7 +54,7 @@ export function chooseView(three) {
   // On the planet it is only noted: the engine loads with the game.
   if (!three) mainSet.view3d(null);
   $('gl').hidden = !view3d;
-  try { localStorage.setItem(VIEW_KEY, three ? '3d' : '2d'); } catch (_) {}
+  try { localStorage.setItem(VIEW_KEY, three ? '3d' : '2d'); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ }
   markView(three);
 }
 // The switch beside the zoom names the view it leads to.
@@ -201,7 +201,7 @@ export function load(text) {
       }
     }
     if (saved && !saved.over && coreIn(saved.cells) && Array.isArray(saved.families)) { simSet.G(saved); if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; for (const c of Object.values(G.cells)) if (Array.isArray(c.hold)) c.hold = c.hold.filter(Boolean); if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
-  } catch (_) {}
+  } catch (_) { /* an unreadable save stays where it is: the caller starts a new game */ }
   return false;
 }
 // What the simulation leaves to the interface around a fresh game, a finished job and a worm gone.

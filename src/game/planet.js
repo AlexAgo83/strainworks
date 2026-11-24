@@ -629,7 +629,7 @@ export function setCurve(value) {
 }
 // A game in progress is saved and reopened after the page reloads.
 export function keepForReload() {
-  if (slotKey && !orbit.on) { save(); try { sessionStorage.setItem('strainworks-resume', '1'); } catch (_) {} }
+  if (slotKey && !orbit.on) { save(); try { sessionStorage.setItem('strainworks-resume', '1'); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ } }
 }
 
 // The bindings other modules replace.

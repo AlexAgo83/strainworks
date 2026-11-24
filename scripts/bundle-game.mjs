@@ -2,6 +2,7 @@
 // usage: node scripts/bundle-game.mjs > app.js
 import { fileURLToPath } from "node:url";
 import { build } from "vite";
+import { babylonPin } from "./babylon-pin.mjs";
 
 export const GAME_TAG =
 	'<script type="module" src="/src/game/main.js"></script>';
@@ -9,6 +10,7 @@ export const GAME_TAG =
 export async function bundleGame() {
 	const result = await build({
 		configFile: false,
+		define: babylonPin(),
 		logLevel: "silent",
 		root: fileURLToPath(new URL("..", import.meta.url)),
 		build: {

@@ -454,7 +454,7 @@ export let wormId = null;
 export const HEADING_KEY = 'strainworks-heading';
 export const WAYS = [L('haut'), L('droite'), L('bas'), L('gauche')];
 export let heading = 0;
-try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) {}
+try { heading = [0, 1, 2, 3].find(d => String(d) === localStorage.getItem(HEADING_KEY)) ?? 0; } catch (_) { /* blocked storage or an unreadable value: the default stays */ }
 export let tool = 'hand', selected = null, chain = [], paused = false, speed = 1, note = '';
 
 export const $ = id => document.getElementById(id);
@@ -582,7 +582,7 @@ canvas.addEventListener('pointerdown', event => {
   // Preventing the default also keeps the keyboard out, in a frame R would never arrive.
   window.focus();
   canvas.focus({preventScroll:true});
-  try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+  try { canvas.setPointerCapture(event.pointerId); } catch (_) { /* the pointer may be gone already: the gesture works without capture */ }
   if (event.pointerType === 'touch') hovered = null;
   const p = screenPoint(event);
   pointers.set(event.pointerId,p);
@@ -676,7 +676,7 @@ $('keys').onclick = event => {
   paintKeys();
 };
 $('keys-reset').onclick = () => {
-  try { localStorage.removeItem(KEYS_KEY); } catch (_) {}
+  try { localStorage.removeItem(KEYS_KEY); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ }
   rebinding = null; loadKeys(); $('keys-note').textContent = ''; paintKeys();
 };
 $('commands').addEventListener('close', () => { rebinding = null; paintKeys(); });
@@ -690,7 +690,7 @@ document.addEventListener('keydown', event => {
   if (other) KEYS[other[0]] = KEYS[rebinding];
   KEYS[rebinding] = event.code;
   $('keys-note').textContent = other ? L`Échangée avec : ${other[1]}.` : '';
-  try { localStorage.setItem(KEYS_KEY, JSON.stringify(KEYS)); } catch (_) {}
+  try { localStorage.setItem(KEYS_KEY, JSON.stringify(KEYS)); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ }
   rebinding = null; paintKeys();
 }, true);
 document.addEventListener('keydown', event => {
@@ -724,8 +724,9 @@ $('zoom-out').onclick = () => glideBy(() => zoomAt(1 / 1.35));
 $('home').onclick = () => glideBy(() => home());
 
 // ---- 2D or 3D. Babylon is only fetched when the 3D view is first asked for.
-export const BABYLON_SRC = 'https://cdn.jsdelivr.net/npm/babylonjs@9.37.1/babylon.js';
-export const BABYLON_HASH = 'sha384-qYzjOfcTLS9fbKXcTpEu5bNZu++fEsJlkTmKPFSFiV4hEWt+d3Xo4cZGJndCKesO';
+// Both written at build from the installed babylonjs package (scripts/babylon-pin.mjs).
+export const BABYLON_SRC = __BABYLON_SRC__;
+export const BABYLON_HASH = __BABYLON_SRI__;
 export const VIEW_KEY = 'strainworks-view';
 export let made3d = null, switching = false;
 $('view-toggle').onclick = () => chooseView(!view3d);
@@ -1049,7 +1050,7 @@ export const fx = {motes:null, last:0, grainAt:0, seed:12345};
 export const fxRandom = () => (fx.seed = fx.seed * 16807 % 2147483647) / 2147483647;
 
 $('hexes').addEventListener('pointerdown', event => {
-  try { $('hexes').setPointerCapture(event.pointerId); } catch (_) {}
+  try { $('hexes').setPointerCapture(event.pointerId); } catch (_) { /* the pointer may be gone already: the gesture works without capture */ }
   orbit.drag = {id:event.pointerId, x:event.clientX, y:event.clientY, far:0};
   showMenu(false);
 });
@@ -1151,7 +1152,7 @@ export const music = {manual:null, volume:.5, on:true, started:false, players:[n
 try {
   const saved = JSON.parse(localStorage.getItem(MUSIC_KEY));
   if (saved) { music.volume = Math.max(0, Math.min(1, Number(saved.volume) || 0)); music.on = saved.on !== false; }
-} catch (_) {}
+} catch (_) { /* blocked storage or an unreadable value: the default stays */ }
 for (const a of music.players) {
   a.preload = 'auto';
   // A calm piece played to its end hands over to the other.
@@ -1206,7 +1207,7 @@ export const SFX_KEY = 'strainworks-sfx';
 try {
   const saved = JSON.parse(localStorage.getItem(SFX_KEY));
   if (saved) { sfx.volume = Math.max(0, Math.min(1, Number(saved.volume) || 0)); sfx.on = saved.on !== false; }
-} catch (_) {}
+} catch (_) { /* blocked storage or an unreadable value: the default stays */ }
 $('sfx-volume').oninput = () => { sfx.volume = Number($('sfx-volume').value) / 100; if (sfx.volume > 0) sfx.on = true; keepSfx(); paintSfx(); };
 $('sfx-on').onclick = () => { sfx.on = !sfx.on; keepSfx(); paintSfx(); };
 paintSfx();
@@ -1269,7 +1270,7 @@ $('lang-pick').addEventListener('cancel', event => event.preventDefault());
 document.addEventListener('DOMContentLoaded', () => {
   if (LAB.on) { startLab(); return; }
   if (!LANG_SET) $('lang-pick').showModal();
-  try { if (sessionStorage.getItem('strainworks-resume')) { sessionStorage.removeItem('strainworks-resume'); resumeLast(); } } catch (_) {}
+  try { if (sessionStorage.getItem('strainworks-resume')) { sessionStorage.removeItem('strainworks-resume'); resumeLast(); } } catch (_) { /* blocked storage: the planet opens instead of the last game */ }
 });
 $('perf-toggle').onclick = () => { showPerf(!PERF.on); keep(PERF_KEY, PERF.on ? 'on' : 'off'); };
 // Time spent in the background is not a stall of the game.

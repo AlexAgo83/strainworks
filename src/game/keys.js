@@ -9,7 +9,7 @@ import { pan } from "./render.js";
 
 export function loadKeys() {
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(KEYS_KEY)) || {}; } catch (_) {}
+  try { saved = JSON.parse(localStorage.getItem(KEYS_KEY)) || {}; } catch (_) { /* blocked storage or an unreadable value: the default stays */ }
   mainSet.KEYS(Object.fromEntries(ACTIONS.map(([id, , code]) => [id, typeof saved[id] === 'string' && !RESERVED.test(saved[id]) ? saved[id] : code])));
 }
 export function paintKeys() {

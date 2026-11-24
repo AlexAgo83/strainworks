@@ -74,7 +74,7 @@ export function findGames() {
       if (!key?.startsWith(GAME_KEY) || listed.has(key)) continue;
       adopt(key, stored(key), key.slice(GAME_KEY.length).split(':')[0]);
     }
-  } catch (_) {}
+  } catch (_) { /* blocked storage: the games already listed stay listed */ }
   if (!listed.has(SAVE)) {
     let text = stored(SAVE);
     const older = text === null ? stored(OLD_SAVE) : null;
@@ -174,7 +174,7 @@ export function graftGames(found, near) {
     let key = `${GAME_KEY}${id}`;
     if (stored(key) !== null) key += `:${Date.now()}`;
     if (id == null || !keep(key, JSON.stringify(game))) {
-      for (const one of made) { try { localStorage.removeItem(one.key); } catch (_) {} }
+      for (const one of made) { try { localStorage.removeItem(one.key); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ } }
       return null;
     }
     made.push({id, key});
@@ -182,7 +182,7 @@ export function graftGames(found, near) {
     list.last = made[0].id;
   }
   if (writeList(list)) return made[0]?.id ?? null;
-  for (const one of made) { try { localStorage.removeItem(one.key); } catch (_) {} }
+  for (const one of made) { try { localStorage.removeItem(one.key); } catch (_) { /* blocked or full storage: the game goes on without remembering it */ } }
   return null;
 }
 
