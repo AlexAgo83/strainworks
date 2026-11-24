@@ -178,7 +178,8 @@ export const cellAt = (x, y) => covering(G.cells, x, y);
 export const buried = w => footprint(w).some(p => cellAt(p.x, p.y));
 export const boxOf = item => item[1] === ':' ? item[0] : '';
 export const contentOf = item => boxOf(item) ? item.slice(2) : item;
-export const GROWTH_BONUS = 40;
+// A stage pays 100 (40 before item_018): the DNA of a game comes from its stages, not from feeding the core longer.
+export const GROWTH_BONUS = 100;
 export const CORE = {x:OX + 5, y:OY + 12};
 export const NORTH = [{x:48,y:27}, {x:40,y:29}, {x:56,y:29}];
 // Saves from before the deposits moved away keep these four, their harvesters stand on them.
@@ -770,10 +771,12 @@ export function eat(item) {
   const holds = boxOf(item) ? fill(boxOf(item)) : 1;
   const want = STAGES[G.stage];
   if (G.base?.includes(item)) (G.baseAt ||= {})[item] = G.time;
+  // A base gene the core eats is its food: like a recipe, it pays nothing (item_018), so DNA does not pile up with time.
+  const food = eaten().includes(item);
   if (G.goals) {
     // The first recipe this item still counts for; the stage grows once every one is met. A hungry core counts half.
     const goal = G.goals.find(g => g.item === item && g.fed < g.count);
-    if (!goal) { earn('core', holds * contentOf(item).length / SURPLUS); hooks.playNear('dna', coreCell() || CORE, .4); return; }
+    if (!goal) { if (!food) { earn('core', holds * contentOf(item).length / SURPLUS); hooks.playNear('dna', coreCell() || CORE, .4); } return; }
     const part = hungryFor().length ? HUNGRY_SHARE : 1;
     goal.fed = Math.min(goal.count, goal.fed + part); G.fed += part;
     if (stageDone()) grow();
