@@ -14,7 +14,7 @@
 <h3 align="center"><a href="https://strainworks.onrender.com">▶ Play now at strainworks.onrender.com</a></h3>
 <p align="center">No install, no account. On a desktop or a phone, installable and playable offline.</p>
 
-<p align="center"><img src="docs/media/strainworks-factory.gif" alt="A living factory running in 3D" /></p>
+<p align="center"><img src="docs/media/strainworks-factory.gif" alt="An antidote factory running by itself off its nerve: three listening sorters feed a Ligase, which feeds a turret and a mister" /></p>
 
 You run a station that industrializes life. You mine organic bases, splice them into genes, weave the genes
 into DNA and feed it to a hungry core. Out in the fog, the breaches you woke send creatures built from the
@@ -30,28 +30,31 @@ A factory game crossed with tower defense, in the browser and on the phone, in E
 
 - **Your ammunition is a recipe.** Every wave carries a gene, and only the opposite gene hurts it. Turrets
   fire whatever you feed them, so winning means building the right line, not the biggest gun.
-- **The factory has a nervous system.** Radar pylons sense what is coming, nerves carry it, and sorters and
-  gates switch your lines to the antidote the moment a wave shows up.
+- **The factory has a nervous system.** Radar pylons sense creatures or nests, the core says what it asks for,
+  nerves carry it, and sorters, gates, Ligases and joiners switch your lines to the right gene by themselves.
 - **The enemy evolves.** From stage 4 a new family is born every five minutes. The lines you built for the
   old ones still have to hold.
-- **The core grows.** Five stages, from Cellule to Noyau, each opening new machines, richer deposits and longer
-  logistics: worms that haul like trains, veins that pump, isotope far out in the dark.
+- **The core grows.** Six stages, from Cellule to Éclosion, each opening new machines and defences, richer
+  deposits and longer logistics: maglev worms that haul like trains, veins that pump, isotope far out in the dark.
+- **Every threat has its answer.** Turrets, stings and maws, a glue pool that slows, a mister for swarms, a
+  harpoon that runs through a titan, all in three ranks.
 - **Nothing appears by magic.** Drones fly to every site, build it, dismantle it, repair it. You watch them work.
 
-![An assault on the north nest: the turret fires, the nest empties, then breeds again](docs/media/strainworks-assault.gif)
+![An awake nest sends its wave toward the base and its antidote factory](docs/media/strainworks-assault.gif)
 
 ## A small planet of games
 
 Every game is a hexagon on a living planet that fills up as you play. Pick one up where you left it, export it,
-copy it, share it as a file. The game installs as an app and plays offline, in 2D or in 3D with a
+copy it, share it as a file. A demo hexagon opens a stage 5 base that runs by itself, fresh every time.
+The game installs as an app and plays offline, in 2D or in 3D with a
 small-planet curvature, on a desktop or a phone.
 
 <p align="center">
-  <img src="docs/media/strainworks-planet.gif" alt="The planet of saved games" width="49%" />
+  <img src="docs/media/strainworks-planet.gif" alt="The planet of saved games and the demo hexagon" width="49%" />
   <img src="docs/media/strainworks-stats.png" alt="The Statistics sheet" width="49%" />
 </p>
 
-<p align="center"><img src="docs/media/strainworks-overview.gif" alt="A stage 2 factory in 3D: two production lines, bridges, a radar and an assault on its way" /></p>
+<p align="center"><img src="docs/media/strainworks-overview.gif" alt="The demo base in 3D: the core, the antidote factory, the maglev worm loop and its silos" /></p>
 
 ## Play
 

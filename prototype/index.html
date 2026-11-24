@@ -903,6 +903,9 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #hexes .grid { fill:none; stroke:#66D9EA; stroke-width:1; }
 #hexes .taken { fill:rgba(4,10,12,.5); stroke:var(--cyan); stroke-width:1.6; }
 #hexes .taken.fallen { stroke:#8A3040; }
+#hexes .taken.demo { fill:rgba(40,60,8,.45); stroke:var(--acid); }
+#hexes .demo-badge rect { fill:var(--acid); }
+#hexes .demo-badge text { fill:#05090B; font:700 9px var(--display); text-anchor:middle; letter-spacing:.08em; }
 #hexes .taken.fight { fill:rgba(60,8,16,.5); stroke:var(--alarm); animation:fight 1.4s ease-in-out infinite; }
 @keyframes fight { 50% { stroke-opacity:.35; stroke-width:3px; } }
 @media (prefers-reduced-motion:reduce) { #hexes .taken.fight { animation:none; } }
@@ -1729,6 +1732,13 @@ const EN = {
   "Il réclame": "It asks for",
   "Brûleur": "Burner",
   "Bras": "Arm",
+  "Démo": "Demo",
+  "DÉMO": "DEMO",
+  "Lancer la démo": "Play the demo",
+  "Démo en chargement…": "Demo loading…",
+  "Démo · repart à neuf à chaque lancement": "Demo · starts fresh every time",
+  "Démo : une base au stade 5 qui tourne seule. Rien n’est enregistré, elle repart à neuf à chaque lancement.": "Demo: a stage 5 base that runs by itself. Nothing is saved, it starts fresh every time.",
+  "Ta partie a été déplacée sur un hexagone voisin pour laisser place à la démo.": "Your game moved to a nearby hexagon to make room for the demo.",
   "boucle trop courte, il lui faut plus de {} cases": "loop too short, it needs more than {} cells",
   "Soutes des vers": "Worm holds",
   "Une soute de plus par ver, jusqu’à 5": "One more hold per worm, up to 5",
@@ -6244,10 +6254,10 @@ function uncover() {
   for (const b of G.breaches) if (b.state !== 'sleep') lightUp([id => (G.seen[id] ||= new Array(16).fill(0))], b.x, b.y, SIGHT.nest);
   fogTick++;
 }
-function load() {
+function load(text) {
   try {
     const from = slotKey || SAVE;
-    let saved = JSON.parse(localStorage.getItem(from));
+    let saved = JSON.parse(text ?? localStorage.getItem(from));
     const old = !saved && from === SAVE;
     if (old) saved = JSON.parse(localStorage.getItem(OLD_SAVE));
     if (old || saved?.board === 11) {
@@ -7486,11 +7496,29 @@ function readList() {
   for (const [id, g] of Object.entries(games)) {
     if (CELLS_OF_GLOBE[id] && typeof g?.key === 'string' && stored(g.key) !== null) list.games[id] = g;
   }
+  // The demo's hexagon is kept for it: a game a player had there moves to the nearest free one, untouched.
+  if (list.games[DEMO_HEX]) {
+    const to = freeHex(list, DEMO_HEX);
+    if (to != null) {
+      list.games[to] = list.games[DEMO_HEX]; delete list.games[DEMO_HEX];
+      if (String(list.last) === String(DEMO_HEX)) list.last = to;
+      writeList(list); demoMoved = true;
+    }
+  }
+  return list;
+}
+// What the planet shows: the player's games and the demo.
+const DEMO_KEY = 'strainworks-demo';
+let demoMoved = false, demoReady = null;
+const loadDemo = () => demoReady ||= script('demo.js').catch(() => null);
+function planetList() {
+  const list = readList();
+  list.games[DEMO_HEX] = {key:DEMO_KEY, name:L('Démo'), demo:true, ...summaryOf(window.DEMO_GAME || {stage:4})};
   return list;
 }
 function writeList(list) { return keep(LIST_KEY, JSON.stringify(list)); }
 function freeHex(list, near) {
-  const free = PREFERRED.filter(id => !list.games[id]);
+  const free = PREFERRED.filter(id => !list.games[id] && id !== DEMO_HEX);
   if (near == null) return free[0];
   const c = CELLS_OF_GLOBE[near].c;
   return free.sort((a, b) => dot3(CELLS_OF_GLOBE[b].c, c) - dot3(CELLS_OF_GLOBE[a].c, c))[0];
@@ -7526,7 +7554,7 @@ function findGames() {
   if (changed) writeList(list);
 }
 function save() {
-  if (!slotKey) return false;
+  if (!slotKey || slotKey === DEMO_KEY) return false;
   // Its hexagon emptied from another tab: this one does not bring it back.
   const list = readList(), entry = list.games[slotId];
   if (!entry && stored(slotKey) === null && slotSaved) return false;
@@ -7568,6 +7596,15 @@ function foundGame(wanted) {
   return true;
 }
 function openGame(id) {
+  // The demo: a fresh copy of the built-in game each time, never written back.
+  if (id === DEMO_HEX) {
+    if (!window.DEMO_GAME) return false;
+    openSlot(id, DEMO_KEY, L('Démo')); settleIn();
+    if (!load(JSON.stringify(window.DEMO_GAME))) { slotKey = slotId = null; return false; }
+    try { NET = new Map(); choose('hand'); home(); refresh(); } catch (_) { slotKey = slotId = null; return false; }
+    tell(L('Démo : une base au stade 5 qui tourne seule. Rien n’est enregistré, elle repart à neuf à chaque lancement.'));
+    return true;
+  }
   const game = readList().games[id];
   if (!game) return false;
   openSlot(id, game.key, game.name);
@@ -7801,6 +7838,8 @@ const PREFERRED = (() => {
   while (order.length < CELLS_OF_GLOBE.length) take([.45, .12, .88]);
   return order;
 })();
+// The demo's hexagon: the one beside where a first game is founded.
+const DEMO_HEX = PREFERRED[1];
 
 const orbit = {on:false, yaw:0, pitch:0, to:null, pick:null, list:null, incoming:null, dirty:true, drag:null, gl:null, box:null, seenAt:0};
 function layoutPlanet() {
@@ -7918,7 +7957,8 @@ function drawGrid() {
     if (game) {
       const e1 = unit3(cross3([0, 1, .001], c)), e2 = cross3(c, e1);
       const to = (u, w) => onScreen(turn(unit3([0, 1, 2].map(k => c[k] + e1[k] * u * size + e2[k] * w * size))));
-      taken += `<polygon class="taken${game.over ? ' fallen' : game.fight ? ' fight' : ''}" points="${shape}"/>${settlementSVG(to, game, id, r / 527.7)}`;
+      taken += `<polygon class="taken${game.demo ? ' demo' : game.over ? ' fallen' : game.fight ? ' fight' : ''}" points="${shape}"/>${settlementSVG(to, game, id, r / 527.7)}`;
+      if (game.demo) { const [bx, by] = to(0, -.55); taken += `<g class="demo-badge"><rect x="${(bx - 19).toFixed(1)}" y="${(by - 8).toFixed(1)}" width="38" height="15" rx="7.5"/><text x="${bx.toFixed(1)}" y="${(by + 3.5).toFixed(1)}">${L('DÉMO')}</text></g>`; }
     }
     if (id === orbit.hover && id !== orbit.pick) hovered = `<polygon class="hover" points="${shape}"/>`;
     if (id !== orbit.pick) return;
@@ -8146,8 +8186,8 @@ function projectSlot(note = '', bad = false) {
   const shown = game || first, box = $('projection');
   box.classList.toggle('free', !shown);
   box.classList.toggle('fallen', Boolean(shown?.over));
-  $('slot-kicker').textContent = incoming ? L('Fichier reçu') : !game ? L('Hexagone libre') : game.over ? L('Station tombée') : game.fight ? L('En combat') : L('Partie en cours');
-  $('slot-kicker').classList.toggle('fight', Boolean(game?.fight && !game.over));
+  $('slot-kicker').textContent = incoming ? L('Fichier reçu') : !game ? L('Hexagone libre') : game.demo ? L('Démo · repart à neuf à chaque lancement') : game.over ? L('Station tombée') : game.fight ? L('En combat') : L('Partie en cours');
+  $('slot-kicker').classList.toggle('fight', Boolean(game?.fight && !game.over && !game.demo));
   $('slot-name').textContent = incoming?.length > 1 ? L`${incoming.length} parties` : shown ? shown.name : L('Terre vierge');
   $('slot-sub').textContent = incoming?.length > 1 ? L('Elles prendront les hexagones libres autour de celui-ci.') : shown ? stageText(shown) : L('Fonde une station, ou greffes-y une partie exportée.');
   const six = dotsOf(Array.from({length:6}, (_, i) => [66 + Math.cos(i * Math.PI / 3) * 63, 66 + Math.sin(i * Math.PI / 3) * 63]));
@@ -8169,13 +8209,13 @@ function projectSlot(note = '', bad = false) {
   };
   const gone = () => {
     if (!eraseGame(id)) return noteOnPlanet(L('Impossible d’effacer cette partie.'), true);
-    orbit.list = readList(); nameGames(); projectSlot(L('Hexagone libéré.'));
+    orbit.list = planetList(); nameGames(); projectSlot(L('Hexagone libéré.'));
   };
   if (incoming) {
     act(incoming.length > 1 ? L`Greffer les ${incoming.length} parties` : L('Greffer dans cet hexagone'), 'go', () => {
       const made = graftGames(orbit.incoming, orbit.pick);
       if (made == null) return noteOnPlanet(L('Import impossible : le stockage du navigateur est plein, ou la planète l’est.'), true);
-      orbit.incoming = null; orbit.list = readList(); nameGames();
+      orbit.incoming = null; orbit.list = planetList(); nameGames();
       pickHex(Number(made), L('Greffe réussie.'));
     });
     act(L('Annuler'), '', () => { orbit.incoming = null; projectSlot(); });
@@ -8183,6 +8223,10 @@ function projectSlot(note = '', bad = false) {
     act(L('Fonder une station'), 'go', () => leavePlanet(() => foundGame(orbit.pick)));
     act(L('Importer un fichier'), '', () => $('file').click());
     act(L('Tout exporter'), '', async () => noteOnPlanet(await exportAll()));
+  } else if (game.demo) {
+    // Fetched only once its hexagon is picked: the planet opens without it.
+    if (!window.DEMO_GAME) loadDemo().then(() => { if (orbit.pick === DEMO_HEX) projectSlot(); });
+    act(window.DEMO_GAME ? L('Lancer la démo') : L('Démo en chargement…'), 'go', () => { if (window.DEMO_GAME) playPicked(); else loadDemo().then(() => projectSlot()); });
   } else {
     if (game.over) {
       act(L('Refonder ici : maintenir'), 'go', () => { if (eraseGame(id)) leavePlanet(() => foundGame(id)); }, true);
@@ -8192,7 +8236,7 @@ function projectSlot(note = '', bad = false) {
       const copy = parsed(stored(game.key));
       const made = copy && graftGames([{name:L`${game.name} bis`, game:copy}], freeHex(orbit.list, id));
       if (made == null) return noteOnPlanet(L('Copie impossible : partie illisible ou stockage plein.'), true);
-      orbit.list = readList(); nameGames();
+      orbit.list = planetList(); nameGames();
       pickHex(Number(made), L('Copie faite.'));
     });
     act(L('Effacer : maintenir'), 'bad', gone, true);
@@ -8245,10 +8289,11 @@ function openPlanet(intro) {
   slotKey = slotId = null;
   arrows.clear(); gesture = null; drag = null;
   showMenu(false);
-  orbit.list = readList();
+  orbit.list = planetList();
   orbit.incoming = null;
-  const last = Number(orbit.list.last);
-  orbit.pick = orbit.list.last != null && orbit.list.games[last] ? last : Number(Object.keys(orbit.list.games)[0] ?? PREFERRED[0]);
+  const last = Number(orbit.list.last), mine = Object.keys(orbit.list.games).filter(id => Number(id) !== DEMO_HEX);
+  orbit.pick = orbit.list.last != null && orbit.list.games[last] ? last : Number(mine[0] ?? PREFERRED[0]);
+  if (demoMoved) { demoMoved = false; setTimeout(() => noteOnPlanet(L('Ta partie a été déplacée sur un hexagone voisin pour laisser place à la démo.')), 0); }
   if (!$('station').src) {
     $('space').src = ART.space; $('station').src = ART.station;
     makeGlobe();
