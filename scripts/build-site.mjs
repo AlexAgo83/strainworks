@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { bundleGame, GAME_TAG } from "./bundle-game.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const at = (path) => resolve(root, path);
@@ -50,31 +51,36 @@ const sheetPath = asset("models.webp", readFileSync(at("prototype/models.webp"))
 const css = replaceOnce(readFileSync(at("prototype/style.css"), "utf8"), "url(models.webp)", `url(${sheetPath.replace("assets/", "")})`);
 page = replaceOnce(page, '<link rel="stylesheet" href="style.css">', `<link rel="stylesheet" href="./${asset("style.css", css)}">`);
 page = replaceOnce(page, '<script src="en.js"></script>', `<script src="./${asset("en.js", readFileSync(at("prototype/en.js")))}"></script>`);
-const inline = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-if (inline.length !== 1) throw new Error(`expected one inline script, found ${inline.length}`);
-let app = inline[0][1];
+if (page.split(GAME_TAG).length !== 2) throw new Error("the game's module tag was not found once");
+let app = await bundleGame();
+// The bundle may quote a path either way: a file name is matched in both.
+const quoted = (text) => new RegExp(`(['"])${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\1`, "g");
+const swap = (text, to, once = true) => {
+  const found = app.match(quoted(text))?.length ?? 0;
+  if (once && found !== 1) throw new Error(`expected once, found ${found} times: ${text}`);
+  app = app.replace(quoted(text), `$1${to}$1`);
+  return found;
+};
 
 for (const name of ["models3d", "terrain3d", "view3d", "station3d", "demo"]) {
   const path = asset(`${name}.js`, readFileSync(at(`prototype/${name}.js`)));
-  app = replaceOnce(app, `script('${name}.js')`, `script('./${path}')`);
+  swap(`${name}.js`, `./${path}`);
 }
 for (const name of ["space", "station", "planet", "globe", "globe-glow"]) {
   const path = asset(`${name}.webp`, readFileSync(at(`prototype/planet/${name}.webp`)));
-  app = replaceOnce(app, `'planet/${name}.webp'`, `'./${path}'`);
+  swap(`planet/${name}.webp`, `./${path}`);
 }
 // The music is served with the site but left out of the offline cache: it is large, and the game runs without it.
 for (const name of readdirSync(at("prototype/music")).filter((f) => f.endsWith(".mp3"))) {
-  if (!app.includes(`'music/${name}'`)) throw new Error(`music/${name} is in the folder but the game never plays it`);
   const data = readFileSync(at(`prototype/music/${name}`)), path = `assets/${name.replace(/\.mp3$/, "")}-${digest(data)}.mp3`;
+  if (!swap(`music/${name}`, `./${path}`, false)) throw new Error(`music/${name} is in the folder but the game never plays it`);
   writeFileSync(resolve(out, path), data);
-  app = app.replaceAll(`'music/${name}'`, `'./${path}'`);
 }
 // The sounds the code names, served like the music and left out of the offline cache.
 for (const name of readdirSync(at("prototype/sounds")).filter((f) => f.endsWith(".mp3"))) {
-  if (!app.includes(`'sounds/${name}'`)) continue;
   const data = readFileSync(at(`prototype/sounds/${name}`)), path = `assets/${name.replace(/\.mp3$/, "")}-${digest(data)}.mp3`;
+  if (!swap(`sounds/${name}`, `./${path}`, false)) continue;
   writeFileSync(resolve(out, path), data);
-  app = app.replaceAll(`'sounds/${name}'`, `'./${path}'`);
 }
 // The engine comes with the site, so 3D works offline. The pinned hash still holds: it is the same file.
 const engineLink = /https:\/\/cdn\.jsdelivr\.net\/npm\/babylonjs@[\d.]+\/babylon\.js/.exec(app)?.[0];
@@ -83,7 +89,7 @@ app = replaceOnce(app, engineLink, `./${asset("babylon.js", readFileSync(at("nod
 
 const appPath = asset("app.js", app);
 const registerPath = asset("register.js", readFileSync(at("site/register.js")));
-page = page.replace(inline[0][0], () => `<script src="./${appPath}"></script>\n<script src="./${registerPath}"></script>`);
+page = page.replace(GAME_TAG, () => `<script type="module" src="./${appPath}"></script>\n<script src="./${registerPath}"></script>`);
 page = replaceOnce(
   page,
   "<title>Strainworks Prototype</title>",

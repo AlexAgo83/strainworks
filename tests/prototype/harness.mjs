@@ -1,9 +1,10 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 
-// The page as one document: its stylesheet (with the model sheet as data), and its English text, written in.
+// The page as one document: its stylesheet (with the model sheet as data), its English text and its game, written in.
 // Tests serve every request of the page with it, so nothing it loads beside it is fetched.
 let page;
 export const pageHTML = () =>
@@ -12,7 +13,11 @@ export const pageHTML = () =>
       const sheet = readFileSync(new URL("../../prototype/models.webp", import.meta.url)).toString("base64");
       return `<style>${read("../../prototype/style.css").replace("url(models.webp)", `url(data:image/webp;base64,${sheet})`)}</style>`;
     })
-    .replace('<script src="en.js"></script>', () => `<script>${read("../../prototype/en.js")}</script>`));
+    .replace('<script src="en.js"></script>', () => `<script>${read("../../prototype/en.js")}</script>`)
+    .replace('<script type="module" src="/src/game/main.js"></script>', () => `<script type="module">${game()}</script>`));
+// The game's modules bundled once per test process, as the built site has them.
+const game = () =>
+  execFileSync(process.execPath, [new URL("../../scripts/bundle-game.mjs", import.meta.url).pathname], { encoding: "utf8", maxBuffer: 1 << 26 });
 export const savedGame = (version) => read(`../fixtures/saves/${version}.json`);
 
 // The prototype draws families and spawn points at random: a seed makes each run the same run.

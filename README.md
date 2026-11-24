@@ -84,9 +84,9 @@ npm install
 npm run dev
 ```
 
-The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. `prototype/index.html` also opens directly as a file, with `view3d.js`, `models3d.js` and `terrain3d.js` beside it.
+The browser opens `/prototype/`. The transport mockup is at `/prototype/transports/`. The page loads the game from `src/` as modules, so it runs through Vite (`npm run dev`) or from the built site (`npm run build`, then `npm run preview`), not as a file opened directly.
 
-A game opens in 3D, drawn with Babylon.js, unless the player picked 2D in the settings. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `prototype/index.html`: a test compares it with the installed package.
+A game opens in 3D, drawn with Babylon.js, unless the player picked 2D in the settings. The prototype fetches the engine from jsDelivr on first use (the built site serves its own copy), pinned by version and SHA-384, and the game stays in 2D when it cannot load. After changing that version, update the hash in `src/game/main.js`: a test compares it with the installed package.
 
 ### The model lab
 
@@ -133,7 +133,7 @@ When a rule changes on purpose, rerun with `npm test -- -u` and read the snapsho
 | `tests/prototype/` | Behavior tests of the prototype |
 | `tests/fixtures/saves/` | Saved games from earlier prototype versions |
 | `site/`, `scripts/` | The static site: service worker, manifest, icons, build |
-| `src/` | The product. Empty until the simulation is ported |
+| `src/` | The game as modules: the simulation in `src/sim/` (no DOM, tested in Node under `tests/sim/`), the interface in `src/game/` |
 | `logics/` | Workflow corpus |
 
 </details>
