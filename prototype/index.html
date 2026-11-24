@@ -6307,8 +6307,8 @@ $('zoom-out').onclick = () => glideBy(() => zoomAt(1 / 1.35));
 $('home').onclick = () => glideBy(() => home());
 
 // ---- 2D or 3D. Babylon is only fetched when the 3D view is first asked for.
-const BABYLON_SRC = 'https://cdn.jsdelivr.net/npm/babylonjs@9.31.0/babylon.js';
-const BABYLON_HASH = 'sha384-GbwOam+gaf7GWvN708CvUiGqRFPFMS/lpYod2JfIip04KMa4TIJ8HXRjhwvT9DMC';
+const BABYLON_SRC = 'https://cdn.jsdelivr.net/npm/babylonjs@9.37.1/babylon.js';
+const BABYLON_HASH = 'sha384-qYzjOfcTLS9fbKXcTpEu5bNZu++fEsJlkTmKPFSFiV4hEWt+d3Xo4cZGJndCKesO';
 const VIEW_KEY = 'strainworks-view';
 let made3d = null, switching = false;
 function script(src, integrity) {
