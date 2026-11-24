@@ -1,19 +1,19 @@
 ## req_003_act_on_the_first_play_test - Act on the first play test
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Draft
+> Status: In progress
 > Understanding: 95%
 > Confidence: 90%
 > Complexity: High
 > Theme: Player experience
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 19:20:40
+> Indicators reviewed: 2026-11-24 22:56:12
 
 # AI Context
-- Summary: (unfilled: replace before this doc is used)
+- Summary: Fixes and design decisions from the first outside play test of 0.1.38.
 - Keywords: act, first, play, test
-- Use when: (unfilled: replace before this doc is used)
-- Skip when: (unfilled: replace before this doc is used)
+- Use when: changing anything the first play test raised: controls, lines, sound, small screens, pace, purpose.
+- Skip when: work unrelated to that play test.
 
 # Needs
 - Fix what blocked or confused the first outside tester, who played 0.1.38 for 52 minutes on a 13-inch laptop, cleared stages 1 to 3 and stopped at stage 4.

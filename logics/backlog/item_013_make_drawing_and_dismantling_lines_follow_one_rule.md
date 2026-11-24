@@ -1,14 +1,14 @@
 ## item_013_make_drawing_and_dismantling_lines_follow_one_rule - Make drawing and dismantling lines follow one rule
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 40%
 > Complexity: High
 > Theme: Controls
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 19:28:07
+> Indicators reviewed: 2026-11-24 22:56:12
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)

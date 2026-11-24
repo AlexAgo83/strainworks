@@ -1,20 +1,20 @@
 ## item_015_review_room_carry_over_between_stages_waits_and_the_reason_to_fight - Review room, carry-over between stages, waits and the reason to fight
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95%
 > Confidence: 90%
-> Progress: 50%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
 > Indicators reviewed: 2026-11-24 22:00:28
 
 # AI Context
-- Summary: (unfilled: replace before this doc is used)
+- Summary: Design decisions on room, carry-over, waits and fights; the statistics name why a production stopped.
 - Keywords: review, room, carry, over, between, stages, waits, reason, fight
-- Use when: (unfilled: replace before this doc is used)
-- Skip when: (unfilled: replace before this doc is used)
+- Use when: revisiting those decisions or the stop reasons in the statistics.
+- Skip when: implementing a decision: each has its own item (016 to 021).
 
 # Problem
 - The ground round the core fills fast, each stage made the tester tear down the last one, waits felt long, stage 4 felt like stage 3, and fights seemed optional; one production stopped in the statistics with no reason given.
@@ -23,7 +23,7 @@
 - In:
   - A design note with a decision on each point: room round the core, recipes that reuse earlier lines, counts and waits, variety between stages 3 and 4, what makes fights needed.
   - The statistics say why a production stopped.
-  - The harvester-as-bridge suggestion answered.
+  - The harvester-as-bridge suggestion answered (declined, see below).
 - Out:
   - Implementing every idea in this item: each decision taken becomes its own item.
 
@@ -51,8 +51,17 @@
 - Done in the quick fixes: the speed button names its next speed and gains a x6 step; on a short screen it moves beside the pause, where the side toggle cannot cover it.
 - Two proposals wait for the operator: the base gene pool and the final goal text.
 
+# Statistics: why a production stopped (AC2, 2026-11-24)
+- `stopReason` in `src/game/hud.js` reads the simulation for a producer that made nothing in the last 10 s and names the cause in a few words: "mauvais réglage" (the encapsulator warning), "sortie bloquée" (its output cannot leave, or a borer's store is full), "feu fermé" or "en attente d'un nerf" (a red light down the line it feeds or up the line that feeds it, hand set or listening to a nerve), "pas de carbone" or "pas d'isotope" (an encapsulator with its genes ready), "rien n'arrive" (an input gets nothing). A machine that only waits out its own clock gets no reason.
+- The production tab writes the reason under a stopped line; the problems tab uses the same words, so both say the same thing.
+- Left out because the simulation cannot tell them: a deposit never runs out, and the harvester limit per deposit only refuses a new harvester, it never stops a built one.
+- Proof: `tests/prototype/stop-reasons.test.mjs` builds each cause from scratch.
+
+# Suggestion declined: a harvester's output passing under a line
+- The tester suggested letting a harvester's output pass under a line like a bridge. Declined (2026-11-24): the bridge already does exactly this for any output, a harvester's included, so the suggestion adds no ability; and a harvester whose output crosses lines would add a second crossing rule to the line drawing that item_013 is reworking into one predictable rule.
+
 # AC Traceability
-- request-AC8 -> This backlog slice. Proof: AC1: A design note records a decision for each point.
+- request-AC8 -> This backlog slice. Proof: AC1: the decisions above record a decision for each point. AC2: `tests/prototype/stop-reasons.test.mjs`.
 
 # Decision framing
 - Product framing: Not needed

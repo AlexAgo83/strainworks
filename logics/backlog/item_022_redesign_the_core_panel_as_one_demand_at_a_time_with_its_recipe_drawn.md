@@ -1,7 +1,7 @@
 ## item_022_redesign_the_core_panel_as_one_demand_at_a_time_with_its_recipe_drawn - Redesign the core panel as one demand at a time with its recipe drawn
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95
 > Confidence: 90
 > Progress: 100%

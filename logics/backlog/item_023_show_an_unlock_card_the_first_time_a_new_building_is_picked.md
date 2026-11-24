@@ -1,7 +1,7 @@
 ## item_023_show_an_unlock_card_the_first_time_a_new_building_is_picked - Show an unlock card the first time a new building is picked
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95
 > Confidence: 90
 > Progress: 100%

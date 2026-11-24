@@ -1,20 +1,20 @@
 ## task_003_orchestrate_the_fixes_from_the_first_play_test - Orchestrate the fixes from the first play test
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 90%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-11-24 22:17:39
+> Indicators reviewed: 2026-11-24 22:56:12
 
 # AI Context
-- Summary: (unfilled: replace before this doc is used)
+- Summary: Delivery order and progress of the play test fixes; only the line drawing rule (item_013) remains.
 - Keywords: orchestrate, fixes, first, play, test
-- Use when: (unfilled: replace before this doc is used)
-- Skip when: (unfilled: replace before this doc is used)
+- Use when: checking which play test fix is done or still open.
+- Skip when: implementing one fix: open its backlog item.
 
 # Context
 - Orchestrate the scaffolded request chain and keep sibling implementation slices linked.
@@ -62,6 +62,7 @@
 
 # Report
 - 2026-11-24: the hunger rule counts half (operator decision); item_022, the core panel one demand at a time, done; item_023, the unlock card, done; item_018, the economy: harvester limit, surplus halved, dearer ranks (AC1 waits for the operator's ceiling); item_017's rest: Démonter over a zone and the guide on this game's first base gene.
+- 2026-11-24, after 0.2.0: item_015 closed (the statistics name why a production stopped; the harvester-as-bridge suggestion declined); items 022 and 023 closed. Only item_013 stays open: its simple cases are done, the drawing rule waits for the tester's live walkthrough.
 
 # Links
 - Request: `req_003_act_on_the_first_play_test`
