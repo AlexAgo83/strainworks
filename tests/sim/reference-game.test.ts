@@ -30,7 +30,7 @@ export function referenceGame(seed: number, build = PACE.build) {
 		due.set(what, next + period);
 		return true;
 	};
-	let stageAt = 0, woke = 0;
+	let stageAt = 0;
 	while (G.stage < 3 && G.time < 4 * 3600) {
 		if (G.stage !== stageAt || G.time === 0) {
 			stageAt = G.stage;
@@ -52,18 +52,17 @@ export function referenceGame(seed: number, build = PACE.build) {
 		for (const e of G.enemies) if (e.hp > 0 && !e.fly) { e.hp = 0; G.kills++; sim.earn("kills", 1); }
 		G.enemies = G.enemies.filter((e: { hp: number }) => e.hp > 0);
 		sim.step(sim.STEP);
-		woke = Math.max(woke, G.breaches.filter((b: { state: string }) => b.state !== "sleep").length);
 	}
-	return { stage: G.stage, dna: Math.floor(G.dna), minutes: Math.round(G.time / 60), woke, kills: G.kills };
+	return { stage: G.stage, dna: Math.floor(G.dna), minutes: Math.round(G.time / 60), waves: G.swarm?.wave ?? 0, kills: G.kills };
 }
 
 it("holds about 1,000 DNA at most on reaching stage 4, at a reasonable pace and a slow one, over several draws", () => {
 	const runs = [...[3, 7, 11].map((seed) => referenceGame(seed)), referenceGame(5, 2 * PACE.build)];
-	// Measured on 2026-11-24: 624, 610 and 617 DNA after 43 minutes; 826 for the slow player after 83.
+	// Measured on 2026-11-24, with the swarms of item_016: 576 DNA after 43 minutes on each draw; 926 for the slow player after 83.
 	// The slow player ends richer only by what its longer fights paid, and still under the ceiling.
 	expect(runs[3].dna).toBeGreaterThan(runs[0].dna);
-	// A nest woke on its own and attacked before stage 4 in every run (item_016 AC1).
-	for (const run of runs) expect(run.woke > 0 && run.kills > 0).toBe(true);
+	// Swarms came and were fought before stage 4 in every run (item_016 AC1).
+	for (const run of runs) expect(run.waves > 0 && run.kills > 0, JSON.stringify(run)).toBe(true);
 	for (const run of runs) {
 		expect(run.stage).toBe(3);
 		expect(run.dna, JSON.stringify(run)).toBeLessThanOrEqual(1000);

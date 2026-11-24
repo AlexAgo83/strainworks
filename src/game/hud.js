@@ -4,7 +4,7 @@ import { DEC, L, LOCALE } from "../sim/text.ts";
 import { buyLab, diagnose, packTrouble, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
 import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, write } from "./input.js";
-import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
+import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, DEFENSE_GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
 
 export function paint(id, html, el = $(id)) {
@@ -183,7 +183,14 @@ export function paintThreat() {
   const gene = first ? (active ? first.gene : waveGene(first)) : here[0]?.[0] || '';
   const detail = [];
   let title, short;
-  if (first) {
+  // The next swarm, when it comes sooner than a nest's assault: from where, how many, its antidote.
+  const swarm = G.swarm?.next != null && G.swarm.from ? G.swarm : null, swarmIn = swarm ? Math.max(0, Math.ceil(swarm.next - G.time)) : Infinity;
+  if (swarm && !active && (!first || swarmIn < left)) {
+    const where = bearing(swarm.from);
+    title = L`Essaim dans ${swarmIn} s`; short = `${swarmIn} s`;
+    detail.push(where[0].toUpperCase() + where.slice(1), L`${swarm.size} créatures`);
+    if (G.enemies.length) detail.push(L`${G.enemies.length} sur la carte`);
+  } else if (first) {
     const where = bearing(first);
     title = active ? L`Assaut : ${where}` : L`Assaut dans ${left} s`;
     short = active ? L('Assaut') : `${left} s`;
@@ -200,16 +207,17 @@ export function paintThreat() {
     short = asleep ? L`${asleep} dorment` : L('Calme');
     detail.push(asleep ? (asleep > 1 ? L('repérées') : L('repérée')) : L('le brouillard commence plus loin'));
   }
-  const box = $('brief'), stock = gene ? stockOf(opposite(gene)) : 0;
+  const shown = swarm && !active && (!first || swarmIn < left) ? swarm.gene : gene;
+  const box = $('brief'), stock = shown ? stockOf(opposite(shown)) : 0;
   paint('title', title, box.querySelector('.title'));
   paint('detail', detail.join(' · '), box.querySelector('.detail'));
   paint('short', short, box.querySelector('.short'));
-  paint('versus', gene ? `<span class="foe">${geneMark(gene)}</span><span class="to">→</span>${geneMark(opposite(gene))}<span class="${stock ? 'need' : 'none'}">${stock ? L`${stock} en stock` : L('aucun antidote')}</span>` : '');
+  paint('versus', shown ? `<span class="foe">${geneMark(shown)}</span><span class="to">→</span>${geneMark(opposite(shown))}<span class="${stock ? 'need' : 'none'}">${stock ? L`${stock} en stock` : L('aucun antidote')}</span>` : '');
   paint('families', here.map(([kind, n]) => {
     const ready = stockOf(opposite(kind));
     return L`<div class="threat"><b>${n} sur la carte</b>${geneMark(kind)}<span>→</span>${geneMark(opposite(kind))}<span class="${ready ? 'need' : 'none'}">${ready ? L`${ready} en stock` : L('aucun antidote')}</span></div>`;
   }).join('') || L('<span class="threat">Personne sur la carte</span>'));
-  box.classList.toggle('calm', !first && !here.length);
+  box.classList.toggle('calm', !first && !here.length && !swarm);
   box.style.setProperty('--pulse', `${(1.7 - Math.min(10, G.threat) * .11).toFixed(2)}s`);
   $('app').classList.toggle('hot', !G.over && (active || G.enemies.length > 0));
 }
@@ -620,16 +628,26 @@ export function guideSpot(step) {
   ui.guideSpot = best && {step, x:best.x, y:best.y};
   return middle(ui.guideSpot);
 }
+// The steps of the guide under way: the first workshop, or the first defence.
+const guideSteps = () => G.guide?.kind === 'defense' ? DEFENSE_GUIDE : GUIDE;
+// The first defence, read on the game: one more turret, a turret holding genes, a nerve on a turret, one more wall.
+function defenseDone(step) {
+  const base = G.guide.base, count = type => allCells().filter(c => c.type === type).length, turrets = allCells().filter(c => c.type === 'turret');
+  if (step === 0) return count('turret') > (base.turret || 0);
+  if (step === 1) return turrets.some(c => Object.values(c.ammo || {}).some(n => n > 0));
+  if (step === 2) return G.wires.length > (base.wire || 0) && G.wires.some(w => turrets.some(c => key(c.x, c.y) === w.a || key(c.x, c.y) === w.b));
+  return count('wall') > (base.wall || 0);
+}
 export function paintGuide() {
-  const g = G.guide, live = Boolean(g) && g.step < GUIDE.length && !G.over && !orbit.on;
+  const g = G.guide, GUIDE = guideSteps(), defense = g?.kind === 'defense', live = Boolean(g) && g.step < GUIDE.length && !G.over && !orbit.on;
   if (live) {
     // A base seen in an input stays seen: the Ligase empties its inputs once the gene is made.
     const now = builtNow();
-    while (g.step < GUIDE.length && guideDone(g.step, now)) {
+    while (g.step < GUIDE.length && (defense ? defenseDone(g.step) : guideDone(g.step, now))) {
       g.step++;
       earn('guide', 5);
       // A step done shows in the guide's list and the DNA count; only the end gets a note in the events.
-      if (g.step >= GUIDE.length) tell(L('Premier atelier en marche : +5 ADN. Le guide se range dans le menu.'));
+      if (g.step >= GUIDE.length) tell(defense ? L('Première défense en place : +5 ADN. Le guide se range dans le menu.') : L('Premier atelier en marche : +5 ADN. Le guide se range dans le menu.'));
     }
   }
   const on = live && g.step < GUIDE.length && !g.hidden;
@@ -646,6 +664,8 @@ export function paintGuide() {
     if (call) b.dataset.guideKey = `Maj+${[...b.parentElement.querySelectorAll('[data-type]')].indexOf(b) + 1}`; else delete b.dataset.guideKey;
   });
   $('tools').classList.toggle('guide-dim', need);
+  const name = defense ? L('Ta première défense') : L('Premier atelier');
+  $('guide-name').textContent = name; $('guide-show').textContent = name;
   if (!on) { $('guide-spot').hidden = true; return; }
   const step = GUIDE[g.step], base = step.base ? markOf(step.base) : '';
   $('guide-no').textContent = L`étape ${g.step + 1} sur ${GUIDE.length}`;
@@ -657,12 +677,12 @@ export function paintGuide() {
     if (from) { ui.guideTurned = g.step; setHeading(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0)); }
   }
   const arrow = step.pick === 'mine' ? L('Sa flèche est sa seule sortie : le guide la tourne vers le cœur, R pour la changer.') : '';
-  write($('guide-why'), [step.why, arrow, howTo(step), guideHint(step)].filter(Boolean).join(' '));
+  write($('guide-why'), [step.why, arrow, howTo(step), defense ? '' : guideHint(step)].filter(Boolean).join(' '));
   showModel($('guide-model'), step.model);
   const list = GUIDE.map((s, i) => `<li class="${i < g.step ? 'done' : i === g.step ? 'now' : ''}"><i>${i < g.step ? '✓' : i + 1}</i><span>${s.list}</span>${s.base ? markOf(s.base) : ''}</li>`).join('');
   if ($('guide-steps').innerHTML !== list) $('guide-steps').innerHTML = list;
   $('app').style.setProperty('--guide-h', `${$('guide').offsetHeight}px`);
-  ui.guidePoint = guideSpot(g.step);
+  ui.guidePoint = defense ? null : guideSpot(g.step);
 }
 // The map the player sees: inside the screen, clear of the top bar, the side buttons, the dock and the guide.
 // gap: how far from what covers it, 20 px for the circle to read, more for the arrow to fit.

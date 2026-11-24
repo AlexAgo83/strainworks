@@ -91,6 +91,7 @@ const WINDOW_API = {
   GAME_KEY: [() => GAME_KEY],
   GLUE: [() => GLUE],
   GUIDE: [() => GUIDE],
+  DEFENSE_GUIDE: [() => DEFENSE_GUIDE],
   GUNS: [() => GUNS],
   GUN_RANK: [() => GUN_RANK],
   H: [() => H],
@@ -891,6 +892,13 @@ $('sheet').addEventListener('click', event => {
 });
 
 // ---- The guided start: five steps to a first line feeding the core, each checked on what is built.
+// The guide to a first defence, started by the simulation just before the first swarm (item_016).
+export const DEFENSE_GUIDE = [
+  {family:'def', pick:'turret', model:'turret', list:L('Une tourelle'), title:L('Pose une tourelle'), why:L('Un essaim arrive : pose une tourelle entre le cœur et l’endroit d’où il vient.')},
+  {family:'tra', pick:'belt', model:'belt', list:L('Des gènes pour elle'), title:L('Nourris-la de gènes'), why:L('Un tapis de gènes jusqu’à la tourelle : elle tire ce qu’on lui livre, l’antidote de l’essaim fait le plus mal.')},
+  {family:'cmd', pick:'wire', model:'wire', list:L('Un nerf'), title:L('Relie-la par un nerf'), why:L('Un nerf de la tourelle à un feu ou un trieur : elle dit ce qu’il lui faut, sa ligne le lui envoie.')},
+  {family:'def', pick:'wall', model:'wall', list:L('Un mur'), title:L('Ajoute un mur'), why:L('Un mur devant la tourelle : les créatures doivent le casser, elle a le temps de tirer.')}
+];
 // The gene the guide teaches: this game's first base gene, or the Motor (SFS) of older games and the demo.
 export const guideGene = () => G.base?.[0] || 'SFS';
 export const GUIDE = [
@@ -911,7 +919,7 @@ $('intro-again').onclick = () => { showMenu(false); showIntro(true); };
 $('guide-arrow').onclick = () => { const at = ui.guidePoint; if (at) travelTo({...cam, x:at.x, y:at.y}); };
 $('guide-hide').onclick = () => { if (G.guide) G.guide.hidden = true; paintGuide(); };
 $('guide-show').onclick = () => { if (G.guide) G.guide.hidden = false; paintGuide(); };
-export const skipGuide = () => { if (G.guide) G.guide.step = GUIDE.length; paintGuide(); };
+export const skipGuide = () => { if (G.guide) G.guide.step = (G.guide.kind === 'defense' ? DEFENSE_GUIDE : GUIDE).length; paintGuide(); };
 $('guide-skip').onclick = skipGuide;
 $('guide-drop').onclick = skipGuide;
 $('guide-again').onclick = () => { startGuide(); showMenu(false); paintGuide(); };

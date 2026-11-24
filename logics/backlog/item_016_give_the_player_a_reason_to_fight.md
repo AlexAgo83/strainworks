@@ -1,10 +1,10 @@
 ## item_016_give_the_player_a_reason_to_fight - Give the player a reason to fight
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
-> Understanding: 90%
-> Confidence: 80%
-> Progress: 90%
+> Status: Done
+> Understanding: 95%
+> Confidence: 85%
+> Progress: 100%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -35,11 +35,18 @@
 # Operator decision (2026-11-24)
 - Nest threat grows with the size of the base, first attack possible from stage 3; a small base stays quiet, an expanding one must defend. Rich deposits and the rare F sit inside the nests' reach. A destroyed nest gives a reward.
 
+# Operator decision, later the same day (2026-11-24), superseding the size-only rule
+- Constant swarms from stage 2: after the first guide, a first small, slow swarm is announced with the assault alarm and a countdown and comes to the base; from then on swarms arrive at regular announced intervals and grow with both time and base size. The first waves are weak: never a wipe from the first one. A swarm shows where it comes from, when it arrives and which gene kills it.
+- A new guide, "Ta première défense", just before the first swarm: a turret, genes for it, a nerve, a wall.
+- Nests stay separate: the heavy threats guarding the rich deposits, with a reward on destruction.
+
 # Implementation notes (2026-11-24)
-- `RISE`, `baseSize` and `rise` in `src/sim/sim.ts`: from stage 3, a base of more than 20 machines (belts, splitters, sorters, bridges, walls and relays not counted) wakes the sleeping nest nearest the core, one more for every 10 machines past that, at least 180 s apart. Before stage 3, or under 21 machines, no nest wakes on its own; a nest the player disturbs still wakes as before.
-- Rich deposits: in new games every rich deposit is within reach of a kept nest. The two ×2 deposits whose nests were thinned for standing within 30 cells of the core keep their nests (added after the others, so families do not move), and the free field south of the base, which has no nest, is plain (×1). The rare F: the ×4 Fibre deposit is guarded; the plain one near the core is left free so the first stages stay quiet. Say if "the rare F" meant that near one.
-- Reward: a destroyed nest already paid its creatures in DNA and freed its ground, said in the event; now tested.
-- Proof: `tests/sim/threat.test.ts`. AC1 (no stage 4 without holding off a nest) holds through item_019 (stage 4 asks 10 creatures killed by their antidote) and is measured in item_018's reference game.
+- `SWARM`, `swarmSize`, `planSwarm` and `swarms` in `src/sim/sim.ts` (drawn games only, `G.swarm` in the save): on entering stage 2 the first swarm is announced 180 s ahead (assault alarm, an event with its bearing, size and antidote, the top-right brief counting down), then one every 120 s. Size: 3, one more every 4 minutes since the first, one more every 8 machines past 10 (belts, splitters, sorters, bridges, walls and relays not counted), 40 at most. The first wave walks at half pace and bites at half strength (`drift`); hit points start at 6 and rise by 2 a wave.
+- The guide "Ta première défense" (`DEFENSE_GUIDE` in `src/game/main.js`) starts with the first announcement and is checked on the game: one more turret, a turret holding genes, a nerve on a turret, one more wall; 5 DNA a step, like the first guide.
+- The size-only rule tried first (nests waking on their own from stage 3) is withdrawn: nests wake only when disturbed, as before.
+- Rich deposits: every rich deposit is within reach of a kept nest. The two ×2 deposits whose nests were thinned for standing within 30 cells of the core keep their nests (added last, so families do not move), and the free field south of the base is plain (×1). The ×4 Fibre deposit is guarded; the plain one near the core is free, so the first stages stay quiet.
+- A destroyed nest pays its creatures in DNA and frees its ground, said in the event.
+- Proof: `tests/sim/threat.test.ts` (no swarm before stage 2, the first one on time and weak, no wipe, growth with time and size, guarded deposits, the nest's reward), `tests/prototype/defense-guide.test.mjs` (the guide flow in the browser), `tests/sim/reference-game.test.ts` (swarms fought before stage 4 in every run).
 
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: A normal game cannot reach stage 4 without clearing or holding off at least one nest.

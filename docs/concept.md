@@ -341,7 +341,7 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
   of a gene a gene, half of what it paid before, and producers and stores rank up at one and a half times their
   former prices. The figures are first values, to tune by playing.
   The base genes the core eats are its food and pay nothing; a stage pays 100. A reference game to stage 4
-  (tests/sim/reference-game.test.ts) holds about 600 DNA at a reasonable pace, 826 at a slow one, under the
+  (tests/sim/reference-game.test.ts) holds about 580 DNA at a reasonable pace, 926 at a slow one, under the
   1,000 decided.
 - **ADN (2026-11-23)**: what the core demands moves the stage and pays no ADN. What it does not demand pays a third
   of a gene a gene (a strand two thirds, a capsule two). Kills pay 1, an emptied breach pays its creatures, a stage 40.
@@ -355,9 +355,11 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 - **A mechanic a stage (Decided, 2026-11-24, item_019)**: besides its recipes, stage 2 asks for 30 items sorted aside,
   stage 3 for 30 items passed or sorted under a nerve, stage 4 for 10 creatures killed by their antidote, stage 5 for
   two minutes of a harvester held within a nest's reach.
-- **Threat with the base (Decided, 2026-11-24, item_016)**: from stage 3, a base of more than 20 machines wakes the
-  nest nearest the core on its own, one more every 10 machines, 3 minutes apart at least. Every rich deposit lies in
-  a kept nest's reach; a destroyed nest pays its creatures in DNA and frees its ground.
+- **Swarms and nests (Decided, 2026-11-24, item_016)**: from stage 2, swarms come to the base every 2 minutes, each
+  announced 2 to 3 minutes ahead with where it comes from and its antidote: 3 creatures at first, slow and frail,
+  then one more every 4 minutes and one more every 8 machines past 10. The first one starts the guide "Ta première
+  défense" (a turret, genes for it, a nerve, a wall). Nests stay apart, the heavy guards: every rich deposit lies in
+  a kept nest's reach, and a destroyed nest pays its creatures in DNA and frees its ground.
 - **Hunger (Decided, 2026-11-24)**: in a game with drawn base genes, the core eats them continuously. While one it
   eats has not arrived in the last 30 seconds, stage deliveries count half, not nothing.
 - The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.

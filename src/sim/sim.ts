@@ -1655,7 +1655,7 @@ export function nestHp(b) {
 export const CREATURE = {pace:.65, through:.36};
 // Two kinds any awake nest can send: a swarm of eight, quick and frail, from stage 2; a titan, slow, ten times as
 // tough and three times as hard on buildings, one at a time, from stage 4.
-export const KINDS = {swarm:{count:8, hp:1 / 8, pace:2, bite:1, from:1, chance:.2}, titan:{count:1, hp:10, pace:.4, bite:3, from:3, chance:.25}};
+export const KINDS = {swarm:{count:8, hp:1 / 8, pace:2, bite:1, from:1, chance:.2}, drift:{count:1, hp:1, pace:.5, bite:.5, from:99, chance:0}, titan:{count:1, hp:10, pace:.4, bite:3, from:3, chance:.25}};
 export const kindOf = e => KINDS[e.kind] || {hp:1, pace:1, bite:1};
 // Thrown out of the nest, a creature lands 2 to 5 cells away and only then walks.
 export function spawn(b, gene, kind = null) {
@@ -1683,30 +1683,52 @@ export function destroyNest(b) {
   hooks.tell(L`Nid détruit au ${bearing(b)} : +${b.total} ADN, il s’estompe et le terrain est à toi.`, {at:b});
 }
 export function waveGene(b) { return b.genes[(b.genes.length - 1 + Math.max(0, b.wave)) % b.genes.length]; }
-// The threat grows with the base (item_016): from stage 3 a base past QUIET machines wakes the nearest sleeping nest
-// on its own, one more for every PER machines past that, one at a time EVERY seconds apart. Belts, rails, nerves and
-// walls are not counted: a small base stays quiet, an expanding one has to defend.
-export const RISE = {from:2, quiet:20, per:10, every:180};
+// Swarms (item_016, operator decision 2026-11-24): from stage 2 of a drawn game, swarms come to the base at announced
+// times, growing with the minutes since the first and with the base's machines; the first ones are few, slow and frail,
+// so a learning player loses little. The nests stay apart: the heavy guards of the rich deposits.
+export const SWARM = {from:1, lead:180, every:120, first:3, minutes:4, machines:8, most:40, hp:6, far:30};
 export const baseSize = () => allCells().filter(c => c.type !== 'core' && !isBelt(c) && !isSplit(c) && c.type !== 'bridge' && c.type !== 'sort' && c.type !== 'wall' && c.type !== 'relay').length;
-export function rise() {
-  if (G.stage < RISE.from || G.over || G.time < (G.risenAt ?? -Infinity) + RISE.every) return null;
-  const over = baseSize() - RISE.quiet;
-  if (over <= 0) return null;
-  const roused = G.breaches.filter(b => b.roused).length;
-  if (roused >= Math.ceil(over / RISE.per)) return null;
-  const core = coreCell() || CORE, asleep = G.breaches.filter(b => b.state === 'sleep').sort((a, b) => Math.hypot(a.x - core.x, a.y - core.y) - Math.hypot(b.x - core.x, b.y - core.y));
-  if (!asleep.length) return null;
-  const b = asleep[0];
-  b.roused = true; G.risenAt = G.time;
-  wake(b, null);
-  return b;
+// How many come: three, one more every 4 minutes since the first, one more every 8 machines past 10.
+export function swarmSize(since, size) {
+  return Math.min(SWARM.most, SWARM.first + Math.floor(since / 60 / SWARM.minutes) + Math.floor(Math.max(0, size - 10) / SWARM.machines));
+}
+// The next swarm: where it comes from, its family, how many, said with the antidote and the time left.
+export function planSwarm(at) {
+  const w = G.swarm, angle = Math.random() * Math.PI * 2, core = centreOf(coreCell() || {x:CORE.x, y:CORE.y, type:'core'});
+  w.next = at; w.from = {x:Math.round(core.x + Math.cos(angle) * SWARM.far), y:Math.round(core.y + Math.sin(angle) * SWARM.far)};
+  w.gene = G.families[Math.floor(Math.random() * G.families.length)];
+  w.size = swarmSize(w.wave ? G.time - w.start : 0, baseSize());
+  hooks.playSound('assault_alarm', 2);
+  hooks.tell(L`Essaim en approche du ${bearing(w.from)}, dans ${Math.round(at - G.time)} s : ${w.size} créatures. Leur antidote : ${opposite(w.gene)}.`, {at:w.from, gene:w.gene, bad:true});
+}
+export function swarms() {
+  if (!G.base || G.over || G.stage < SWARM.from) return;
+  if (!G.swarm) {
+    G.swarm = {wave:0, start:G.time + SWARM.lead};
+    // Just before the first one: the guide to a first defence, counted from what stands now.
+    const count = type => allCells().filter(c => c.type === type).length;
+    G.guide = {kind:'defense', step:0, base:{turret:count('turret'), wall:count('wall'), wire:G.wires.length}, hidden:false};
+    planSwarm(G.time + SWARM.lead);
+    return;
+  }
+  const w = G.swarm;
+  if (G.time < w.next) return;
+  // The first wave walks slowly; every one lands spread round where it was announced.
+  const hp = SWARM.hp + w.wave * 2, kind = w.wave === 0 ? 'drift' : null;
+  for (let i = 0; i < w.size; i++) {
+    const a = i * 2.4, r = .5 + (i % 4) * .6, x = w.from.x + Math.cos(a) * r, y = w.from.y + Math.sin(a) * r;
+    G.enemies.push({x, y, gene:w.gene, hp, max:hp, kind, tier:0, home:-1});
+  }
+  w.wave++;
+  planSwarm(G.time + SWARM.every);
 }
 export function menace(dt) {
   const awake = G.breaches.filter(b => b.state === 'wake');
   const spent = G.breaches.filter(b => b.state === 'spent').length;
   G.threat = Math.min(10, awake.length + spent * .5 + G.made / 1000);
   if (G.stage >= 3 && !G.over && G.time >= (G.mutateAt ?? Infinity)) { G.mutateAt = G.time + MUTATION.every; mutation(); }
-  if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) { disturb(); rise(); if (G.needs?.length && outpostHeld()) credit('outpost', .5); }
+  swarms();
+  if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) { disturb(); if (G.needs?.length && outpostHeld()) credit('outpost', .5); }
   for (const b of awake) {
     if (b.pending && b.left && G.time >= b.spit) { spawn(b, b.gene, b.swarm ? 'swarm' : null); b.swarm = false; b.pending--; b.spit = G.time + 1.4; }
     nestHp(b);
