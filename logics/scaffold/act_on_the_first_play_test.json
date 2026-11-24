@@ -1,0 +1,144 @@
+{
+  "title": "Act on the first play test",
+  "references": [
+    "prototype/index.html",
+    "prototype/style.css",
+    "logics/request/req_002_modularize_the_single_file_prototype.md"
+  ],
+  "request": {
+    "complexity": "High",
+    "theme": "Player experience",
+    "needs": [
+      "Fix what blocked or confused the first outside tester, who played 0.1.38 for 52 minutes on a 13-inch laptop, cleared stages 1 to 3 and stopped at stage 4.",
+      "Keep the tester's raw material private: notes here are paraphrased, with no name, recording or screenshot from the session."
+    ],
+    "context": [
+      "Play test of 2026-11-24, one tester who plays Factorio a lot and compares with it; the raw transcript and four screenshots are kept outside the repository.",
+      "Liked: the music, recipes that read clearly once the core's sheet is found, the Ligase's input swap once discovered, the right click to dismantle.",
+      "Blocking: at stage 4 two identical assembler and encapsulator setups behaved differently, one consuming its inputs and the other not; the tester stopped there.",
+      "Sound: music loud at launch with no master volume; the game and the music pause when the window loses focus, which the tester would like as an option.",
+      "Small screen: the core's sheet with its recipes runs behind the bottom dock on a 13-inch screen and cannot be scrolled.",
+      "Hidden information: what MK2, MK3 and the large harvester add is unclear; the options a machine offers when clicked (rank, swap, empty) were found late; Empty disappears from the sheet once used.",
+      "Controls: no H and V flip keys (the swap exists only in the machine's sheet), the eyedropper (Q) went unnoticed, a click in rotate mode turns the piece unexpectedly.",
+      "Lines: drawing and dismantling sometimes extend a line and sometimes start a perpendicular one; some turns are taken and others refused; a line passing beside a harvester links to it; a line drawn from a harvester did not start where expected; a bridge cannot be dismantled without breaking the line before it; the direction of a belt reads poorly.",
+      "Reading the board: empty Ligase inputs drawn in red look like errors.",
+      "Room and pace: the ground round the core fills fast; each stage's recipes call for new lines, so the tester tore everything down at each stage; waiting for counts such as 50 felt long; stage 4 felt like stage 3 again.",
+      "Purpose: the splitter, the fights and the mutations seemed optional, since no fight was needed to progress.",
+      "Statistics: one production stopped while another went on, with nothing saying why.",
+      "Suggestion: let a harvester's output pass under a line like a bridge."
+    ],
+    "acceptance_criteria": [
+      "AC1: The stage 4 assembler and encapsulator case is reproduced from the tester's description, its cause fixed or explained in the game, and covered by a test.",
+      "AC2: Sound has a master volume, a quieter first start, and an option to keep playing when the window is hidden.",
+      "AC3: The core's sheet, the trays and the machine sheets stay readable and scrollable on a 1280 by 720 screen and on phones.",
+      "AC4: Ranks, large harvesters and machine options say what they give where the player looks, and Empty stays available after use.",
+      "AC5: H and V flip what can be flipped, the eyedropper and other keys are shown where they act, and rotate mode no longer turns a piece by surprise.",
+      "AC6: Drawing and dismantling lines follow one rule the player can predict, documented in the help, with tests for each case the tester met.",
+      "AC7: Empty inputs no longer read as errors, and a belt's direction reads at a glance.",
+      "AC8: Room and progression are reviewed: space round the core, lines that carry over between stages, waits and stage variety, and a reason to fight, each with a decision recorded."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Reproduce and fix the stage 4 assembler and encapsulator case",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Gameplay",
+      "request_acs": ["AC1"],
+      "problem": ["Two setups the tester saw as identical gave different results: one assembled and encapsulated, the other kept its inputs; the tester could not tell why and stopped."],
+      "scope_in": ["Rebuild the stage 4 recipes the tester faced (two genes joined then encapsulated) in a test, try each side and order of entry, find what differs.", "Fix a fault, or show in the machine's sheet why it waits (wrong half, wrong side, wrong box)."],
+      "scope_out": ["New recipes."],
+      "acceptance_criteria": ["AC1: A test reproduces the case.", "AC2: The machine either works or says in its sheet what it waits for."]
+    },
+    {
+      "title": "Give sound a master volume and a choice to play on in the background",
+      "priority": "High",
+      "complexity": "Low",
+      "theme": "Audio",
+      "request_acs": ["AC2"],
+      "problem": ["Music is loud at first launch and only music and effects have volumes; the game and the music stop when the window is hidden."],
+      "scope_in": ["A master volume over music and effects, kept between visits.", "A lower default music level at first launch.", "A setting to keep the game and the music running when the window is hidden."],
+      "scope_out": ["New music."],
+      "acceptance_criteria": ["AC1: The audio settings have a master volume that scales music and effects.", "AC2: The background setting keeps the simulation and the music running while hidden."]
+    },
+    {
+      "title": "Fit the core's sheet and the panels on small screens",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Interface",
+      "request_acs": ["AC3"],
+      "problem": ["On a 13-inch screen the core's sheet runs behind the bottom dock and cannot be scrolled."],
+      "scope_in": ["Sheets and trays bounded by the space above the dock, scrolling inside.", "Browser tests at 1280 by 720 and at phone sizes."],
+      "scope_out": ["A redesign of the sheets."],
+      "acceptance_criteria": ["AC1: At 1280 by 720 every row of the core's sheet can be reached.", "AC2: No sheet overlaps the dock."]
+    },
+    {
+      "title": "Say what ranks, large harvesters and machine options give",
+      "priority": "Medium",
+      "complexity": "Medium",
+      "theme": "Interface",
+      "request_acs": ["AC4"],
+      "problem": ["The gains of MK2, MK3 and the large harvester are unclear, the options on a click are found late, and Empty vanishes after use."],
+      "scope_in": ["The help of a building follows the rank picked, with its numbers.", "A first selection of a machine points at its options.", "Empty stays in the sheet while the machine can hold items, with a key."],
+      "scope_out": ["Balance changes."],
+      "acceptance_criteria": ["AC1: Each rank button shows what it changes in numbers.", "AC2: Empty stays offered after use."]
+    },
+    {
+      "title": "Add flip keys and make the keys and rotate mode predictable",
+      "priority": "Medium",
+      "complexity": "Medium",
+      "theme": "Controls",
+      "request_acs": ["AC5"],
+      "problem": ["The swap of a Ligase, an encapsulator or a joiner exists only in its sheet; the eyedropper went unnoticed; a click in rotate mode turns a piece by surprise."],
+      "scope_in": ["H and V flip the piece in hand or under the pointer where it has sides to swap.", "Keys shown in the tooltips of the dock and the sheets.", "Rotate mode: a click selects, the rotate key turns."],
+      "scope_out": ["Mirroring of shapes that have no side to swap."],
+      "acceptance_criteria": ["AC1: H and V swap the sides of every machine that has a swap button.", "AC2: The eyedropper key is shown in the dock's tooltips.", "AC3: A test covers a click in rotate mode."]
+    },
+    {
+      "title": "Make drawing and dismantling lines follow one rule",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Controls",
+      "request_acs": ["AC6", "AC7"],
+      "problem": ["A drag sometimes extends a line and sometimes starts a perpendicular one; turns are sometimes refused; lines link to a harvester they pass; a bridge cannot be removed alone; a belt's direction reads poorly."],
+      "scope_in": ["One written rule for extend, turn and branch, shown in the help.", "A line links to a harvester only when it starts or ends on it.", "Dismantling a bridge leaves the belt under it.", "A clearer arrow on belts."],
+      "scope_out": ["New logistics pieces."],
+      "acceptance_criteria": ["AC1: Tests cover extend, turn, branch, passing beside a harvester and dismantling a bridge.", "AC2: The help describes the rule."]
+    },
+    {
+      "title": "Stop empty inputs from reading as errors",
+      "priority": "Medium",
+      "complexity": "Low",
+      "theme": "Interface",
+      "request_acs": ["AC7"],
+      "problem": ["Empty Ligase inputs are drawn with red rings, which reads as a fault."],
+      "scope_in": ["A neutral mark for an empty input; red kept for a real fault."],
+      "scope_out": ["Other colour changes."],
+      "acceptance_criteria": ["AC1: An empty Ligase input is drawn without red in 2D and 3D."]
+    },
+    {
+      "title": "Review room, carry-over between stages, waits and the reason to fight",
+      "priority": "Medium",
+      "complexity": "High",
+      "theme": "Game design",
+      "request_acs": ["AC8"],
+      "problem": ["The ground round the core fills fast, each stage made the tester tear down the last one, waits felt long, stage 4 felt like stage 3, and fights seemed optional; one production stopped in the statistics with no reason given."],
+      "scope_in": ["A design note with a decision on each point: room round the core, recipes that reuse earlier lines, counts and waits, variety between stages 3 and 4, what makes fights needed.", "The statistics say why a production stopped.", "The harvester-as-bridge suggestion answered."],
+      "scope_out": ["Implementing every idea in this item: each decision taken becomes its own item."],
+      "acceptance_criteria": ["AC1: A design note records a decision for each point.", "AC2: The statistics name the cause of a stopped production."]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Orchestrate the fixes from the first play test",
+    "plan": [
+      "Start after the modularization request req_002 is delivered, unless the operator moves a fix ahead.",
+      "First the blocking case (assembler and encapsulator), then sound and small screens, then controls and lines, then readability, then the design review.",
+      "Each fix: reproduce, fix, test, commit; push once CI is green; release when the operator asks, then ask the tester to replay."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/act_on_the_first_play_test.json",
+    "mode": "summary-only",
+    "profile": "normal"
+  }
+}
