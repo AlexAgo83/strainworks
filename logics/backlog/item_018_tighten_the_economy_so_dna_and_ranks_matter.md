@@ -3,8 +3,8 @@
 > Schema version: 1.0
 > Status: Ready
 > Understanding: 90%
-> Confidence: 85%
-> Progress: 0%
+> Confidence: 80%
+> Progress: 70%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -31,6 +31,12 @@
 - AC1: In a simulated reference game, DNA held at stage 4 stays under an agreed ceiling.
 - AC2: A deposit refuses a harvester past its limit, with the reason said.
 - AC3: Splitting one harvester's output is the cheapest way to feed two machines.
+
+# Implementation notes (2026-11-24)
+- A deposit feeds at most `HARVESTERS_PER_DEPOSIT` (3) harvesters, a large one counting as one (`fieldAt`, `harvestersOn`, `depositFull` in `src/sim/sim.ts`). Placing a fourth is refused with the reason and the way round it ("partage la sortie avec un diviseur, ou passe-le en MK2"); the preview says "Gisement plein"; a large harvester's site says it too. Saved games with more keep them.
+- What the core does not ask for pays a sixth of a gene a base (`SURPLUS` = 18), half of before. Producers and stores rank up at one and a half times their former prices; belts, splitters and defences keep theirs.
+- Proof: `tests/sim/economy.test.ts`, `tests/prototype/deposit-limit.test.mjs`. AC3 holds through the limit: past three harvesters, a splitter or a rank is the only way to feed another machine from that deposit.
+- Waiting for the operator: AC1 needs the agreed DNA ceiling at stage 4 and a reference game to measure it in; the figures above are first values, to tune by playing.
 
 # Related decision (2026-11-24)
 - A hungry core counts stage deliveries half (`HUNGRY_SHARE` in `src/sim/sim.ts`), recorded in item_017: feeding the base genes keeps full pace, so a lapse slows a stage without stopping it.

@@ -1,5 +1,5 @@
 // Tools, placing and dismantling, line drawing and the pointer.
-import { perSecond, hungryFor, BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
+import { HARVESTERS_PER_DEPOSIT, depositFull, perSecond, hungryFor, BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
 import { DEC, L } from "../sim/text.ts";
 import { breachesIn, build, diagnose, incubate, itemName, keepIt, keepVein, known, layTrack, link, netSummary, netWires, portSide, raise, rowOf, scrap, scrapVein, setHeading, siteFor, sourceName, wireUp } from "./actions.js";
 import { playSound } from "./audio.js";
@@ -437,8 +437,9 @@ export function place(x,y) {
   }
   if (!placeable(x,y)) return refuse(`${whyNot(x,y)}.`);
   const cost = costInHand(tool);
-  if (cost > G.dna) return refuse(L`Il manque ${cost - G.dna} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.`);
+  if (cost > G.dna) return refuse(L`Il manque ${cost - G.dna} ADN. Envoie au cœur des gènes qu’il ne demande pas, ou vide une brèche.`);
   if (tool === 'mine' && !depositAt(x,y)) return refuse(L('Un récolteur se pose sur un gisement coloré.'));
+  if (tool === 'mine' && !cellAt(x,y) && depositFull(x,y)) return refuse(L`Ce gisement nourrit déjà ${HARVESTERS_PER_DEPOSIT} récolteurs. Partage la sortie de l’un d’eux avec un diviseur, ou passe-le en MK2.`);
   G.dna -= price(tool);
   buildRanked(tool,x,y,heading); select(id); say(TYPES[tool].help + (cost ? L` Payé ${cost} ADN.` : ''));
 }
@@ -684,6 +685,7 @@ export function preview() {
   if (!free()) return no(hive, ghost);
   if (cost > G.dna) return no(L`Il manque ${cost - G.dna} ADN`, ghost);
   if (tool === 'mine' && !depositAt(x, y)) return no(L('Sur un gisement seulement'), ghost);
+  if (tool === 'mine' && !cellAt(x, y) && depositFull(x, y)) return no(L`Gisement plein : ${HARVESTERS_PER_DEPOSIT} récolteurs`, ghost);
   return to('build', ghost);
 }
 // Both views use it: their canvas is in map units, squashed or not. It stays on the plane where things get built.

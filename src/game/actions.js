@@ -1,5 +1,5 @@
 // What the player does to the game: building, ranks, the lab's upgrades, nerves and stages, as the interface asks.
-import { BELT_SPEED, liftable, BORER, BOX, BUILD, BUILDERS, CORE, DRONE, FIELDS, G, GUNS, H, INNER, NERVE, NEST, NET, RADAR, RANKS, SECTOR, STAGES, STEP, TYPES, VEIN, W, WATCHES, WHEN, WORM, accepts, ahead, allCells, asked, atHome, bitAt, boxOf, built, capOf, carbonSide, cellAt, connects, contentOf, depositAt, dice, drains, dropRise, eachSector, edgesOf, exitOf, fill, footprint, gateCondition, gateOpen, gateStore, hasTrait, heardOf, inSight, isBelt, isGun, isSplit, jobId, joinSide, keepsNest, key, leaking, listens, matterUnder, mouthPace, netOf, paceOf, paces, packTakes, perSecond, perch, pocketCap, pumps, put, refund, richAt, richCap, richUnder, richness, sideExit, simSet, sites, span, splitExits, unlink, unlocked, veinKind, wayOf, workTime, wormHolds } from "../sim/sim.ts";
+import { BELT_SPEED, HARVESTERS_PER_DEPOSIT, depositFull, liftable, BORER, BOX, BUILD, BUILDERS, CORE, DRONE, FIELDS, G, GUNS, H, INNER, NERVE, NEST, NET, RADAR, RANKS, SECTOR, STAGES, STEP, TYPES, VEIN, W, WATCHES, WHEN, WORM, accepts, ahead, allCells, asked, atHome, bitAt, boxOf, built, capOf, carbonSide, cellAt, connects, contentOf, depositAt, dice, drains, dropRise, eachSector, edgesOf, exitOf, fill, footprint, gateCondition, gateOpen, gateStore, hasTrait, heardOf, inSight, isBelt, isGun, isSplit, jobId, joinSide, keepsNest, key, leaking, listens, matterUnder, mouthPace, netOf, paceOf, paces, packTakes, perSecond, perch, pocketCap, pumps, put, refund, richAt, richCap, richUnder, richness, sideExit, simSet, sites, span, splitExits, unlink, unlocked, veinKind, wayOf, workTime, wormHolds } from "../sim/sim.ts";
 import { DEC, L } from "../sim/text.ts";
 import { playSound } from "./audio.js";
 import { refuse, tell } from "./hud.js";
@@ -19,6 +19,7 @@ export function siteFor(type, x, y) {
     else if (type === 'borer') {
       const kind = depositAt(site.x, site.y);
       if (!kind || cells.some(p => depositAt(p.x, p.y) !== kind)) site.why = L('4 cases d’un même gisement');
+      else if (depositFull(site.x, site.y)) site.why = L`Gisement plein : ${HARVESTERS_PER_DEPOSIT} récolteurs`;
     }
     if (!site.why) return site;
     first ||= site;

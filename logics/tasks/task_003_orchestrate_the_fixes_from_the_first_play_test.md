@@ -8,7 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-11-24 20:08:31
+> Indicators reviewed: 2026-11-24 20:27:16
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -60,7 +60,7 @@
 - (no validation recorded yet)
 
 # Report
-- 2026-11-24: the hunger rule counts half (operator decision); item_022, the core panel one demand at a time, done; item_023, the unlock card, done.
+- 2026-11-24: the hunger rule counts half (operator decision); item_022, the core panel one demand at a time, done; item_023, the unlock card, done; item_018, the economy: harvester limit, surplus halved, dearer ranks (AC1 waits for the operator's ceiling).
 
 # Links
 - Request: `req_003_act_on_the_first_play_test`

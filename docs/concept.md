@@ -336,6 +336,10 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 | 5. Nucleus (Noyau, 2026-11-23) | 6 heavy capsules (12 Motor + Hold strands, 2 carbon, 1 isotope) | isotope, heavy capsule, the Recycler, the Deligase, a fourth drone; swarming next |
 
 - A stage gives 40 ADN and restores the core's hit points.
+- **Economy (Decided, 2026-11-24, item_018)**: a deposit feeds at most 3 harvesters (a large one counts as one);
+  past them a harvester's line is shared with a splitter or ranked up. What the core does not ask for pays a sixth
+  of a gene a gene, half of what it paid before, and producers and stores rank up at one and a half times their
+  former prices. The figures are first values, to tune by playing.
 - **ADN (2026-11-23)**: what the core demands moves the stage and pays no ADN. What it does not demand pays a third
   of a gene a gene (a strand two thirds, a capsule two). Kills pay 1, an emptied breach pays its creatures, a stage 40.
   Before, every gene paid 1 whatever it was, so income grew without bound with production and prices never held.

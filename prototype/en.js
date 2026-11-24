@@ -302,7 +302,7 @@ const EN = {
   "La piste rejoint la ligne existante. Une case n’a qu’une sortie.": "The trail joins the existing line. A cell has only one exit.",
   " Payé {} ADN.": " Paid {} DNA.",
   "Un récolteur se pose sur un gisement coloré.": "A harvester goes on a colored deposit.",
-  "Il manque {} ADN. Envoie des gènes au cœur, 1 ADN chacun, ou vide une brèche.": "{} DNA missing. Send genes to the core, 1 DNA each, or empty a breach.",
+  "Il manque {} ADN. Envoie au cœur des gènes qu’il ne demande pas, ou vide une brèche.": "{} DNA missing. Send the core genes it does not ask for, or empty a breach.",
   "Il manque {} ADN pour ce rang.": "{} DNA missing for this rank.",
   "Réveiller": "Wake",
   "Elle est réveillée. Vide-la pour qu’elle disparaisse.": "It is awake. Empty it to make it disappear.",
@@ -963,4 +963,6 @@ const EN = {
   "Compris": "Got it",
   "Bâtiments": "Buildings",
   "Touche un bâtiment pour revoir sa carte.": "Touch a building to see its card again.",
+  "Ce gisement nourrit déjà {} récolteurs. Partage la sortie de l’un d’eux avec un diviseur, ou passe-le en MK2.": "This deposit already feeds {} harvesters. Share one's output with a splitter, or rank it up to MK2.",
+  "Gisement plein : {} récolteurs": "Deposit full: {} harvesters",
 };

@@ -417,6 +417,21 @@ export function depositAt(x, y) {
   const f = sector(Math.floor(x / SECTOR), Math.floor(y / SECTOR))?.field;
   return f && patchOf(f).cells.has(key(x, y)) ? f[0] : undefined;
 }
+// The deposit a cell belongs to: the field whose patch holds it.
+export function fieldAt(x, y) {
+  const id = key(x, y);
+  if (atHome(x, y)) return FIELDS.find(f => patchOf(f)?.cells.has(id));
+  const f = sector(Math.floor(x / SECTOR), Math.floor(y / SECTOR))?.field;
+  return f && patchOf(f).cells.has(id) ? f : undefined;
+}
+// A deposit feeds a few harvesters only (item_018): past them, one harvester's line is shared with a splitter,
+// or ranked up. A large harvester counts as one. Games saved with more keep theirs.
+export const HARVESTERS_PER_DEPOSIT = 3;
+export function harvestersOn(field) {
+  const cells = field && patchOf(field)?.cells;
+  return cells ? allCells().filter(c => (c.type === 'mine' || c.type === 'borer') && cells.has(key(c.x, c.y))).length : 0;
+}
+export const depositFull = (x, y) => harvestersOn(fieldAt(x, y)) >= HARVESTERS_PER_DEPOSIT;
 export function richAt(x, y) {
   if (atHome(x, y)) return RICH[key(x, y)];
   return depositAt(x, y) && sector(Math.floor(x / SECTOR), Math.floor(y / SECTOR)).rich;
@@ -485,24 +500,25 @@ export const fullHp = c => (TYPES[c.type]?.hp ?? 100) * (GUNS[c.type] ? GUN_RANK
 export const healing = c => !c.cut && c.hp > 0 && c.hp < fullHp(c) && G.time - (c.hitAt ?? -99) >= REPAIR.quiet;
 export const unlocked = stage => G.open || G.stage >= stage;
 export const richCap = () => unlocked(3) ? 8 : unlocked(2) ? 2 : 1;
+// Producers and stores rank up at one and a half times their first prices (item_018): DNA is scarcer.
 export const RANKS = {
   belt:{cost:[0, 4, 16], time:.15},
-  mine:{cost:[0, 80, 200], time:2},
-  borer:{cost:[0, 300, 800], time:4},
-  cyst:{cost:[0, 50, 120], time:2},
-  vault:{cost:[0, 150, 400], time:5},
+  mine:{cost:[0, 120, 300], time:2},
+  borer:{cost:[0, 450, 1200], time:4},
+  cyst:{cost:[0, 75, 180], time:2},
+  vault:{cost:[0, 225, 600], time:5},
   // Splitters and sorters pass at most the pace of their rank, as a belt of that rank.
   split2:{cost:[0, 10, 30], time:.5},
   split:{cost:[0, 10, 30], time:.5},
   sort:{cost:[0, 16, 40], time:.5},
   // Transformers make 1, 2 or 3 objects a second.
-  ligase:{cost:[0, 80, 200], time:2.5},
-  join:{cost:[0, 80, 200], time:2.5},
-  pack:{cost:[0, 150, 400], time:2.5},
-  unpack:{cost:[0, 150, 400], time:2.5},
-  flip:{cost:[0, 80, 200], time:2},
-  unbind:{cost:[0, 80, 200], time:2},
-  unjoin:{cost:[0, 80, 200], time:2},
+  ligase:{cost:[0, 120, 300], time:2.5},
+  join:{cost:[0, 120, 300], time:2.5},
+  pack:{cost:[0, 225, 600], time:2.5},
+  unpack:{cost:[0, 225, 600], time:2.5},
+  flip:{cost:[0, 120, 300], time:2},
+  unbind:{cost:[0, 120, 300], time:2},
+  unjoin:{cost:[0, 120, 300], time:2},
   arm:{cost:[0, 40, 120], time:1.5},
   // A burner clears what a belt of its rank brings: 4, 8 or 12 a second, the beat it misses between steps carried over.
   burn:{cost:[0, 30, 90], time:1},
@@ -740,23 +756,25 @@ export function earn(source, amount) {
   hooks.noteEarned(source, amount);
   if (source === 'guide') hooks.playSound('step');
 }
+// A gene of three bases delivered unasked pays 3 / SURPLUS DNA.
+export const SURPLUS = 18;
 export function eat(item) {
   // A container is worth what it holds, carbon adds nothing. What the core asks for moves the stage and pays
-  // nothing; what it does not ask for pays a third of a gene's worth.
+  // nothing; what it does not ask for pays a sixth of a gene's worth (a third before item_018).
   const holds = boxOf(item) ? fill(boxOf(item)) : 1;
   const want = STAGES[G.stage];
   if (G.base?.includes(item)) (G.baseAt ||= {})[item] = G.time;
   if (G.goals) {
     // The first recipe this item still counts for; the stage grows once every one is met. A hungry core counts half.
     const goal = G.goals.find(g => g.item === item && g.fed < g.count);
-    if (!goal) { earn('core', holds * contentOf(item).length / 9); hooks.playNear('dna', coreCell() || CORE, .4); return; }
+    if (!goal) { earn('core', holds * contentOf(item).length / SURPLUS); hooks.playNear('dna', coreCell() || CORE, .4); return; }
     const part = hungryFor().length ? HUNGRY_SHARE : 1;
     goal.fed = Math.min(goal.count, goal.fed + part); G.fed += part;
     if (G.goals.every(g => g.fed >= g.count)) grow();
     hooks.playNear('eat', coreCell() || CORE, .25);
     return;
   }
-  if (!want || item !== want.item) { earn('core', holds * contentOf(item).length / 9); hooks.playNear('dna', coreCell() || CORE, .4); return; }
+  if (!want || item !== want.item) { earn('core', holds * contentOf(item).length / SURPLUS); hooks.playNear('dna', coreCell() || CORE, .4); return; }
   if (want.rate) for (let i = 0; i < holds; i++) G.meals.push(G.time);
   else if (++G.fed >= want.count) grow();
   hooks.playNear('eat', coreCell() || CORE, .25);

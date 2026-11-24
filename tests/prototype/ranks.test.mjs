@@ -185,7 +185,8 @@ it("sells ranks for ADN, one at a time or a whole row", async () => {
       back: [8, 0],
       afterRemove: 8,
       drawn: [2, true, 1],
-      rebuilt: [3, 100],
+      // Half of an MK3 harvester, 300 since item_018.
+      rebuilt: [3, 50],
     });
     expect(errors).toEqual([]);
   } finally {
@@ -266,7 +267,8 @@ it("lets cysts hold more by rank, at the same pace", async () => {
       cyst: [[60, true], [120, true], [240, true]],
       vault: [[360, true], [720, true], [1440, true]],
       before: false,
-      after: [3, true, 80, 60],
+      // The MK3 cyst costs 180 since item_018, and gives half back.
+      after: [3, true, 20, 90],
     });
     expect(errors).toEqual([]);
   } finally {
@@ -387,7 +389,7 @@ it("makes transformers and burners faster and defences stronger by rank, and kee
       ligase: [10, 20, 30],
       turret: [[true, 180], [true, 270], [true, 360]],
       wall: [260, 520, 780],
-      costs: [["split", 10, 30], ["sort", 16, 40], ["ligase", 80, 200], ["pack", 150, 400], ["burn", 30, 90], ["turret", 100, 250], ["wall", 24, 80]],
+      costs: [["split", 10, 30], ["sort", 16, 40], ["ligase", 120, 300], ["pack", 225, 600], ["burn", 30, 90], ["turret", 100, 250], ["wall", 24, 80]],
       older: [3, 12, true, true],
       burn: [4, 8, 12],
     });

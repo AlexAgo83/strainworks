@@ -236,7 +236,8 @@ it("packs genes in carbon", async () => {
       holds24: [true, false],
       notMore: false,
       noCapsuleInTurret: false,
-      worth: 8,
+      // Unasked boxes pay a sixth of a gene a base since item_018: 72 bases, 4 ADN.
+      worth: 4,
       looseDoesNotCount: 0,
       capsuleCounts: 1,
       filter: [true, true, false],
