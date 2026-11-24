@@ -697,7 +697,13 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #sheet .gauge { position:relative; height:9px; border-radius:5px; background:rgba(255,255,255,.08); overflow:hidden; }
 #sheet .gauge i { position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg, var(--amber), #F7C35C); }
 #sheet .gauge.done i { background:var(--acid); }
-#sheet .ups { display:grid; gap:6px; }
+#sheet .ups { display:grid; gap:6px; max-height:min(46vh, 340px); overflow-y:auto; overscroll-behavior:contain; padding-right:2px; }
+#sheet .labtabs { display:flex; flex-wrap:wrap; gap:6px; }
+#sheet .labtabs button { position:relative; display:inline-flex; align-items:baseline; gap:6px; min-height:34px; padding:6px 12px; border:1px solid var(--glass-edge); border-radius:999px; background:#0B1417; color:var(--muted); font:600 13px var(--body, inherit); }
+#sheet .labtabs button small { font-size:11px; font-variant-numeric:tabular-nums; opacity:.8; }
+#sheet .labtabs button.on { border-color:var(--acid); color:var(--acid); background:rgba(183,243,74,.08); }
+#sheet .labtabs button i { position:absolute; top:3px; right:4px; width:7px; height:7px; border-radius:50%; background:var(--amber); }
+#sheet .labtabs button:focus-visible { outline:2px solid var(--acid); outline-offset:2px; }
 #sheet .up { display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--glass-edge); border-radius:14px; }
 #sheet .up b { font-weight:600; }
 #sheet .up small { display:block; color:var(--muted); font-size:12px; }
@@ -981,7 +987,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
 #over .ways { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
 
 /* One menu for the planet and the game. */
-#menu { width:min(380px,calc(100vw - 20px)); max-height:calc(100% - 90px); overflow:auto; padding:18px 22px; align-items:stretch; gap:0; pointer-events:auto; }
+#menu { width:min(380px,calc(100vw - 20px)); max-height:calc(min(100%, 100dvh) - 90px - var(--t) - var(--b)); overscroll-behavior:contain; overflow:auto; padding:18px 22px; align-items:stretch; gap:0; pointer-events:auto; }
 #menu > * { animation:none; }
 #menu:not([hidden]) { animation:sprout .35s cubic-bezier(.2,1.5,.4,1) both; }
 .on-planet #menu { z-index:30; top:calc(88px + var(--t)); }
@@ -1105,7 +1111,7 @@ html.still #planet > .fx.sweep, html.still #planet > .fx.spores { display:none; 
     <div class="row"><span>Commandes</span><button id="help" class="tip">Voir</button></div>
     <div class="row"><span>Langue</span><span class="choice"><button id="lang-fr" class="tip" aria-label="Français" lang="fr">FR</button><button id="lang-en" class="tip" aria-label="English" lang="en">EN</button></span></div>
     <button class="row go" data-go="dev"><span>Développeur</span><b aria-hidden="true">›</b></button>
-    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.36</span></a>
+    <a id="version-row" class="row" href="https://github.com/AlexAgo83/strainworks" target="_blank" rel="noopener"><span>Version du jeu</span><span id="game-version">0.1.37</span></a>
    </div>
    <div class="page" data-page="graphics" hidden>
     <div class="crumbs"><button class="tip back" data-go="root">‹ Réglages</button><h2>Graphismes</h2></div>
@@ -1902,6 +1908,9 @@ const EN = {
   "le Séparateur et une mutation toutes les 5 minutes, jusqu’à 8 familles": "the Separator and a mutation every 5 minutes, up to 8 families",
   "Déligase": "Deligase",
   "Inverser gauche↔droite": "Swap left↔right",
+  "Défense": "Defence",
+  "Logistique": "Logistics",
+  "achat possible": "can be bought",
   "Pupitre": "Console",
   "Relie-le à un nerf : il choisit ce que le réseau demande. Le plus nombreux, le plus proche, chacun son tour, ou un gène que tu fixes à la main.": "Wire it to a nerve: it chooses what the network asks for. The most numerous, the nearest, each in turn, or a gene you set by hand.",
   "le gène demandé": "the gene asked",
@@ -1916,7 +1925,23 @@ const EN = {
   "chacun son tour": "each in turn",
   "à la main": "by hand",
   "S’ouvre sur : {}": "Opens on: {}",
-  "Plein à : {} %": "Full at: {} %",
+  "Plein à : {} / {}": "Full at: {} / {}",
+  "Lot : {} à chaque ouverture": "Batch: {} each opening",
+  "Lot : sans limite": "Batch: no limit",
+  "Écoute : {}. Changer": "Listens to: {}. Change",
+  "Touche ce que cet élément doit écouter sur son réseau : une arme, un radar, le cœur, un kyste ou un pupitre. Touche-le lui-même pour écouter tout le réseau.": "Tap what this piece should listen to on its network: a gun, a radar, the core, a cyst or a console. Tap the piece itself to listen to the whole network.",
+  "tout le réseau": "the whole network",
+  "une source qui n’est plus sur son réseau": "a source no longer on its network",
+  "{} à {} cases": "{} {} cells away",
+  "Il écoute maintenant tout le réseau.": "It now listens to the whole network.",
+  "Il faut toucher une arme, un radar, le cœur, un kyste ou un pupitre relié au même réseau.": "Tap a gun, a radar, the core, a cyst or a console on the same network.",
+  " Un kyste ne donne pas de gène : seul un feu s’en sert, pour son niveau.": " A cyst gives no gene: only a gate uses it, for its level.",
+  "Il écoute maintenant {}.{}": "It now listens to {}.{}",
+  "rouge, son lot est passé": "red, its batch has passed",
+  " Il écoute le {} à {} cases : {} / {}, plein à {}.": " It watches the {} {} cells away: {} / {}, full at {}.",
+  " Aucun kyste relié à son réseau : relie-en un pour qu’il ait un stock à regarder.": " No cyst on its network: wire one so it has a stock to watch.",
+  " Lot : {} / {} passés.": " Batch: {} / {} through.",
+  "Feu, s’ouvre sur {} : {}.{}{}": "Gate, opens on {}: {}.{}{}",
   "Lire le réseau": "Read the network",
   "Priorité : {}": "Priority: {}",
   "Gène fixé : {}": "Set gene: {}",
@@ -1939,7 +1964,6 @@ const EN = {
   "sous le seuil": "under the threshold",
   "aucun stock": "no store",
   "Réseau {}. Sources : {}. Demande : {}, en tête {}. Priorité : {}. {}. Écoutent : {}.": "{} network. Sources: {}. Asks: {}, leading {}. Priority: {}. {}. Listening: {}.",
-  "Feu, s’ouvre sur {} : {}.": "Gate, opens on {}: {}.",
   "vert, ça passe": "green, it passes",
   "rouge, la ligne attend": "red, the line waits",
   "Pupitre : le réseau demande {}{}.{}": "Console: the network asks for {}{}.{}",
@@ -1982,7 +2006,7 @@ const EN = {
   "Grand récolteur": "Large harvester",
   "Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.": "Two flows cross without mixing. Tap it to set the direction of each lane. It runs at the pace of the slowest belt touching it.",
   "Pont": "Bridge",
-  "Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut.": "Stores 60 items, 120 in MK2, 240 in MK3, and puts them out by the arrow. Fill it before an assault.",
+  "Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut. Relié à un nerf, il dit au feu le plus proche s’il est plein ou bas.": "Stores 60 items, 120 at MK2, 240 at MK3, and lets them out by the arrow. Fill it before an assault. On a nerve, it tells the nearest gate whether it is full or low.",
   "Kyste": "Cyst",
   "Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.": "Fires the genes delivered. The strand opposite to the creature's hurts most.",
   "Tourelle": "Turret",
@@ -1998,7 +2022,7 @@ const EN = {
   "Récolteur": "Harvester",
   "Garde visible une grande zone autour de lui. Relié par un nerf, il annonce au réseau les créatures qui la traversent.": "Keeps a large area around it visible. Linked by a nerve, it tells the network about the creatures crossing it.",
   "Pylône radar": "Radar pylon",
-  "Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière.": "Rail with a switch. Tap it: green, it goes through, red, the line waits behind.",
+  "Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière. Relié à un nerf, il s’ouvre sur ce que tu choisis : le gène demandé, une menace, ou le stock de son kyste, par lots si tu veux.": "A switched rail. Tap it: green, it passes, red, the line waits behind. On a nerve, it opens on what you choose: the gene asked, a threat, or the stock of its cyst, in batches if you like.",
   "Feu": "Gate",
   "Glisse de la sortie vers l’entrée, la vue suit au bord. Deux doigts pour te déplacer. Pour croiser, pose un pont. Touche-le pour le passer, ou toute sa ligne, en MK2 (8/s) ou MK3 (12/s).": "Drag from the output to the input, the view follows at the edge. Two fingers to move. To cross, place a bridge. Tap it to upgrade it, or its whole line, to MK2 (8/s) or MK3 (12/s).",
   "Tapis": "Belt",
@@ -2163,7 +2187,7 @@ const GENES = {SFS:L('Moteur'), FFF:L('Soute'), FSF:L('Bouche'), SSS:L('Racine')
 const TYPES = {
   hand:{name:L('Inspecter'), help:L('Glisse ou utilise les flèches pour te déplacer, pince pour zoomer, touche une machine pour l’inspecter.')},
   belt:{name:L('Tapis'), help:L('Glisse de la sortie vers l’entrée, la vue suit au bord. Deux doigts pour te déplacer. Pour croiser, pose un pont. Touche-le pour le passer, ou toute sa ligne, en MK2 (8/s) ou MK3 (12/s).'), hp:30},
-  gate:{name:L('Feu'), help:L('Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière.'), hp:30},
+  gate:{name:L('Feu'), help:L('Rail à interrupteur. Touche-le : vert, ça passe, rouge, la ligne attend derrière. Relié à un nerf, il s’ouvre sur ce que tu choisis : le gène demandé, une menace, ou le stock de son kyste, par lots si tu veux.'), hp:30},
   lab:{name:L('Laboratoire'), help:L('Un seul par partie. Touche-le pour acheter des améliorations avec l’ADN : drones, vitesse, réparation, portée, vision.'), hp:200},
   screen:{name:L('Écran'), help:L('Relie-le à un nerf : il affiche en grand l’antidote que son réseau demande, et clignote quand il change.'), hp:40},
   desk:{name:L('Pupitre'), help:L('Relie-le à un nerf : il choisit ce que le réseau demande. Le plus nombreux, le plus proche, chacun son tour, ou un gène que tu fixes à la main.'), hp:40},
@@ -2188,7 +2212,7 @@ const TYPES = {
   unpack:{name:L('Décapsuleur'), help:L('Une caisse entre derrière : son contenu ressort devant, un à la fois, et son carbone sur la droite. Capsules, chargeurs et capsules lourdes.'), hp:60},
   join:{name:L('Assembleur'), help:L('Gène 1 à gauche, gène 2 à droite : un brin de deux gènes sort devant, le premier en tête.'), hp:60},
   turret:{name:L('Tourelle'), help:L('Tire les gènes livrés. Le brin opposé à celui de la créature fait le plus mal.'), hp:180},
-  cyst:{name:L('Kyste'), help:L('Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut.'), hp:80},
+  cyst:{name:L('Kyste'), help:L('Stocke 60 objets, 120 en MK2, 240 en MK3, et les ressort par la flèche. À remplir avant un assaut. Relié à un nerf, il dit au feu le plus proche s’il est plein ou bas.'), hp:80},
   bridge:{name:L('Pont'), help:L('Deux flux s’y croisent sans se mélanger. Touche-le pour régler le sens de chaque voie. Il va au rythme du tapis le plus lent qui le touche.'), hp:40},
   borer:{name:L('Grand récolteur'), help:L('4 cases d’un même gisement. Tire comme 6 récolteurs et sort par ses 8 bords : branche plusieurs tapis.'), hp:180},
   vault:{name:L('Grand kyste'), help:L('4 cases, 360 objets, 720 en MK2, 1440 en MK3. Entre par ses trois autres faces, ressort par deux bouches côte à côte, devant.'), hp:200},
@@ -2680,16 +2704,18 @@ const NEW_DRONES = 2, MOST_DRONES = 6;
 // Tests replaying games recorded before the lab start them as they were, with three.
 const START_DRONES_OF = () => drawsRecipes() ? NEW_DRONES : BUILDERS;
 const UPGRADES = {
-  drones:{name:L('Drones'), what:L('Un drone de plus pour bâtir et réparer'), prices:[60, 150, 300, 600], stages:[1, 2, 4, 5]},
-  speed:{name:L('Vitesse des drones'), what:L('+20 % par niveau'), prices:[80, 200, 400], stages:[1, 3, 5]},
-  repair:{name:L('Réparation'), what:L('Les bâtiments se réparent 30 % plus vite par niveau'), prices:[70, 180, 360], stages:[2, 3, 5]},
-  reach:{name:L('Portée des défenses'), what:L('+10 % de portée par niveau'), prices:[120, 280, 520], stages:[3, 4, 6]},
-  holds:{name:L('Soutes des vers'), what:L('Une soute de plus par ver, jusqu’à 5'), prices:[300, 600], stages:[5, 5]},
-  copy:{name:L('Réplication'), what:L('Le Recycleur recopie plus souvent le gène : 65 %, 80 %, puis toujours'), prices:[250, 500, 1000], stages:[6, 6, 6]},
-  pull:{name:L('Aspiration'), what:L('Le rayon du Recycleur porte 2 cases plus loin par niveau'), prices:[150, 350, 700], stages:[6, 6, 6]},
-  sight:{name:L('Vision'), what:L('Le brouillard se lève 25 % plus loin par niveau'), prices:[50, 120, 240], stages:[1, 2, 4]}
+  drones:{cat:'drones', name:L('Drones'), what:L('Un drone de plus pour bâtir et réparer'), prices:[60, 150, 300, 600], stages:[1, 2, 4, 5]},
+  speed:{cat:'drones', name:L('Vitesse des drones'), what:L('+20 % par niveau'), prices:[80, 200, 400], stages:[1, 3, 5]},
+  repair:{cat:'drones', name:L('Réparation'), what:L('Les bâtiments se réparent 30 % plus vite par niveau'), prices:[70, 180, 360], stages:[2, 3, 5]},
+  reach:{cat:'defense', name:L('Portée des défenses'), what:L('+10 % de portée par niveau'), prices:[120, 280, 520], stages:[3, 4, 6]},
+  holds:{cat:'logistics', name:L('Soutes des vers'), what:L('Une soute de plus par ver, jusqu’à 5'), prices:[300, 600], stages:[5, 5]},
+  copy:{cat:'recycler', name:L('Réplication'), what:L('Le Recycleur recopie plus souvent le gène : 65 %, 80 %, puis toujours'), prices:[250, 500, 1000], stages:[6, 6, 6]},
+  pull:{cat:'recycler', name:L('Aspiration'), what:L('Le rayon du Recycleur porte 2 cases plus loin par niveau'), prices:[150, 350, 700], stages:[6, 6, 6]},
+  sight:{cat:'defense', name:L('Vision'), what:L('Le brouillard se lève 25 % plus loin par niveau'), prices:[50, 120, 240], stages:[1, 2, 4]}
 };
 const labLevel = id => G?.lab?.[id] || 0;
+// The lab's tabs, in order: a new upgrade names its tab with cat, a new tab is one line here.
+const LAB_TABS = {drones:L('Drones'), defense:L('Défense'), logistics:L('Logistique'), recycler:L('Recycleur')};
 // The recycler: its beam pulls the nearest corpse in reach, analyses it, and gives its gene or, when the copy fails, carbon.
 const REAPER = {reach:[4, 6, 8, 10], copy:[.5, .65, .8, 1], time:1.2};
 const reaperReach = () => REAPER.reach[labLevel('pull')];
@@ -3433,7 +3459,7 @@ function setRecipe(c, box) {
 }
 // The half of the asked strand an item is, as the joiner's port: 0 the front gene, 1 the back one, -1 neither.
 function strandPort(c, item) {
-  const f = netOf(c)?.focus;
+  const f = heardOf(c)?.focus;
   if (f?.length !== 6) return null;
   const front = item === f.slice(0, 3), back = item === f.slice(3);
   if (front && back) return c.ports[0].length <= c.ports[1].length ? 0 : 1;
@@ -3462,9 +3488,34 @@ let NET_HOPS = new Map();
 function carries(w) {
   return w.hp > 0 && built(w) && [w.a, w.b].every(id => G.cells[id] && built(G.cells[id]));
 }
+// What guns and radars see: the antidote each creature needs, counted, and how near the nearest of each is.
+function sight(turrets, radars) {
+  const count = {}, nearest = {};
+  // A radar watches creatures, nests, or both: a nest counts with the antidote to its next wave.
+  const eyes = radars.filter(c => (c.watch || 'creatures') !== 'nests'), lookouts = radars.filter(c => c.watch === 'nests' || c.watch === 'both');
+  for (const b of G.breaches) {
+    if (b.state !== 'wake' || !lookouts.some(c => Math.hypot(b.x + .5 - c.x - .5, b.y + .5 - c.y - .5) < RADAR.range)) continue;
+    const gene = opposite(waveGene(b));
+    count[gene] = (count[gene] || 0) + 1;
+  }
+  for (const e of G.enemies) {
+    // What a radar sees counts as much as what a turret has in range: the net gets ready early.
+    if (!turrets.some(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < reachOf(c.type)) && !eyes.some(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < RADAR.range)) continue;
+    const gene = opposite(e.gene);
+    count[gene] = (count[gene] || 0) + 1;
+    const away = Math.min(...turrets.map(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5)), ...radars.map(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5)));
+    nearest[gene] = Math.min(nearest[gene] ?? 1e9, away);
+  }
+  return {count, nearest};
+}
+// What a listener hears: its network as a whole, or the one source on it the player chose.
+let VIEW = new Map();
+const heardOf = c => VIEW.get(key(c.x, c.y)) || netOf(c);
+const LISTENERS = ['gate', 'sort', 'ligase', 'join', 'pack', 'screen'];
+const isSource = c => Boolean(c) && (isGun(c) || ['radar', 'core', 'cyst', 'vault', 'desk'].includes(c.type));
 // Once per tick: each network gets the antidotes its turrets need, the most needed first.
 function sense() {
-  NET = new Map(); NET_HOPS = new Map();
+  NET = new Map(); NET_HOPS = new Map(); VIEW = new Map();
   const near = new Map();
   for (const w of G.wires) {
     if (!carries(w)) continue;
@@ -3474,23 +3525,9 @@ function sense() {
     if (NET.has(start)) continue;
     const group = new Set([start]);
     for (const id of group) for (const next of near.get(id)) group.add(next);
-    const turrets = [...group].map(id => G.cells[id]).filter(isGun), count = {}, nearest = {};
+    const turrets = [...group].map(id => G.cells[id]).filter(isGun);
     const radars = [...group].map(id => G.cells[id]).filter(c => c?.type === 'radar' && built(c));
-    // A radar watches creatures, nests, or both: a nest counts with the antidote to its next wave.
-    const eyes = radars.filter(c => (c.watch || 'creatures') !== 'nests'), lookouts = radars.filter(c => c.watch === 'nests' || c.watch === 'both');
-    for (const b of G.breaches) {
-      if (b.state !== 'wake' || !lookouts.some(c => Math.hypot(b.x + .5 - c.x - .5, b.y + .5 - c.y - .5) < RADAR.range)) continue;
-      const gene = opposite(waveGene(b));
-      count[gene] = (count[gene] || 0) + 1;
-    }
-    for (const e of G.enemies) {
-      // What a radar of the net sees counts as much as what a turret has in range: the net gets ready early.
-      if (!turrets.some(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < reachOf(c.type)) && !eyes.some(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5) < RADAR.range)) continue;
-      const gene = opposite(e.gene);
-      count[gene] = (count[gene] || 0) + 1;
-      const away = Math.min(...turrets.map(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5)), ...radars.map(c => Math.hypot(e.x - c.x - .5, e.y - c.y - .5)));
-      nearest[gene] = Math.min(nearest[gene] ?? 1e9, away);
-    }
+    const {count, nearest} = sight(turrets, radars);
     // The desk on the net sets the priority: the most creatures (the default), the nearest, each in turn, or a gene by hand.
     const desk = [...group].map(id => G.cells[id]).find(c => c?.type === 'desk' && built(c)), mode = desk?.mode || 'most';
     const list = Object.keys(count).sort((a, b) => mode === 'near' ? (nearest[a] ?? 1e9) - (nearest[b] ?? 1e9) : count[b] - count[a]);
@@ -3518,18 +3555,43 @@ function sense() {
     const queue = starts.length ? starts : [start];
     for (const id of queue) NET_HOPS.set(id, 0);
     for (let i = 0; i < queue.length; i++) for (const next of near.get(queue[i]) || []) if (!NET_HOPS.has(next)) { NET_HOPS.set(next, NET_HOPS.get(queue[i]) + 1); queue.push(next); }
+    // A listener with a source of its own hears only that one: a gun or radar what it sees, the core its recipe, a
+    // console its gene by hand, a store its level. A source no longer on the net is forgotten until it is back.
+    const viewOf = c => {
+      const src = c.source && group.has(c.source) ? G.cells[c.source] : null;
+      if (!src || !built(src)) return net;
+      if (isGun(src) || src.type === 'radar') {
+        const own = sight(isGun(src) ? [src] : [], src.type === 'radar' ? [src] : []).count;
+        const heard = Object.keys(own).sort((a, b) => own[b] - own[a]);
+        // The same gene until its creatures are gone, or the bases of two would mix.
+        const lead = c.heard && own[c.heard] ? c.heard : heard[0] || '';
+        return {...net, list:heard, focus:lead, count:own, threat:heard.length > 0, core:false, source:src, live:true};
+      }
+      if (src.type === 'core') { const wants = coreWants(); return {...net, list:wants, focus:wants[0] || '', count:{}, threat:false, core:true, source:src, live:true}; }
+      if (src.type === 'desk' && src.mode === 'hand' && src.gene) return {...net, list:[src.gene], focus:src.gene, source:src, live:true};
+      return {...net, source:src};
+    };
+    for (const id of group) if (LISTENERS.includes(G.cells[id]?.type)) VIEW.set(id, viewOf(G.cells[id]));
     // A Ligase on the nerve drops the bases it was given for the last antidote, so it never makes a mix of two.
     for (const id of group) {
-      const c = G.cells[id];
-      if (c?.type === 'screen') { if ((c.shown ?? '') !== focus) { c.shown = focus; c.shownAt = G.time; } continue; }
-      if (c?.type === 'pack' && core) {
+      const c = G.cells[id], heard = VIEW.get(id);
+      if (c?.type === 'screen') { if ((c.shown ?? '') !== heard.focus) { c.shown = heard.focus; c.shownAt = G.time; } continue; }
+      if (c?.type === 'gate') {
+        // The store it listens to, when one was chosen; otherwise the nearest on its net.
+        const own = heard.source && (heard.source.type === 'cyst' || heard.source.type === 'vault') ? heard.source : null;
+        const near = own || (WATCHES.includes(c.when) ? stores.reduce((best, o) => !best || span(c, o) < span(c, best) ? o : best, null) : null);
+        if (near) c.watch = key(near.x, near.y); else delete c.watch;
+        if (c.passed && !gateCondition(c)) c.passed = 0;
+        continue;
+      }
+      if (c?.type === 'pack' && heard.core) {
         const boxed = (G.goals || []).find(g => g.fed < g.count && boxOf(g.item))?.item, box = boxed && boxOf(boxed);
         if (box && box !== c.box && Object.hasOwn(BOX, box) && (box !== 'H' || unlocked(4))) setRecipe(c, box);
         continue;
       }
       if (c?.type !== 'ligase' && c?.type !== 'join') continue;
-      if (c.heard != null && c.heard !== focus) { c.ports = [[], [], []]; c.portDue = [[], [], []]; c.item = null; }
-      c.heard = focus;
+      if (c.heard != null && c.heard !== heard.focus) { c.ports = [[], [], []]; c.portDue = [[], [], []]; c.item = null; }
+      c.heard = heard.focus;
     }
   }
 }
@@ -3569,7 +3631,8 @@ function coreWants() {
 // Unwired, cut or without a turret, the setting the player left applies.
 function listens(c) {
   if (c.type === 'gate' && c.when && c.when !== 'gene') return Boolean(netOf(c));
-  return (c.type === 'gate' || c.type === 'sort') && (netOf(c)?.turrets > 0 || netOf(c)?.radars > 0 || Boolean(netOf(c)?.core) || Boolean(netOf(c)?.desk));
+  const heard = heardOf(c);
+  return (c.type === 'gate' || c.type === 'sort') && Boolean(heard) && (heard.live || heard.turrets > 0 || heard.radars > 0 || heard.core || heard.desk);
 }
 // What a wired gate may open on, besides the gene: the net's threat, the level of its stores, or the two together.
 const WHEN = {
@@ -3583,6 +3646,13 @@ const WHEN = {
 };
 const DESK = {modes:['most', 'near', 'cycle', 'hand'], turn:20};
 const DESK_NAMES = {most:L('le plus nombreux'), near:L('le plus proche'), cycle:L('chacun son tour'), hand:L('à la main')};
+// Whom a listener hears, in words: the whole network, or its chosen source and how far it is.
+function sourceName(c, src) {
+  if (!src) return L('tout le réseau');
+  if (!NET.get(key(src.x, src.y)) || NET.get(key(src.x, src.y)) !== netOf(c)) return L('une source qui n’est plus sur son réseau');
+  if (src.type === 'core') return L('le cœur');
+  return L`${TYPES[src.type].name.toLowerCase()} à ${Math.round(span(c, src))} cases`;
+}
 // What a net carries, read in words: where its message comes from, what it asks, its stores and who listens.
 function netSummary(c) {
   const net = netOf(c), id = key(c.x, c.y);
@@ -3597,9 +3667,25 @@ function netSummary(c) {
   const level = net.stores ? L`${net.stores} stock(s), ${net.full ? L('plein') : L('sous le seuil')}` : L('aucun stock');
   return L`Réseau ${NERVE_COLORS[tint].name}. Sources : ${sources}. Demande : ${asks}, en tête ${net.focus || L('rien')}. Priorité : ${DESK_NAMES[net.mode || 'most']}. ${level}. Écoutent : ${listen}.`;
 }
-const gateOpen = c => WHEN[c.when]?.test?.(netOf(c)) ?? false;
+// A gate on a condition watches its own store, the nearest one wired to its net, so one net can run several lines.
+function gateStore(c) {
+  const store = c.watch && G.cells[c.watch];
+  if (!store || !built(store) || !(store.type === 'cyst' || store.type === 'vault')) return null;
+  const at = store.stock.length, full = Math.ceil(capOf(store) * (store.level ?? .5));
+  return {store, at, cap:capOf(store), full, low:at < full};
+}
+// The condition alone, then the batch: once open, a gate lets so many through and waits for the condition to drop.
+function gateCondition(c) {
+  const net = heardOf(c), kept = gateStore(c);
+  return Boolean(net && WHEN[c.when]?.test?.({threat:net.threat, low:Boolean(kept?.low), full:Boolean(kept && !kept.low)}));
+}
+const gateOpen = c => gateCondition(c) && !(c.batch && (c.passed || 0) >= c.batch);
+// What a gate shows: green when something may pass.
+const gateGreen = c => !listens(c) ? c.open : c.when && c.when !== 'gene' ? gateOpen(c) : Boolean(heardOf(c)?.focus);
+const WATCHES = ['low', 'full', 'threatLow', 'threatOrLow'];
+const BATCHES = [0, 5, 10, 20, 50];
 function asked(c, item) {
-  const net = netOf(c), place = c.read || 0;
+  const net = heardOf(c), place = c.read || 0;
   return place ? item.length === 1 && Boolean(net.focus) && net.focus[place - 1] === item : boxOf(item) !== 'T' && net.list.includes(contentOf(item));
 }
 function wireUp(a, b) {
@@ -3674,6 +3760,7 @@ const readyPort = (c, port) => settled(c.ports[port], c.portDue?.[port]);
 function receive(c, item, travel, carry = 0) {
   c.from = travel;
   if (c.type === 'sort') c.seen = contentOf(item);
+  if (c.type === 'gate' && c.batch) c.passed = (c.passed || 0) + 1;
   if (isBelt(c) || isSplit(c) || c.type === 'sort') { c.item = item; c.t = carry; }
   else if (c.type === 'ligase') intoPort(c, portOf(c, travel), item, travel);
   else if (['cyst','vault','pump','pocket','glue'].includes(c.type)) intoStock(c, item, travel);
@@ -4271,13 +4358,18 @@ function diagnose(c) {
     }
     return place < G.drones.length ? L`${TYPES[c.type].name} en chantier : ${c.left.toFixed(1).replace('.', DEC)} s de jeu${paused ? L(', en attente de la reprise') : ''}.` : L`${TYPES[c.type].name} en attente, position ${place - BUILDERS + 1} dans la file. Trois drones, un par chantier, dans l’ordre de pose.`;
   }
-  if (c.type === 'gate' && c.when && c.when !== 'gene' && netOf(c)) return L`Feu, s’ouvre sur ${WHEN[c.when].name} : ${gateOpen(c) ? L('vert, ça passe') : L('rouge, la ligne attend')}.`;
+  if (c.type === 'gate' && c.when && c.when !== 'gene' && netOf(c)) {
+    const kept = gateStore(c), state = gateOpen(c) ? L('vert, ça passe') : gateCondition(c) ? L('rouge, son lot est passé') : L('rouge, la ligne attend');
+    const watching = WATCHES.includes(c.when) ? (kept ? L` Il écoute le ${TYPES[kept.store.type].name.toLowerCase()} à ${Math.round(span(c, kept.store))} cases : ${kept.at} / ${kept.cap}, plein à ${kept.full}.` : L(' Aucun kyste relié à son réseau : relie-en un pour qu’il ait un stock à regarder.')) : '';
+    const batch = c.batch ? L` Lot : ${c.passed || 0} / ${c.batch} passés.` : '';
+    return L`Feu, s’ouvre sur ${WHEN[c.when].name} : ${state}.${watching}${batch}`;
+  }
   if (c.type === 'desk') return L`Pupitre : le réseau demande ${DESK_NAMES[c.mode || 'most']}${c.mode === 'hand' ? L` (${c.gene || L('aucun gène fixé')})` : ''}.${netOf(c) ? '' : L(' Relie-le à un nerf.')}`;
   if ((c.type === 'gate' || c.type === 'sort') && G.wires.some(w => w.a === key(c.x, c.y) || w.b === key(c.x, c.y))) {
     const what = c.read ? L`la position ${c.read}` : L('le gène entier'), name = TYPES[c.type].name;
     const spare = c.type === 'gate' ? (c.open ? 'vert' : 'rouge') : L`filtre ${c.want === '?' ? 'tout' : c.want}`;
     if (!listens(c)) return L`${name} : nerf en chantier, coupé ou sans tourelle. Réglage manuel appliqué : ${spare}.`;
-    const net = netOf(c);
+    const net = heardOf(c);
     if (!net.focus) return L`${name}, lit ${what} : rien n’est demandé, ${c.type === 'gate' ? L('il reste rouge') : L('tout va tout droit')}.`;
     const now = c.read ? L`${named(net.focus[c.read - 1])}, position ${c.read} de ${net.focus}` : net.list.join(', ');
     return L`${name}, lit ${what} : ${now}. ${c.type === 'gate' ? L('Le reste attend derrière.') : c.read ? L('Le reste, et le trop-plein, continue tout droit.') : L('Le reste continue tout droit.')}`;
@@ -4411,7 +4503,7 @@ function diagnose(c) {
       const side = portSide(c, empty);
       if (!feeders(c, side).length) return L`${head} L’entrée ${empty + 1} n’est pas branchée.`;
       chain = upstream(c, side);
-      if (c.clock >= .999) return L`${head} L’entrée ${empty + 1} manque de matière : ${chain.some(p => p.type === 'gate' && (listens(p) ? !netOf(p).focus : !p.open)) ? L('un feu rouge coupe sa ligne') : L('suis la ligne rouge')}.`;
+      if (c.clock >= .999) return L`${head} L’entrée ${empty + 1} manque de matière : ${chain.some(p => p.type === 'gate' && (listens(p) ? !gateGreen(p) : !p.open)) ? L('un feu rouge coupe sa ligne') : L('suis la ligne rouge')}.`;
       chain = [];
     }
   }
@@ -4578,7 +4670,7 @@ function arrow(g, dir, reach = .46, color = '#A3B8B3') {
   polygon(g, [[x*reach,y*reach],[x*(reach-.15)-y*.12,y*(reach-.15)+x*.12],[x*(reach-.15)+y*.12,y*(reach-.15)-x*.12]], color);
 }
 function lamp(g, c) {
-  const smart = listens(c), net = smart && netOf(c), on = smart ? Boolean(net.focus) : c.open;
+  const on = gateGreen(c);
   const color = on ? '#62E06A' : '#FF4D5E';
   // Red also shows as a bar across the rail, so colour is not the only signal.
   if (!on) {
@@ -4586,7 +4678,7 @@ function lamp(g, c) {
   }
   circle(g,-.32,-.32,.17,color,'#05090B',.05);
   arrow(g,c.dir,.49,color);
-  if (smart) reading(g,c,net);
+  if (listens(c) && !(c.when && c.when !== 'gene')) reading(g,c,heardOf(c));
 }
 // What a listener reads: the shape wanted now, and one tick per position.
 function reading(g, c, net) {
@@ -4685,7 +4777,7 @@ function drawCell(g, c, inputs = []) {
       g.beginPath(); g.moveTo(fy*.2,-fx*.2); g.lineTo(-fy*.2,fx*.2); g.moveTo(0,0); g.lineTo(-fx*.22,-fy*.22); g.stroke();
     }
   } else if (type === 'sort') {
-    if (c.x != null && listens(c)) { reading(g,c,netOf(c)); return; }
+    if (c.x != null && listens(c)) { reading(g,c,heardOf(c)); return; }
     [...c.want].forEach((b,i) => {
       const n = c.want.length, x = n === 1 ? 0 : (i-(n-1)/2)*.66/n, size = n === 1 ? .17 : n === 3 ? .11 : .065;
       if (b === '?') circle(g,x,0,size,null,'#A3B8B3'); else glyph(g,b,x,0,size);
@@ -4708,7 +4800,7 @@ function drawCell(g, c, inputs = []) {
     else rect(g,-.2,-.12,.4,.08,'#F0A03C');
   } else if (type === 'screen') {
     rect(g,-.42,-.3,.84,.6,'#05090B','#55D6E8');
-    const gene = netOf(c)?.focus || '';
+    const gene = heardOf(c)?.focus || '';
     if (gene) sequence(g, gene, 0, 0, .7, .14);
     else rect(g,-.16,-.03,.32,.06,'#55D6E8');
   } else if (type === 'glue') {
@@ -5096,6 +5188,9 @@ function drawNerves() {
     const live = carries(w), cut = !w.hp;
     cable(a,b,cut || w.out != null ? '#FF4D5E' : live ? NERVE_COLORS[w.color || 0].hex : '#55D6E8',live ? [] : [.25,.25]);
   }
+  const heard = selected && G.cells[selected];
+  const ear = heard && (G.cells[heard.source] || (heard.type === 'gate' && G.cells[heard.watch]));
+  if (ear && ear !== heard) cable(heard, ear, '#F0A03C', [.15,.15]);
   if (drag?.nerve && gesture?.mode === 'draw') cable(drag.nerve,drag.aim,Math.hypot(drag.aim.x - drag.nerve.x,drag.aim.y - drag.nerve.y) > NERVE.reach ? '#FF4D5E' : '#55D6E8',[.4,.3]);
   const from = wiring && G.cells[wiring];
   if (from) circle(ctx,from.x + .5,from.y + .5,NERVE.reach,null,'#55D6E8',2 / cam.zoom);
@@ -5302,13 +5397,21 @@ function showActions() {
   if (NERVE.ends.includes(c.type) && G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y))) {
     if (c.type === 'gate') {
       const order = Object.keys(WHEN);
-      button(L`S’ouvre sur : ${WHEN[c.when || 'gene'].name}`, () => { c.when = order[(order.indexOf(c.when || 'gene') + 1) % order.length]; sense(); showActions(); });
+      button(L`S’ouvre sur : ${WHEN[c.when || 'gene'].name}`, () => { c.when = order[(order.indexOf(c.when || 'gene') + 1) % order.length]; c.passed = 0; sense(); showActions(); });
+      if (c.when && c.when !== 'gene') button(c.batch ? L`Lot : ${c.batch} à chaque ouverture` : L('Lot : sans limite'), () => { c.batch = BATCHES[(BATCHES.indexOf(c.batch || 0) + 1) % BATCHES.length]; c.passed = 0; showActions(); });
     }
     if (['gate', 'sort', 'ligase', 'join', 'pack', 'screen'].includes(c.type) && !(c.type === 'gate' && c.when && c.when !== 'gene')) {
-      button(c.read ? L`Lit : position ${c.read}` : L('Lit : gène entier'), () => { c.read = ((c.read || 0) + 1) % ((netOf(c)?.focus?.length || 3) > 3 ? 7 : 4); showActions(); });
+      button(c.read ? L`Lit : position ${c.read}` : L('Lit : gène entier'), () => { c.read = ((c.read || 0) + 1) % ((heardOf(c)?.focus?.length || 3) > 3 ? 7 : 4); showActions(); });
     }
     if (c.type === 'gate') button(L`Si coupé : ${c.open ? 'vert' : 'rouge'}`, () => { c.open = !c.open; showActions(); });
-    if (c.type === 'cyst' || c.type === 'vault') button(L`Plein à : ${Math.round((c.level ?? .5) * 100)} %`, () => { c.level = [.25, .5, .75, 1][([.25, .5, .75, 1].indexOf(c.level ?? .5) + 1) % 4]; sense(); showActions(); });
+    if (c.type === 'cyst' || c.type === 'vault') button(L`Plein à : ${Math.ceil(capOf(c) * (c.level ?? .5))} / ${capOf(c)}`, () => { c.level = [.25, .5, .75, 1][([.25, .5, .75, 1].indexOf(c.level ?? .5) + 1) % 4]; sense(); showActions(); });
+    if (LISTENERS.includes(c.type)) {
+      const src = c.source && G.cells[c.source];
+      button(L`Écoute : ${sourceName(c, src)}. Changer`, () => {
+        listening = key(c.x, c.y); select(null);
+        say(L('Touche ce que cet élément doit écouter sur son réseau : une arme, un radar, le cœur, un kyste ou un pupitre. Touche-le lui-même pour écouter tout le réseau.'));
+      });
+    }
     button(L('Lire le réseau'), () => say(netSummary(c)));
     const mine = () => G.wires.filter(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y));
     const cutting = mine().every(w => w.out != null), net = netWires(key(c.x,c.y)), tint = net[0]?.color || 0;
@@ -5363,7 +5466,7 @@ function choose(type) {
     const want = STAGES[NEEDS[type] - 1];
     return refuse(L`${TYPES[type].name} s’ouvre quand le stade ${NEEDS[type]}, ${want.name}, est achevé. Touche le cœur pour voir ce qu’il réclame.`);
   }
-  tool = type; linking = null; wiring = null; select(null); say(TYPES[type].help);
+  tool = type; linking = null; wiring = null; listening = null; select(null); say(TYPES[type].help);
   if (FAMILY_OF[type]) (ui.lastOf ||= {})[FAMILY_OF[type]] = type;
   for (const b of $('tools').querySelectorAll('[data-type]')) b.setAttribute('aria-pressed', b.dataset.type === type);
   paintRanks();
@@ -5480,6 +5583,18 @@ function place(x,y) {
     joinVein(from,x,y);
     return;
   }
+  // A listener choosing its source: something on its own network, or itself for the whole network.
+  if (listening) {
+    const ear = G.cells[listening];
+    listening = null;
+    if (!ear) return;
+    select(key(ear.x, ear.y));
+    if (old === ear) { delete ear.source; ear.passed = 0; sense(); showActions(); return say(L('Il écoute maintenant tout le réseau.')); }
+    if (!isSource(old) || NET.get(key(old.x, old.y)) !== netOf(ear)) return refuse(L('Il faut toucher une arme, un radar, le cœur, un kyste ou un pupitre relié au même réseau.'));
+    ear.source = key(old.x, old.y); ear.passed = 0; sense(); showActions();
+    const note = (old.type === 'cyst' || old.type === 'vault') && ear.type !== 'gate' ? L(' Un kyste ne donne pas de gène : seul un feu s’en sert, pour son niveau.') : '';
+    return say(L`Il écoute maintenant ${sourceName(ear, old)}.${note}`);
+  }
   if (wiring || tool === 'wire') {
     const from = wiring && G.cells[wiring];
     if (from && old === from) { wiring = null; return say(TYPES.wire.help); }
@@ -5540,7 +5655,7 @@ function place(x,y) {
   buildRanked(tool,x,y,heading); select(id); say(TYPES[tool].help + (cost ? L` Payé ${cost} ADN.` : ''));
 }
 
-let drag = null, linking = null;
+let drag = null, linking = null, listening = null;
 function screenPoint(event) {
   const r = canvas.getBoundingClientRect();
   return {x:event.clientX - r.left, y:event.clientY - r.top};
@@ -6822,19 +6937,28 @@ function goalsSheet(want, goals = G.goals) {
 }
 // A row or a tab of the core's sheet, touched.
 $('sheet').addEventListener('click', event => {
-  const row = event.target.closest('[data-goal]'), tab = event.target.closest('[data-sheet-tab]'), up = event.target.closest('[data-up]');
+  const row = event.target.closest('[data-goal]'), tab = event.target.closest('[data-sheet-tab]'), up = event.target.closest('[data-up]'), labTab = event.target.closest('[data-lab-tab]');
   if (up) buyLab(up.dataset.up);
+  else if (labTab) ui.labTab = labTab.dataset.labTab;
   else if (row) ui.goalPick = Number(row.dataset.goal);
   else if (tab) ui.sheetTab = tab.dataset.sheetTab;
   else return;
   paintSheet(G.cells[selected]);
 });
 function labSheet() {
-  return `<h3>${L('Améliorations')}</h3><div class="ups">${Object.entries(UPGRADES).map(([id, up]) => {
+  const tab = LAB_TABS[ui.labTab] ? ui.labTab : 'drones';
+  // Each tab shows how many levels it has bought, and a dot when one of its upgrades can be bought now.
+  const tabs = Object.entries(LAB_TABS).map(([key, name]) => {
+    const ups = Object.entries(UPGRADES).filter(([, up]) => up.cat === key);
+    const got = ups.reduce((n, [id]) => n + labNext(id), 0), all = ups.reduce((n, [, up]) => n + up.prices.length, 0);
+    const ready = ups.some(([id, up]) => { const price = labPrice(id); return price != null && price <= G.dna && unlocked(up.stages[labNext(id)] - 1) && !(id === 'drones' && G.drones.length >= MOST_DRONES); });
+    return `<button class="${key === tab ? 'on' : ''}" data-lab-tab="${key}" aria-pressed="${key === tab}">${name}<small>${got}/${all}</small>${ready ? '<i aria-label="' + L('achat possible') + '"></i>' : ''}</button>`;
+  }).join('');
+  return `<h3>${L('Améliorations')}</h3><div class="labtabs" role="group">${tabs}</div><div class="ups">${Object.entries(UPGRADES).map(([id, up]) => {
     const next = labNext(id), price = labPrice(id), max = price == null || (id === 'drones' && G.drones.length >= MOST_DRONES), open = !max && unlocked(up.stages[next] - 1);
     const pips = up.prices.map((_, k) => `<i class="${k < next ? 'on' : ''}"></i>`).join('');
     const act = max ? `<span class="buy max">${L('Max')}</span>` : !open ? `<span class="buy lock">${L`stade ${up.stages[next]}`}</span>` : `<button class="buy${price > G.dna ? ' short' : ''}" data-up="${id}">${L`${price} ADN`}</button>`;
-    return `<div class="up"><div><b>${up.name}</b><small>${up.what}</small><div class="pips">${pips}</div></div>${act}</div>`;
+    return `<div class="up"${up.cat === tab ? '' : ' hidden'}><div><b>${up.name}</b><small>${up.what}</small><div class="pips">${pips}</div></div>${act}</div>`;
   }).join('')}</div>`;
 }
 function paintSheet(c) {
@@ -7202,10 +7326,10 @@ $('guide-again').onclick = () => { startGuide(); showMenu(false); paintGuide(); 
 
 function paintInfo() {
   const c = selected && G.cells[selected], worm = !c && pickedWorm(), any = Boolean(c || worm);
-  const busy = tool !== 'hand' || linking || wiring, offers = $('actions').childElementCount > 0;
+  const busy = tool !== 'hand' || linking || wiring || listening, offers = $('actions').childElementCount > 0;
   const recent = ui.saidAt > 0 && performance.now() - ui.saidAt < 5000 && note !== TYPES.hand.help;
   const info = $('info');
-  info.hidden = G.over || !(any || offers || recent || linking || wiring);
+  info.hidden = G.over || !(any || offers || recent || linking || wiring || listening);
   info.classList.toggle('slim', !any && !recent && !linking && !wiring && tool !== 'hand');
   info.classList.toggle('holding', Boolean(busy));
   info.querySelector('.card-head').hidden = !any;
@@ -7914,7 +8038,8 @@ function checkGame(game) {
     && (c.item == null || thing(c.item)) && (!c.last || thing(c.last)) && (c.from == null || c.from === -1 || side(c.from))
     && (c.turn == null || Number.isInteger(c.turn) && c.turn >= 0)
     && (c.when == null || Object.hasOwn(WHEN, c.when)) && (c.mode == null || DESK.modes.includes(c.mode)) && (c.gene == null || code(c.gene))
-    && (c.level == null || [.25, .5, .75, 1].includes(c.level))
+    && (c.level == null || [.25, .5, .75, 1].includes(c.level)) && (c.batch == null || BATCHES.includes(c.batch))
+    && (c.passed == null || count(c.passed)) && (c.watch == null || where(c.watch)) && (c.source == null || where(c.source))
     && Array.isArray(c.ports) && c.ports.length === 3 && c.ports.every(port => list(port, thing))
     && list(c.stock, thing) && Array.isArray(c.made) && plain(c.ammo) && Object.entries(c.ammo).every(([gene, n]) => code(gene) && count(n))
     && (c.packets == null ? c.type !== 'pump' : list(c.packets, p => plain(p) && thing(p.item) && count(p.n) && p.n <= 64 && count(p.t)))
@@ -8775,23 +8900,26 @@ function keepForReload() {
 // ---- Music: the main theme on the planet, two calm pieces in turn in a game, the fight piece while it is hot.
 // It starts with the first press, as browsers want, and is not kept for offline play: the game runs without it.
 const MUSIC_KEY = 'strainworks-music';
-// The calm pieces follow one another in this order, old and new in turn; a fight draws one of its pieces at random.
+// The calm pieces and the fight pieces each go round their list in a shuffled order.
 const MUSIC = {
   // The planet's two themes take turns.
   theme:['music/strainworks_theme_b_1.mp3', 'music/strainworks_theme_b_2.mp3'],
-  calm:['music/strainworks_music_01.mp3', 'music/strainworks_theme_a_1.mp3', 'music/strainworks_theme_a_2.mp3', 'music/strainworks_music_02.mp3', 'music/strainworks_calm_a_1.mp3', 'music/strainworks_calm_b_1.mp3', 'music/strainworks_music_04.mp3', 'music/strainworks_calm_c_1.mp3', 'music/strainworks_calm_a_2.mp3', 'music/strainworks_calm_b_2.mp3', 'music/strainworks_calm_c_2.mp3'],
-  fight:['music/strainworks_music_03.mp3', 'music/strainworks_fight_a_1.mp3', 'music/strainworks_fight_b_1.mp3', 'music/strainworks_fight_a_2.mp3', 'music/strainworks_fight_b_2.mp3'],
+  calm:['music/strainworks_music_01.mp3', 'music/strainworks_theme_a_1.mp3', 'music/strainworks_theme_a_2.mp3', 'music/strainworks_music_02.mp3', 'music/strainworks_calm_a_1.mp3', 'music/strainworks_calm_b_1.mp3', 'music/strainworks_music_04.mp3', 'music/strainworks_calm_c_1.mp3', 'music/strainworks_calm_a_2.mp3', 'music/strainworks_calm_b_2.mp3', 'music/strainworks_calm_c_2.mp3', 'music/strainworks_calm_d_1.mp3', 'music/strainworks_calm_d_2.mp3', 'music/strainworks_calm_e_2.mp3', 'music/strainworks_calm_f_1.mp3', 'music/strainworks_calm_f_2.mp3'],
+  fight:['music/strainworks_music_03.mp3', 'music/strainworks_fight_a_1.mp3', 'music/strainworks_fight_b_1.mp3', 'music/strainworks_fight_a_2.mp3', 'music/strainworks_fight_b_2.mp3', 'music/strainworks_fight_c_2.mp3', 'music/strainworks_fight_d_1.mp3', 'music/strainworks_fight_d_2.mp3', 'music/strainworks_fight_e_1.mp3', 'music/strainworks_fight_e_2.mp3'],
 };
 // The music draws its own chance, so the game's seeded Math.random is left alone.
 const musicRandom = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
-// A new order on every visit and after every round, never the same piece twice in a row.
-function shuffleCalm() {
-  const last = MUSIC.calm.at(-1);
-  for (let i = MUSIC.calm.length - 1; i > 0; i--) { const j = musicRandom(i + 1); [MUSIC.calm[i], MUSIC.calm[j]] = [MUSIC.calm[j], MUSIC.calm[i]]; }
-  if (MUSIC.calm[0] === last) MUSIC.calm.push(MUSIC.calm.shift());
+// A new order on every visit and after every round, never the same piece twice in a row: no piece comes back before
+// every other of its list was played.
+function shuffleMusic(list) {
+  const last = list.at(-1);
+  for (let i = list.length - 1; i > 0; i--) { const j = musicRandom(i + 1); [list[i], list[j]] = [list[j], list[i]]; }
+  if (list[0] === last) list.push(list.shift());
 }
+const shuffleCalm = () => shuffleMusic(MUSIC.calm);
 shuffleCalm();
-const music = {manual:null, volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, theme:musicRandom(2), fight:0, fightUntil:0, force:null};
+shuffleMusic(MUSIC.fight);
+const music = {manual:null, volume:.5, on:true, started:false, players:[new Audio(), new Audio()], level:[0, 0], gains:null, live:0, src:'', calm:0, theme:musicRandom(2), fight:-1, fightUntil:0, force:null};
 try {
   const saved = JSON.parse(localStorage.getItem(MUSIC_KEY));
   if (saved) { music.volume = Math.max(0, Math.min(1, Number(saved.volume) || 0)); music.on = saved.on !== false; }
@@ -8808,7 +8936,9 @@ for (const a of music.players) {
   });
 }
 // Each piece's title, the same in both languages, and its length.
-const TRACKS = {theme_b_1:['Strainworks', '2:59'], theme_b_2:['First Light', '3:00'], music_01:['Germination', '3:57'], theme_a_1:['Glass Bells', '2:59'], theme_a_2:['Pulse Garden', '2:59'],
+const TRACKS = {calm_d_1:['Abyssal Glow', '2:59'], calm_d_2:['Lantern Drift', '3:00'], calm_e_2:['Night Culture', '3:00'], calm_f_1:['Pollen Clock', '3:00'], calm_f_2:['Seed Waltz', '2:59'],
+  fight_c_2:['Breach Protocol', '3:00'], fight_d_1:['Chitin War', '2:59'], fight_d_2:['Drums of the Hive', '2:59'], fight_e_1:['Acid Bloom', '3:00'], fight_e_2:['Infection', '3:00'],
+  theme_b_1:['Strainworks', '2:59'], theme_b_2:['First Light', '3:00'], music_01:['Germination', '3:57'], theme_a_1:['Glass Bells', '2:59'], theme_a_2:['Pulse Garden', '2:59'],
   music_02:['Membrane', '3:30'], calm_a_1:['Living Factory', '3:00'], calm_b_1:['Lab Hours', '3:00'], music_04:['Spore Drift', '3:12'], calm_c_1:['Microcosm', '2:59'], calm_a_2:['Root Network', '2:59'],
   calm_b_2:['Enzyme', '2:59'], calm_c_2:['Cell Dream', '2:59'], music_03:['Breach', '3:32'], fight_a_1:['Antibody', '2:59'], fight_b_1:['Swarm', '2:59'], fight_a_2:['Immune Response', '3:00'], fight_b_2:['Hive Assault', '2:58']};
 const trackOf = src => TRACKS[/strainworks_(\w+?_\d+)/.exec(src)?.[1]] || ['?', ''];
@@ -8837,11 +8967,15 @@ function musicWant(now) {
   // The lab plays what it is asked: a moment of the game, a piece, or nothing.
   // Chosen in the playlist: that piece, or silence when it was stopped.
   if (music.manual != null && music.force == null) return music.manual;
-  if (music.force != null) return music.force === 'calm' ? MUSIC.calm[music.calm] : music.force === 'fight' ? MUSIC.fight[music.fight] : music.force === 'theme' ? MUSIC.theme[music.theme] : music.force;
+  if (music.force != null) return music.force === 'calm' ? MUSIC.calm[music.calm] : music.force === 'fight' ? MUSIC.fight[Math.max(0, music.fight)] : music.force === 'theme' ? MUSIC.theme[music.theme] : music.force;
   if (orbit.on || !G) return MUSIC.theme[music.theme];
   // An assault, or creatures on the map: a fight piece, drawn as the fight starts and held 8 s after so it does not flicker.
   if (!G.over && $('app').classList.contains('hot')) {
-    if (now >= music.fightUntil) music.fight = musicRandom(MUSIC.fight.length);
+    if (now >= music.fightUntil) {
+      // The next fight piece in its round; a calm piece cut by the fight counts as heard.
+      if (music.fight + 1 >= MUSIC.fight.length) { shuffleMusic(MUSIC.fight); music.fight = 0; } else music.fight++;
+      if (music.src === MUSIC.calm[music.calm]) { music.calm++; if (music.calm >= MUSIC.calm.length) { music.calm = 0; shuffleCalm(); } }
+    }
     music.fightUntil = now + 8000;
   }
   return now < music.fightUntil ? MUSIC.fight[music.fight] : MUSIC.calm[music.calm];

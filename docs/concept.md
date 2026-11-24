@@ -177,6 +177,14 @@ Nerves carry one kind of information only: what is needed. Routing stays with th
 - **Logic (2026-11-24)**: cysts and large cysts join a nerve and report their level against a threshold the player
   sets (25, 50, 75 or 100 %); the net is full once every store is over it. A wired gate opens on the gene asked (as
   before), a threat, no threat, low stock, full stock, threat AND low stock, or threat OR low stock.
+- **Sources (2026-11-24)**: a network is a cable; every listener (gate, sorter, Ligase, assembler, encapsulator,
+  screen) hears the whole network by default or one source on it, picked by tapping: a gun or a radar (the antidote of
+  what that one sees), the core (its recipe), a console (its gene set by hand) or a cyst (its level, for gates). One
+  network can run several independent lines. A source taken off the network is forgotten until it is back.
+- **Own stores and batches (2026-11-24)**: a gate on a stock condition listens to the cyst the player picks on
+  its net (the nearest until then), shown by a dashed line when selected, so one net runs several lines. The threshold reads in items ("full at 30 /
+  60"). A batch (5, 10, 20 or 50) lets that many through each time the condition holds, then waits for it to drop.
+  The gate's card says in one sentence why it is green or red, what it watches and how much of its batch passed.
 - **Console (Pupitre, 2026-11-24)**: on a nerve it sets the priority of what the net asks: the most numerous (the
   default), the nearest to the net's guns and radars, each threat in turn every 20 s, or a gene set by hand.
 - **Reading the network (2026-11-24)**: every wired piece has "Read the network": its sources, what it asks and how

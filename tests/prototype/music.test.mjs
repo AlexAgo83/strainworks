@@ -32,7 +32,19 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
       const after = music.src;
       music.fightUntil = 0;
       musicTick();
-      return [MUSIC.fight.includes(hot), after === hot, music.src === MUSIC.calm[music.calm]];
+      // Fight after fight: every fight piece is heard once before any comes back.
+      const fights = [];
+      music.fight = -1;
+      for (let i = 0; i < MUSIC.fight.length; i++) {
+        music.fightUntil = 0;
+        document.querySelector("#app").classList.add("hot");
+        musicTick();
+        fights.push(music.src);
+        document.querySelector("#app").classList.remove("hot");
+      }
+      music.fightUntil = 0;
+      musicTick();
+      return [MUSIC.fight.includes(hot), after === hot, music.src === MUSIC.calm[music.calm], new Set(fights).size === MUSIC.fight.length];
     });
     await page.evaluate(() => showMenu(true));
     await page.click('[data-go="audio"]');
@@ -64,7 +76,7 @@ it("plays the piece the moment wants and keeps the volume chosen", async () => {
     expect(before).toEqual([false, ""]);
     expect(calm).toEqual([true, true, true]);
     expect(rounds).toEqual([true, true]);
-    expect(fight).toEqual([true, true, true]);
+    expect(fight).toEqual([true, true, true, true]);
     expect(menu).toEqual([0.2, false, "Coupée", { volume: 0.2, on: false }]);
     expect(kept).toEqual(["20", "false"]);
     expect(effects).toEqual([true, true, true, true, true, false, false, true]);

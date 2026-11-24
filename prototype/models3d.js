@@ -262,7 +262,7 @@ window.createModels3D = (B, scene) => {
     add('arrow', `chevron${step}`, at.x, at.y, h, 0.17, 0.03, 0.22, at.angle);
   }
   function readingOf(c, x, y, h) {
-    const net = netOf(c);
+    const net = heardOf(c);
     const place = c.read || 0;
     add('tube', 'glass', x, y, h, 0.5, 0.06, 0.5);
     add('ring', 'cyan', x, y, h, 0.52);
@@ -325,7 +325,7 @@ window.createModels3D = (B, scene) => {
     // The radar pylon: three legs, a mast, a dish that turns, glowing rings, and a wave across the ground.
     screen(c, x, y) {
       // A flat lit table seen from above: the asked gene in big bases, a strand on two rows, a flash when it changes.
-      const live = built(c), gene = live ? netOf(c)?.focus || '' : '';
+      const live = built(c), gene = live ? heardOf(c)?.focus || '' : '';
       const flash = live ? Math.max(0, 1 - (G.time - (c.shownAt ?? -9)) / 0.6) : 0;
       add('hull', 'dark', x, y, 0.06, 0.6, 0.12, 0.6);
       add('tube', 'steel2', x, y, 0.3, 0.14, 0.4, 0.14);
@@ -402,7 +402,7 @@ window.createModels3D = (B, scene) => {
     gate(c, x, y) {
       const sides = conveyor(c, x, y);
       const smart = listens(c);
-      const on = smart ? Boolean(netOf(c).focus) : c.open;
+      const on = gateGreen(c);
       const a = facing(c.dir);
       if (on) for (const side of sides) chevron(c, (side + 2) % 4, c.dir, 0.175);
       for (const s of [-1, 1]) {
@@ -419,7 +419,7 @@ window.createModels3D = (B, scene) => {
       } else {
         for (let i = 0; i < 4; i++) add('box', i % 2 ? 'alarm' : 'hazard', ...from(x, y, a, 0, 0.3 - i * 0.18), 0.4, 0.08, 0.08, 0.18, a);
       }
-      if (smart) readingOf(c, x, y, 1.02);
+      if (smart && !(c.when && c.when !== 'gene')) readingOf(c, x, y, 1.02);
     },
 
     // The upper lane climbs a ramp, the lower one runs in a trough.
