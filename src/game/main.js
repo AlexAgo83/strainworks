@@ -9,7 +9,7 @@ import { cardTypes, closeCard, paintCardList, showCard } from "./unlock.js";
 import { mirror, button, choose, drawPorts, drawPreview, extend, flipCorner, holdToDismantle, inputSet, joinVein, place, portsOf, position, preview, refresh, release, say, sayPath, screenPoint, select, showActions, stockOf, stopHold, stretch, turnWay, wipe, wormState, write } from "./input.js";
 import { glide, keysSet, loadKeys, paintKeys, pipette } from "./keys.js";
 import { frame, labSet, startLab } from "./lab.js";
-import { drawPlanet, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn } from "./planet.js";
+import { askCurve, drawPlanet, goldberg, hexAt, keepForReload, leavePlanet, noteOnPlanet, onScreen, openPlanet, perfReset, pickHex, planetSet, playPicked, projectSlot, resumeLast, setCurve, setQuality, showPerf, takeFile, timed, turn, watchCurve } from "./planet.js";
 import { along, arrow, circle, crate, draw, drawCell, glyph, home, lamp, marker, pan, passing, reading, rect, renderSet, resize, worldAt, zoomAt } from "./render.js";
 import { checkGame, findGames, foundGame, freeHex, keep, openGame, openSlot, parsed, planetList, readList, save, savesSet, stored } from "./saves.js";
 import { begin, chooseView, growDock, hold, jobDone, letGo, load, markView, noteEarned, onFresh, rotate, script, spacePauses, testLine, viewSet, wormGone } from "./view.js";
@@ -398,6 +398,9 @@ const WINDOW_API = {
   stretch: [() => stretch],
   survey: [() => survey],
   tell: [() => tell],
+  watchCurve: [() => watchCurve],
+  askCurve: [() => askCurve],
+  setCurve: [() => setCurve],
   tierAt: [() => tierAt],
   tileCentre: [() => tileCentre],
   timed: [() => timed],

@@ -2,10 +2,10 @@
 import { G, STAGES, spotHash } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { playSound } from "./audio.js";
-import { replay, showMenu } from "./hud.js";
-import { $, ART, BABYLON_HASH, BABYLON_SRC, CELLS_OF_GLOBE, DEMO_HEX, EARN, FILE, GLOBE_SHADER, LENS, NARROW, PERF, PERF_KINDS, PREFERRED, STILL, VIEW_KEY, arrows, canvas, cross3, demoMoved, dot3, drag, fx, fxRandom, gesture, loadDemo, made3d, mainSet, orbit, perfZero, slotId, slotKey, station3d, switching, ui, unit3, view, view3d, within } from "./main.js";
+import { forgetEvent, replay, showMenu, tell } from "./hud.js";
+import { $, ART, CURVE_KEY, BABYLON_HASH, BABYLON_SRC, CELLS_OF_GLOBE, DEMO_HEX, EARN, FILE, GLOBE_SHADER, LENS, NARROW, PERF, PERF_KINDS, PREFERRED, STILL, VIEW_KEY, arrows, canvas, cross3, demoMoved, dot3, drag, fx, fxRandom, gesture, loadDemo, made3d, mainSet, orbit, perfZero, slotId, slotKey, station3d, switching, ui, unit3, view, view3d, within } from "./main.js";
 import { home, resize } from "./render.js";
-import { eraseGame, exportAll, exportGame, foundGame, freeHex, graftGames, openGame, parsed, planetList, readFileGames, save, stored, summaryOf } from "./saves.js";
+import { eraseGame, exportAll, exportGame, foundGame, freeHex, graftGames, keep, openGame, parsed, planetList, readFileGames, save, stored, summaryOf } from "./saves.js";
 import { script, show3D } from "./view.js";
 
 // The dual of a divided icosahedron: 150 hexagons and twelve pentagons.
@@ -538,6 +538,8 @@ export function perfReset() {
 }
 // Called once a frame, after it is drawn: one sample every 100 ms, averaged per frame.
 export function perfFrame(now, cpu) {
+  const fps = watchCurve(now);
+  if (fps) askCurve(fps);
   if (!PERF.on || document.hidden) return;
   if (PERF.lastFrame) { const gap = now - PERF.lastFrame; PERF.gaps++; PERF.frameSum += gap; PERF.framePeak = Math.max(PERF.framePeak, gap); }
   PERF.lastFrame = now;
@@ -627,11 +629,45 @@ export function setQuality(fast, remake) {
   if (open) show3D(true);
 }
 export function setCurve(value) {
-  // Never set: a quarter, the ground just rounding away.
-  const named = {none:0, soft:.5, strong:1}[value], amount = value == null ? .25 : named ?? Math.max(0, Math.min(1, Number(value) || 0));
+  // Never set: flat ground; curvature costs frames on a weak graphics card, so the player opts in.
+  const named = {none:0, soft:.5, strong:1}[value], amount = value == null ? 0 : named ?? Math.max(0, Math.min(1, Number(value) || 0));
   window.curve3d = amount;
   $('curve-amount').value = Math.round(amount * 100);
   $('curve-shown').textContent = `${Math.round(amount * 100)} %`;
+}
+// Curvature can cost frames on a weak graphics card. In 3D with curvature on, once the view's first seconds have
+// passed, a rate under the floor for `hold` one-second windows in a row offers to cut it, once a page session.
+// The floor sits a little under 60 so a 60 Hz screen's own jitter never asks. A gap (hidden tab) starts over.
+export const CURVE_SLOW = {floor:55, hold:3, warm:2000, gap:500};
+export const curveWatch = {asked:false, last:0, from:0, frames:0, slow:0};
+// Returns the measured rate when it is time to ask, else null.
+export function watchCurve(now, on = Boolean(view3d) && window.curve3d > 0 && !document.hidden, w = curveWatch) {
+  const gap = w.last ? now - w.last : 0;
+  w.last = now;
+  if (w.asked || !on || gap > CURVE_SLOW.gap) { w.from = 0; return null; }
+  if (!w.from) { Object.assign(w, {from:now + CURVE_SLOW.warm, frames:0, slow:0}); return null; }
+  if (now < w.from) return null;
+  w.frames++;
+  if (now - w.from < 1000) return null;
+  const fps = w.frames * 1000 / (now - w.from);
+  w.slow = fps < CURVE_SLOW.floor ? w.slow + 1 : 0;
+  Object.assign(w, {from:now, frames:0});
+  if (w.slow < CURVE_SLOW.hold) return null;
+  w.asked = true;
+  return Math.round(fps);
+}
+// A note among the game's events, with two answers; it never blocks play.
+export function askCurve(fps) {
+  const text = L`La courbure 3D ralentit l’affichage (${fps} images/s). La couper ?`;
+  tell(text);
+  const entry = ui.events.find(e => e.text === text);
+  if (!entry) return;
+  const row = document.createElement('span');
+  row.className = 'choices';
+  const answer = (label, act) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { act(); forgetEvent(text); }; row.append(b); };
+  answer(L('Couper'), () => { setCurve(0); keep(CURVE_KEY, '0'); });
+  answer(L('Garder'), () => {});
+  entry.el.insertBefore(row, entry.el.lastChild);
 }
 // A game in progress is saved and reopened after the page reloads.
 export function keepForReload() {

@@ -669,6 +669,9 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #app .event p.what { cursor:default; }
 #app .event .close { flex:none; display:grid; place-items:center; width:32px; height:32px; margin-left:2px; padding:0; border:0; border-radius:50%; background:none; color:var(--muted); font:400 20px/1 var(--body); cursor:pointer; }
 #app .event .close:hover { color:var(--ink); background:rgba(255,255,255,.08); }
+#app .event .choices { display:flex; flex:none; gap:4px; }
+#app .event .choices button { min-height:32px; padding:0 10px; border:1px solid var(--glass-edge); border-radius:999px; background:none; color:var(--ink); font:inherit; cursor:pointer; }
+#app .event .choices button:first-child { border-color:var(--acid); color:var(--acid); }
 
 /* The core's card as a diagram (board 20). */
 #sheet { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
