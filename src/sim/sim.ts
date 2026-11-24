@@ -207,15 +207,17 @@ export function nestBy([, x, y, w, h, free]: any[]) {
   return {...at, r:Math.ceil(reach) + 1, rich};
 }
 export function nest() {
-  const all = NORTH.map(p => ({...p, r:6, left:24}));
+  const all = NORTH.map(p => ({...p, r:6, left:24})), guards = [];
   for (const field of OUTER) {
     const spot = nestBy(field);
     if (!spot) continue;
-    const {rich, ...at} = spot;
-    all.push({...at, left:rich === 2 ? 40 : 70});
+    const {rich, ...at} = spot, b = {...at, left:rich === 2 ? 40 : 70};
+    all.push(b);
+    // In new games a rich deposit is always guarded, even close in (item_016): its nest is kept, put last.
+    if (G.far && !keepsNest(b)) guards.push(b);
   }
   // Thinned last, so each nest keeps the family it always had.
-  G.breaches = all.filter(keepsNest).map((b, i) => ({...b, total:b.left, genes:[G.families[i % 3]], form:i % 4, state:'sleep', wave:0, pending:0, ended:0}));
+  G.breaches = [...all.filter(keepsNest), ...guards].map((b, i) => ({...b, total:b.left, genes:[G.families[i % 3]], form:i % 4, state:'sleep', wave:0, pending:0, ended:0}));
 }
 // A deposit is a main blot and a few splashes round it. The rectangle it was written as still sizes it and its guard.
 export const spotHash = (x, y, n) => {
@@ -254,11 +256,12 @@ export function survey() {
   sectors = new Map();
   FIELDS = G.far ? OUTER : [...INNER, ...OUTER]; DEPOSIT = {}; RICH = {};
   const nests = new Map();
-  for (const field of OUTER) { const spot = nestBy(field); if (spot && keepsNest(spot)) nests.set(field, spot); }
+  for (const field of OUTER) { const spot = nestBy(field); if (spot && (keepsNest(spot) || G.far)) nests.set(field, spot); }
   const all = [{...NORTH[0], r:6}, ...nests.values()];
   const inRect = ([, x, y, w, h], i, j) => i >= x && i < x + w && j >= y && j < y + h;
   for (const field of FIELDS) {
-    const own = nests.get(field), rich = richness(field[1] + field[3] / 2, field[2] + field[4] / 2);
+    // A free field has no nest: in new games it is plain, a rich deposit being always guarded (item_016).
+    const own = nests.get(field), rich = G.far && field[5] === 'free' ? 1 : richness(field[1] + field[3] / 2, field[2] + field[4] / 2);
     const patch = makePatch(field, (i, j) => {
       if (DEPOSIT[i + ',' + j] || Math.hypot(i - CORE.x, j - CORE.y) < 4 || (G.far && inClearing(i, j))) return false;
       const mine = inRect(field, i, j);
@@ -1677,12 +1680,30 @@ export function destroyNest(b) {
   hooks.tell(L`Nid détruit au ${bearing(b)} : +${b.total} ADN, il s’estompe et le terrain est à toi.`, {at:b});
 }
 export function waveGene(b) { return b.genes[(b.genes.length - 1 + Math.max(0, b.wave)) % b.genes.length]; }
+// The threat grows with the base (item_016): from stage 3 a base past QUIET machines wakes the nearest sleeping nest
+// on its own, one more for every PER machines past that, one at a time EVERY seconds apart. Belts, rails, nerves and
+// walls are not counted: a small base stays quiet, an expanding one has to defend.
+export const RISE = {from:2, quiet:20, per:10, every:180};
+export const baseSize = () => allCells().filter(c => c.type !== 'core' && !isBelt(c) && !isSplit(c) && c.type !== 'bridge' && c.type !== 'sort' && c.type !== 'wall' && c.type !== 'relay').length;
+export function rise() {
+  if (G.stage < RISE.from || G.over || G.time < (G.risenAt ?? -Infinity) + RISE.every) return null;
+  const over = baseSize() - RISE.quiet;
+  if (over <= 0) return null;
+  const roused = G.breaches.filter(b => b.roused).length;
+  if (roused >= Math.ceil(over / RISE.per)) return null;
+  const core = coreCell() || CORE, asleep = G.breaches.filter(b => b.state === 'sleep').sort((a, b) => Math.hypot(a.x - core.x, a.y - core.y) - Math.hypot(b.x - core.x, b.y - core.y));
+  if (!asleep.length) return null;
+  const b = asleep[0];
+  b.roused = true; G.risenAt = G.time;
+  wake(b, null);
+  return b;
+}
 export function menace(dt) {
   const awake = G.breaches.filter(b => b.state === 'wake');
   const spent = G.breaches.filter(b => b.state === 'spent').length;
   G.threat = Math.min(10, awake.length + spent * .5 + G.made / 1000);
   if (G.stage >= 3 && !G.over && G.time >= (G.mutateAt ?? Infinity)) { G.mutateAt = G.time + MUTATION.every; mutation(); }
-  if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) { disturb(); if (G.needs?.length && outpostHeld()) credit('outpost', .5); }
+  if (Math.floor(G.time * 2) !== Math.floor((G.time - dt) * 2)) { disturb(); rise(); if (G.needs?.length && outpostHeld()) credit('outpost', .5); }
   for (const b of awake) {
     if (b.pending && b.left && G.time >= b.spit) { spawn(b, b.gene, b.swarm ? 'swarm' : null); b.swarm = false; b.pending--; b.spit = G.time + 1.4; }
     nestHp(b);

@@ -352,6 +352,9 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 - **A mechanic a stage (Decided, 2026-11-24, item_019)**: besides its recipes, stage 2 asks for 30 items sorted aside,
   stage 3 for 30 items passed or sorted under a nerve, stage 4 for 10 creatures killed by their antidote, stage 5 for
   two minutes of a harvester held within a nest's reach.
+- **Threat with the base (Decided, 2026-11-24, item_016)**: from stage 3, a base of more than 20 machines wakes the
+  nest nearest the core on its own, one more every 10 machines, 3 minutes apart at least. Every rich deposit lies in
+  a kept nest's reach; a destroyed nest pays its creatures in DNA and frees its ground.
 - **Hunger (Decided, 2026-11-24)**: in a game with drawn base genes, the core eats them continuously. While one it
   eats has not arrived in the last 30 seconds, stage deliveries count half, not nothing.
 - The prototype assembler has two inputs: gene 1 on the left, gene 2 on the right.

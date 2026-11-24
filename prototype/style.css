@@ -739,7 +739,7 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #sheet .asked h4 small { flex-basis:100%; color:var(--muted); font:500 11px var(--body); letter-spacing:.06em; text-transform:uppercase; }
 #sheet .asked .count { font:700 20px var(--display); white-space:nowrap; }
 #sheet .asked .count small { color:var(--muted); font-size:13px; }
-#sheet .recipe { display:block; width:100%; max-height:max(150px, calc(100vh - 505px)); }
+#sheet .recipe { display:block; width:100%; max-height:max(150px, calc(100vh - 520px)); }
 @media (max-width:759px) { #sheet .recipe { max-height:34vh; } }
 #sheet .recipe .node > rect { fill:#0B1417; stroke:var(--acid); stroke-width:2; }
 #sheet .recipe .node.miss > rect { stroke:#6E8580; stroke-dasharray:5 4; }

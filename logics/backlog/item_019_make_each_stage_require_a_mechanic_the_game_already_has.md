@@ -1,7 +1,7 @@
 ## item_019_make_each_stage_require_a_mechanic_the_game_already_has - Make each stage require a mechanic the game already has
 > From version: 0.1.38
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95%
 > Confidence: 85%
 > Progress: 100%

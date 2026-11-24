@@ -3,8 +3,8 @@
 > Schema version: 1.0
 > Status: Ready
 > Understanding: 90%
-> Confidence: 85%
-> Progress: 0%
+> Confidence: 80%
+> Progress: 90%
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -31,6 +31,15 @@
 - AC1: A normal game cannot reach stage 4 without clearing or holding off at least one nest.
 - AC2: Nests wake on their own as the base grows, measured in a simulation test.
 - AC3: A destroyed nest gives a reward the player sees.
+
+# Operator decision (2026-11-24)
+- Nest threat grows with the size of the base, first attack possible from stage 3; a small base stays quiet, an expanding one must defend. Rich deposits and the rare F sit inside the nests' reach. A destroyed nest gives a reward.
+
+# Implementation notes (2026-11-24)
+- `RISE`, `baseSize` and `rise` in `src/sim/sim.ts`: from stage 3, a base of more than 20 machines (belts, splitters, sorters, bridges, walls and relays not counted) wakes the sleeping nest nearest the core, one more for every 10 machines past that, at least 180 s apart. Before stage 3, or under 21 machines, no nest wakes on its own; a nest the player disturbs still wakes as before.
+- Rich deposits: in new games every rich deposit is within reach of a kept nest. The two ×2 deposits whose nests were thinned for standing within 30 cells of the core keep their nests (added after the others, so families do not move), and the free field south of the base, which has no nest, is plain (×1). The rare F: the ×4 Fibre deposit is guarded; the plain one near the core is left free so the first stages stay quiet. Say if "the rare F" meant that near one.
+- Reward: a destroyed nest already paid its creatures in DNA and freed its ground, said in the event; now tested.
+- Proof: `tests/sim/threat.test.ts`. AC1 (no stage 4 without holding off a nest) holds through item_019 (stage 4 asks 10 creatures killed by their antidote) and is measured in item_018's reference game.
 
 # AC Traceability
 - request-AC8 -> This backlog slice. Proof: AC1: A normal game cannot reach stage 4 without clearing or holding off at least one nest.
