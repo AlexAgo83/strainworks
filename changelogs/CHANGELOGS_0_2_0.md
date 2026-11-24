@@ -25,6 +25,8 @@ recipes and rules.
 - A large harvester feeds only the lines drawn from it; a bridge dismantled on its own gives its belt back.
 - An encapsulator set on the wrong box, or blocked by a second gene, says so on the map, in its card and in the
   statistics.
+- The statistics name why a production stopped: nothing comes in, the output is blocked, a wrong setting, no
+  carbon, a full deposit, a closed gate.
 
 ## Base genes and layered recipes
 
