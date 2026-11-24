@@ -426,7 +426,7 @@ The game opens in English and asks for its language on first opening, keeps it i
 (**Langue** / **Language**). A change saves the game in progress and reopens it in the other language.
 
 The French text in the code is the key: `L('…')`, or a template tagged `L`, gives it in the chosen
-language, and the `EN` table in `prototype/index.html` holds the English line of every key. The markup
+language (`src/sim/text.ts`), and the `EN` table in `prototype/en.js` holds the English line of every key. The markup
 is written in French and translated on load. `tests/prototype/language.test.mjs` fails on a key with no
 English line, or on French left on screen in English. The rule tests run in French.
 
