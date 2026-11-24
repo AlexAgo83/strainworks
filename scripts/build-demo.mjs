@@ -28,7 +28,9 @@ try {
     G.breaches = G.breaches.filter((b) => !(b.x === 48 && b.y === 27));
     survey();
     const bad = [], tagged = {};
-    for (const step of plan) for (const p of step.pieces) {
+    for (const step of plan) {
+      for (const [x, y] of step.remove || []) if (!cellAt(x, y)) bad.push(`${step.name}: nothing to remove at ${x},${y}`); else { delete G.cells[key(x, y)]; forgetCells(); }
+      for (const p of step.pieces) {
       const probe = { type: p.t, x: p.x, y: p.y, size: isBig(p.t) ? 2 : 1 };
       if (step.rebuild) for (const q of footprint(probe)) if (cellAt(q.x, q.y)) { delete G.cells[key(cellAt(q.x, q.y).x, cellAt(q.x, q.y).y)]; forgetCells(); }
       for (const q of footprint(probe)) if (cellAt(q.x, q.y) || trackAt(q.x, q.y) || !placeable(q.x, q.y)) bad.push(`${step.name}: ${p.t} ${p.x},${p.y} on ${q.x},${q.y}`);
@@ -39,6 +41,7 @@ try {
       if (p.mk) c.mk = p.mk;
       Object.assign(c, p.extra || {});
       if (p.tag) tagged[p.tag] = c;
+      }
     }
     for (const step of plan) for (const [a, b] of step.wires || []) {
       const end = (name) => (name === "core" ? coreCell() : name === "desk" ? allCells().find((c) => c.type === "desk") : tagged[name]);
@@ -60,6 +63,7 @@ try {
         pack: Object.values(tagged).filter((c) => c.type === "pack").map((c) => ({ box: c.box, ports: c.ports.map((p) => p.length), item: c.item })),
         ligases: Object.entries(tagged).filter(([, c]) => c.type === "ligase").map(([k, c]) => ({ k, heard: c.heard, made: c.made?.length, last: c.last, focus: netOf(c)?.focus, ports: c.ports.map((p) => p.join("")) })),
         sorters: Object.entries(tagged).filter(([, c]) => c.type === "sort").map(([k, c]) => `${k}:${c.read}:${c.item || "-"}:${heardOf(c)?.focus}`),
+        turrets: allCells().filter((c) => isGun(c)).map((c) => `${c.x},${c.y}:${JSON.stringify(c.ammo)}`),
         burnt: allCells().filter((c) => c.type === "burn").map((c) => c.burnt || 0), coreWants: coreWants() },
       game: JSON.stringify(G),
     };
