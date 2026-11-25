@@ -116,7 +116,7 @@ exports[`breaches-and-damage behaves as the recorded prototype 1`] = `
     1,
     [
       "wake",
-      "Assaut dans 30 s Nord →aucun antidote",
+      "Assaut dans 30 s Nord 0 antidote",
     ],
   ],
   [

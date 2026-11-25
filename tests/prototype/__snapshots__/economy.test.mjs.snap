@@ -6,7 +6,7 @@ exports[`economy behaves as the recorded prototype 1`] = `
     "rules",
     {
       "beltsFree": 80,
-      "hurtRefund": 15,
+      "hurtRefund": 20,
       "incomeFromZero": 0,
       "oldSave": [
         83,
@@ -15,13 +15,13 @@ exports[`economy behaves as the recorded prototype 1`] = `
       "onlyOnce": 83,
       "rebuild": {
         "after": [
-          55,
+          60,
           4,
           0,
         ],
         "label": "Reconstruire (4) · 60 ADN",
         "partial": [
-          5,
+          0,
           2,
           "belt",
           2,
@@ -30,8 +30,8 @@ exports[`economy behaves as the recorded prototype 1`] = `
       "roundTrip": 1000,
       "turrets": [
         3,
-        10,
-        50,
+        0,
+        40,
       ],
       "wallRoundTrip": 1000,
       "walls": [
@@ -64,16 +64,16 @@ exports[`economy behaves as the recorded prototype 1`] = `
         "stade 6",
         "stade 6",
         "120!",
-        "30",
-        "50!",
         "40!",
+        "80!",
+        "60!",
         "5",
         "stade 2",
         "25",
         "stade 4",
-        "70!",
+        "120!",
         "stade 5",
-        "100!",
+        "180!",
         "150!",
         "stade 2",
         "stade 2",

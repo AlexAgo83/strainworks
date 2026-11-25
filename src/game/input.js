@@ -288,7 +288,8 @@ export function orderHTML() {
     const need = !open.length && (G.needs || []).find(n => n.fed < n.count);
     if (need) return `<b>${L`Stade ${G.stage + 1} · ${want.name}`}</b><div class="wanted"><span>${mechanicName(need.need)}</span><output>${Math.floor(need.fed)} / ${need.count}</output></div>`;
     const more = open.length > 1 ? `<span class="more" title="${L('Toutes les recettes sont dans la fiche du cœur')}">+${open.length - 1}</span>` : '';
-    const hunger = G.base && hungryFor().length ? `<span class="unit hungry">${L`faim de ${hungryFor().map(geneMark).join(' ')} : livraisons comptées à moitié`}</span>` : '';
+    // A short pill; the genes and the rule stay in its tooltip, for screen readers and in the core's sheet.
+    const hunger = G.base && hungryFor().length ? `<span class="unit hungry pill" title="${L`Le cœur a faim de ${hungryFor().join(', ')} : livraisons comptées à moitié.`}">½ ${L('Faim')} · ${hungryFor().length}<span class="sr">${L`faim de ${hungryFor().map(geneMark).join(' ')} : livraisons comptées à moitié`}</span></span>` : '';
     return `<b>${L`Stade ${G.stage + 1} · ${want.name}`}</b><div class="wanted">${boxOf(next.item) ? `<span class="crate">${gene}</span>` : gene}<output>${Math.floor(next.fed)} / ${next.count}</output>${more}</div>${hunger}`;
   }
   const done = want.rate ? `${mealRate().toFixed(1).replace('.', DEC)} / ${want.rate}` : `${G.fed} / ${want.count}`;

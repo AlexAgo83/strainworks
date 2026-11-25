@@ -55,8 +55,8 @@ it("walks the first defence guide as the first swarm is announced", async () => 
 			["Ta première défense", "Ajoute un mur"],
 		]);
 		expect(seen.steps[0].no).toBe("étape 1 sur 4");
-		expect(seen.brief).toMatch(/^Essaim dans 1[78]\d s$/);
-		expect(seen.versus).toBe(2);
+		expect(seen.brief).toMatch(/^Essaim (2:5\d|3:0\d)$/);
+		expect(seen.versus).toBe(1);
 		expect(seen.done).toBe(4);
 		expect(seen.hidden).toBe(true);
 		expect(errors).toEqual([]);

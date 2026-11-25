@@ -224,6 +224,8 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #card .base-genes { display:flex; gap:8px; }
 #card .base-genes .hungry { opacity:.45; outline:1px solid var(--alarm); border-radius:8px; }
 #card .unit.hungry, #order .unit.hungry { color:var(--alarm); }
+#order .unit.hungry.pill { position:relative; display:inline-block; padding:1px 9px; border:1px solid var(--alarm); border-radius:10px; background:rgba(255,90,100,.14); font-weight:700; }
+#versus .antidote { padding:1px 9px; border:1px solid currentColor; border-radius:10px; }
 #info.bloom #card { position:absolute; left:0; top:0; width:280px; }
 .card-body { position:relative; padding:14px 18px 16px; }
 .card-head { display:flex; align-items:center; gap:11px; min-width:0; }

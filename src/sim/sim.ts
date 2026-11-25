@@ -121,13 +121,13 @@ export const BOX = {A:{name:L('Chargeur'), carbon:1}, T:{name:L('Capsule'), carb
 // How many genes or strands a box holds.
 export const fill = box => BOX[box]?.size || PACK.size;
 export const PACK = {size:6, genes:12, carbon:4, magazines:24};
-// Every turret takes the same genes, they differ by reach, pace and shots in one volley. cost: before the shared rise.
+// Every turret takes the same genes, they differ by reach, pace and shots in one volley. cost: the flat price (0.2.5; half, plus 10 a gun already built, before).
 export const GUNS = {
-  turret:{range:6.8, pace:3, volley:1, power:1, cost:20},
-  sting:{range:13, pace:1, volley:1, power:2, cost:40},
-  maw:{range:4, pace:2.5, volley:2, power:1, cost:30},
-  mist:{range:3, pace:.5, volley:1, power:.6, cost:60},
-  harpoon:{range:16, pace:.35, volley:1, power:5, cost:90}
+  turret:{range:6.8, pace:3, volley:1, power:1, cost:40},
+  sting:{range:13, pace:1, volley:1, power:2, cost:80},
+  maw:{range:4, pace:2.5, volley:2, power:1, cost:60},
+  mist:{range:3, pace:.5, volley:1, power:.6, cost:120},
+  harpoon:{range:16, pace:.35, volley:1, power:5, cost:180}
 };
 // The Glue: how much it slows by rank, what it burns a second, how many creature-seconds a gene lasts, what it holds.
 export const GLUE = {slow:[.35, .25, .15], hurt:[2, 4, 6], per:3, hold:20};
@@ -452,8 +452,9 @@ export const minable = kind => kind !== 'I' || unlocked(4);
 export const opposite = gene => [...gene].map(b => PAIR[b]).join('');
 // Defences cost ADN, each one more than the last: the soft limit on turrets and walls.
 export const START_DNA = 80;
-export const gunPrice = type => n => GUNS[type].cost + 10 * n;
-// The three turrets climb one scale, or taking turns between them would get round it.
+// A gun costs the same however many there are (0.2.5; 10 more each before): what holds a defence back is the
+// ammunition lines it needs, not a price that climbs.
+export const gunPrice = type => () => GUNS[type].cost;
 export const PRICE = {desk:() => 20, reaper:() => 120, glue:() => 25, mist:gunPrice('mist'), harpoon:gunPrice('harpoon'), arm:() => 12, burn:() => 10, screen:() => 15, lab:() => 150, relay:() => 10, radar:n => 30 + 15 * n, turret:gunPrice('turret'), sting:gunPrice('sting'), maw:gunPrice('maw'), wall:n => 5 + Math.floor(n / 5), worm:n => 20 + 10 * n};
 export const owned = type => type === 'worm' ? G.worms.length : allCells().filter(c => GUNS[type] ? GUNS[c.type] : c.type === type).length;
 // Taking a finished one down returns half of what the last one cost, less its damage: building and removing

@@ -178,6 +178,8 @@ export function paintOrganism() {
   if (ui.dna != null && G.dna > ui.dna) { $('gain').textContent = `+${Math.round(G.dna - ui.dna)}`; replay($('gain'), 'up'); }
   ui.dna = G.dna;
 }
+// Seconds as m:ss, the way the top bar counts down.
+const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 export function paintThreat() {
   const awake = G.breaches.filter(b => b.state === 'wake' && b.left);
   const first = awake.find(b => b.pending) || awake.reduce((a, b) => !a || b.next < a.next ? b : a, null);
@@ -189,8 +191,8 @@ export function paintThreat() {
   // The next swarm, when it comes sooner than a nest's assault: from where, how many, its antidote.
   const swarm = G.swarm?.next != null && G.swarm.from ? G.swarm : null, swarmIn = swarm ? Math.max(0, Math.ceil(swarm.next - G.time)) : Infinity;
   if (swarm && !active && (!first || swarmIn < left)) {
-    title = L`Essaim dans ${swarmIn} s`; short = `${swarmIn} s`;
-    detail.push(L`Du ${compass(swarm.from)}`, L`${swarm.size} créatures`);
+    title = L`Essaim ${clock(swarmIn)}`; short = clock(swarmIn);
+    detail.push(compass(swarm.from), String(swarm.size));
     if (G.enemies.length) detail.push(L`${G.enemies.length} sur la carte`);
   } else if (first) {
     const where = bearing(first);
@@ -214,7 +216,7 @@ export function paintThreat() {
   paint('title', title, box.querySelector('.title'));
   paint('detail', detail.join(' · '), box.querySelector('.detail'));
   paint('short', short, box.querySelector('.short'));
-  paint('versus', shown ? `<span class="foe">${geneMark(shown)}</span><span class="to">→</span>${geneMark(opposite(shown))}<span class="${stock ? 'need' : 'none'}">${stock ? L`${stock} en stock` : L('aucun antidote')}</span>` : '');
+  paint('versus', shown ? `<span class="foe">${geneMark(shown)}</span><span class="antidote ${stock ? 'need' : 'none'}" title="${L`Antidote : ${opposite(shown)}`}">${L`${stock} antidote`}</span>` : '');
   paint('families', here.map(([kind, n]) => {
     const ready = stockOf(opposite(kind));
     return L`<div class="threat"><b>${n} sur la carte</b>${geneMark(kind)}<span>→</span>${geneMark(opposite(kind))}<span class="${ready ? 'need' : 'none'}">${ready ? L`${ready} en stock` : L('aucun antidote')}</span></div>`;

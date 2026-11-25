@@ -1,4 +1,4 @@
-// Three turrets: reach, pace, the double shot, one price scale, nerves, targeting, rebuilding.
+// Three turrets: reach, pace, the double shot, flat prices, nerves, targeting, rebuilding.
 import { expect, it } from "vitest";
 import { launch, pageHTML } from "./harness.mjs";
 
@@ -92,7 +92,7 @@ it("has a far slow turret and a close double one", async () => {
       });
       out.stock = stockOf("CNF");
 
-      // One price scale, and what is paid comes back whatever the order.
+      // Flat prices, and what is paid comes back whatever the order.
       lab();
       G.dna = 1000;
       out.firstPrices = ["turret", "sting", "maw"].map(price);
@@ -172,12 +172,12 @@ it("has a far slow turret and a close double one", async () => {
       economical: 0,
       loads: [[true, true, false, false, 6], [true, true, false, false, 6]],
       stock: 12,
-      firstPrices: [20, 40, 30],
-      paid: [20, 50, 50, 70],
+      firstPrices: [40, 80, 60],
+      paid: [40, 80, 60, 80],
       refunded: 1000,
       heard: ["", "CNF", ""],
       targeted: [30.5, 30.5],
-      rebuilt: ["sting", "maw", 40],
+      rebuilt: ["sting", "maw", 70],
       saved: ["sting", "maw"],
       fits: true,
       clipped: [],
@@ -191,7 +191,7 @@ it("has a far slow turret and a close double one", async () => {
     expect([turret[1] / turret[0], sting[1] / sting[0], maw[1] / maw[0]]).toEqual([12, 24, 12]);
     expect(out.buttons).toEqual(expect.arrayContaining(["Tir : sur tout"]));
     expect(out.says).toContain("Dard");
-    expect(out.bill).toContain("40 ADN");
+    expect(out.bill).toContain("70 ADN");
     expect(errors).toEqual([]);
   } finally {
     await browser.close();
