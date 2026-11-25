@@ -396,6 +396,12 @@ export function diagnose(c) {
     const batch = c.batch ? L` Lot : ${c.passed || 0} / ${c.batch} passés.` : '';
     return L`Feu, s’ouvre sur ${WHEN[c.when].name} : ${state}.${watching}${batch}`;
   }
+  if (c.type === 'sort' && c.when && c.when !== 'gene' && netOf(c)) {
+    const kept = gateStore(c), state = gateOpen(c) ? L('il trie') : gateCondition(c) ? L('son lot est passé, tout va tout droit') : L('tout va tout droit');
+    const watching = WATCHES.includes(c.when) ? (kept ? L` Il écoute le ${TYPES[kept.store.type].name.toLowerCase()} à ${Math.round(span(c, kept.store))} cases : ${kept.at} / ${kept.cap}, plein à ${kept.full}.` : L(' Aucun kyste relié à son réseau : relie-en un pour qu’il ait un stock à regarder.')) : '';
+    const batch = c.batch ? L` Lot : ${c.passed || 0} / ${c.batch} triés.` : '';
+    return L`Trieur, filtre ${c.want === '?' ? 'tout' : c.want}, seulement sur ${WHEN[c.when].name} : ${state}.${watching}${batch}`;
+  }
   if (c.type === 'desk') return L`Pupitre : le réseau demande ${DESK_NAMES[c.mode || 'most']}${c.mode === 'hand' ? L` (${c.gene || L('aucun gène fixé')})` : ''}.${netOf(c) ? '' : L(' Relie-le à un nerf.')}`;
   if ((c.type === 'gate' || c.type === 'sort') && G.wires.some(w => w.a === key(c.x, c.y) || w.b === key(c.x, c.y))) {
     const what = c.read ? L`la position ${c.read}` : L('le gène entier'), name = TYPES[c.type].name;

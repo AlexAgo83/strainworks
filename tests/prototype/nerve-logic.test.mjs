@@ -131,3 +131,47 @@ it("opens gates on levels and threats and lets a console choose the priority", a
     await browser.close();
   }
 });
+
+it("gives a wired sorter the gate's tools: what it reads, when it sorts, its batch", async () => {
+  const browser = await launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, line: false });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) => (route.request().url().startsWith("http://proto.test") ? route.fulfill({ body: pageHTML(), contentType: "text/html" }) : route.abort()));
+    await page.goto("http://proto.test/prototype/");
+    const buttons = () => page.evaluate(() => [...document.querySelectorAll("#actions button")].map((b) => b.textContent));
+    await page.evaluate(() => {
+      begin();
+      paused = true;
+      G.open = true;
+      G.breaches = [];
+      const sort = put("sort", 30, 30, 1), cyst = put("cyst", 30, 34, 1);
+      wireUp(sort, cyst);
+      G.wires.at(-1).left = 0;
+      sense();
+      cam.x = 30.5; cam.y = 30.5; cam.zoom = 40;
+      select("30,30");
+      showActions();
+    });
+    const onGene = await buttons();
+    expect(onGene).toEqual(expect.arrayContaining(["Trie sur : le gène demandé", "Lit : gène entier"]));
+    expect(await page.locator("#actions .slot").count()).toBe(0);
+    await page.locator("#actions button").filter({ hasText: "Trie sur" }).click();
+    await page.locator("#actions button").filter({ hasText: "Trie sur" }).click();
+    await page.locator("#actions button").filter({ hasText: "Trie sur" }).click();
+    const onLow = await buttons();
+    expect(onLow).toEqual(expect.arrayContaining(["Trie sur : stock bas", "Lot : sans limite"]));
+    expect(onLow.some((b) => b.startsWith("Lit"))).toBe(false);
+    // On a condition its filter is what goes aside: the slots are back.
+    expect(await page.locator("#actions .slot").count()).toBe(1);
+    await page.locator("#actions button").filter({ hasText: "Lot" }).click();
+    const set = await page.evaluate(() => ({ when: G.cells["30,30"].when, batch: G.cells["30,30"].batch, watch: G.cells["30,30"].watch, listens: listens(G.cells["30,30"]), said: diagnose(G.cells["30,30"]) }));
+    expect(set).toMatchObject({ when: "low", watch: "30,34", listens: true });
+    expect(set.batch).toBeGreaterThan(0);
+    expect(set.said).toContain("seulement sur stock bas : il trie");
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});

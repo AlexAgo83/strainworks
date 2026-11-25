@@ -166,9 +166,10 @@ export function showActions() {
   if (c.type === 'sort') {
     const change = work => () => { work(); showActions(); };
     button(c.side === 3 ? L('Sort à gauche') : L('Sort à droite'), change(() => { c.side = c.side === 3 ? 1 : 3; }));
-    // On a nerve the manual filter is only the fallback: its controls would cover the board on a phone.
+    // On a nerve reading genes the manual filter is only the fallback: its controls would cover the board on a phone.
+    // On a condition it is what goes aside while the condition holds.
     const onNerve = G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y));
-    if (!onNerve) {
+    if (!onNerve || (c.when && c.when !== 'gene')) {
     button({1:L('Base'), 3:L('Gène'), 6:L('Brin')}[c.want.length], change(() => { c.want = c.want.length === 1 ? (c.want === 'K' ? '?' : c.want) + '??' : c.want.length === 3 && unlocked(2) ? c.want + '???' : c.want[0]; }));
     const row = document.createElement('span');
     row.className = 'slots';
@@ -187,12 +188,12 @@ export function showActions() {
     }
   }
   if (NERVE.ends.includes(c.type) && G.wires.some(w => w.a === key(c.x,c.y) || w.b === key(c.x,c.y))) {
-    if (c.type === 'gate') {
+    if (c.type === 'gate' || c.type === 'sort') {
       const order = Object.keys(WHEN);
-      button(L`S’ouvre sur : ${WHEN[c.when || 'gene'].name}`, () => { c.when = order[(order.indexOf(c.when || 'gene') + 1) % order.length]; c.passed = 0; sense(); showActions(); });
+      button(c.type === 'sort' ? L`Trie sur : ${WHEN[c.when || 'gene'].name}` : L`S’ouvre sur : ${WHEN[c.when || 'gene'].name}`, () => { c.when = order[(order.indexOf(c.when || 'gene') + 1) % order.length]; c.passed = 0; sense(); showActions(); });
       if (c.when && c.when !== 'gene') button(c.batch ? L`Lot : ${c.batch} à chaque ouverture` : L('Lot : sans limite'), () => { c.batch = BATCHES[(BATCHES.indexOf(c.batch || 0) + 1) % BATCHES.length]; c.passed = 0; showActions(); });
     }
-    if (hasTrait(c.type, 'listen') && !(c.type === 'gate' && c.when && c.when !== 'gene')) {
+    if (hasTrait(c.type, 'listen') && !((c.type === 'gate' || c.type === 'sort') && c.when && c.when !== 'gene')) {
       button(c.read ? L`Lit : position ${c.read}` : L('Lit : gène entier'), () => { c.read = ((c.read || 0) + 1) % ((heardOf(c)?.focus?.length || 3) > 3 ? 7 : 4); showActions(); });
     }
     if (c.type === 'gate') button(L`Si coupé : ${c.open ? 'vert' : 'rouge'}`, () => { c.open = !c.open; showActions(); });

@@ -185,6 +185,9 @@ Nerves carry one kind of information only: what is needed. Routing stays with th
   its net (the nearest until then), shown by a dashed line when selected, so one net runs several lines. The threshold reads in items ("full at 30 /
   60"). A batch (5, 10, 20 or 50) lets that many through each time the condition holds, then waits for it to drop.
   The gate's card says in one sentence why it is green or red, what it watches and how much of its batch passed.
+- **Sorter on a nerve (2026-11-25)**: a wired sorter has the gate's tools. On the gene asked it reads the whole gene
+  or one position, as before; on any other condition (a threat, no threat, a store low or full, and their mixes) its
+  own filter goes aside while the condition holds, by batches like a gate, and straight on otherwise.
 - **Console (Pupitre, 2026-11-24)**: on a nerve it sets the priority of what the net asks: the most numerous (the
   default), the nearest to the net's guns and radars, each threat in turn every 20 s, or a gene set by hand.
 - **Reading the network (2026-11-24)**: every wired piece has "Read the network": its sources, what it asks and how

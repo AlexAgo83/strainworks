@@ -1216,7 +1216,7 @@ export function sense() {
     for (const id of group) {
       const c = G.cells[id], heard = VIEW.get(id);
       if (c?.type === 'screen') { if ((c.shown ?? '') !== heard.focus) { c.shown = heard.focus; c.shownAt = G.time; } continue; }
-      if (c?.type === 'gate') {
+      if (c?.type === 'gate' || c?.type === 'sort') {
         // The store it listens to, when one was chosen; otherwise the nearest on its net.
         const own = heard.source && (heard.source.type === 'cyst' || heard.source.type === 'vault') ? heard.source : null;
         const near = own || (WATCHES.includes(c.when) ? stores.reduce((best, o) => !best || span(c, o) < span(c, best) ? o : best, null) : null);
@@ -1270,11 +1270,11 @@ export function coreWants(): any[] {
 }
 // Unwired, cut or without a turret, the setting the player left applies.
 export function listens(c) {
-  if (c.type === 'gate' && c.when && c.when !== 'gene') return Boolean(netOf(c));
+  if ((c.type === 'gate' || c.type === 'sort') && c.when && c.when !== 'gene') return Boolean(netOf(c));
   const heard = heardOf(c);
   return (c.type === 'gate' || c.type === 'sort') && Boolean(heard) && (heard.live || heard.turrets > 0 || heard.radars > 0 || heard.core || heard.desk);
 }
-// What a wired gate may open on, besides the gene: the net's threat, the level of its stores, or the two together.
+// What a wired gate may open on, or a wired sorter send its filter aside on, besides the gene: the net's threat, the level of its stores, or the two together.
 export const WHEN = {
   gene:{name:L('le gène demandé')},
   threat:{name:L('une menace'), test:n => n.threat},
@@ -1475,7 +1475,7 @@ export function flow(dt) {
       if (c.type === 'unpack' && c.ports[2].length) offer(c, c.ports[2][0], (c.dir + 1) % 4, () => { c.ports[2].shift(); });
       // A listening gate lets out what it let in, so a change of mind never traps an item.
       if (isBelt(c) && (c.type === 'belt' || c.open || listens(c)) && c.item && c.t >= .999) offer(c, c.item, c.dir, () => { if (c.type === 'gate' && listens(c)) credit('nerve'); c.item = null; }, c.t - 1);
-      if (c.type === 'sort' && c.item && c.t >= .999) { const out = exitOf(c); offer(c, c.item, out, () => { if (out !== c.dir) credit(listens(c) ? 'nerve' : 'sort'); c.item = null; }, c.t - 1); }
+      if (c.type === 'sort' && c.item && c.t >= .999) { const out = exitOf(c); offer(c, c.item, out, () => { if (out !== c.dir) { credit(listens(c) ? 'nerve' : 'sort'); if (c.batch && listens(c)) c.passed = (c.passed || 0) + 1; } c.item = null; }, c.t - 1); }
       if (c.type === 'borer' && c.stock.length) {
         const doors = edgesOf(c);
         let out = 0;
@@ -1994,6 +1994,8 @@ export function step(dt) {
 export function exitOf(c) {
   if (c.type === 'sort') {
     if (!listens(c)) return fits(c, c.item) ? sideExit(c) : c.dir;
+    // On a condition, like a gate: its filter goes aside while the condition holds, up to its batch.
+    if (c.when && c.when !== 'gene') return gateOpen(c) && fits(c, c.item) ? sideExit(c) : c.dir;
     if (!asked(c, c.item)) return c.dir;
     const side = sideExit(c), to = ahead(c, side);
     // The same base can be wanted in two positions: what is too much goes on to the next sorter.
