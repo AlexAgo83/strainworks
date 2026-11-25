@@ -115,6 +115,9 @@ for (const name of ["site.webmanifest", "icon-180.png", "icon-192.png", "icon-51
   cached.push(name);
 }
 copyFileSync(at("site/THIRD-PARTY.txt"), resolve(out, "THIRD-PARTY.txt"));
+// The release notes the settings list, fetched when read: not cached for offline play.
+mkdirSync(resolve(out, "changelogs"), { recursive: true });
+for (const name of readdirSync(at("changelogs")).filter((f) => f.endsWith(".md"))) copyFileSync(at(`changelogs/${name}`), resolve(out, "changelogs", name));
 
 const worker = readFileSync(at("site/sw.js"), "utf8");
 const build = digest(worker + cached.map((path) => digest(readFileSync(resolve(out, path)))).join());

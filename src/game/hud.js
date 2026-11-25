@@ -3,6 +3,7 @@ import { eaten, hungryFor, BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERV
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { buyLab, diagnose, packTrouble, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart, upstream } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
+import { paintChangelogs } from "./changelogs.js";
 import { choose, geneMark, orderHTML, pickedWorm, say, sentenceHTML, stockOf, write } from "./input.js";
 import { $, EARN, FAMILIES, FAMILY_OF, FOG_SOFT, GENES, GUIDE, DEFENSE_GUIDE, MATTER, guideGene, LAB_TABS, MODELS, MOST_DRONES, NARROW, NEEDS, PRODUCERS, RANK_NEED, SHAPE, STILL, UPGRADES, cam, chain, drag, fogFor, fogImage, fr, gateGreen, gesture, inHand, inside, intro, labNext, linking, listening, machineOf, mainSet, motionTime, named, note, orbit, paused, placeable, rankOpen, screenAt, selected, speed, tool, ui, view, wiring, within, woven } from "./main.js";
 import { circle, glyph, rect, worldAt } from "./render.js";
@@ -125,6 +126,7 @@ export function menuPage(id) {
   ui.page = id;
   for (const page of $('menu').querySelectorAll('.page')) page.hidden = page.dataset.page !== id;
   if (id === 'playlist') paintPlaylist();
+  if (id === 'changelogs') paintChangelogs();
 }
 export function showMenu(open) {
   if (open && !ui.menu) playSound('open');

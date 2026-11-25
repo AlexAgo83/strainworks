@@ -383,6 +383,15 @@ input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text;
 #menu .row.go b { color:var(--cyan); font-size:18px; }
 #menu .crumbs { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
 #menu .crumbs h2 { margin:0; }
+#menu .changelogs { max-height:min(62vh, 560px); overflow-y:auto; overscroll-behavior:contain; padding-right:6px; user-select:text; }
+#menu .changelogs section { padding:10px 0; border-bottom:1px solid #1D3036; }
+#menu .changelogs section:not([data-loaded]) { min-height:220px; }
+#menu .changelogs h3 { margin:0 0 4px; color:var(--cyan); font:700 17px var(--display); }
+#menu .changelogs h4 { margin:10px 0 2px; color:var(--acid); font-size:14px; }
+#menu .changelogs p, #menu .changelogs li { margin:4px 0; font-size:13px; line-height:1.45; color:#c9d6d9; }
+#menu .changelogs ul { margin:4px 0; padding-left:18px; }
+#menu .changelogs code { font-size:12px; color:var(--cyan); }
+#menu .changelogs .loading { color:var(--muted); }
 #menu .auto small { display:block; color:#8FB8BF; font-size:12px; }
 #menu .switch { position:relative; flex:none; width:44px; height:24px; padding:0; border:1px solid var(--glass-edge); border-radius:99px; background:#0B1417; cursor:pointer; }
 #menu .switch::after { content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#8FB8BF; transition:left .2s, background .2s; }
