@@ -1598,6 +1598,11 @@ export function bearing(b) {
   const a = Math.atan2(b.y - CORE.y, b.x - CORE.x);
   return L(['est','sud-est','sud','sud-ouest','ouest','nord-ouest','nord','nord-est'][(Math.round(a / (Math.PI / 4)) + 8) % 8]);
 }
+// The same as a compass abbreviation, for the short swarm warnings: SO in French, SW in English.
+export function compass(b) {
+  const a = Math.atan2(b.y - CORE.y, b.x - CORE.x);
+  return L(['E','SE','S','SO','O','NO','N','NE'][(Math.round(a / (Math.PI / 4)) + 8) % 8]);
+}
 export function nearestBuilding(at) {
   let best = null, close = Infinity;
   for (const c of allCells()) {
@@ -1715,7 +1720,7 @@ export function planSwarm(at) {
   w.gene = G.families[Math.floor(Math.random() * G.families.length)];
   w.size = Math.min(SWARM.most, Math.round(swarmSize(w.wave ? G.time - w.start : 0, baseSize()) * (1 + RING.swarm * ringOf())));
   hooks.playSound('assault_alarm', 2);
-  hooks.tell(L`Essaim en approche du ${bearing(w.from)}, dans ${Math.round(at - G.time)} s : ${w.size} créatures. Leur antidote : ${opposite(w.gene)}.`, {at:w.from, gene:w.gene, bad:true});
+  hooks.tell(L`Essaim du ${compass(w.from)} dans ${Math.round(at - G.time)} s : ${w.size} créatures, antidote ${opposite(w.gene)}.`, {at:w.from, gene:w.gene, bad:true});
 }
 export function swarms() {
   if (!G.base || G.over || G.stage < SWARM.from) return;

@@ -1,5 +1,5 @@
 // The interface around the map: panels, the core card, the guide, the goal and the statistics.
-import { eaten, hungryFor, BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, RANKS, STAGES, TYPES, VEIN, WORM, ahead, allCells, bearing, boxOf, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, joinSide, jobId, key, listens, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
+import { eaten, hungryFor, BORER, BOX, CORE, DX, DY, G, GROWTH_BONUS, GUNS, NERVE, RANKS, STAGES, TYPES, VEIN, WORM, ahead, allCells, bearing, boxOf, compass, built, capOf, cellAt, centreOf, contentOf, coreCell, depositAt, earn, fill, fogTick, follows, fullHp, hasTrait, healing, holdCap, inSight, isBelt, isGun, joinSide, jobId, key, listens, matterUnder, mealRate, opposite, paceOf, perSecond, pocketCap, rankOf, reachOf, readyPort, sites, sizeOf, span, spotHash, unlocked, waveGene } from "../sim/sim.ts";
 import { DEC, L, LOCALE } from "../sim/text.ts";
 import { buyLab, diagnose, packTrouble, packWarning, dronePose, known, labPrice, portSide, rowOf, setHeading, stagePart, upstream } from "./actions.js";
 import { paintPlaylist, playSound } from "./audio.js";
@@ -189,9 +189,8 @@ export function paintThreat() {
   // The next swarm, when it comes sooner than a nest's assault: from where, how many, its antidote.
   const swarm = G.swarm?.next != null && G.swarm.from ? G.swarm : null, swarmIn = swarm ? Math.max(0, Math.ceil(swarm.next - G.time)) : Infinity;
   if (swarm && !active && (!first || swarmIn < left)) {
-    const where = bearing(swarm.from);
     title = L`Essaim dans ${swarmIn} s`; short = `${swarmIn} s`;
-    detail.push(where[0].toUpperCase() + where.slice(1), L`${swarm.size} créatures`);
+    detail.push(L`Du ${compass(swarm.from)}`, L`${swarm.size} créatures`);
     if (G.enemies.length) detail.push(L`${G.enemies.length} sur la carte`);
   } else if (first) {
     const where = bearing(first);

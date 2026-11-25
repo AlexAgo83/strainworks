@@ -42,7 +42,7 @@ it("announces the first swarm on stage 2 with the defence guide, and sends three
 	run(1);
 	expect(G.guide).toMatchObject({ kind: "defense", step: 0 });
 	expect(G.swarm.size).toBe(sim.SWARM.first);
-	expect(told.at(-1)).toMatch(/^Essaim en approche du .+, dans 180 s : 3 créatures\. Leur antidote : [SFCN]{3}\.$/);
+	expect(told.at(-1)).toMatch(/^Essaim du (N|NE|E|SE|S|SO|O|NO) dans 180 s : 3 créatures, antidote [SFCN]{3}\.$/);
 	const at = G.swarm.next;
 	run(at - G.time - 1);
 	expect(swarmers().length).toBe(0);
