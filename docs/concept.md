@@ -355,9 +355,11 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
 - **A mechanic a stage (Decided, 2026-11-24, item_019)**: besides its recipes, stage 2 asks for 30 items sorted aside,
   stage 3 for 30 items passed or sorted under a nerve, stage 4 for 10 creatures killed by their antidote, stage 5 for
   two minutes of a harvester held within a nest's reach.
-- **Swarms and nests (Decided, 2026-11-24, item_016)**: from stage 2, swarms come to the base every 2 minutes, each
-  announced 2 to 3 minutes ahead with where it comes from and its antidote: 3 creatures at first, slow and frail,
-  then one more every 4 minutes and one more every 8 machines past 10. The first one starts the guide "Ta première
+- **Swarms and nests (Decided, 2026-11-24, item_016; spacing changed 2026-11-25)**: from stage 2, swarms come to the
+  base, each announced 3 minutes ahead with where it comes from (a compass abbreviation) and its antidote. Once a swarm
+  is cleared (or 3 minutes after it landed) a quiet minute passes before the next is announced, so two are at least
+  4 minutes apart: 3 creatures at first, slow and frail, then one more every 8 minutes and one more every 8 machines
+  past 10. The first one starts the guide "Ta première
   défense" (a turret, genes for it, a nerve, a wall). Nests stay apart, the heavy guards: every rich deposit lies in
   a kept nest's reach, and a destroyed nest pays its creatures in DNA and frees its ground.
 - **Hunger (Decided, 2026-11-24)**: in a game with drawn base genes, the core eats them continuously. While one it

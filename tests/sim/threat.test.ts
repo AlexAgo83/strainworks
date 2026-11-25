@@ -1,5 +1,5 @@
 // item_016: from stage 2 swarms come to the base at announced times, growing with time and with the base; the first
-// is weak. Nests stay apart: rich deposits sit in a nest's reach, and a destroyed nest pays.
+// is weak, and a quiet minute follows each cleared swarm before the next is announced. Nests stay apart: rich deposits sit in a nest's reach, and a destroyed nest pays.
 import { beforeEach, expect, it } from "vitest";
 import { hooks } from "../../src/sim/hooks.ts";
 import * as sim from "../../src/sim/sim.ts";
@@ -51,15 +51,37 @@ it("announces the first swarm on stage 2 with the defence guide, and sends three
 	expect(first.length).toBe(3);
 	expect(first.every((e: { kind: string; max: number }) => e.kind === "drift" && e.max === sim.SWARM.hp)).toBe(true);
 	expect(sim.kindOf(first[0]).pace).toBeLessThan(1);
-	// The next one is announced at once, a regular interval later.
-	expect(G.swarm.next - at).toBeCloseTo(sim.SWARM.every, 5);
+	// Nothing is announced while it stands; cleared, a quiet minute, then the next, announced as far ahead.
+	run(30);
+	expect(G.swarm.next).toBeNull();
+	G.enemies = G.enemies.filter((e: { home: number }) => e.home !== -1);
+	run(sim.SWARM.quiet - 2);
+	expect(G.swarm.next).toBeNull();
+	run(3);
+	expect(G.swarm.next - G.time).toBeGreaterThan(sim.SWARM.lead - 3);
+	expect(G.swarm.next - at).toBeGreaterThanOrEqual(4 * 60);
+});
+
+it("announces the next swarm anyway when one is never cleared", () => {
+	const { G } = sim;
+	G.stage = 1;
+	run(1);
+	run(G.swarm.next - G.time + 1);
+	const landed = G.time;
+	// Stuck far away and never killed: the base is not left without warnings for ever.
+	for (const e of swarmers()) Object.assign(e, { x: e.x + 400, hp: 1e9, max: 1e9 });
+	run(sim.SWARM.clear + sim.SWARM.quiet + 2);
+	expect(swarmers().length).toBeGreaterThan(0);
+	expect(G.swarm.next).not.toBeNull();
+	expect(G.swarm.next - landed).toBeGreaterThanOrEqual(sim.SWARM.clear + sim.SWARM.quiet + sim.SWARM.lead - 1);
 });
 
 it("never wipes an undefended base with the first swarm", () => {
 	const { G } = sim;
 	G.stage = 1;
 	machines(10);
-	run(sim.SWARM.lead + sim.SWARM.every - 2);
+	// Its first two minutes on the ground, the window a player has to answer it.
+	run(sim.SWARM.lead + 118);
 	expect(G.over).toBe(false);
 	expect(sim.coreCell().hp).toBeGreaterThan(50);
 	const standing = sim.allCells().filter((c: { type: string }) => c.type === "cyst").length;
@@ -68,9 +90,9 @@ it("never wipes an undefended base with the first swarm", () => {
 
 it("grows the swarms with the minutes since the first and with the base", () => {
 	expect(sim.swarmSize(0, 5)).toBe(3);
-	expect(sim.swarmSize(8 * 60, 5)).toBe(5);
+	expect(sim.swarmSize(8 * 60, 5)).toBe(4);
 	expect(sim.swarmSize(0, 26)).toBe(5);
-	expect(sim.swarmSize(16 * 60, 42)).toBe(11);
+	expect(sim.swarmSize(16 * 60, 42)).toBe(9);
 	expect(sim.swarmSize(10 * 3600, 999)).toBe(sim.SWARM.most);
 	// In a game: the waves of a small base and of a large one, half an hour on.
 	const sizes = (n: number) => {

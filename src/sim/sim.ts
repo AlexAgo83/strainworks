@@ -1698,12 +1698,13 @@ export function destroyNest(b) {
   hooks.tell(L`Nid détruit au ${bearing(b)} : +${b.total} ADN, il s’estompe et le terrain est à toi.`, {at:b});
 }
 export function waveGene(b) { return b.genes[(b.genes.length - 1 + Math.max(0, b.wave)) % b.genes.length]; }
-// Swarms (item_016, operator decision 2026-11-24): from stage 2 of a drawn game, swarms come to the base at announced
-// times, growing with the minutes since the first and with the base's machines; the first ones are few, slow and frail,
-// so a learning player loses little. The nests stay apart: the heavy guards of the rich deposits.
-export const SWARM = {from:1, lead:180, every:120, first:3, minutes:4, machines:8, most:40, hp:6, far:30};
+// Swarms (item_016, operator decisions 2026-11-24 and 2026-11-25): from stage 2 of a drawn game, swarms come to the base
+// at announced times, growing with the minutes since the first and with the base's machines; the first ones are few,
+// slow and frail, so a learning player loses little. Once a swarm is cleared (or after `clear` s), a quiet minute, then
+// the next is announced `lead` s ahead: four minutes at least between two. The nests stay apart: the heavy guards.
+export const SWARM = {from:1, lead:180, quiet:60, clear:180, first:3, minutes:8, machines:8, most:40, hp:6, far:30};
 export const baseSize = () => allCells().filter(c => c.type !== 'core' && !isBelt(c) && !isSplit(c) && c.type !== 'bridge' && c.type !== 'sort' && c.type !== 'wall' && c.type !== 'relay').length;
-// How many come: three, one more every 4 minutes since the first, one more every 8 machines past 10.
+// How many come: three, one more every 8 minutes since the first, one more every 8 machines past 10.
 export function swarmSize(since, size) {
   return Math.min(SWARM.most, SWARM.first + Math.floor(since / 60 / SWARM.minutes) + Math.floor(Math.max(0, size - 10) / SWARM.machines));
 }
@@ -1727,6 +1728,13 @@ export function swarms() {
     return;
   }
   const w = G.swarm;
+  if (w.next == null) {
+    // Landed: the next waits for this one to be cleared, then a quiet minute before it is announced.
+    if (G.time - (w.landed ?? -Infinity) < SWARM.clear && G.enemies.some(e => e.home === -1)) return;
+    w.calm ??= G.time;
+    if (G.time - w.calm >= SWARM.quiet) { delete w.calm; planSwarm(G.time + SWARM.lead); }
+    return;
+  }
   if (G.time < w.next) return;
   // The first wave walks slowly; every one lands spread round where it was announced.
   const hp = SWARM.hp + w.wave * 2, kind = w.wave === 0 ? 'drift' : null;
@@ -1735,7 +1743,7 @@ export function swarms() {
     G.enemies.push({x, y, gene:w.gene, hp, max:hp, kind, tier:0, home:-1});
   }
   w.wave++;
-  planSwarm(G.time + SWARM.every);
+  w.next = null; w.landed = G.time;
 }
 export function menace(dt) {
   const awake = G.breaches.filter(b => b.state === 'wake');
