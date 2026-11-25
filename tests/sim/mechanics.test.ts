@@ -120,3 +120,18 @@ it("counts for stage 3 what a sorter steered by a nerve sends aside, and nothing
 	expect(G.needs[0].need).toBe("nerve");
 	expect(G.needs[0].fed).toBeGreaterThan(0);
 });
+
+it("lets a gate listening to the core pass the capsules the core asks for, as the stage 3 nerve needs", () => {
+	const { G, CORE } = sim;
+	while (G.stage < 2) sim.grow();
+	const capsule = G.goals.find((g: { item: string }) => sim.boxOf(g.item) === "T").item;
+	const x = CORE.x + 12, y = CORE.y;
+	const gate = sim.put("gate", x, y, 1);
+	const core = sim.coreCell();
+	G.wires.push({ a: sim.key(gate.x, gate.y), b: sim.key(core.x, core.y), hp: sim.NERVE.hp, left: 0, order: 1, color: 0 });
+	sim.sense();
+	expect(sim.listens(gate)).toBe(true);
+	expect(sim.accepts(gate, capsule, 1)).toBe(true);
+	// What the core does not ask for still waits.
+	expect(sim.accepts(gate, "T:NNNNNN", 1)).toBe(false);
+});

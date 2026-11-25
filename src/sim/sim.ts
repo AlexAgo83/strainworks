@@ -1305,9 +1305,11 @@ export function gateCondition(c) {
 }
 export const gateOpen = c => gateCondition(c) && !(c.batch && (c.passed || 0) >= c.batch);
 export const WATCHES = ['low', 'full', 'threatLow', 'threatOrLow'];
+// A capsule is the core's, never ammunition: it passes only where the core is heard and asks for it.
 export function asked(c, item) {
   const net = heardOf(c), place = c.read || 0;
-  return place ? item.length === 1 && Boolean(net.focus) && net.focus[place - 1] === item : boxOf(item) !== 'T' && net.list.includes(contentOf(item));
+  if (place) return item.length === 1 && Boolean(net.focus) && net.focus[place - 1] === item;
+  return boxOf(item) === 'T' ? Boolean(net.core) && (G.goals || []).some(g => g.item === item && g.fed < g.count) : net.list.includes(contentOf(item));
 }
 export function connects(c, travel) {
   if (!c) return false;
