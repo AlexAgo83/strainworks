@@ -8,7 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 23:38:24
+> Indicators reviewed: 2026-11-25 02:17:50
 
 # AI Context
 - Summary: Hexagons farther from the first purified one are harder: more enemy families, stronger swarms, poorer deposits.
@@ -64,6 +64,7 @@ Every hexagon would play the same, so purifying more of the planet would add len
 - Hybrid rationale: Derived from request `req_001_design_the_endgame_after_hatching` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_001_design_the_endgame_after_hatching.md`.
 - Generated locally by logics-manager.
+- Task `task_004_orchestrate_the_endgame_after_hatching` was finished via `logics-manager flow finish task` on 2026-11-25.
 
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |

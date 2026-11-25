@@ -4,6 +4,7 @@ import { L } from "../sim/text.ts";
 import { breachesIn } from "./actions.js";
 import { musicTick, playSound, startSound } from "./audio.js";
 import { animateHud } from "./hud.js";
+import { meetConcepts } from "./unlock.js";
 import { refresh, setCursor } from "./input.js";
 import { followEdge, glide } from "./keys.js";
 import { $, sound, LAB, LAB_FILES, LAB_GENES, LAB_PIECES, SOUNDS, armed, before, buildable, cam, drawnAt, labTake, mainSet, music, orbit, owed, paused, planetOwed, restartText, resting, savedAt, sfx, shownAt, slotId, slotKey, speed, view } from "./main.js";
@@ -186,7 +187,7 @@ export function frame(now) {
     while (owed >= STEP) { step(STEP); mainSet.owed(owed - (STEP)); }
   }
   if (armed && Date.now() > armed) { mainSet.armed(0); restartText(L('Recommencer : maintenir')); }
-  if (now-shownAt > 250) { refresh(); mainSet.shownAt(now); }
+  if (now-shownAt > 250) { refresh(); meetConcepts(); mainSet.shownAt(now); }
   if (now-savedAt > 3000) { save(); mainSet.savedAt(now); }
   paces.clear();
   glide(elapsed);

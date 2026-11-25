@@ -3,6 +3,7 @@ import { HARVESTERS_PER_DEPOSIT, depositFull, leave, perSecond, hungryFor, BASE,
 import { DEC, L } from "../sim/text.ts";
 import { breachesIn, build, diagnose, incubate, itemName, keepIt, keepVein, known, layTrack, link, netSummary, netWires, portSide, raise, rowOf, scrap, scrapVein, setHeading, siteFor, sourceName, wireUp } from "./actions.js";
 import { playSound } from "./audio.js";
+import { offerConcept } from "./unlock.js";
 import { markOf, mechanicName, openFamily, paintHud, paintInfo, paintRanks, refuse, replay } from "./hud.js";
 import { $, handRank, KEYS, keyName, BATCHES, CURSORS, DESK_NAMES, FAMILY_OF, HOLD_MS, ICONS, JOKER, MATTER, NARROW, NEEDS, NERVE_COLORS, PREVIEW, RANK_NEED, SHAPE, STILL, TURN, WAYS, cam, canRise, canvas, chain, costInHand, crossing, cursor, drag, flat, freshOn, gesture, heading, holdsAnything, hovered, inHand, inside, isSource, levelOf, linking, listening, mainSet, named, note, paused, piecesOf, placeable, playNear, pointers, price, rankOpen, ruinAt, selected, tabbed, tileAt, tileKey, tool, trackAt, ui, upCost, view, view3d, whyNot, wiring, wormId } from "./main.js";
 import { arrow, circle, drawCell, glyph, polygon, rect, worldAt } from "./render.js";
@@ -450,6 +451,7 @@ export function place(x,y) {
   const cost = costInHand(tool);
   if (cost > G.dna) return refuse(L`Il manque ${cost - G.dna} ADN. Envoie au cœur des gènes qu’il ne demande pas, ou vide une brèche.`);
   if (tool === 'mine' && !depositAt(x,y)) return refuse(L('Un récolteur se pose sur un gisement coloré.'));
+  if (tool === 'mine' && !cellAt(x,y) && depositFull(x,y)) offerConcept('cap');
   if (tool === 'mine' && !cellAt(x,y) && depositFull(x,y)) return refuse(L`Ce gisement nourrit déjà ${HARVESTERS_PER_DEPOSIT} récolteurs. Partage la sortie de l’un d’eux avec un diviseur, ou passe-le en MK2.`);
   G.dna -= price(tool);
   buildRanked(tool,x,y,heading); select(id); say(TYPES[tool].help + (cost ? L` Payé ${cost} ADN.` : ''));

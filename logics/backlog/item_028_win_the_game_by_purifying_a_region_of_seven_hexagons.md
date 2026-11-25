@@ -8,7 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-11-24 23:38:24
+> Indicators reviewed: 2026-11-25 02:17:51
 
 # AI Context
 - Summary: Purifying a region, one hexagon and its six neighbours, is the grand victory, shown once with the planet changed.
@@ -64,6 +64,7 @@ Without a final goal the conquest has no end the player can aim for.
 - Hybrid rationale: Derived from request `req_001_design_the_endgame_after_hatching` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_001_design_the_endgame_after_hatching.md`.
 - Generated locally by logics-manager.
+- Task `task_004_orchestrate_the_endgame_after_hatching` was finished via `logics-manager flow finish task` on 2026-11-25.
 
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |

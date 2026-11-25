@@ -8,6 +8,7 @@
 > Complexity: High
 > Theme: Game design
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-11-25 02:17:52
 
 # AI Context
 - Summary: Existing planets and saves move to the purification model without losing a game.
@@ -61,6 +62,7 @@ Players already hold won games and games in progress on hexagons that the new ru
 - Hybrid rationale: Derived from request `req_001_design_the_endgame_after_hatching` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_001_design_the_endgame_after_hatching.md`.
 - Generated locally by logics-manager.
+- Task `task_004_orchestrate_the_endgame_after_hatching` was finished via `logics-manager flow finish task` on 2026-11-25.
 
 # Executions
 | When | Runner | Run id | Title | State | PR | Notes |

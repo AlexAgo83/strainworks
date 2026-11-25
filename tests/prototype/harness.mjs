@@ -117,6 +117,8 @@ function cardsSeen() {
   document.addEventListener("DOMContentLoaded", () => {
     try {
       if (!localStorage.getItem("strainworks-cards") && typeof CARD_TYPES !== "undefined") localStorage.setItem("strainworks-cards", JSON.stringify(CARD_TYPES));
+      // The concept cards a running game meets (the planet's own are left to their tests).
+      if (!localStorage.getItem("strainworks-concepts")) localStorage.setItem("strainworks-concepts", JSON.stringify(["genes", "mechanic", "swarm", "nest", "pack", "cap"]));
     } catch (_) {}
   });
 }

@@ -1,8 +1,9 @@
 // The card a building shows the first time it is picked once unlocked (docs/design/unlock-card): a small looping
 // scene drawn with the game's own renderer, what it is for, its controls. Replayed from the help, Bâtiments.
-import { BIG, DX, DY, RANKS, TYPES, cell, hasTrait } from "../sim/sim.ts";
+import { BIG, DX, DY, G, RANKS, TYPES, allCells, cell, hasTrait, hungryFor } from "../sim/sim.ts";
 import { L } from "../sim/text.ts";
-import { $, FAMILIES, KEYS, NEEDS, STILL, keyName } from "./main.js";
+import { $, FAMILIES, KEYS, NEEDS, STILL, keyName, modalOpen, paused } from "./main.js";
+import { packWarning } from "./actions.js";
 import { drawCell, rect, token } from "./render.js";
 import { keep, stored } from "./saves.js";
 import { CONCEPTS, conceptIds } from "./concepts.js";
@@ -121,6 +122,19 @@ export function offerConcept(id) {
   keep(CONCEPTS_KEY, JSON.stringify([...met(), id]));
   showConcept(id);
   return true;
+}
+// The rules of a running game, each met the first time its moment comes; the harvester cap when a fourth is refused.
+const MOMENTS = {
+  genes:() => G.base && G.time > 3 && hungryFor().length > 0,
+  mechanic:() => G.base && G.goals && G.needs?.length > 0,
+  swarm:() => G.swarm?.next != null,
+  nest:() => G.breaches?.some(b => b.state === 'wake'),
+  pack:() => allCells().some(c => c.type === 'pack' && packWarning(c)),
+};
+export function meetConcepts() {
+  if (!G || G.over || paused || modalOpen() || !$('intro')?.hidden) return;
+  const id = Object.keys(MOMENTS).find(one => !met().includes(one) && MOMENTS[one]());
+  if (id) offerConcept(id);
 }
 export function showConcept(id, fresh = true) {
   const concept = CONCEPTS[id], box = $('unlock');
