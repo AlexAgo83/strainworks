@@ -5,7 +5,7 @@
 <p align="center"><b>Write the living. Make it a factory. Survive its mutations.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.2-B7F34A" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.2.3-B7F34A" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-2E8B57" alt="License" />
   <img src="https://img.shields.io/badge/Babylon.js-9-BB464B" alt="Babylon.js" />
   <img src="https://img.shields.io/badge/status-prototype-66D9EA" alt="Status" />
@@ -130,6 +130,9 @@ npm run check
 `npm test` replays the prototype in headless Chromium: belt motion, carbon and containers, sorters, bridges, gates, deposits and veins, breaches and damage, economy, construction by drone, dismantling and repair, the endless map, the preview under the pointer, worms, progression, nerves and the 3D view. Each run is seeded and compared with the recorded results in `tests/prototype/__snapshots__/`, and saves from earlier prototype versions must still load.
 
 When a rule changes on purpose, rerun with `npm test -- -u` and read the snapshot diff before committing it: that diff is the gameplay change.
+
+`npm run playthrough` plays fresh drawn games in the browser through the game's own tools, up to the hatching, and
+prints a JSON line a seed: each stage's asks, time, DNA, losses and errors. It runs on demand, outside `npm test`.
 
 The test browser draws WebGL with SwiftShader, on the CPU. On WSL2 with a GPU driver, `STRAINWORKS_GPU=1` makes it
 render WebGL through Mesa's D3D12 backend (ANGLE over EGL) instead, and `tests/prototype/gpu.test.mjs` checks once a
