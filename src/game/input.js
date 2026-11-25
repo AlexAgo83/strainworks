@@ -1,5 +1,5 @@
 // Tools, placing and dismantling, line drawing and the pointer.
-import { HARVESTERS_PER_DEPOSIT, depositFull, leave, perSecond, hungryFor, BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
+import { HARVESTERS_PER_DEPOSIT, depositFull, isotopeSide, leave, perSecond, hungryFor, BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
 import { DEC, L } from "../sim/text.ts";
 import { breachesIn, build, diagnose, incubate, itemName, keepIt, keepVein, known, layTrack, link, netSummary, netWires, portSide, raise, rowOf, scrap, scrapVein, setHeading, siteFor, sourceName, wireUp } from "./actions.js";
 import { playSound } from "./audio.js";
@@ -790,7 +790,7 @@ export function portsOf(c) {
     case 'borer': return edgesOf(c).map(d => ({...d, out:true}));
     case 'ligase': return [out(c.dir), ...[0, 1, 2].map(port => into(portSide(c, port), {label:String(port + 1)}))];
     case 'join': return [out(c.dir), ...[0, 1].map(port => into(joinSide(c, port), {label:String(port + 1)}))];
-    case 'pack': return [out(c.dir), into(back, {label:L('gènes')}), into(carbonSide(c), {label:L('carbone K')})];
+    case 'pack': return [out(c.dir), into(back, {label:L('gènes')}), into(carbonSide(c), {label:c.box === 'H' ? L('carbone K, isotope I') : L('carbone K')}), ...(c.box === 'H' ? [into(isotopeSide(c), {label:L('carbone K, isotope I')})] : [])];
     case 'split2': case 'split': return [into(back), ...splitExits(c).map(d => out(d))];
     case 'sort': return [into(back), out(c.dir, {label:'reste'}), out(sideExit(c), {label:c.want && c.want !== '?' ? c.want : 'filtre'})];
     case 'bridge': return [0, 1].flatMap(axis => {

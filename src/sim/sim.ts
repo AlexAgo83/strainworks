@@ -1095,10 +1095,13 @@ export function crawl(dt) {
   }
 }
 export function carbonSide(c) { return (c.dir + (c.flip ? 1 : 3)) % 4; }
-// 0 for what gets packed, 1 for carbon.
+// A heavy capsule also takes from the other side, so carbon and isotope can come on lines of their own: on one line
+// in any ratio but two to one, the one in excess would block the other for good.
+export const isotopeSide = c => (carbonSide(c) + 2) % 4;
+// 0 for what gets packed, 1 for carbon (and isotope).
 export function packPort(c, travel) {
   const from = (travel + 2) % 4;
-  return from === (c.dir + 2) % 4 ? 0 : from === carbonSide(c) ? 1 : -1;
+  return from === (c.dir + 2) % 4 ? 0 : from === carbonSide(c) || (c.box === 'H' && from === isotopeSide(c)) ? 1 : -1;
 }
 export function packTakes(c, item, port) {
   if (port === 1) {

@@ -1073,6 +1073,7 @@ const EN = {
   "S": "S",
   "SO": "SW",
   "Du {}": "From {}",
+  "carbone K, isotope I": "carbon K, isotope I",
   "Gènes de base et faim": "Base genes and hunger",
   "Chaque partie tire {} gènes de base : le cœur en mange un dès le départ, un de plus à chaque stade.": "Each game draws {} base genes: the core eats one from the start, one more each stage.",
   "Sans l’un d’eux depuis {} s, il a faim : ses livraisons ne comptent qu’à moitié.": "Without one of them for {} s, it is hungry: its deliveries count only half.",

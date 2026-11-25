@@ -445,6 +445,8 @@ overshoots counts toward the next shot.
   Harvesters stand on it before stage 5 but only work it from stage 5 on.
 - The Encapsulator's third recipe, Capsule lourde: 12 strands or genes behind, 2 carbon and 1 isotope on the side.
   The side takes exactly what the recipe needs.
+  Since 0.2.3 its other side takes carbon and isotope too, so each can come on its own line: on one line, any ratio
+  but two carbons to one isotope ends with the one in excess blocking the other.
 - Entering stage 5 hatches a fourth drone.
 
 ## 15. Languages
