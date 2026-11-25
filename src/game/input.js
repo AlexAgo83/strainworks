@@ -1,5 +1,5 @@
 // Tools, placing and dismantling, line drawing and the pointer.
-import { HARVESTERS_PER_DEPOSIT, depositFull, perSecond, hungryFor, BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
+import { HARVESTERS_PER_DEPOSIT, depositFull, leave, perSecond, hungryFor, BASE, BOX, DESK, DX, DY, G, GUNS, NERVE, NET, PACK, PRICE, RANKS, REPAIR, STAGES, TYPES, VEIN, WHEN, WORM, ahead, allCells, bearing, boxOf, built, buried, capOf, carbonSide, cell, cellAt, contentOf, depositAt, dropRise, dropWorm, edgesOf, fill, footprint, forgetCells, fullHp, hasTrait, healing, heardOf, isBelt, isBig, isGun, joinSide, key, liftable, mealRate, netOf, network, opposite, outSide, owned, pumps, rankCost, rankOf, reachOf, refund, remove, richAt, sense, setRecipe, sideExit, sites, sizeOf, span, splitExits, trackAfter, trackSize, unlocked, wake, wayOf } from "../sim/sim.ts";
 import { DEC, L } from "../sim/text.ts";
 import { breachesIn, build, diagnose, incubate, itemName, keepIt, keepVein, known, layTrack, link, netSummary, netWires, portSide, raise, rowOf, scrap, scrapVein, setHeading, siteFor, sourceName, wireUp } from "./actions.js";
 import { playSound } from "./audio.js";
@@ -130,6 +130,12 @@ export function showActions() {
     const set = c.ways?.[axis] ?? null, name = axis ? 'Voie ↔' : 'Voie ↕';
     button(`${name} : ${set == null ? 'auto' : ['↑','→','↓','←'][set]}`, () => { turnWay(c, axis); showActions(); });
   });
+  // The bridge alone goes: the belt it was laid over stays, and keeps running.
+  if (c.type === 'bridge' && c.out == null) button(L('Retirer le pont (garder le tapis)'), () => {
+    c.leaves = 'belt';
+    scrap(c, () => { remove(c.x, c.y); leave(c); mainSet.selected(null); });
+    showActions();
+  });
   if (c.type === 'pump') {
     button(L('Tirer une veine'), () => { mainSet.linking(key(c.x, c.y)); say(L('Touche la pompe d’arrivée, ou un sol libre pour en poser une. 24 cases au plus.')); const hint = note; select(null); say(hint); });
     if (c.to) button(c.veinOut != null ? L('Annuler la coupe') : L('Couper la veine'), () => { if (c.veinOut != null) keepVein(c); else scrapVein(c); showActions(); });
@@ -232,6 +238,7 @@ export function showActions() {
   if (c.type === 'ligase') button(L('Vider'), () => { c.ports = [[],[],[]]; c.item = null; });
   if (c.out != null) button(L('Annuler le démontage'), () => { keepIt(c); showActions(); });
   else button(refund(c) ? L`Démonter +${refund(c)}` : L('Démonter'), () => {
+    delete c.leaves;
     scrap(c, () => { remove(c.x,c.y); mainSet.selected(null); });
     showActions();
   });
@@ -356,7 +363,7 @@ export function wipe(x,y) {
   const top = cellAt(x,y) || ruinAt(x,y);
   // A bridge taken down on its own gives its line back: a belt the way it ran. Swept with a line, it goes with it.
   if (top?.type === 'bridge' && !drag) top.leaves = 'belt';
-  if (top) return scrap(top, () => remove(top.x,top.y));
+  if (top) return scrap(top, () => { remove(top.x,top.y); if (top.leaves) leave(top); });
   if (G.tracks[id]) scrap(G.tracks[id], () => { delete G.tracks[id]; });
 }
 // Put down at the rank in hand. Whoever calls has checked the price.

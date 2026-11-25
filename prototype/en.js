@@ -1073,6 +1073,7 @@ const EN = {
   "S": "S",
   "SO": "SW",
   "Du {}": "From {}",
+  "Retirer le pont (garder le tapis)": "Remove the bridge (keep the belt)",
   "Trie sur : {}": "Sorts on: {}",
   "il trie": "it sorts",
   "son lot est passé, tout va tout droit": "its batch went by, everything goes straight on",

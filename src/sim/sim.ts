@@ -667,7 +667,13 @@ export function finishJob({c, field}) {
   if (c.a) { G.wires = G.wires.filter(w => w !== c); sense(); }
   else if (c.path) { dropWorm(c, true); hooks.wormGone(c); }
   else if (G.tracks[key(c.x, c.y)] === c) delete G.tracks[key(c.x, c.y)];
-  else { remove(c.x, c.y); if (c.leaves) put(c.leaves, c.x, c.y, c.dir); }
+  else { remove(c.x, c.y); if (c.leaves) leave(c); }
+}
+// A bridge taken down alone leaves the line it was laid over: a belt running that lane's way, what rode it still on.
+export function leave(c) {
+  const axis = c.dir % 2, lane = c.lanes?.[axis], b = put(c.leaves, c.x, c.y, c.type === 'bridge' ? wayOf(c, axis) ?? c.dir : c.dir);
+  if (lane && b.type === 'belt') { b.item = lane.item; b.t = lane.t; }
+  return b;
 }
 // Where a drone has to be. Along a vein or a nerve, that advances with the work.
 export function workAt({c, field}) {

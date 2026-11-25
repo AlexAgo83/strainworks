@@ -30,7 +30,7 @@ exports[`bridge behaves as the recorded prototype 1`] = `
       2,
       null,
     ],
-    "En prendre un autre (A) | Voie ↕ : ↓ | Voie ↔ : auto | Vider | Démonter",
+    "En prendre un autre (A) | Voie ↕ : ↓ | Voie ↔ : auto | Retirer le pont (garder le tapis) | Vider | Démonter",
   ],
   [
     "errors",

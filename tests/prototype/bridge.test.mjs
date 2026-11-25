@@ -55,6 +55,53 @@ it("puts a bridge where a drawn belt crosses another line, and both flows go on"
   }
 });
 
+it("removes a bridge from its card and leaves the line it crossed running", async () => {
+  const browser = await launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) =>
+      route.request().url().startsWith("http://proto.test") ? route.fulfill({ body: pageHTML(), contentType: "text/html" }) : route.abort(),
+    );
+    await page.goto("http://proto.test/prototype/");
+    await page.evaluate(() => {
+      begin();
+      paused = true;
+      G.open = true;
+      G.breaches = [];
+      // A line west to east, crossed north to south by a drawn belt: a bridge in the middle.
+      const y = CORE.y + 8;
+      put("cyst", CORE.x - 6, y, 1);
+      for (let x = CORE.x - 5; x < CORE.x + 6; x++) put("belt", x, y, 1);
+      put("vault", CORE.x + 6, y, 1);
+      tool = "belt";
+      drag = { x: CORE.x, y: y - 4, moved: false };
+      extend({ x: CORE.x, y: y + 4 });
+      drag = null;
+      tool = "hand";
+      for (const c of Object.values(G.cells)) c.left = 0;
+      cam.x = CORE.x + 0.5; cam.y = y + 0.5; cam.zoom = 40;
+      select(key(CORE.x, y));
+      showActions();
+    });
+    expect(await page.evaluate(() => G.cells[key(CORE.x, CORE.y + 8)].type)).toBe("bridge");
+    await page.locator("#actions button", { hasText: "Retirer le pont (garder le tapis)" }).click();
+    const out = await page.evaluate(() => {
+      const y = CORE.y + 8, west = cellAt(CORE.x - 6, y), east = cellAt(CORE.x + 6, y);
+      for (let i = 0; i < 4000 && G.cells[key(CORE.x, y)]?.type !== "belt"; i++) step(STEP);
+      const left = G.cells[key(CORE.x, y)];
+      let got = 0;
+      for (let i = 0; i < 400; i++) { west.stock = Array(20).fill("F"); step(STEP); got += east.stock.length; east.stock = []; }
+      return { type: left?.type, dir: left?.dir, north: G.cells[key(CORE.x, y - 1)]?.type, flows: got > 40 };
+    });
+    expect(out).toEqual({ type: "belt", dir: 1, north: "belt", flows: true });
+    expect(errors).toEqual([]);
+  } finally {
+    await browser.close();
+  }
+});
+
 it("bridge behaves as the recorded prototype", async () => {
   const { entries, report } = recorder();
   const html = pageHTML();
