@@ -19,6 +19,7 @@
     "format": "biome format --write src",
     "logics:validate": "logics-manager lint --require-status && logics-manager audit --group-by-doc && logics-manager i18n validate",
     "check:versions": "node scripts/check-versions.mjs",
+    "playthrough": "node tests/playthrough/playthrough.mjs",
     "check": "npm run check:versions && npm run lint && npm run typecheck && npm test && npm run logics:validate"
   },
   "devDependencies": {
