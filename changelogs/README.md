@@ -7,6 +7,7 @@
 
 Versions:
 
+- [`0.2.4`](CHANGELOGS_0_2_4.md)
 - [`0.2.3`](CHANGELOGS_0_2_3.md)
 - [`0.2.2`](CHANGELOGS_0_2_2.md)
 - [`0.2.1`](CHANGELOGS_0_2_1.md)

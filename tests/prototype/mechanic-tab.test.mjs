@@ -18,7 +18,7 @@ it("shows the stage's mechanic as a tab, with its count and the card to learn it
 			begin();
 			paused = true;
 			grow();
-			G.needs[0].fed = 3;
+			G.needs[0].fed = 2;
 			const core = coreCell();
 			select(key(core.x, core.y));
 			refresh();
@@ -31,7 +31,7 @@ it("shows the stage's mechanic as a tab, with its count and the card to learn it
 			count: document.querySelector("#sheet .asked .count").textContent,
 			what: document.querySelector("#sheet .need-what").textContent,
 		}));
-		expect(tab).toEqual({ label: "Défense", title: "Défense", count: "3 / 5", what: expect.stringContaining("tourelles") });
+		expect(tab).toEqual({ label: "Défense", title: "Défense", count: "2 / 3", what: expect.stringContaining("tourelles") });
 		await page.click('#sheet [data-card="turret"]');
 		expect(await page.evaluate(() => [document.getElementById("unlock").open, document.getElementById("unlock-title").textContent])).toEqual([true, "Tourelle"]);
 		await page.click("#unlock-ok");

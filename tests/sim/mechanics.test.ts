@@ -30,7 +30,7 @@ it("asks for kills at stage 2, the nerves at 3, the turrets at 4, an outpost at 
 	expect(asked).toEqual(["", "kill", "nerve", "turret", "outpost", ""]);
 });
 
-it("keeps stage 2 until guns have killed 5 creatures, whatever they fired, and never asks for a sorter", () => {
+it("keeps stage 2 until guns have killed 3 creatures, whatever they fired, and never asks for a sorter", () => {
 	const { G, CORE } = sim;
 	reach(1);
 	// A sorter at work counts for nothing any more.
@@ -49,9 +49,9 @@ it("keeps stage 2 until guns have killed 5 creatures, whatever they fired, and n
 	const foe = "SFN";
 	gun.ammo = { [foe]: 40 };
 	const foes = (n: number) => { for (let i = 0; i < n; i++) G.enemies.push({ x: CORE.x + 12.5, y: CORE.y + 0.5, gene: foe, hp: 1, max: 1, tier: 0, home: -1 }); };
-	foes(4);
+	foes(2);
 	run(8);
-	expect(G.needs[0].fed).toBe(4);
+	expect(G.needs[0].fed).toBe(2);
 	expect(G.stage).toBe(1);
 	foes(1);
 	run(3);

@@ -288,7 +288,7 @@ Each building is an incubated strand, in a number of copies to balance. Starting
 - Defense is prepared at the edge of the circle, then the player expands: each advance needs its outpost and its supply.
 - The threat rises with woken or emptied breaches and with production.
 - **A creature targets the nearest turret when that is closer than the core.**
-- **Walls and turrets cost ADN**, so an empty turret is no longer a free decoy. Prototype scale: 80 ADN at the start, turret 20 plus 10 per existing turret (the first is given), wall 5 plus 1 every five. Dismantling refunds in proportion to hit points, rebuilding costs half. A gene delivered to the core or a creature killed earns 1 ADN, an emptied breach pays its creatures. Logistics stay free in the prototype until strand costs exist.
+- **Walls and turrets cost ADN**, so an empty turret is no longer a free decoy. Prototype scale: 80 ADN at the start, turret 20 plus 10 per existing turret (the first is given), wall 5 plus 1 every five. Dismantling refunds in proportion to hit points, rebuilding costs half. A gene delivered to the core earns 1 ADN, a creature killed 3 (1 until 0.2.4), an emptied breach pays its creatures. Logistics stay free in the prototype until strand costs exist.
 - Three kinds of assault are considered: hive awakening hits an outpost, migration cuts lines, mutation creates a new family one base away from an old one.
 - An assault shows its weak gene before it arrives.
 - Each creature has **a single weak gene**, so three bases to counter. The gene fired is compared with its exact opposite, position by position: 3, 2, 1 or 0 correct bases deal **12, 5, 2 or 1 damage**. The player is never blocked.
@@ -356,7 +356,7 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
   the heavy capsule holds one base gene, and the family born at stage 4 is the one a base gene answers, so its
   antidote magazines are magazines of that base gene.
 - **A mechanic a stage (Decided, 2026-11-24, item_019; stage 2 changed 2026-11-25)**: besides its recipes, stage 2
-  asks for 5 creatures killed by a gun (turret, Sting or Maw, whatever it fires), the stage 2 swarms; no stage asks
+  asks for 3 creatures (5 until 0.2.4) killed by a gun (turret, Sting or Maw, whatever it fires), the stage 2 swarms; no stage asks
   for a sorter (it asked for 30 items sorted aside until 0.2.1, and an older game's count is replaced on load), stage 3 for 30 items passed or sorted under a nerve, stage 4 for 10 creatures killed by their antidote, stage 5 for
   two minutes of a harvester held within a nest's reach.
 - **Swarms and nests (Decided, 2026-11-24, item_016; spacing changed 2026-11-25)**: from stage 2, swarms come to the

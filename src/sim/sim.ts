@@ -762,6 +762,8 @@ export function repair(dt) {
       c.veinHp = Math.min(VEIN.hp, c.veinHp + VEIN.hp * dt * REPAIR.share);
   }
 }
+// A creature killed pays 3 DNA (1 until 0.2.4): the swarms pay for the defence they call for.
+export const KILL_PAY = 3;
 export function earn(source, amount) {
   G.dnaBits = (G.dnaBits || 0) + amount;
   const whole = Math.floor(G.dnaBits + 1e-9);
@@ -872,7 +874,7 @@ export const MOST_LINES = 3;
 // (item_019): creatures a gun kills (the stage 2 swarms; it asked for sorted items until 2026-11-25, and no stage
 // may need a sorter), items a nerve lets through, creatures a turret kills with their antidote, seconds a harvester
 // holds out by a nest. A stage grows once its recipes and its mechanic are both done.
-export const MECHANICS = [null, {need:'kill', count:5}, {need:'nerve', count:30}, {need:'turret', count:10}, {need:'outpost', count:120}, null];
+export const MECHANICS = [null, {need:'kill', count:3}, {need:'nerve', count:30}, {need:'turret', count:10}, {need:'outpost', count:120}, null];
 export const drawNeeds = stage => { const m = G.base && MECHANICS[stage]; return m ? [{...m, fed:0}] : []; };
 export const needsMet = () => (G.needs || []).every(n => n.fed >= n.count);
 const stageDone = () => (G.goals || []).every(g => g.fed >= g.count) && needsMet();
@@ -1937,7 +1939,7 @@ export function fire(dt) {
       G.shots.push({x:c.x + .5, y:c.y + .5, tx:target.x, ty:target.y, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
       target.hitAt = G.time;
       if (target.hp <= 0) {
-        G.kills++; earn('kills', 1); credit('kill');
+        G.kills++; earn('kills', KILL_PAY); credit('kill');
         if (ammo === opposite(target.gene)) credit('turret');
         // The body stays a minute and a half, then sinks; a hundred at most, the oldest going first.
         (G.corpses ||= []).push({x:target.x, y:target.y, gene:target.gene, kind:target.kind, at:G.time, a:Math.atan2(target.y - c.y - .5, target.x - c.x - .5)});
@@ -1950,7 +1952,7 @@ export function fire(dt) {
 }
 // A creature killed by something else than a single shot: counted, paid and left on the ground like the others.
 export function slain(e, a) {
-  G.kills++; earn('kills', 1);
+  G.kills++; earn('kills', KILL_PAY);
   (G.corpses ||= []).push({x:e.x, y:e.y, gene:e.gene, kind:e.kind, at:G.time, a});
   if (G.corpses.length > CORPSE.most) G.corpses.shift();
 }
