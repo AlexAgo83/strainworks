@@ -18,7 +18,7 @@ it("shows the stage's mechanic as a tab, with its count and the card to learn it
 			begin();
 			paused = true;
 			grow();
-			G.needs[0].fed = 12;
+			G.needs[0].fed = 3;
 			const core = coreCell();
 			select(key(core.x, core.y));
 			refresh();
@@ -31,12 +31,12 @@ it("shows the stage's mechanic as a tab, with its count and the card to learn it
 			count: document.querySelector("#sheet .asked .count").textContent,
 			what: document.querySelector("#sheet .need-what").textContent,
 		}));
-		expect(tab).toEqual({ label: "Trieur", title: "Trieur", count: "12 / 30", what: expect.stringContaining("trié") });
-		await page.click('#sheet [data-card="sort"]');
-		expect(await page.evaluate(() => [document.getElementById("unlock").open, document.getElementById("unlock-title").textContent])).toEqual([true, "Trieur"]);
+		expect(tab).toEqual({ label: "Défense", title: "Défense", count: "3 / 5", what: expect.stringContaining("tourelles") });
+		await page.click('#sheet [data-card="turret"]');
+		expect(await page.evaluate(() => [document.getElementById("unlock").open, document.getElementById("unlock-title").textContent])).toEqual([true, "Tourelle"]);
 		await page.click("#unlock-ok");
 		await page.click('#sheet [data-sheet-tab="info"]');
-		expect(await page.evaluate(() => document.querySelector("#sheet .stage-page").textContent)).toContain("Ce stade demandeTrieur");
+		expect(await page.evaluate(() => document.querySelector("#sheet .stage-page").textContent)).toContain("Ce stade demandeDéfense");
 		expect(errors).toEqual([]);
 	} finally {
 		await browser.close();

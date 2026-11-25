@@ -51,10 +51,14 @@ it("asks at each stage only for what that stage has open", async () => {
 					// Drawn recipes, as a new game draws them.
 					for (const goal of layeredGoals(stage))
 						check(stage, `recette tirée ${goal.item}`, takes(goal.item));
-					for (const need of drawNeeds(stage))
+					for (const need of drawNeeds(stage)) {
 						check(stage, `mécanique ${need.need}`, [
 							[MECHANIC[need.need].type, open(MECHANIC[need.need].type)],
 						]);
+						// Operator decision 2026-11-25: no stage may need a sorter.
+						if (MECHANIC[need.need].type === "sort")
+							wrong.push(`stade ${stage + 1} : la mécanique demande un trieur`);
+					}
 					// The swarm's antidote, for every family the game holds.
 					if (stage >= SWARM.from)
 						for (const family of G.families)

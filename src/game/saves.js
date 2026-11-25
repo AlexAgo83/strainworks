@@ -299,7 +299,7 @@ export function checkGame(game) {
   if (game.goals != null && !(list(game.goals, g => plain(g) && thing(g.item) && count(g.count) && count(g.fed)) && game.goals.length <= 6)) return false;
   if (game.ring != null && !(Number.isInteger(game.ring) && game.ring >= 0 && game.ring < 200)) return false;
   if (game.mutations != null && !(plain(game.mutations) && Object.entries(game.mutations).every(([id, n]) => /^[a-z]{2,20}$/.test(id) && Number.isInteger(n) && n >= 0 && n <= 9))) return false;
-  if (game.needs != null && !(list(game.needs, n => plain(n) && ['sort', 'nerve', 'turret', 'outpost'].includes(n.need) && count(n.count) && count(n.fed)) && game.needs.length <= 2)) return false;
+  if (game.needs != null && !(list(game.needs, n => plain(n) && ['sort', 'kill', 'nerve', 'turret', 'outpost'].includes(n.need) && count(n.count) && count(n.fed)) && game.needs.length <= 2)) return false;
   return true;
 }
 // Either one game, a whole planet, or a bare save.

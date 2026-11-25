@@ -863,9 +863,10 @@ export function inputLines(item) {
 }
 export const MOST_LINES = 3;
 // From stage 2 each stage of a drawn game also asks for a mechanic the game already has, counted as it works
-// (item_019): items a sorter sends aside, items a nerve lets through, creatures a turret kills with their antidote,
-// seconds a harvester holds out by a nest. A stage grows once its recipes and its mechanic are both done.
-export const MECHANICS = [null, {need:'sort', count:30}, {need:'nerve', count:30}, {need:'turret', count:10}, {need:'outpost', count:120}, null];
+// (item_019): creatures a gun kills (the stage 2 swarms; it asked for sorted items until 2026-11-25, and no stage
+// may need a sorter), items a nerve lets through, creatures a turret kills with their antidote, seconds a harvester
+// holds out by a nest. A stage grows once its recipes and its mechanic are both done.
+export const MECHANICS = [null, {need:'kill', count:5}, {need:'nerve', count:30}, {need:'turret', count:10}, {need:'outpost', count:120}, null];
 export const drawNeeds = stage => { const m = G.base && MECHANICS[stage]; return m ? [{...m, fed:0}] : []; };
 export const needsMet = () => (G.needs || []).every(n => n.fed >= n.count);
 const stageDone = () => (G.goals || []).every(g => g.fed >= g.count) && needsMet();
@@ -1925,7 +1926,7 @@ export function fire(dt) {
       G.shots.push({x:c.x + .5, y:c.y + .5, tx:target.x, ty:target.y, hurt, gun:c.type, barrel:gun.volley > 1 ? shot * 2 - 1 : 0, until:G.time + (c.type === 'sting' ? .3 : .16)});
       target.hitAt = G.time;
       if (target.hp <= 0) {
-        G.kills++; earn('kills', 1);
+        G.kills++; earn('kills', 1); credit('kill');
         if (ammo === opposite(target.gene)) credit('turret');
         // The body stays a minute and a half, then sinks; a hundred at most, the oldest going first.
         (G.corpses ||= []).push({x:target.x, y:target.y, gene:target.gene, kind:target.kind, at:G.time, a:Math.atan2(target.y - c.y - .5, target.x - c.x - .5)});

@@ -352,8 +352,9 @@ Producing has a purpose: feeding the core to grow the organism. Breaches guard w
   nests in new games. A recipe takes at most three input lines, this game's base genes counting as one line each:
   the heavy capsule holds one base gene, and the family born at stage 4 is the one a base gene answers, so its
   antidote magazines are magazines of that base gene.
-- **A mechanic a stage (Decided, 2026-11-24, item_019)**: besides its recipes, stage 2 asks for 30 items sorted aside,
-  stage 3 for 30 items passed or sorted under a nerve, stage 4 for 10 creatures killed by their antidote, stage 5 for
+- **A mechanic a stage (Decided, 2026-11-24, item_019; stage 2 changed 2026-11-25)**: besides its recipes, stage 2
+  asks for 5 creatures killed by a gun (turret, Sting or Maw, whatever it fires), the stage 2 swarms; no stage asks
+  for a sorter (it asked for 30 items sorted aside until 0.2.1, and an older game's count is replaced on load), stage 3 for 30 items passed or sorted under a nerve, stage 4 for 10 creatures killed by their antidote, stage 5 for
   two minutes of a harvester held within a nest's reach.
 - **Swarms and nests (Decided, 2026-11-24, item_016; spacing changed 2026-11-25)**: from stage 2, swarms come to the
   base, each announced 3 minutes ahead with where it comes from (a compass abbreviation) and its antidote. Once a swarm

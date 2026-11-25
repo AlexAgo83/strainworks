@@ -1,5 +1,5 @@
 // 2D or 3D: Babylon is only fetched when the 3D view is first asked for.
-import { BIG, G, OX, OY, PACK, PRICE, SIGHT, START_DNA, TYPES, cell, cellAt, coreIn, fogTick, fresh, hasTrait, hatchDrones, hungry, key, lightUp, look, nest, newSeed, simSet, survey } from "../sim/sim.ts";
+import { BIG, G, MECHANICS, OX, OY, PACK, PRICE, SIGHT, START_DNA, TYPES, cell, cellAt, coreIn, fogTick, fresh, hasTrait, hatchDrones, hungry, key, lightUp, look, nest, newSeed, simSet, survey } from "../sim/sim.ts";
 import { L } from "../sim/text.ts";
 import { rankFollowers, setHeading, spreadOut, thinNests } from "./actions.js";
 import { playSound } from "./audio.js";
@@ -205,7 +205,7 @@ export function load(text) {
         for (const e of saved.enemies || []) { e.x += OX; e.y += OY; }
       }
     }
-    if (saved && !saved.over && coreIn(saved.cells) && Array.isArray(saved.families)) { simSet.G(saved); if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; for (const c of Object.values(G.cells)) if (Array.isArray(c.hold)) c.hold = c.hold.filter(Boolean); if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
+    if (saved && !saved.over && coreIn(saved.cells) && Array.isArray(saved.families)) { simSet.G(saved); if (!G.paid) { G.dna += START_DNA; G.paid = true; } G.ruins ||= {}; G.tracks ||= {}; G.worms ||= []; G.wires ||= []; for (const c of Object.values(G.cells)) if (Array.isArray(c.hold)) c.hold = c.hold.filter(Boolean); if (!G.drones) hatchDrones(); if (!G.capsules) { G.capsules = true; G.meals = []; if (G.stage === 2) G.fed = Math.floor(G.fed / PACK.size); } G.seed ??= newSeed(); for (const n of G.needs || []) if (n.need === 'sort') Object.assign(n, MECHANICS[1], {fed:n.fed >= n.count ? MECHANICS[1].count : 0}); if (G.stage == null) Object.assign(G, {stage:0, fed:0, held:0, meals:[], open:true}); survey(); repayBonus(); rankFollowers(); if (!G.breaches) { G.woken = 0; nest(); } else thinNests(); if (G.world !== 2) spreadOut(); uncover(); return true; }
   } catch (_) { /* an unreadable save stays where it is: the caller starts a new game */ }
   return false;
 }

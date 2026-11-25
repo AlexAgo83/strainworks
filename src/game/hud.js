@@ -305,12 +305,12 @@ function troubleFor(item) {
 }
 // The mechanic a stage asks for (item_019): its building, what counts, the card that teaches it.
 export const MECHANIC = {
-  sort:{type:'sort', unit:'', what:L('Un trieur envoie de côté ce qui correspond à son filtre : chaque objet trié compte.')},
+  kill:{type:'turret', unit:'', what:L('Abats des créatures avec tes tourelles, Dard et Gueule compris : chaque créature tuée compte.')},
   nerve:{type:'wire', unit:'', what:L('Un feu ou un trieur commandé par un nerf : chaque objet qu’il laisse passer ou trie compte.')},
   turret:{type:'turret', unit:'', what:L('Charge des tourelles en chargeurs d’antidote : chaque créature tuée par son antidote compte.')},
   outpost:{type:'mine', unit:' s', what:L('Un récolteur sur un gisement gardé, à portée d’un nid : chaque seconde où il tient compte.')},
 };
-export const mechanicName = need => need === 'outpost' ? L('Avant-poste') : TYPES[MECHANIC[need].type].name;
+export const mechanicName = need => need === 'outpost' ? L('Avant-poste') : need === 'kill' ? L('Défense') : TYPES[MECHANIC[need].type].name;
 // The goals the sheet shows: drawn recipes, or the one an older stage asks for.
 function sheetGoals(want) {
   if (G.goals && (G.goals.length > 1 || (G.base && G.goals.length))) return G.goals;

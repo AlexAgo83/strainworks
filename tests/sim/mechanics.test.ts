@@ -21,36 +21,40 @@ const reach = (stage: number) => {
 	for (const g of G.goals) g.fed = g.count;
 };
 
-it("asks the sorter at stage 2, the nerves at 3, the turrets at 4, an outpost at 5, and none at 1 or 6", () => {
+it("asks for kills at stage 2, the nerves at 3, the turrets at 4, an outpost at 5, and none at 1 or 6", () => {
 	const asked = [];
 	for (let stage = 0; stage < sim.STAGES.length; stage++) {
 		reach(stage);
 		asked.push(sim.G.needs.map((n: { need: string }) => n.need).join(""));
 	}
-	expect(asked).toEqual(["", "sort", "nerve", "turret", "outpost", ""]);
+	expect(asked).toEqual(["", "kill", "nerve", "turret", "outpost", ""]);
 });
 
-it("keeps stage 2 until a sorter has sent 30 items aside", () => {
+it("keeps stage 2 until guns have killed 5 creatures, whatever they fired, and never asks for a sorter", () => {
 	const { G, CORE } = sim;
 	reach(1);
-	// Every recipe met, a harvester-like store feeding a plain belt: no growth.
-	const x = CORE.x + 12, y = CORE.y;
+	// A sorter at work counts for nothing any more.
+	const x = CORE.x + 12, y = CORE.y + 6;
 	sim.put("cyst", x, y, 1).stock = Array(200).fill("S");
 	sim.put("belt", x + 1, y, 1);
-	sim.put("belt", x + 2, y, 1);
-	run(20);
-	expect(G.stage).toBe(1);
-	// A sorter on the line, its filter on S, its side to a belt going south: what it sorts counts.
-	sim.remove(x + 2, y);
 	const sort = sim.put("sort", x + 2, y, 1);
 	sort.want = "S";
 	sort.side = 1;
-	// The sorted line ends in a burner, so it never fills.
 	sim.put("belt", x + 2, y + 1, 2);
 	sim.put("burn", x + 2, y + 2, 0);
-	run(5);
-	expect(G.needs[0].fed).toBeGreaterThan(0);
-	run(60);
+	run(20);
+	expect(G.needs[0]).toMatchObject({ need: "kill", fed: 0 });
+	// A turret firing what it has, not the antidote: every creature it kills counts.
+	const gun = sim.put("turret", CORE.x + 10, CORE.y, 0);
+	const foe = "SFN";
+	gun.ammo = { [foe]: 40 };
+	const foes = (n: number) => { for (let i = 0; i < n; i++) G.enemies.push({ x: CORE.x + 12.5, y: CORE.y + 0.5, gene: foe, hp: 1, max: 1, tier: 0, home: -1 }); };
+	foes(4);
+	run(8);
+	expect(G.needs[0].fed).toBe(4);
+	expect(G.stage).toBe(1);
+	foes(1);
+	run(3);
 	expect(G.stage).toBe(2);
 });
 
