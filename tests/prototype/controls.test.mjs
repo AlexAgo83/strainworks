@@ -38,6 +38,14 @@ it("moves, picks, opens, dismantles and rebinds as players asked", async () => {
     await page.mouse.move(spot.sx, spot.sy);
     await page.keyboard.press("KeyQ");
     const picked = await page.evaluate(() => [tool, heading, inHand("belt")]);
+    // The same key over bare ground puts the belt down, as key 1 does, and refuses nothing.
+    await page.evaluate(() => { ui.refusedAt = 0; });
+    await page.mouse.move(spot.sx + 200, spot.sy - 150);
+    await page.keyboard.press("KeyQ");
+    const dropped = await page.evaluate(() => tool);
+    const refusedAfter = await page.evaluate(() => ui.refusedAt);
+    await page.mouse.move(spot.sx, spot.sy);
+    await page.keyboard.press("KeyQ");
 
     // A digit opens a family; Shift with a digit takes that family's machine. The belt is put down first.
     await page.keyboard.press("Escape");
@@ -77,6 +85,7 @@ it("moves, picks, opens, dismantles and rebinds as players asked", async () => {
 
     expect(moved).toBe(true);
     expect(picked).toEqual(["belt", 2, 2]);
+    expect([dropped, refusedAfter]).toEqual(["hand", 0]);
     expect(second).toBeTruthy();
     expect(shifted).toBe(second);
     expect(kept).toBe(true);

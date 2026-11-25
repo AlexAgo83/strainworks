@@ -15,11 +15,13 @@ export function loadKeys() {
 export function paintKeys() {
   $('keys').innerHTML = ACTIONS.map(([id, name]) => `<dt><button type="button" data-action="${id}" aria-pressed="${rebinding === id}">${rebinding === id ? L('Appuie sur une touche…') : keyName(KEYS[id])}</button></dt><dd>${name}</dd>`).join('');
 }
-// The eyedropper: the building under the pointer, in hand with its heading and rank.
+// The eyedropper: the building under the pointer, in hand with its heading and rank. Over bare ground it puts down
+// what is in hand, as key 1 does.
 export function pipette() {
   const at = hovered && (view3d ? view3d.pick(hovered) : position(hovered));
   const c = at && inside(at.x, at.y) ? cellAt(at.x, at.y) : null;
-  if (!c || !$('tools').querySelector(`[data-type="${c.type}"]`)) { refuse(L('Pipette : survole un bâtiment à reprendre.')); return; }
+  if (!c) { choose('hand'); return; }
+  if (!$('tools').querySelector(`[data-type="${c.type}"]`)) { refuse(L('Pipette : survole un bâtiment à reprendre.')); return; }
   if (RANKS[c.type]) handRank[c.type] = rankOf(c);
   choose(c.type);
   if (tool === c.type && hasTrait(c.type, 'turn')) setHeading(c.dir);
