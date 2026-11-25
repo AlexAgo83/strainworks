@@ -20,8 +20,13 @@ it("builds a site that plays in 3D and offline under its own policy", async () =
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext({ viewport: { width: 375, height: 700 }, reducedMotion: "reduce" });
-    // The language is asked on first opening: this run picks French, the language it reads.
-    await context.addInitScript(() => { localStorage.setItem("strainworks-lang", "fr"); localStorage.setItem("strainworks-intro", "off"); });
+    // The language is asked on first opening: this run picks French, the language it reads. The game's concept cards
+    // are taken as seen, or the first one would cover the update offer.
+    await context.addInitScript(() => {
+      localStorage.setItem("strainworks-lang", "fr");
+      localStorage.setItem("strainworks-intro", "off");
+      localStorage.setItem("strainworks-concepts", JSON.stringify(["genes", "mechanic", "swarm", "nest", "pack", "cap"]));
+    });
     // Only this site: nothing may be needed from anywhere else.
     await context.route(/^https:/, (route) => route.abort());
     const page = await context.newPage();
